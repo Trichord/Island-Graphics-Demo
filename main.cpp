@@ -7,9 +7,23 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "camera.h"
 
 #define SCREEN_WIDTH 1024
 #define SCREEN_HEIGHT 768
+
+//Delta Time
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+float currentFrame = 0.0f;
+
+//Mouse Positions
+float lastX = SCREEN_WIDTH / 2;
+float lastY = SCREEN_HEIGHT / 2;
+
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+
+bool firstMouseMovement = true;
 
 //Cube
 float vertices[] = {
@@ -69,24 +83,58 @@ glm::vec3 cubePositions[] = {
     glm::vec3(-1.3f,  1.0f, -1.5f)
 };
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height){
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
+}
+
+void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
+
+    if (firstMouseMovement) {
+        lastX = (float)xPos;
+        lastY = (float)yPos;
+        firstMouseMovement = false; 
+    }
+
+    float xOffset = (float)(xPos - lastX);
+    float yOffset = (float)(lastY - yPos);
+
+    lastX = (float)xPos;
+    lastY = (float)yPos;
+
+    camera.ProcessMouseMovement(xOffset, yOffset, GL_TRUE);
+}
+
+void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
+    camera.ProcessMouseScroll((float)yOffset);
 }
 
 void processInput(GLFWwindow* window, Shader targetShader) {
 
+    float movementSpeed = 3.0f * deltaTime;
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
         return;
-    }  
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        camera.ProcessKeyboard(FORWARD, deltaTime);
+    }
+    
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        camera.ProcessKeyboard(BACKWARD, deltaTime);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        camera.ProcessKeyboard(LEFT, deltaTime);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        camera.ProcessKeyboard(RIGHT, deltaTime);
+    }
 }
 
-int main(){
-
-    unsigned int indices[] = {  // note that we start from 0!
-       0, 1, 3,   // first triangle
-       1, 2, 3    // second triangle
-    };
+int main() {
 
     //Creating the window
     glfwInit();
@@ -100,10 +148,10 @@ int main(){
         glfwTerminate();
         return -1;
     }
-    
+
     glfwMakeContextCurrent(window);
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
@@ -113,11 +161,18 @@ int main(){
     //Automatically resize window
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
+    //Enable mouse capture and register callback for mouse movements
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
+
+    //Register mouse scroll-wheel callback function
+    glfwSetScrollCallback(window, scrollCallback);
+
     //Create vertex array objects
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
-  
+
     //Generate vertex buffer objects
     unsigned int VBO;
     glGenBuffers(1, &VBO);
@@ -128,16 +183,10 @@ int main(){
     //Copy vertex data over to the GL_ARRAY_BUFFER
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    //Create Element Buffer Object
-    unsigned int EBO;
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
     //Create shader program
     Shader myShader = Shader("./Shaders/shader.vs", "./Shaders/shader.fs");
     myShader.use();
-    
+
     //Position vertex attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -170,8 +219,8 @@ int main(){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, containerImage);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
-    else 
-        std::cout << "Error loading texture image" << std::endl; 
+    else
+        std::cout << "Error loading texture image" << std::endl;
 
     //Free original image data
     stbi_image_free(containerImage);
@@ -207,18 +256,8 @@ int main(){
     //Set Background Color
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
-    //Define view matrix
-    glm::mat4 view = glm::mat4(1.0f);
-    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-
-    //Define projection matrix
-    glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-
-    //Delta time
-    float deltaTime, currentFrame, lastFrame = 0.0f;
-
     glEnable(GL_DEPTH_TEST);
- 
+
     //Render Loop
     while (!glfwWindowShouldClose(window)) {
 
@@ -229,28 +268,31 @@ int main(){
 
         //Process user input
         processInput(window, myShader);
-      
-        //Clear background
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);       
 
-        //Send model, view, and projection to vertex shader
-        myShader.setMat4("view", view);
+        //Clear background
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        //Define and set projection matrix
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
         myShader.setMat4("projection", projection);
 
+        //Define and set the view matrix
+        glm::mat4 view = camera.GetViewMatrix();
+        myShader.setMat4("view", view);
+        
         for (int i = 0; i < 10; i++) {
-            
-            glm::mat4 model = glm::mat4(1.0f); 
+
+            glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, cubePositions[i]);
             float angle = 20.0f * i;
 
-            if (i % 3 == 0) 
-                angle = glfwGetTime() * 25.0f;
+            if (i % 3 == 0)
+                angle = (float)glfwGetTime() * 25.0f;
 
             model = glm::rotate(model, glm::radians(angle), glm::vec3(0.5f, 1.0f, 0.0f));
-            
 
             myShader.setMat4("model", model);
-            
+
             //Draw our cube
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
