@@ -134,6 +134,14 @@ void processInput(GLFWwindow* window, Shader targetShader) {
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
         camera.ProcessKeyboard(RIGHT, deltaTime);
     }
+
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        camera.ProcessKeyboard(UP, deltaTime);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+        camera.ProcessKeyboard(DOWN, deltaTime);
+    }
 }
 
 int main() {
@@ -280,6 +288,9 @@ int main() {
 
     glEnable(GL_DEPTH_TEST);
 
+    //Messing with lightPosition
+    float lightMovement = 1.25;
+
     //Render Loop
     while (!glfwWindowShouldClose(window)) {
 
@@ -294,38 +305,65 @@ int main() {
         //Clear background
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        lightingShader.use();
+		lightingShader.use();
 
-        //Reset uniforms (switching programs clears them)
-        lightingShader.setVec3("uLightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-        lightingShader.setVec3("uObjectColor", glm::vec3(1.0f, 0.5f, 0.31f));
-        lightingShader.setVec3("uLightPosition", lightPosition);
         lightingShader.setVec3("uViewPosition", camera.Position);
+        lightingShader.setVec3("light.position", lightPosition);
 
-        //Define and set projection matrix
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);    
-        lightingShader.setMat4("projectionMatrix", projection);
+		//Reset uniforms (switching programs clears them)
+		lightingShader.setVec3("uObjectColor", glm::vec3(1.0f, 0.5f, 0.31f));
+		lightingShader.setVec3("uLightPosition", lightPosition);
 
-        //Define and set the view matrix
-        glm::mat4 view = camera.GetViewMatrix();
-        lightingShader.setMat4("viewMatrix", view);
+		//Define and set projection matrix
+		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+		lightingShader.setMat4("projectionMatrix", projection);
 
-        //Cube Model matrix
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::rotate(model, 0.5f * deltaTime, glm::vec3(0, 1.0f, 0.0f));
-        lightingShader.setMat4("modelMatrix", model);
+		//Define and set the view matrix
+		glm::mat4 view = camera.GetViewMatrix();
+		lightingShader.setMat4("viewMatrix", view);
 
-        //Normal matrix
-        glm::mat3 normal = (glm::transpose(glm::inverse(glm::mat3(model))));
-        lightingShader.setMat3("normalMatrix", normal);
+		//Cube Model matrix
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::rotate(model, 0.5f * deltaTime, glm::vec3(0, 1.0f, 0.0f));
+		lightingShader.setMat4("modelMatrix", model);
 
-        //Draw our cube
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+		//Normal matrix
+		glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
+		lightingShader.setMat3("normalMatrix", normal);
+
+        /*  Our default orange-ish cube
+        //Materials
+        lightingShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+        lightingShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+        lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+        lightingShader.setFloat("material.shininess", 32.0f);
+
+        //Light strength and color
+        glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
+        glm::vec3 ambientColor = lightColor * 0.2f;
+        glm::vec3 diffuseColor = lightColor * 0.5f;
+
+        */
+
+        //Gold
+        lightingShader.setVec3("material.ambient", 0.24725f, 	0.1995f, 	0.0745f);
+        lightingShader.setVec3("material.diffuse", 0.75164f, 	0.60648f, 	0.22648f);
+        lightingShader.setVec3("material.specular", 0.628281f, 	0.555802f, 	0.366065f);
+        lightingShader.setFloat("material.shininess", .4f * 128);
+        glm::vec3 ambientColor(1.0f);
+        glm::vec3 diffuseColor(1.0f);
+
+        lightingShader.setVec3("light.ambient", ambientColor);
+        lightingShader.setVec3("light.diffuse", diffuseColor);
+        lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0);
+
+		//Draw our cube
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
         //Draw Light source cube
         lightSourceShader.use();  
-        model = glm::mat4(1.0f);
+
         model = glm::translate(model, lightPosition);
         model = glm::scale(model, glm::vec3(0.2f));
         
