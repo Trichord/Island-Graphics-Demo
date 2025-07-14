@@ -7,6 +7,8 @@ uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
 uniform mat3 normalMatrix;
 
+uniform vec3 uLightPosition;
+
 out vec3 vNormalVector;
 out vec3 vFragPosition;
 
