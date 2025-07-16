@@ -165,10 +165,18 @@ int main() {
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
-    //Create OpenGL Texture ID
-    unsigned int diffuseMap = loadTexture("./Textures/container2.png");
+    //Create OpenGL Texture IDs
     lightingShader.use();
+    
+    glActiveTexture(GL_TEXTURE0);
+    unsigned int diffuseMap = loadTexture("./Textures/container2.png");
     lightingShader.setInt("material.diffuse", 0);
+    glBindTexture(GL_TEXTURE_2D, diffuseMap);
+     
+    glActiveTexture(GL_TEXTURE1);
+    unsigned int specularMap = loadTexture("./Textures/container2_specular.png");
+    lightingShader.setInt("material.specular", 1);
+    glBindTexture(GL_TEXTURE_2D, specularMap);
     
     //Create VAO for our light
     unsigned int lightVAO;
@@ -229,7 +237,6 @@ int main() {
 		lightingShader.setMat3("normalMatrix", normal);
      
 		//Materials
-		lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
 		lightingShader.setFloat("material.shininess", 32.0f);
 
 		//Light strength and color
