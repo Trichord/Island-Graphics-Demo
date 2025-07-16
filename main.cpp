@@ -115,7 +115,7 @@ int main() {
     glfwMakeContextCurrent(window);
 
     //Vsync off
-    //glfwSwapInterval(0);
+    glfwSwapInterval(0);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
@@ -177,7 +177,7 @@ int main() {
     unsigned int specularMap = loadTexture("./Textures/container2_specular.png");
     lightingShader.setInt("material.specular", 1);
     glBindTexture(GL_TEXTURE_2D, specularMap);
-    
+  
     //Create VAO for our light
     unsigned int lightVAO;
     glGenVertexArrays(1, &lightVAO);
