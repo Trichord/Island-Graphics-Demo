@@ -1,4 +1,8 @@
-#version 330 core
+﻿#version 330 core
+
+#define POINT_LIGHT 0u
+#define DIRECTIONAL_LIGHT 1u
+#define SPOT_LIGHT 2u
 
 struct Material{
     sampler2D diffuse;
@@ -7,7 +11,9 @@ struct Material{
 };
 
 struct Light{
-    vec4 position; //If w component is 0, treat as directional.  Otherwise it's a point.
+    vec3 position;
+    vec3 direction;
+   
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -15,7 +21,9 @@ struct Light{
     float constant;
     float linear;
     float quadratic;
-    float cutoff;
+   
+   float cutoff;
+   float outerCutoff;
 
     uint type;
 };
@@ -32,70 +40,95 @@ out vec4 FragColor;
 
 void main(){
 
-const uint point = 0u;
-const uint directional = 1u;
-const uint spot = 2u;
-
 vec3 lightDirection, viewDirection, reflectDirection, diffuseLight, ambientLight, specularLight;
 float diff, spec;
 
 //Normalize incoming surface normal vector (may have been distorted by scale/rotation from normal matrix) and calculate direction from light to fragment
 vec3 norm = normalize(vNormalVector);
 
-switch (light.type){
+    switch (light.type){
 
-case point:
+    case POINT_LIGHT:
 
-    lightDirection = normalize(vec3(light.position) - vFragPosition);
-    float lightDistance = length(vec3(light.position) - vFragPosition);
-    float attenuation = 1.0f / (light.constant + light.linear * lightDistance + light.quadratic * lightDistance * lightDistance);
+        lightDirection = normalize(light.position - vFragPosition);
     
-    //Calculate view direction and specular light reflection direction
-    viewDirection = normalize(uViewPosition - vFragPosition);
-    reflectDirection = reflect(-lightDirection, norm);
-
-    //Ambient light
-    ambientLight = light.ambient * vec3(texture(material.diffuse, vTexCoords));
-
-    //Diffuse light
-    diff = max(dot(norm, lightDirection), 0.0f);
-    diffuseLight = light.diffuse * diff * vec3(texture(material.diffuse, vTexCoords));
-
-    //Specular light
-    spec = pow(max(dot(viewDirection, reflectDirection), 0.0f), material.shininess);
-    specularLight = light.specular * spec * vec3(texture(material.specular, vTexCoords));
-
-    ambientLight *= attenuation;
-    diffuseLight *= attenuation;
-    specularLight *= attenuation;
+        float lightDistance = length(light.position - vFragPosition);
+        float attenuation = 1.0f / (light.constant + light.linear * lightDistance + light.quadratic * lightDistance * lightDistance);
     
-    FragColor = vec4(ambientLight + diffuseLight + specularLight, 1.0f);
-    break;
+        //Calculate view direction and specular light reflection direction
+        viewDirection = normalize(uViewPosition - vFragPosition);
+        reflectDirection = reflect(-lightDirection, norm);
 
-case directional:
+        //Ambient light
+        ambientLight = light.ambient * vec3(texture(material.diffuse, vTexCoords));
 
-    lightDirection = vec3(normalize(-light.position));
-    //Calculate view direction and specular light reflection direction
-    viewDirection = normalize(uViewPosition - vFragPosition);
-    reflectDirection = reflect(-lightDirection, norm);
+        //Diffuse light
+        diff = max(dot(norm, lightDirection), 0.0f);
+        diffuseLight = light.diffuse * diff * vec3(texture(material.diffuse, vTexCoords));
 
-    //Ambient light
-    ambientLight = light.ambient * vec3(texture(material.diffuse, vTexCoords));
+        //Specular light
+        spec = pow(max(dot(viewDirection, reflectDirection), 0.0f), material.shininess);
+        specularLight = light.specular * spec * vec3(texture(material.specular, vTexCoords));
 
-    //Diffuse light
-    diff = max(dot(norm, lightDirection), 0.0f);
-    diffuseLight = light.diffuse * diff * vec3(texture(material.diffuse, vTexCoords));
+        ambientLight *= attenuation;
+        diffuseLight *= attenuation;
+        specularLight *= attenuation;
+    
+        FragColor = vec4(ambientLight + diffuseLight + specularLight, 1.0f);
+        break;
 
-    //Specular light
-    spec = pow(max(dot(viewDirection, reflectDirection), 0.0f), material.shininess);
-    specularLight = light.specular * spec * vec3(texture(material.specular, vTexCoords));
+    case DIRECTIONAL_LIGHT:
 
-    FragColor = vec4(ambientLight + diffuseLight + specularLight, 1.0f);
-    break;
+        lightDirection = normalize(-light.position);
+    
+        //Calculate view direction and specular light reflection direction
+        viewDirection = normalize(uViewPosition - vFragPosition);
+        reflectDirection = reflect(-lightDirection, norm);
 
-case spot:
+        //Ambient light
+        ambientLight = light.ambient * vec3(texture(material.diffuse, vTexCoords));
 
-    break;
+        //Diffuse light
+        diff = max(dot(norm, lightDirection), 0.0f);
+        diffuseLight = light.diffuse * diff * vec3(texture(material.diffuse, vTexCoords));
 
-}
+        //Specular light
+        spec = pow(max(dot(viewDirection, reflectDirection), 0.0f), material.shininess);
+        specularLight = light.specular * spec * vec3(texture(material.specular, vTexCoords));
+
+        FragColor = vec4(ambientLight + diffuseLight + specularLight, 1.0f);
+        break;
+
+    case SPOT_LIGHT:
+
+        lightDirection = normalize(light.position - vFragPosition);
+    
+        //Intensity = (θ − γ) / ϵ.  Epsilon = inner cutoff - outer cutoff
+        float theta = dot(lightDirection, normalize(-light.direction));
+        float epislon = light.cutoff - light.outerCutoff;
+        float intensity = clamp((theta - light.outerCutoff) / epislon, 0.0f, 1.0f);
+
+        //Calculate view direction and specular light reflection direction
+        viewDirection = normalize(uViewPosition - vFragPosition);
+        reflectDirection = reflect(-lightDirection, norm);
+
+        //Ambient light
+        ambientLight = light.ambient * vec3(texture(material.diffuse, vTexCoords));
+
+        //Diffuse light
+        diff = max(dot(norm, lightDirection), 0.0f);
+        diffuseLight = light.diffuse * diff * vec3(texture(material.diffuse, vTexCoords));
+
+        //Specular light
+        spec = pow(max(dot(viewDirection, reflectDirection), 0.0f), material.shininess);
+        specularLight = light.specular * spec * vec3(texture(material.specular, vTexCoords));
+
+        //Add spotlight intensity
+        diffuseLight *= intensity;
+        specularLight *= intensity;
+
+        FragColor = vec4(ambientLight + diffuseLight + specularLight, 1.0f);        
+
+        break;
+    }
 };
