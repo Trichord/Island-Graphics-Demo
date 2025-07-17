@@ -254,20 +254,26 @@ int main() {
 		lightingShader.setVec3("light.diffuse", diffuseColor);
 		lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0);
         
-        //Directional
-        lightingShader.setVec4("light.position", -0.2f, -1.0f, -0.3f, 0.0f); //Directional
-        lightingShader.setIntU("light.type", DIRECTIONAL_LIGHT);
-        
         /*
-        //Point
-        lightingShader.setVec4("light.position", glm::vec4(lightPosition, 1.0f)); //Point
+        lightingShader.setIntU("light.type", DIRECTIONAL_LIGHT);
+        lightingShader.setVec3("light.position", -0.2f, -1.0f, -0.3f); //Directional
+        
         lightingShader.setIntU("light.type", POINT_LIGHT);
+        lightingShader.setVec3("light.position", lightPosition); //Point
         */
+
+        //Spotlight
+        lightingShader.setIntU("light.type", SPOT_LIGHT);
+
+        lightingShader.setVec3("light.position", camera.Position);
+        lightingShader.setVec3("light.direction", camera.Front);
+        lightingShader.setFloat("light.cutoff", glm::cos(glm::radians(12.5f)));
+        lightingShader.setFloat("light.outerCutoff", glm::cos(glm::radians(17.5f)));
         
         lightingShader.setFloat("light.constant", 1.0f);
         lightingShader.setFloat("light.linear", 0.07f);
         lightingShader.setFloat("light.quadratic", 0.017f);
- 
+
 		//Draw our cube
         for (int i = 0; i < 10; i++){
             glm::mat4 model = glm::mat4(1.0f);
@@ -282,6 +288,7 @@ int main() {
 		glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
+        /* Disabled for flashlight testing
         //Draw Light source cube
         lightSourceShader.use();  
         
@@ -296,6 +303,7 @@ int main() {
 
         glBindVertexArray(lightVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+        */
 
         glfwSwapBuffers(window);
         glfwPollEvents();
