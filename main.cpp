@@ -1,6 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
-#define SCREEN_WIDTH 2560
-#define SCREEN_HEIGHT 1440
+#define SCREEN_WIDTH 1920
+#define SCREEN_HEIGHT 1080
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -23,6 +23,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xPos, double yPos);
 void scrollCallback(GLFWwindow* window, double xOffset, double yOffset);
 void processInput(GLFWwindow* window, Shader targetShader);
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 unsigned int loadTexture(char const* path);
 
 //Delta Time
@@ -37,6 +38,9 @@ float lastY = SCREEN_HEIGHT / 2;
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
 bool firstMouseMovement = true;
+bool spotLightOn = false;
+bool directionalLightOn = false;
+bool pointLightsOn = true;
 
 //Textured Cube
 float vertices[] = {
@@ -97,7 +101,12 @@ glm::vec3 cubePositions[] = {
     glm::vec3(-1.3f,  1.0f, -1.5f)
 };
 
-glm::vec3 lightPosition(1.2f, 1.0f, 2.0);
+glm::vec3 pointLightPositions[] = {
+    glm::vec3(0.7f,  0.2f,  2.0f),
+    glm::vec3(2.3f, -3.3f, -4.0f),
+    glm::vec3(-4.0f,  2.0f, -12.0f),
+    glm::vec3(0.0f,  0.0f, -3.0f)
+};
 
 int main() {
 
@@ -121,8 +130,8 @@ int main() {
 
     glfwMakeContextCurrent(window);
 
-    //Vsync off
-    glfwSwapInterval(0);
+    //Vsync
+    //glfwSwapInterval(0);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
@@ -140,6 +149,9 @@ int main() {
 
     //Register mouse scroll-wheel callback function
     glfwSetScrollCallback(window, scrollCallback);
+
+    //
+    glfwSetKeyCallback(window, keyCallback);
 
     //Compile shader programs
     Shader lightingShader = Shader("./Shaders/shader.vert", "./Shaders/shader.frag");
@@ -219,12 +231,7 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		lightingShader.use();
-
         lightingShader.setVec3("uViewPosition", camera.Position);
-        lightingShader.setVec3("light.position", lightPosition);
-
-		//Reset uniforms (switching programs clears them)
-		lightingShader.setVec3("uLightPosition", lightPosition);
 
 		//Define and set projection matrix
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
@@ -233,15 +240,7 @@ int main() {
 		//Define and set the view matrix
 		glm::mat4 view = camera.GetViewMatrix();
 		lightingShader.setMat4("viewMatrix", view);
-
-		//Define and set model matrix;
-		//glm::mat4 model = glm::mat4(1.0f);
-		//lightingShader.setMat4("modelMatrix", model);
-
-		//Normal matrix
-		//glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
-		//lightingShader.setMat3("normalMatrix", normal);
-     
+    
 		//Materials
 		lightingShader.setFloat("material.shininess", 32.0f);
 
@@ -250,60 +249,106 @@ int main() {
 		glm::vec3 ambientColor = lightColor * 0.2f;
         glm::vec3 diffuseColor = lightColor * 0.5f;
 
-		lightingShader.setVec3("light.ambient", ambientColor);
-		lightingShader.setVec3("light.diffuse", diffuseColor);
-		lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0);
+        if (directionalLightOn) {
+            lightingShader.setBool("directionalLightOn", true);
+            //Directional
+            lightingShader.setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
+            lightingShader.setVec3("directionalLight.ambient", ambientColor);
+            lightingShader.setVec3("directionalLight.diffuse", diffuseColor);
+            lightingShader.setVec3("directionalLight.specular", 1.0f, 1.0f, 1.0f);
+        }
+        else 
+            lightingShader.setBool("directionalLightOn", false);
         
-        /*
-        lightingShader.setIntU("light.type", DIRECTIONAL_LIGHT);
-        lightingShader.setVec3("light.position", -0.2f, -1.0f, -0.3f); //Directional
-        
-        lightingShader.setIntU("light.type", POINT_LIGHT);
-        lightingShader.setVec3("light.position", lightPosition); //Point
-        */
+        if (pointLightsOn) {
+            lightingShader.setBool("pointLightOn", true);
+
+            //Point Light 1
+            lightingShader.setVec3("pointLights[0].position", pointLightPositions[0]);
+            lightingShader.setVec3("pointLights[0].ambient", ambientColor);
+            lightingShader.setVec3("pointLights[0].diffuse", diffuseColor);
+            lightingShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
+            lightingShader.setFloat("pointLights[0].constant", 1.0f);
+            lightingShader.setFloat("pointLights[0].linear", 0.14f);
+            lightingShader.setFloat("pointLights[0].quadratic", 0.07f);
+
+            //Point Light 2
+            lightingShader.setVec3("pointLights[1].position", pointLightPositions[1]);
+            lightingShader.setVec3("pointLights[1].ambient", ambientColor);
+            lightingShader.setVec3("pointLights[1].diffuse", diffuseColor);
+            lightingShader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
+            lightingShader.setFloat("pointLights[1].constant", 1.0f);
+            lightingShader.setFloat("pointLights[1].linear", 0.14f);
+            lightingShader.setFloat("pointLights[1].quadratic", 0.07f);
+
+            //Point Light 3
+            lightingShader.setVec3("pointLights[2].position", pointLightPositions[2]);
+            lightingShader.setVec3("pointLights[2].ambient", ambientColor);
+            lightingShader.setVec3("pointLights[2].diffuse", diffuseColor);
+            lightingShader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
+            lightingShader.setFloat("pointLights[2].constant", 1.0f);
+            lightingShader.setFloat("pointLights[2].linear", 0.14f);
+            lightingShader.setFloat("pointLights[2].quadratic", 0.07f);
+
+            //Point Light 4
+            lightingShader.setVec3("pointLights[3].position", pointLightPositions[3]);
+            lightingShader.setVec3("pointLights[3].ambient", ambientColor);
+            lightingShader.setVec3("pointLights[3].diffuse", diffuseColor);
+            lightingShader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
+            lightingShader.setFloat("pointLights[3].constant", 1.0f);
+            lightingShader.setFloat("pointLights[3].linear", 0.14f);
+            lightingShader.setFloat("pointLights[3].quadratic", 0.07f);
+        }
+        else
+            lightingShader.setBool("pointLightOn", false);
 
         //Spotlight
-        lightingShader.setIntU("light.type", SPOT_LIGHT);
-
-        lightingShader.setVec3("light.position", camera.Position);
-        lightingShader.setVec3("light.direction", camera.Front);
-        lightingShader.setFloat("light.cutoff", glm::cos(glm::radians(12.5f)));
-        lightingShader.setFloat("light.outerCutoff", glm::cos(glm::radians(17.5f)));
-        
-        lightingShader.setFloat("light.constant", 1.0f);
-        lightingShader.setFloat("light.linear", 0.07f);
-        lightingShader.setFloat("light.quadratic", 0.017f);
+        if (spotLightOn) {
+            lightingShader.setBool("spotLightOn", true);
+            lightingShader.setVec3("spotLight.position", camera.Position);
+            lightingShader.setVec3("spotLight.direction", camera.Front);
+            lightingShader.setFloat("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
+            lightingShader.setFloat("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
+            lightingShader.setVec3("spotLight.ambient", ambientColor);
+            lightingShader.setVec3("spotLight.diffuse", diffuseColor);
+            lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+        }
+        else
+            lightingShader.setBool("spotLightOn", false);
 
 		//Draw our cube
         for (int i = 0; i < 10; i++){
-            glm::mat4 model = glm::mat4(1.0f);
             float angle = 20.0f * i;
+            glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, cubePositions[i]);
             model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
             lightingShader.setMat4("modelMatrix", model);
+
             glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
             lightingShader.setMat3("normalMatrix", normal);
 
-		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		    glBindVertexArray(VAO);
+		    glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
-        /* Disabled for flashlight testing
-        //Draw Light source cube
-        lightSourceShader.use();  
-        
-        glm::mat4 model = glm::mat4(1.0f);
-        //model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPosition);
-        model = glm::scale(model, glm::vec3(0.2f));
-        
-        lightSourceShader.setMat4("viewMatrix", view);
-        lightSourceShader.setMat4("projectionMatrix", projection);
-        lightSourceShader.setMat4("modelMatrix", model);
+        if (pointLightsOn) {
+            //Draw Light source cube
+            lightSourceShader.use();
 
-        glBindVertexArray(lightVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        */
+            for (int i = 0; i < 4; i++) {
+                glm::mat4 model = glm::mat4(1.0f);
+                model = glm::mat4(1.0f);
+                model = glm::translate(model, pointLightPositions[i]);
+                model = glm::scale(model, glm::vec3(0.125f));
+
+                lightSourceShader.setMat4("viewMatrix", view);
+                lightSourceShader.setMat4("projectionMatrix", projection);
+                lightSourceShader.setMat4("modelMatrix", model);
+
+                glBindVertexArray(lightVAO);
+                glDrawArrays(GL_TRIANGLES, 0, 36);
+            }
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -353,29 +398,23 @@ void processInput(GLFWwindow* window, Shader targetShader) {
         return;
     }
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
-    }
 
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         camera.ProcessKeyboard(BACKWARD, deltaTime);
-    }
 
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
         camera.ProcessKeyboard(LEFT, deltaTime);
-    }
 
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
-    }
 
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
         camera.ProcessKeyboard(UP, deltaTime);
-    }
 
-    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
         camera.ProcessKeyboard(DOWN, deltaTime);
-    }
 }
 
 //2D Texture from relative path
@@ -421,4 +460,15 @@ unsigned int loadTexture(char const* path) {
     }
     
     return textureID;
+}
+
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+        pointLightsOn = !pointLightsOn;
+    
+    else if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
+        spotLightOn = !spotLightOn;
+
+    else if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+        directionalLightOn = !directionalLightOn;
 }
