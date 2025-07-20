@@ -46,7 +46,7 @@ struct MaterialTexture{
 };
 
 vec3 CalcDirLight(DirectionalLight light, vec3 normal, vec3 viewDir, MaterialTexture materialTexture);
-vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, MaterialTexture materialTexture);  
+vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 reflectDir, vec3 lightDir, MaterialTexture materialTexture);  
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, MaterialTexture materialTexture);
 
 in vec2 vTexCoords;
@@ -76,8 +76,12 @@ if (directionalLightOn)
     result += CalcDirLight(directionalLight, norm, viewDirection, materialTexture);
 
 if (pointLightOn){
-    for (int i = 0; i < NR_POINT_LIGHTS; i++)
-        result += CalcPointLight(pointLights[i], norm, vFragPosition, viewDirection, materialTexture);
+
+    for (int i = 0; i < NR_POINT_LIGHTS; i++){
+        vec3 lightDirection = normalize(pointLights[i].position - vFragPosition);
+        vec3 reflectDirection = reflect(-lightDirection, vNormalVector);
+        result += CalcPointLight(pointLights[i], norm, vFragPosition, viewDirection, reflectDirection, lightDirection, materialTexture);
+    }
 }
 
 if (spotLightOn)
@@ -103,16 +107,13 @@ vec3 CalcDirLight(DirectionalLight light, vec3 normal, vec3 viewDir, MaterialTex
         return ambientLight + diffuseLight + specularLight;
 }
 
-vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, MaterialTexture materialTexture){
-        vec3 lightDirection = normalize(light.position - fragPos);
-        vec3 reflectDirection = reflect(-lightDirection, normal);
-    
+vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 reflectDir, vec3 lightDir, MaterialTexture materialTexture){
         float lightDistance = length(light.position - fragPos);
         float attenuation = 1.0f / (light.constant + light.linear * lightDistance + light.quadratic * (lightDistance * lightDistance));
     
-        float diffuseStrength = max(dot(normal, lightDirection), 0.0f);
+        float diffuseStrength = max(dot(normal, lightDir), 0.0f);
         
-        float specularStrength = pow(max(dot(viewDir, reflectDirection), 0.0f), material.shininess);
+        float specularStrength = pow(max(dot(viewDir, reflectDir), 0.0f), material.shininess);
         
         vec3 ambientLight = light.ambient * vec3(materialTexture.diffuse);
         vec3 diffuseLight = light.diffuse * diffuseStrength * vec3(materialTexture.diffuse);
@@ -129,7 +130,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, Mat
         vec3 lightDirection = normalize(light.position - fragPos);
         vec3 reflectDirection = reflect(-lightDirection, normal);
         
-        //Intensity = (θ − γ) / ϵ
+        //Calculate intensity of light.  Outside outer circle = 0, inside inner circle = 1
         float theta = dot(lightDirection, normalize(-light.direction));
         float epsilon = light.cutoff - light.outerCutoff;
         float intensity = clamp((theta - light.outerCutoff) / epsilon, 0.0f, 1.0f);
