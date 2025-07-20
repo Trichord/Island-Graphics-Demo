@@ -1,6 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
-#define SCREEN_WIDTH 1920
-#define SCREEN_HEIGHT 1080
+#define SCREEN_WIDTH 2560
+#define SCREEN_HEIGHT 1440
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -118,7 +118,7 @@ int main() {
 
     //Windowed
     GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "OpenGL Demo", NULL, NULL);
-    
+
     //Fullscreen
     //GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "OpenGL Demo", glfwGetPrimaryMonitor(), NULL);
 
@@ -154,7 +154,7 @@ int main() {
     glfwSetKeyCallback(window, keyCallback);
 
     //Compile shader programs
-    Shader lightingShader = Shader("./Shaders/shader.vert", "./Shaders/shader.frag");
+    Shader lightingShader = Shader("./Shaders/lighting.vert", "./Shaders/lighting.frag");
     Shader lightSourceShader = Shader("./Shaders/lightSource.vert", "./Shaders/lightSource.frag");
 
     //Create vertex array objects
@@ -171,7 +171,7 @@ int main() {
 
     //Copy vertex data over to the GL_ARRAY_BUFFER
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-  
+
     //Position vertex attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -179,24 +179,24 @@ int main() {
     //Normal Vector attribute
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    
+
     //Texture coordinate attribute
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
     //Create OpenGL Texture IDs
     lightingShader.use();
-    
+
     glActiveTexture(GL_TEXTURE0);
     unsigned int diffuseMap = loadTexture("./Textures/container.png");
     lightingShader.setInt("material.diffuse", 0);
     glBindTexture(GL_TEXTURE_2D, diffuseMap);
-     
+
     glActiveTexture(GL_TEXTURE1);
     unsigned int specularMap = loadTexture("./Textures/container_specular.png");
     lightingShader.setInt("material.specular", 1);
     glBindTexture(GL_TEXTURE_2D, specularMap);
-  
+
     //Create VAO for our light
     unsigned int lightVAO;
     glGenVertexArrays(1, &lightVAO);
@@ -230,23 +230,23 @@ int main() {
         //Clear background
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		lightingShader.use();
+        lightingShader.use();
         lightingShader.setVec3("uViewPosition", camera.Position);
 
-		//Define and set projection matrix
-		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-		lightingShader.setMat4("projectionMatrix", projection);
+        //Define and set projection matrix
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+        lightingShader.setMat4("projectionMatrix", projection);
 
-		//Define and set the view matrix
-		glm::mat4 view = camera.GetViewMatrix();
-		lightingShader.setMat4("viewMatrix", view);
-    
-		//Materials
-		lightingShader.setFloat("material.shininess", 32.0f);
+        //Define and set the view matrix
+        glm::mat4 view = camera.GetViewMatrix();
+        lightingShader.setMat4("viewMatrix", view);
 
-		//Light strength and color
-		glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
-		glm::vec3 ambientColor = lightColor * 0.2f;
+        //Materials
+        lightingShader.setFloat("material.shininess", 32.0f);
+
+        //Light strength and color
+        glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
+        glm::vec3 ambientColor = lightColor * 0.2f;
         glm::vec3 diffuseColor = lightColor * 0.5f;
 
         if (directionalLightOn) {
@@ -257,9 +257,9 @@ int main() {
             lightingShader.setVec3("directionalLight.diffuse", diffuseColor);
             lightingShader.setVec3("directionalLight.specular", 1.0f, 1.0f, 1.0f);
         }
-        else 
+        else
             lightingShader.setBool("directionalLightOn", false);
-        
+
         if (pointLightsOn) {
             lightingShader.setBool("pointLightOn", true);
 
@@ -316,8 +316,8 @@ int main() {
         else
             lightingShader.setBool("spotLightOn", false);
 
-		//Draw our cube
-        for (int i = 0; i < 10; i++){
+        //Draw our cube
+        for (int i = 0; i < 10; i++) {
             float angle = 20.0f * i;
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, cubePositions[i]);
@@ -327,12 +327,11 @@ int main() {
             glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
             lightingShader.setMat3("normalMatrix", normal);
 
-		    glBindVertexArray(VAO);
-		    glDrawArrays(GL_TRIANGLES, 0, 36);
+            glBindVertexArray(VAO);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
         if (pointLightsOn) {
-            //Draw Light source cube
             lightSourceShader.use();
 
             for (int i = 0; i < 4; i++) {
@@ -425,7 +424,7 @@ unsigned int loadTexture(char const* path) {
 
     unsigned char* image = stbi_load(path, &width, &height, &nrChannels, 0);
 
-	if (image) {
+    if (image) {
         GLenum imageFormat;
 
         if (nrChannels == 1)
@@ -442,30 +441,30 @@ unsigned int loadTexture(char const* path) {
         glGenTextures(1, &textureID);
         glBindTexture(GL_TEXTURE_2D, textureID);
 
-		//Set texture repeat / sampling options
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        //Set texture repeat / sampling options
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		//Generate texture and mipmaps
-		glTexImage2D(GL_TEXTURE_2D, 0, imageFormat, width, height, 0, imageFormat, GL_UNSIGNED_BYTE, image);
-		glGenerateMipmap(GL_TEXTURE_2D);
+        //Generate texture and mipmaps
+        glTexImage2D(GL_TEXTURE_2D, 0, imageFormat, width, height, 0, imageFormat, GL_UNSIGNED_BYTE, image);
+        glGenerateMipmap(GL_TEXTURE_2D);
 
         stbi_image_free(image);
-	}
+    }
     else {
         std::cout << "Error loading texture image from: " << path << std::endl;
         stbi_image_free(image);
     }
-    
+
     return textureID;
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
         pointLightsOn = !pointLightsOn;
-    
+
     else if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
         spotLightOn = !spotLightOn;
 
