@@ -34,6 +34,10 @@ public:
 		setupMesh();
 	}
 
+	//Disable all copying of a mesh for now.  If a mesh copy goes out of scope, the other copy could have its GPU side memory freed by the destructor?
+	Mesh(const Mesh&) = delete;
+	Mesh& operator=(Mesh const&) = delete;
+
 	~Mesh(){
 		glDeleteBuffers(1, &EBO);
 		glDeleteBuffers(1, &VBO);
@@ -67,7 +71,7 @@ private:
 		glEnableVertexAttribArray(2);
 		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoords));
 
-		//reset bound VAO
+		//reset VAO
 		glBindVertexArray(0);
 	}
 
@@ -92,7 +96,7 @@ private:
 
 		//draw
 		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 	}
 };
