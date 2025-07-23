@@ -34,10 +34,11 @@ public:
 		setupMesh();
 	}
 
-	//Disable all copying of a mesh for now.  If a mesh copy goes out of scope, the other copy could have its GPU side memory freed by the destructor?
+	//Disable all copying of a mesh.  If a mesh copy is destroyed, the shared VAO/VBO/EBO are freed too and all copies will have an invalid reference
 	Mesh(const Mesh&) = delete;
 	Mesh& operator=(Mesh const&) = delete;
 
+	//Free GPU resources on mesh destruction
 	~Mesh(){
 		glDeleteBuffers(1, &EBO);
 		glDeleteBuffers(1, &VBO);
@@ -100,6 +101,4 @@ private:
 		glBindVertexArray(0);
 	}
 };
-
-
 #endif	
