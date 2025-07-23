@@ -34,6 +34,12 @@ public:
 		setupMesh();
 	}
 
+	~Mesh(){
+		glDeleteVertexArrays(1, &VAO);
+		glDeleteBuffers(1, &VBO);
+		glDeleteBuffers(1, &EBO);
+	}
+
 private:
 	unsigned int VAO, VBO, EBO;
 	
@@ -65,7 +71,7 @@ private:
 		glBindVertexArray(0);
 	}
 
-	void draw(Shader& shader) {
+	void draw(Shader &shader) {
 		unsigned int diffuseNr = 1;
 		unsigned int specularNr = 1;
 
@@ -73,6 +79,7 @@ private:
 			glActiveTexture(GL_TEXTURE0 + i);
 			std::string name;
 			TextureType type = textures[i].type;
+			
 			if (type == TEXTURE_DIFFUSE)
 				name = "texture_diffuse" + std::to_string(diffuseNr++);
 			else if (type == TEXTURE_SPECULAR)
@@ -89,5 +96,6 @@ private:
 		glBindVertexArray(0);
 	}
 };
+
 
 #endif	
