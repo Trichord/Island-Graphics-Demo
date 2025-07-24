@@ -33,7 +33,6 @@ public:
 		this->vertices = std::move(vertices);
 		this->indices = std::move(indices);
 		this->textures = std::move(textures);
-		
 		setupMesh();
 	}
 
@@ -93,8 +92,17 @@ public:
 
 	//Will return bound VAO to default
 	void draw(Shader& shader) {
+
+		if (VAO == 0)
+			return;
+
+		GLint previousTex = 0;
+		GLint previousVAO = 0;
 		unsigned int diffuseNr = 1;
 		unsigned int specularNr = 1;
+
+		glGetIntegerv(GL_ACTIVE_TEXTURE, &previousTex);
+		glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
 
 		for (unsigned int i = 0; i < textures.size(); i++) {
 			glActiveTexture(GL_TEXTURE0 + i);
@@ -111,10 +119,13 @@ public:
 		}
 		glActiveTexture(GL_TEXTURE0);
 
-		//draw
+		//Draw
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
+		
+		//Restore
+		glBindVertexArray(previousVAO);
+		glActiveTexture(previousTex);
 	}
 
 private:
