@@ -1,16 +1,21 @@
 #define STB_IMAGE_IMPLEMENTATION
-#define SCREEN_WIDTH 2560
-#define SCREEN_HEIGHT 1440
 
+#include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <iostream>
-#include "shader.h"
-#include "stb_image.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "stb_image.h"
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 #include "camera.h"
+#include "shader.h"
+#include "mesh.h"
+
+#define SCREEN_WIDTH 2560
+#define SCREEN_HEIGHT 1440
 
 enum LightType
 {
@@ -117,10 +122,10 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     //Windowed
-    GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "OpenGL Demo", NULL, NULL);
+    //GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "OpenGL Demo", NULL, NULL);
 
     //Fullscreen
-    //GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "OpenGL Demo", glfwGetPrimaryMonitor(), NULL);
+    GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "OpenGL Demo", glfwGetPrimaryMonitor(), NULL);
 
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -131,14 +136,17 @@ int main() {
     glfwMakeContextCurrent(window);
 
     //Vsync
-    //glfwSwapInterval(0);
+    glfwSwapInterval(0);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
 
-    glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    //Get actual width & height in pixels of the window and pass to openGL
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    glViewport(0, 0, width, height);
 
     //Automatically resize window
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -150,7 +158,7 @@ int main() {
     //Register mouse scroll-wheel callback function
     glfwSetScrollCallback(window, scrollCallback);
 
-    //
+    //glfw key handler to eliminate key-bounce
     glfwSetKeyCallback(window, keyCallback);
 
     //Compile shader programs
@@ -188,12 +196,12 @@ int main() {
     lightingShader.use();
 
     glActiveTexture(GL_TEXTURE0);
-    unsigned int diffuseMap = loadTexture("./Textures/container.png");
+    unsigned int diffuseMap = loadTexture("./Textures/stone.png");
     lightingShader.setInt("material.diffuse", 0);
     glBindTexture(GL_TEXTURE_2D, diffuseMap);
 
     glActiveTexture(GL_TEXTURE1);
-    unsigned int specularMap = loadTexture("./Textures/container_specular.png");
+    unsigned int specularMap = loadTexture("./Textures/stone_s.png");
     lightingShader.setInt("material.specular", 1);
     glBindTexture(GL_TEXTURE_2D, specularMap);
 
