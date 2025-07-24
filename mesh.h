@@ -1,5 +1,4 @@
-#ifndef MESH_H
-#define MESH_H
+#pragma once
 
 #include <glm/glm.hpp>
 
@@ -25,6 +24,10 @@ public:
 	std::vector<unsigned int> indices;
 	std::vector<Texture> textures;
 
+	Mesh() {
+		VAO = VBO = EBO = 0;
+	}
+
 	//Don't forget to call std::move when calling Mesh constructor!  Avoid copies
 	Mesh(std::vector<Vertex>&& vertices, std::vector<unsigned int>&& indices, std::vector<Texture>&& textures) {
 		this->vertices = std::move(vertices);
@@ -34,21 +37,94 @@ public:
 		setupMesh();
 	}
 
-	//Disable all copying of a mesh.  If a mesh copy is destroyed, the shared VAO/VBO/EBO are freed too and all copies will have an invalid reference
+	Mesh(Mesh &&other) noexcept :
+		vertices(std::move(other.vertices)),
+		indices(std::move(other.indices)),
+		textures(std::move(other.textures)) {
+		VAO = other.VAO;
+		VBO = other.VBO;
+		EBO = other.EBO;
+
+		other.EBO = 0;
+		other.VBO = 0;
+		other.VAO = 0;
+
+		other.textures.clear();
+	}
+
+	Mesh &operator=(Mesh &&other) noexcept {
+		if (this != &other) {
+			glDeleteBuffers(1, &EBO);
+			glDeleteBuffers(1, &VBO);
+			glDeleteVertexArrays(1, &VAO);
+
+			for (unsigned int i = 0; i < textures.size(); i++)
+				glDeleteTextures(1, &textures[i].id);
+
+			vertices = std::move(other.vertices);
+			indices = std::move(other.indices);
+			textures = std::move(other.textures);
+			VAO = other.VAO;
+			VBO = other.VBO;
+			EBO = other.EBO;
+
+			other.EBO = 0;
+			other.VBO = 0;
+			other.VAO = 0;
+
+			other.textures.clear();
+		}
+		return *this;
+	}
+
+	//Disable copying meshes.  Copies could cause either double frees or unecessarily hold GPU resources
 	Mesh(const Mesh&) = delete;
-	Mesh& operator=(Mesh const&) = delete;
+	Mesh &operator=(Mesh const&) = delete;
 
 	//Free GPU resources on mesh destruction
 	~Mesh(){
 		glDeleteBuffers(1, &EBO);
 		glDeleteBuffers(1, &VBO);
 		glDeleteVertexArrays(1, &VAO);
+
+		for (unsigned int i = 0; i < textures.size(); i++)
+			glDeleteTextures(1, &textures[i].id);
+	}
+
+	//Will return bound VAO to default
+	void draw(Shader& shader) {
+		unsigned int diffuseNr = 1;
+		unsigned int specularNr = 1;
+
+		for (unsigned int i = 0; i < textures.size(); i++) {
+			glActiveTexture(GL_TEXTURE0 + i);
+			std::string name;
+			TextureType type = textures[i].type;
+
+			if (type == TEXTURE_DIFFUSE)
+				name = "texture_diffuse" + std::to_string(diffuseNr++);
+			else if (type == TEXTURE_SPECULAR)
+				name = "texture_specular" + std::to_string(specularNr++);
+
+			shader.setInt("material." + name, i);
+			glBindTexture(GL_TEXTURE_2D, textures[i].id);
+		}
+		glActiveTexture(GL_TEXTURE0);
+
+		//draw
+		glBindVertexArray(VAO);
+		glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
 	}
 
 private:
-	unsigned int VAO, VBO, EBO;
+	unsigned int VAO = 0, VBO = 0, EBO = 0;
 	
 	void setupMesh() {
+
+		if (vertices.size() == 0 || indices.size() == 0)
+			return;
+
 		glGenVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
 
@@ -75,30 +151,4 @@ private:
 		//reset VAO
 		glBindVertexArray(0);
 	}
-
-	void draw(Shader &shader) {
-		unsigned int diffuseNr = 1;
-		unsigned int specularNr = 1;
-
-		for (unsigned int i = 0; i < textures.size(); i++) {
-			glActiveTexture(GL_TEXTURE0 + i);
-			std::string name;
-			TextureType type = textures[i].type;
-			
-			if (type == TEXTURE_DIFFUSE)
-				name = "texture_diffuse" + std::to_string(diffuseNr++);
-			else if (type == TEXTURE_SPECULAR)
-				name = "texture_specular" + std::to_string(specularNr++);
-
-			shader.setInt("material." + name, i);
-			glBindTexture(GL_TEXTURE_2D, textures[i].id);
-		}
-		glActiveTexture(GL_TEXTURE0);
-
-		//draw
-		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
-	}
 };
-#endif	
