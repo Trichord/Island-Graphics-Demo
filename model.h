@@ -32,13 +32,36 @@ private:
 		}
 
 		directory = path.find_last_of('/');
+		meshes.reserve(scene->mNumMeshes);
 		processNode(scene->mRootNode, scene);
 	}
 
-	void processNode(aiNode *node, const aiScene *scene) {}
+	void processNode(aiNode *node, const aiScene *scene) {
+		for (unsigned int i = 0; i < node->mNumMeshes; i++) {
+			aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
+			meshes.emplace_back(processMesh(mesh, scene));
+		}
+
+		for (unsigned int i = 0; i < node->mNumChildren; i++)
+			processNode(node->mChildren[i], scene);
+	}
 
 	
-	Mesh processMesh(aiMesh *mesh, const aiScene *scene) {}
+	Mesh processMesh(aiMesh *mesh, const aiScene *scene) {
+		std::vector<Vertex> vertices;
+		std::vector<unsigned int> indices;
+		std::vector<Texture> textures;
+
+		vertices.reserve(mesh->mNumVertices);
+		
+		for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
+			Vertex vertex;
+
+			vertices.emplace_back(std::move(vertex));
+		
+		}
+	
+	}
 
 	std::vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type, std::string typeName) {}
 	
