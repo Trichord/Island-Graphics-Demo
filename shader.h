@@ -1,5 +1,4 @@
-#ifndef SHADER_H
-#define SHADER_H
+#pragma once
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -108,49 +107,48 @@ public:
 		glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
 	}
 
-	void setIntU(const std::string& name, unsigned int value) const {
+	void setIntU(const std::string &name, unsigned int value) const {
 		glUniform1ui(glGetUniformLocation(ID, name.c_str()), value);
 	}
 
-	void setInt(const std::string& name, int value) const {
+	void setInt(const std::string &name, int value) const {
 		glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
 	}
 
-	void setFloat(const std::string& name, float value) const {
+	void setFloat(const std::string &name, float value) const {
 		glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
 	}
 
-	void setMat3(const std::string& name, glm::mat3 value) const {
+	void setMat3(const std::string &name, glm::mat3 value) const {
 		glUniformMatrix3fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(value));
 	}
 
-	void setMat4(const std::string& name, glm::mat4 value) const {
+	void setMat4(const std::string &name, glm::mat4 value) const {
 		glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(value));
 	}
 
-	void setVec2(const std::string& name, glm::vec2 value) const {
+	void setVec2(const std::string &name, glm::vec2 value) const {
 		glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(value));	
 	}
 
-	void setVec2(const std::string& name, float x, float y) const {
+	void setVec2(const std::string &name, float x, float y) const {
 		glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(glm::vec2(x, y)));
 	}
 
-	void setVec3(const std::string& name, glm::vec3 value) const {
+	void setVec3(const std::string &name, glm::vec3 value) const {
 		glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(value));
 	}
 
-	void setVec3(const std::string& name, float x, float y, float z) const {
+	void setVec3(const std::string &name, float x, float y, float z) const {
 		glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(glm::vec3(x, y, z)));
 	}
 
-	void setVec4(const std::string& name, glm::vec4 value) const {
+	void setVec4(const std::string &name, glm::vec4 value) const {
 		glUniform4fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(value));
 	}
 
-	void setVec4(const std::string& name, float x, float y, float z, float w) const {
+	void setVec4(const std::string &name, float x, float y, float z, float w) const {
 		glUniform4fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(glm::vec4(x, y, z, w)));
 	}
 
 };
-#endif
