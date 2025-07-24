@@ -56,11 +56,44 @@ private:
 		
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
 			Vertex vertex;
+			glm::vec3 vector;
+
+			vector.x = mesh->mVertices[i].x;
+			vector.y = mesh->mVertices[i].y;
+			vector.z = mesh->mVertices[i].z;
+			vertex.position = vector;
+
+			vector.x = mesh->mNormals[i].x;
+			vector.y = mesh->mNormals[i].y;
+			vector.z = mesh->mNormals[i].z;
+			vertex.normal = vector;
+
+			if (mesh->mTextureCoords[0]) {
+				glm::vec2 vec;
+				vec.x = mesh->mTextureCoords[0][i].x;
+				vec.y = mesh->mTextureCoords[0][i].y;
+				vertex.texCoords = vec;
+			}
+			else
+				vertex.texCoords = glm::vec2(0.0f);
 
 			vertices.emplace_back(std::move(vertex));
-		
 		}
 	
+		//Reserve
+		unsigned int totalIndices = 0;
+		for (unsigned int i = 0; i < mesh->mNumFaces; i++)
+			totalIndices += mesh->mFaces[i].mNumIndices;
+		indices.reserve(totalIndices);
+
+		//Build all indices
+		for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
+			aiFace face = mesh->mFaces[i];
+			for (unsigned int j = 0; j < face.mNumIndices; j++)
+				indices.emplace_back(face.mIndices[j]);
+		}
+		
+
 	}
 
 	std::vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type, std::string typeName) {}
