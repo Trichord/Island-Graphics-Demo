@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -23,6 +24,7 @@ private:
 
 	std::vector<Mesh> meshes;
 	std::string directory;
+	std::unordered_map<std::string, Texture> loadedTextures;
 
 	void loadModel(std::string path) {
 
@@ -106,6 +108,8 @@ private:
 			textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
 			textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 		}
+
+		return Mesh(std::move(vertices), std::move(indices), std::move(textures));
 	}
 
 	std::vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type,TextureType typeName) {
@@ -117,55 +121,68 @@ private:
 		for (unsigned int i = 0; i < numTextures; i++) {
 			aiString str;
 			mat->GetTexture(type, i, &str);
-			Texture texture;
-			texture.id = TextureFromFile(str.C_Str(), directory);
-			texture.type = typeName;
-			texture.path = str.C_Str();
+			
+			//Check unordered map before loading a texture from file
+			if (loadedTextures.find(str.C_Str()) != loadedTextures.end())
+				materialTextures.push_back(loadedTextures[str.C_Str()]);
+			else {
+				Texture texture;
+				texture.id = TextureFromFile(str.C_Str(), directory);
+				texture.type = typeName;
+				texture.path = str.C_Str();
+				materialTextures.push_back(texture);
+			}
 		}
 
 		return materialTextures;
 	}
 	
-	unsigned int TextureFromFile(char const *path, std::string directory) {
+	unsigned int TextureFromFile(char const *path, const std::string &directory) {
 
-		unsigned int textureID = 0;
+		unsigned int textureID;
 		int width, height, nrChannels;
 
-		unsigned char *image = stbi_load(path, &width, &height, &nrChannels, 0);
+		glGenTextures(1, &textureID);
+		glBindTexture(GL_TEXTURE_2D, textureID);
+
+		std::string fullPath = directory + '/' + path;
+
+		unsigned char *image = stbi_load(fullPath.c_str(), &width, &height, &nrChannels, 0);
 
 		if (image) {
 			GLenum imageFormat;
 
 			if (nrChannels == 1)
 				imageFormat = GL_RED;
+			else if (nrChannels == 2)
+				imageFormat = GL_RG;
 			else if (nrChannels == 3)
 				imageFormat = GL_RGB;
 			else if (nrChannels == 4)
 				imageFormat = GL_RGBA;
-			else {
-				std::cout << "Invalid number of nrChannels in: " << path << std::endl;
-				return 0;
-			}
 
-			glGenTextures(1, &textureID);
-			glBindTexture(GL_TEXTURE_2D, textureID);
+			glTexImage2D(GL_TEXTURE_2D, 0, imageFormat, width, height, 0, imageFormat, GL_UNSIGNED_BYTE, image);
+			glGenerateMipmap(GL_TEXTURE_2D);
 
-			//Set texture repeat / sampling options
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-			//Generate texture and mipmaps
-			glTexImage2D(GL_TEXTURE_2D, 0, imageFormat, width, height, 0, imageFormat, GL_UNSIGNED_BYTE, image);
-			glGenerateMipmap(GL_TEXTURE_2D);
-
 			stbi_image_free(image);
 		}
 		else {
-			std::cout << "Error loading texture image from: " << path << std::endl;
+			std::cout << "Error loading texture image from: " << fullPath << std::endl;
 			stbi_image_free(image);
+
+			GLubyte magenta[] = {255, 0, 255, 255};
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, magenta);
+			glGenerateMipmap(GL_TEXTURE_2D);
 		}
+
+		glBindTexture(GL_TEXTURE_2D, 0);
 
 		return textureID;
 	}
