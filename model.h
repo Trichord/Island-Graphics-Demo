@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <string>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -8,12 +9,12 @@
 #include "shader.h"
 #include "mesh.h"
 
-//Model owns the GPU resources and copying is disabled to avoid ambiguity over who actually owns the resource.  Copies could result in double-frees or holding resources too long
+//Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees.  Texture IDs are released on Model destruction
 class Model {
 public:
 
 	Model(const Model &) = delete;
-	Model &operator=(Model const &) = delete;
+	Model &operator=(Model const&) = delete;
 
 	Model(std::string path) {
 		loadModel(path);
@@ -24,6 +25,22 @@ public:
 		directory(std::move(other.directory)),
 		loadedTextures(std::move(other.loadedTextures)) {
 		other.loadedTextures.clear();
+	}
+
+	Model &operator=(Model &&other) noexcept{
+		if (this != &other) {
+			
+			for (const auto &pair : loadedTextures)
+				glDeleteTextures(1, &pair.second.id);
+
+			meshes = std::move(other.meshes);
+			directory = std::move(other.directory);
+			loadedTextures = std::move(other.loadedTextures);
+		
+			other.loadedTextures.clear();
+		}
+		
+		return *this;
 	}
 
 	~Model() {
@@ -53,7 +70,7 @@ private:
 		}
 
 		preloadTextures(scene);
-		directory = path.find_last_of('/');
+		directory = path.substr(0, path.find_last_of('/'));
 		meshes.reserve(scene->mNumMeshes);
 		processNode(scene->mRootNode, scene);
 	}
@@ -165,7 +182,7 @@ private:
 				Texture texture;
 				texture.id = TextureFromFile(name.c_str(), directory);
 				texture.type = typeName;
-				texture.path = name;
+				texture.path = directory + '/' + name;
 				loadedTextures.insert({ texture.path, texture });
 			}
 		}
@@ -240,6 +257,7 @@ private:
 			else
 				textures.emplace_back(iterator->second.id, iterator->second.type, iterator->second.path);
 		}
+
 		return textures;
 	}
 };
