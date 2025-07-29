@@ -14,20 +14,17 @@ struct Vertex {
 };
 
 struct Texture {
-	unsigned int id;
+	GLuint id;
 	TextureType type;
 	std::string path;
 };
 
+//Mesh does not own GPU resources - the model class does
 class Mesh {
 public:
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 	std::vector<Texture> textures;
-
-	Mesh() {
-		VAO = VBO = EBO = 0;
-	}
 
 	//Don't forget to call std::move when calling Mesh constructor!  Avoid copies
 	Mesh(std::vector<Vertex>&& vertices, std::vector<unsigned int>&& indices, std::vector<Texture>&& textures) {
@@ -48,8 +45,6 @@ public:
 		other.EBO = 0;
 		other.VBO = 0;
 		other.VAO = 0;
-
-		other.textures.clear();
 	}
 
 	Mesh &operator=(Mesh &&other) noexcept {
@@ -57,9 +52,6 @@ public:
 			glDeleteBuffers(1, &EBO);
 			glDeleteBuffers(1, &VBO);
 			glDeleteVertexArrays(1, &VAO);
-
-			for (unsigned int i = 0; i < textures.size(); i++)
-				glDeleteTextures(1, &textures[i].id);
 
 			vertices = std::move(other.vertices);
 			indices = std::move(other.indices);
@@ -71,27 +63,18 @@ public:
 			other.EBO = 0;
 			other.VBO = 0;
 			other.VAO = 0;
-
-			other.textures.clear();
 		}
 		return *this;
 	}
-
-	//Disable copying meshes.  Copies could cause either double frees or unecessarily hold GPU resources
-	Mesh(const Mesh&) = delete;
-	Mesh &operator=(Mesh const&) = delete;
 
 	//Free GPU resources on mesh destruction
 	~Mesh(){
 		glDeleteBuffers(1, &EBO);
 		glDeleteBuffers(1, &VBO);
 		glDeleteVertexArrays(1, &VAO);
-
-		for (unsigned int i = 0; i < textures.size(); i++)
-			glDeleteTextures(1, &textures[i].id);
 	}
 
-	//Will return bound VAO to default
+	//Will restore previously bound VAO and texture
 	void draw(Shader& shader) {
 
 		if (VAO == 0)
@@ -134,8 +117,10 @@ private:
 	
 	void setupMesh() {
 
-		if (vertices.size() == 0 || indices.size() == 0)
+		if (vertices.size() == 0 || indices.size() == 0) {
+			std::cout << "Error: no vertices or indices in mesh" << std::endl;
 			return;
+		}
 
 		glGenVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
