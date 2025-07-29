@@ -1,6 +1,8 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include "shader.h"
+#include <string>
 
 enum TextureType {
 	TEXTURE_DIFFUSE,
@@ -14,23 +16,26 @@ struct Vertex {
 };
 
 struct Texture {
-	GLuint id;
+	unsigned int id;
 	TextureType type;
 	std::string path;
 };
 
-//Mesh does not own GPU resources - the model class does
+//Mesh owns its VAO / VBO / EBO.  Copying is disabled to avoid double frees or unecessary resource holding
 class Mesh {
 public:
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 	std::vector<Texture> textures;
 
+	Mesh(const Mesh &) = delete;
+	Mesh &operator=(Mesh const &) = delete;
+
 	//Don't forget to call std::move when calling Mesh constructor!  Avoid copies
-	Mesh(std::vector<Vertex>&& vertices, std::vector<unsigned int>&& indices, std::vector<Texture>&& textures) {
-		this->vertices = std::move(vertices);
-		this->indices = std::move(indices);
-		this->textures = std::move(textures);
+	Mesh(std::vector<Vertex>&& verts, std::vector<unsigned int>&& inds, std::vector<Texture>&& texts) :
+		vertices(std::move(verts)),
+		indices(std::move(inds)),
+		textures(std::move(texts)) {
 		setupMesh();
 	}
 
@@ -74,8 +79,8 @@ public:
 		glDeleteVertexArrays(1, &VAO);
 	}
 
-	//Will restore previously bound VAO and texture
-	void draw(Shader& shader) {
+	//Will restore previously bound VAO and texture.  
+	void draw(Shader& shader) const{
 
 		if (VAO == 0)
 			return;
@@ -87,6 +92,8 @@ public:
 
 		glGetIntegerv(GL_ACTIVE_TEXTURE, &previousTex);
 		glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
+
+		shader.use();
 
 		for (unsigned int i = 0; i < textures.size(); i++) {
 			glActiveTexture(GL_TEXTURE0 + i);
@@ -100,6 +107,7 @@ public:
 
 			shader.setInt("material." + name, i);
 			glBindTexture(GL_TEXTURE_2D, textures[i].id);
+
 		}
 		glActiveTexture(GL_TEXTURE0);
 
