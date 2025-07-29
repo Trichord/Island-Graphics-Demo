@@ -8,11 +8,27 @@
 #include "shader.h"
 #include "mesh.h"
 
+//Model owns the GPU resources and copying is disabled to avoid ambiguity over who actually owns the resource.  Copies could result in double-frees or holding resources too long
 class Model {
 public:
 
+	Model(const Model &) = delete;
+	Model &operator=(Model const &) = delete;
+
 	Model(std::string path) {
 		loadModel(path);
+	}
+
+	Model(Model &&other) noexcept :
+		meshes(std::move(other.meshes)),
+		directory(std::move(other.directory)),
+		loadedTextures(std::move(other.loadedTextures)) {
+		other.loadedTextures.clear();
+	}
+
+	~Model() {
+		for (const auto &pair : loadedTextures)
+			glDeleteTextures(1, &pair.second.id);
 	}
 
 	void draw(Shader &shader) {
@@ -36,11 +52,33 @@ private:
 			return;
 		}
 
+		preloadTextures(scene);
 		directory = path.find_last_of('/');
 		meshes.reserve(scene->mNumMeshes);
 		processNode(scene->mRootNode, scene);
 	}
 
+	//Fill "loadedTextures" map with all scene textures
+	void preloadTextures(const aiScene *scene) {
+
+		unsigned int totalTextures = 0;
+
+		for (unsigned int i = 0; i < scene->mNumMaterials; i++) {
+			aiMaterial *material = scene->mMaterials[i];
+			totalTextures += material->GetTextureCount(aiTextureType_DIFFUSE);
+			totalTextures += material->GetTextureCount(aiTextureType_SPECULAR);
+		}
+
+		loadedTextures.reserve(totalTextures);
+
+		for (unsigned int i = 0; i < scene->mNumMaterials; i++) {
+			aiMaterial *material = scene->mMaterials[i];
+			loadMaterialTextures(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE);
+			loadMaterialTextures(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
+		}
+	}
+
+	//Build meshes for current node, then recurse on node's children
 	void processNode(aiNode *node, const aiScene *scene) {
 
 		for (unsigned int i = 0; i < node->mNumMeshes; i++) {
@@ -52,7 +90,7 @@ private:
 			processNode(node->mChildren[i], scene);
 	}
 
-	
+	//Turn assimp data into our vertices, indices, and textures	
 	Mesh processMesh(aiMesh *mesh, const aiScene *scene) {
 
 		std::vector<Vertex> vertices;
@@ -100,10 +138,11 @@ private:
 				indices.emplace_back(face.mIndices[j]);
 		}
 		
+		//Assign mesh-specific textures from loadedTextures map
 		if (mesh->mMaterialIndex >= 0) {
 			aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
-			std::vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE);
-			std::vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
+			std::vector<Texture> diffuseMaps = texturesFromPreloaded(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE);
+			std::vector<Texture> specularMaps = texturesFromPreloaded(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
 			textures.reserve(diffuseMaps.size() + specularMaps.size());
 			textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
 			textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
@@ -112,31 +151,27 @@ private:
 		return Mesh(std::move(vertices), std::move(indices), std::move(textures));
 	}
 
-	std::vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type,TextureType typeName) {
+	//Load texture from file if not already in loadedTextures map.  Todo: Multi-thread loading from storage
+	void loadMaterialTextures(aiMaterial *mat, aiTextureType type,TextureType typeName) {
 
-		std::vector<Texture> materialTextures;
-		unsigned int numTextures = mat->GetTextureCount(type);
-		materialTextures.reserve(numTextures);
-
-		for (unsigned int i = 0; i < numTextures; i++) {
+		for (unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
 			aiString str;
 			mat->GetTexture(type, i, &str);
+			std::string name = str.C_Str();
 			
-			//Check unordered map before loading a texture from file
-			if (loadedTextures.find(str.C_Str()) != loadedTextures.end())
-				materialTextures.push_back(loadedTextures[str.C_Str()]);
-			else {
+			auto iterator = loadedTextures.find(name);
+
+			if (iterator == loadedTextures.end()) {
 				Texture texture;
-				texture.id = TextureFromFile(str.C_Str(), directory);
+				texture.id = TextureFromFile(name.c_str(), directory);
 				texture.type = typeName;
-				texture.path = str.C_Str();
-				materialTextures.push_back(texture);
+				texture.path = name;
+				loadedTextures.insert({ texture.path, texture });
 			}
 		}
-
-		return materialTextures;
 	}
 	
+	//Returns an OpenGL Texture ID.  If texture image fails to load, a solid magenta color is assigned to that texture ID
 	unsigned int TextureFromFile(char const *path, const std::string &directory) {
 
 		unsigned int textureID;
@@ -185,5 +220,26 @@ private:
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		return textureID;
+	}
+
+	//Looks through loadedTextures and builds a vector of textures for the given material
+	std::vector<Texture> texturesFromPreloaded(aiMaterial *material, aiTextureType type, TextureType typeName) {
+		
+		std::vector<Texture> textures;
+		textures.reserve(material->GetTextureCount(type));
+
+		for (unsigned int i = 0; i < material->GetTextureCount(type); i++) {
+			aiString str;
+			material->GetTexture(type, i, &str);
+			std::string name = str.C_Str();
+
+			auto iterator = loadedTextures.find(name);
+
+			if (iterator == loadedTextures.end())
+				std::cout << "ERROR: Texture not pre-loaded!  Texture name: " << name << std::endl;
+			else
+				textures.emplace_back(iterator->second.id, iterator->second.type, iterator->second.path);
+		}
+		return textures;
 	}
 };
