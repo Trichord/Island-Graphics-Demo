@@ -62,16 +62,18 @@ private:
 	void loadModel(std::string path) {
 
 		Assimp::Importer import;
-		const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+		//const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals); //For .obj files
+		const aiScene *scene = import.ReadFile(path, 0); //.assbin files
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
 			std::cout << "ERROR:ASSIMP::" << import.GetErrorString() << std::endl;
 			return;
 		}
 
-		preloadTextures(scene);
 		directory = path.substr(0, path.find_last_of('/'));
 		meshes.reserve(scene->mNumMeshes);
+		preloadTextures(scene);
+
 		processNode(scene->mRootNode, scene);
 	}
 
@@ -193,12 +195,11 @@ private:
 
 		unsigned int textureID;
 		int width, height, nrChannels;
+		std::string fullPath = directory + '/' + path;
 
 		glGenTextures(1, &textureID);
 		glBindTexture(GL_TEXTURE_2D, textureID);
-
-		std::string fullPath = directory + '/' + path;
-
+		
 		unsigned char *image = stbi_load(fullPath.c_str(), &width, &height, &nrChannels, 0);
 
 		if (image) {
@@ -248,14 +249,15 @@ private:
 		for (unsigned int i = 0; i < material->GetTextureCount(type); i++) {
 			aiString str;
 			material->GetTexture(type, i, &str);
-			std::string name = str.C_Str();
+			std::string name = directory + '/' + str.C_Str();
+
 
 			auto iterator = loadedTextures.find(name);
 
 			if (iterator == loadedTextures.end())
 				std::cout << "ERROR: Texture not pre-loaded!  Texture name: " << name << std::endl;
 			else
-				textures.emplace_back(iterator->second.id, iterator->second.type, iterator->second.path);
+				textures.emplace_back(Texture{iterator->second.id, iterator->second.type, iterator->second.path});
 		}
 
 		return textures;
