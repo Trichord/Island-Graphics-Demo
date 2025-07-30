@@ -41,8 +41,8 @@ float lastY = SCREEN_HEIGHT / 2;
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
 bool firstMouseMovement = true;
-//bool spotLightOn = false;
-//bool directionalLightOn = true;
+bool spotLightOn = false;
+bool directionalLightOn = true;
 //bool pointLightsOn = false;
 
 //Textured Cube
@@ -167,59 +167,6 @@ int main() {
 
     //Compile shader programs
     Shader lightingShader = Shader("./Shaders/lighting.vert", "./Shaders/lighting.frag");
-    Shader lightSourceShader = Shader("./Shaders/lightSource.vert", "./Shaders/lightSource.frag");
-    Shader plainDiffuseShader = Shader("./Shaders/plainDiffuse.vert", "./Shaders/plainDiffuse.frag");
-   
-    /*
-    //Create vertex array objects
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    //Generate vertex buffer objects
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-
-    //Bind new buffer object to GL_ARRAY_BUFFER target
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-    //Copy vertex data over to the GL_ARRAY_BUFFER
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    //Position vertex attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    //Normal Vector attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    //Texture coordinate attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    //Create OpenGL Texture IDs
-    lightingShader.use();
-
-    glActiveTexture(GL_TEXTURE0);
-    unsigned int diffuseMap = loadTexture("./Textures/stone.png");
-    lightingShader.setInt("material.diffuse", 0);
-    glBindTexture(GL_TEXTURE_2D, diffuseMap);
-
-    glActiveTexture(GL_TEXTURE1);
-    unsigned int specularMap = loadTexture("./Textures/stone_s.png");
-    lightingShader.setInt("material.specular", 1);
-    glBindTexture(GL_TEXTURE_2D, specularMap);
-    
-
-    //Create VAO for our light
-    unsigned int lightVAO;
-    glGenVertexArrays(1, &lightVAO);
-    glBindVertexArray(lightVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    */
 
     //Model time!
     Model backpack("./Models/Backpack/backpack.obj");
@@ -244,10 +191,14 @@ int main() {
         //Clear background
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        /*
         lightingShader.use();
         lightingShader.setVec3("uViewPosition", camera.Position);
+        lightingShader.setBool("pointLightOn", false);
 
+        //Model
+        glm::mat4 model = glm::mat4(1.0f);
+        lightingShader.setMat4("modelMatrix", model);
+        
         //Define and set projection matrix
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
         lightingShader.setMat4("projectionMatrix", projection);
@@ -255,6 +206,10 @@ int main() {
         //Define and set the view matrix
         glm::mat4 view = camera.GetViewMatrix();
         lightingShader.setMat4("viewMatrix", view);
+
+        //Normal matrix
+        glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
+        lightingShader.setMat3("normalMatrix", normal);
 
         //Materials
         lightingShader.setFloat("material.shininess", 32.0f);
@@ -275,50 +230,6 @@ int main() {
         else
             lightingShader.setBool("directionalLightOn", false);
 
-        /*
-        if (pointLightsOn) {
-            lightingShader.setBool("pointLightOn", true);
-
-            //Point Light 1
-            lightingShader.setVec3("pointLights[0].position", pointLightPositions[0]);
-            lightingShader.setVec3("pointLights[0].ambient", ambientColor);
-            lightingShader.setVec3("pointLights[0].diffuse", diffuseColor);
-            lightingShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
-            lightingShader.setFloat("pointLights[0].constant", 1.0f);
-            lightingShader.setFloat("pointLights[0].linear", 0.14f);
-            lightingShader.setFloat("pointLights[0].quadratic", 0.07f);
-
-            //Point Light 2
-            lightingShader.setVec3("pointLights[1].position", pointLightPositions[1]);
-            lightingShader.setVec3("pointLights[1].ambient", ambientColor);
-            lightingShader.setVec3("pointLights[1].diffuse", diffuseColor);
-            lightingShader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
-            lightingShader.setFloat("pointLights[1].constant", 1.0f);
-            lightingShader.setFloat("pointLights[1].linear", 0.14f);
-            lightingShader.setFloat("pointLights[1].quadratic", 0.07f);
-
-            //Point Light 3
-            lightingShader.setVec3("pointLights[2].position", pointLightPositions[2]);
-            lightingShader.setVec3("pointLights[2].ambient", ambientColor);
-            lightingShader.setVec3("pointLights[2].diffuse", diffuseColor);
-            lightingShader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
-            lightingShader.setFloat("pointLights[2].constant", 1.0f);
-            lightingShader.setFloat("pointLights[2].linear", 0.14f);
-            lightingShader.setFloat("pointLights[2].quadratic", 0.07f);
-
-            //Point Light 4
-            lightingShader.setVec3("pointLights[3].position", pointLightPositions[3]);
-            lightingShader.setVec3("pointLights[3].ambient", ambientColor);
-            lightingShader.setVec3("pointLights[3].diffuse", diffuseColor);
-            lightingShader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
-            lightingShader.setFloat("pointLights[3].constant", 1.0f);
-            lightingShader.setFloat("pointLights[3].linear", 0.14f);
-            lightingShader.setFloat("pointLights[3].quadratic", 0.07f);
-        }
-        else
-        
-            lightingShader.setBool("pointLightOn", false);
-
         //Spotlight
         if (spotLightOn) {
             lightingShader.setBool("spotLightOn", true);
@@ -333,65 +244,11 @@ int main() {
         else
             lightingShader.setBool("spotLightOn", false);
 
-        
-        //Draw our cube
-        for (int i = 0; i < 10; i++) {
-            float angle = 20.0f * i;
-            glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePositions[i]);
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            lightingShader.setMat4("modelMatrix", model);
-
-            glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
-            lightingShader.setMat3("normalMatrix", normal);
-
-            glBindVertexArray(VAO);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
-
-        if (pointLightsOn) {
-            lightSourceShader.use();
-
-            for (int i = 0; i < 4; i++) {
-                glm::mat4 model = glm::mat4(1.0f);
-                model = glm::mat4(1.0f);
-                model = glm::translate(model, pointLightPositions[i]);
-                model = glm::scale(model, glm::vec3(0.125f));
-
-                lightSourceShader.setMat4("viewMatrix", view);
-                lightSourceShader.setMat4("projectionMatrix", projection);
-                lightSourceShader.setMat4("modelMatrix", model);
-
-                glBindVertexArray(lightVAO);
-                glDrawArrays(GL_TRIANGLES, 0, 36);
-            }
-        }
-        */
-
-       // plainDiffuseShader.setVec3("uViewPosition", camera.Position);
-        plainDiffuseShader.use();
-
-        glm::mat4 model = glm::mat4(1.0f);
-        plainDiffuseShader.setMat4("model", model);
-
-        //Define and set projection matrix
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-        plainDiffuseShader.setMat4("projection", projection);
-
-        //Define and set the view matrix
-        glm::mat4 view = camera.GetViewMatrix();
-        plainDiffuseShader.setMat4("view", view);
-        backpack.draw(plainDiffuseShader);
+        backpack.draw(lightingShader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
-    /*
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteVertexArrays(1, &lightVAO);
-    glDeleteBuffers(1, &VBO);
-    */
 
     std::cout << "Average FPS: " << framesRendered / totalTime << std::endl;
 
@@ -456,9 +313,9 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
   //  if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
       //  pointLightsOn = !pointLightsOn;
 
-    // if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
-       // spotLightOn = !spotLightOn;
+     if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
+        spotLightOn = !spotLightOn;
 
-    //else if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
-       // directionalLightOn = !directionalLightOn;
+    else if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+        directionalLightOn = !directionalLightOn;
 }
