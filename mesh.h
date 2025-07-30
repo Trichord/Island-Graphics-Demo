@@ -78,9 +78,8 @@ public:
 		glDeleteBuffers(1, &VBO);
 		glDeleteVertexArrays(1, &VAO);
 	}
-	
 
-	//Will restore previously bound VAO and texture.  
+	//Will destroy currently set VAO and Texture bindings
 	void draw(Shader& shader) const{
 
 		if (VAO == 0)
@@ -91,10 +90,7 @@ public:
 		unsigned int diffuseNr = 1;
 		unsigned int specularNr = 1;
 
-		glGetIntegerv(GL_ACTIVE_TEXTURE, &previousTex);
-		glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
-			 
-		//shader.use();
+		shader.use();
 
 		for (unsigned int i = 0; i < textures.size(); i++) {
 			glActiveTexture(GL_TEXTURE0 + i);
@@ -115,10 +111,6 @@ public:
 		//Draw
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
-		
-		//Restore
-		//glBindVertexArray(previousVAO);
-		//glActiveTexture(previousTex);		
 	}
 
 private:

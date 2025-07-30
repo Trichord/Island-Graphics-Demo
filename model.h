@@ -19,7 +19,7 @@ public:
 	Model(std::string path) {
 		loadModel(path);
 	}
-	
+
 	Model(Model &&other) noexcept :
 		meshes(std::move(other.meshes)),
 		directory(std::move(other.directory)),
@@ -47,7 +47,7 @@ public:
 		for (const auto &pair : loadedTextures)
 			glDeleteTextures(1, &pair.second.id);
 	}
-	
+
 	void draw(Shader &shader) {
 		for (unsigned int i = 0; i < meshes.size(); i++)
 			meshes[i].draw(shader);
@@ -71,9 +71,9 @@ private:
 		}
 
 		directory = path.substr(0, path.find_last_of('/'));
-
 		meshes.reserve(scene->mNumMeshes);
 		preloadTextures(scene);
+
 		processNode(scene->mRootNode, scene);
 	}
 
@@ -250,6 +250,7 @@ private:
 			aiString str;
 			material->GetTexture(type, i, &str);
 			std::string name = directory + '/' + str.C_Str();
+
 
 			auto iterator = loadedTextures.find(name);
 
