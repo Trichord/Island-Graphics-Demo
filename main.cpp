@@ -1,16 +1,20 @@
 #define STB_IMAGE_IMPLEMENTATION
-#define SCREEN_WIDTH 2560
-#define SCREEN_HEIGHT 1440
 
+#include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <iostream>
-#include "shader.h"
-#include "stb_image.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 #include "camera.h"
+#include "shader.h"
+#include "model.h"
+
+#define SCREEN_WIDTH 2560
+#define SCREEN_HEIGHT 1440
 
 enum LightType
 {
@@ -24,7 +28,6 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos);
 void scrollCallback(GLFWwindow* window, double xOffset, double yOffset);
 void processInput(GLFWwindow* window, Shader targetShader);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-unsigned int loadTexture(char const* path);
 
 //Delta Time
 float deltaTime = 0.0f;
@@ -38,9 +41,9 @@ float lastY = SCREEN_HEIGHT / 2;
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
 bool firstMouseMovement = true;
-bool spotLightOn = false;
-bool directionalLightOn = false;
-bool pointLightsOn = true;
+//bool spotLightOn = false;
+//bool directionalLightOn = true;
+//bool pointLightsOn = false;
 
 //Textured Cube
 float vertices[] = {
@@ -117,10 +120,10 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     //Windowed
-    GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "OpenGL Demo", NULL, NULL);
+    //GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "OpenGL Demo", NULL, NULL);
 
     //Fullscreen
-    //GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "OpenGL Demo", glfwGetPrimaryMonitor(), NULL);
+    GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "OpenGL Demo", glfwGetPrimaryMonitor(), NULL);
 
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -131,14 +134,23 @@ int main() {
     glfwMakeContextCurrent(window);
 
     //Vsync
-    //glfwSwapInterval(0);
+    glfwSwapInterval(0);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
 
-    glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    //Get actual width & height in pixels of the window and pass to openGL
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    glViewport(0, 0, width, height);
+
+    //Set Background Color
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+
+    //Enable Z-Buffer
+    glEnable(GL_DEPTH_TEST);
 
     //Automatically resize window
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -150,13 +162,15 @@ int main() {
     //Register mouse scroll-wheel callback function
     glfwSetScrollCallback(window, scrollCallback);
 
-    //
+    //glfw key handler to eliminate key-bounce
     glfwSetKeyCallback(window, keyCallback);
 
     //Compile shader programs
     Shader lightingShader = Shader("./Shaders/lighting.vert", "./Shaders/lighting.frag");
     Shader lightSourceShader = Shader("./Shaders/lightSource.vert", "./Shaders/lightSource.frag");
-
+    Shader plainDiffuseShader = Shader("./Shaders/plainDiffuse.vert", "./Shaders/plainDiffuse.frag");
+   
+    /*
     //Create vertex array objects
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
@@ -188,14 +202,15 @@ int main() {
     lightingShader.use();
 
     glActiveTexture(GL_TEXTURE0);
-    unsigned int diffuseMap = loadTexture("./Textures/container.png");
+    unsigned int diffuseMap = loadTexture("./Textures/stone.png");
     lightingShader.setInt("material.diffuse", 0);
     glBindTexture(GL_TEXTURE_2D, diffuseMap);
 
     glActiveTexture(GL_TEXTURE1);
-    unsigned int specularMap = loadTexture("./Textures/container_specular.png");
+    unsigned int specularMap = loadTexture("./Textures/stone_s.png");
     lightingShader.setInt("material.specular", 1);
     glBindTexture(GL_TEXTURE_2D, specularMap);
+    
 
     //Create VAO for our light
     unsigned int lightVAO;
@@ -204,11 +219,10 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+    */
 
-    //Set Background Color
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-
-    glEnable(GL_DEPTH_TEST);
+    //Model time!
+    Model backpack("./Models/Backpack/backpack.obj");
 
     double totalTime = 0;
     double framesRendered = 0;
@@ -230,6 +244,7 @@ int main() {
         //Clear background
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        /*
         lightingShader.use();
         lightingShader.setVec3("uViewPosition", camera.Position);
 
@@ -260,6 +275,7 @@ int main() {
         else
             lightingShader.setBool("directionalLightOn", false);
 
+        /*
         if (pointLightsOn) {
             lightingShader.setBool("pointLightOn", true);
 
@@ -300,6 +316,7 @@ int main() {
             lightingShader.setFloat("pointLights[3].quadratic", 0.07f);
         }
         else
+        
             lightingShader.setBool("pointLightOn", false);
 
         //Spotlight
@@ -316,6 +333,7 @@ int main() {
         else
             lightingShader.setBool("spotLightOn", false);
 
+        
         //Draw our cube
         for (int i = 0; i < 10; i++) {
             float angle = 20.0f * i;
@@ -348,14 +366,32 @@ int main() {
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
         }
+        */
+
+       // plainDiffuseShader.setVec3("uViewPosition", camera.Position);
+        plainDiffuseShader.use();
+
+        glm::mat4 model = glm::mat4(1.0f);
+        plainDiffuseShader.setMat4("model", model);
+
+        //Define and set projection matrix
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+        plainDiffuseShader.setMat4("projection", projection);
+
+        //Define and set the view matrix
+        glm::mat4 view = camera.GetViewMatrix();
+        plainDiffuseShader.setMat4("view", view);
+        backpack.draw(plainDiffuseShader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
+    /*
     glDeleteVertexArrays(1, &VAO);
     glDeleteVertexArrays(1, &lightVAO);
     glDeleteBuffers(1, &VBO);
+    */
 
     std::cout << "Average FPS: " << framesRendered / totalTime << std::endl;
 
@@ -416,58 +452,13 @@ void processInput(GLFWwindow* window, Shader targetShader) {
         camera.ProcessKeyboard(DOWN, deltaTime);
 }
 
-//2D Texture from relative path
-unsigned int loadTexture(char const* path) {
-
-    unsigned int textureID = 0;
-    int width, height, nrChannels;
-
-    unsigned char* image = stbi_load(path, &width, &height, &nrChannels, 0);
-
-    if (image) {
-        GLenum imageFormat;
-
-        if (nrChannels == 1)
-            imageFormat = GL_RED;
-        else if (nrChannels == 3)
-            imageFormat = GL_RGB;
-        else if (nrChannels == 4)
-            imageFormat = GL_RGBA;
-        else {
-            std::cout << "Invalid number of nrChannels in: " << path << std::endl;
-            return 0;
-        }
-
-        glGenTextures(1, &textureID);
-        glBindTexture(GL_TEXTURE_2D, textureID);
-
-        //Set texture repeat / sampling options
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        //Generate texture and mipmaps
-        glTexImage2D(GL_TEXTURE_2D, 0, imageFormat, width, height, 0, imageFormat, GL_UNSIGNED_BYTE, image);
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        stbi_image_free(image);
-    }
-    else {
-        std::cout << "Error loading texture image from: " << path << std::endl;
-        stbi_image_free(image);
-    }
-
-    return textureID;
-}
-
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
-        pointLightsOn = !pointLightsOn;
+  //  if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+      //  pointLightsOn = !pointLightsOn;
 
-    else if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
-        spotLightOn = !spotLightOn;
+    // if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
+       // spotLightOn = !spotLightOn;
 
-    else if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
-        directionalLightOn = !directionalLightOn;
+    //else if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+       // directionalLightOn = !directionalLightOn;
 }
