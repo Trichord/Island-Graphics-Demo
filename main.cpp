@@ -169,10 +169,38 @@ int main() {
     Shader lightingShader = Shader("./Shaders/lighting.vert", "./Shaders/lighting.frag");
 
     //Model time!
-    Model backpack("./Models/Backpack/backpack.obj");
+    Model backpack("./Models/Backpack/backpack.assbin");
 
     double totalTime = 0;
     double framesRendered = 0;
+
+    //Setup shader
+    lightingShader.use();
+    lightingShader.setBool("pointLightOn", false);
+
+    //Light strength and color
+    glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
+    glm::vec3 ambientColor = lightColor * 0.2f;
+    glm::vec3 diffuseColor = lightColor * 0.5f;
+    
+    //Directional
+    lightingShader.setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
+    lightingShader.setVec3("directionalLight.ambient", ambientColor);
+    lightingShader.setVec3("directionalLight.diffuse", diffuseColor);
+    lightingShader.setVec3("directionalLight.specular", 1.0f, 1.0f, 1.0f);
+    
+    //Spotlight
+    lightingShader.setVec3("spotLight.position", camera.Position);
+    lightingShader.setVec3("spotLight.direction", camera.Front);
+    lightingShader.setFloat("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
+    lightingShader.setFloat("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
+    lightingShader.setVec3("spotLight.ambient", ambientColor);
+    lightingShader.setVec3("spotLight.diffuse", diffuseColor);
+    lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+
+    //Model
+    glm::mat4 model = glm::mat4(1.0f);
+    lightingShader.setMat4("modelMatrix", model);
 
     //Render Loop
     while (!glfwWindowShouldClose(window)) {
@@ -191,13 +219,7 @@ int main() {
         //Clear background
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        lightingShader.use();
         lightingShader.setVec3("uViewPosition", camera.Position);
-        lightingShader.setBool("pointLightOn", false);
-
-        //Model
-        glm::mat4 model = glm::mat4(1.0f);
-        lightingShader.setMat4("modelMatrix", model);
         
         //Define and set projection matrix
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
@@ -214,33 +236,13 @@ int main() {
         //Materials
         lightingShader.setFloat("material.shininess", 32.0f);
 
-        //Light strength and color
-        glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
-        glm::vec3 ambientColor = lightColor * 0.2f;
-        glm::vec3 diffuseColor = lightColor * 0.5f;
-
-        if (directionalLightOn) {
+        if (directionalLightOn) 
             lightingShader.setBool("directionalLightOn", true);
-            //Directional
-            lightingShader.setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
-            lightingShader.setVec3("directionalLight.ambient", ambientColor);
-            lightingShader.setVec3("directionalLight.diffuse", diffuseColor);
-            lightingShader.setVec3("directionalLight.specular", 1.0f, 1.0f, 1.0f);
-        }
         else
             lightingShader.setBool("directionalLightOn", false);
 
-        //Spotlight
-        if (spotLightOn) {
+        if (spotLightOn) 
             lightingShader.setBool("spotLightOn", true);
-            lightingShader.setVec3("spotLight.position", camera.Position);
-            lightingShader.setVec3("spotLight.direction", camera.Front);
-            lightingShader.setFloat("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
-            lightingShader.setFloat("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
-            lightingShader.setVec3("spotLight.ambient", ambientColor);
-            lightingShader.setVec3("spotLight.diffuse", diffuseColor);
-            lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
-        }
         else
             lightingShader.setBool("spotLightOn", false);
 
