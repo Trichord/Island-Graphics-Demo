@@ -62,7 +62,8 @@ private:
 	void loadModel(std::string path) {
 
 		Assimp::Importer import;
-		const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals);
+		//const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals); //For .obj files
+		const aiScene *scene = import.ReadFile(path, 0); //.assbin files
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
 			std::cout << "ERROR:ASSIMP::" << import.GetErrorString() << std::endl;
@@ -70,6 +71,7 @@ private:
 		}
 
 		directory = path.substr(0, path.find_last_of('/'));
+
 		meshes.reserve(scene->mNumMeshes);
 		preloadTextures(scene);
 		processNode(scene->mRootNode, scene);
