@@ -167,7 +167,7 @@ int main() {
 
     //Compile shader programs
     Shader lightingShader = Shader("./Shaders/lighting.vert", "./Shaders/lighting.frag");
-  
+
     //Model time!
     Model backpack("./Models/Backpack/backpack.assbin");
 
@@ -241,8 +241,11 @@ int main() {
         else
             lightingShader.setBool("directionalLightOn", false);
 
-        if (spotLightOn) 
+        if (spotLightOn) {
             lightingShader.setBool("spotLightOn", true);
+            lightingShader.setVec3("spotLight.position", camera.Position);
+            lightingShader.setVec3("spotLight.direction", camera.Front);
+        }
         else
             lightingShader.setBool("spotLightOn", false);
 
