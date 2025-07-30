@@ -167,7 +167,7 @@ int main() {
 
     //Compile shader programs
     Shader lightingShader = Shader("./Shaders/lighting.vert", "./Shaders/lighting.frag");
-
+  
     //Model time!
     Model backpack("./Models/Backpack/backpack.assbin");
 
