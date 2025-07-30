@@ -19,6 +19,9 @@ struct Texture {
 	unsigned int id;
 	TextureType type;
 	std::string path;
+
+	Texture() = default;
+	Texture(unsigned int i, TextureType t, std::string &p) : id(i), type(t), path(p) {};
 };
 
 //Mesh owns its VAO / VBO / EBO.  Copying is disabled to avoid double frees or unecessary resource holding
@@ -78,8 +81,9 @@ public:
 		glDeleteBuffers(1, &VBO);
 		glDeleteVertexArrays(1, &VAO);
 	}
+	
 
-	//Will destroy currently set VAO and Texture bindings
+	//Will restore previously bound VAO and texture.  
 	void draw(Shader& shader) const{
 
 		if (VAO == 0)
@@ -90,7 +94,10 @@ public:
 		unsigned int diffuseNr = 1;
 		unsigned int specularNr = 1;
 
-		shader.use();
+		glGetIntegerv(GL_ACTIVE_TEXTURE, &previousTex);
+		glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
+			 
+		//shader.use();
 
 		for (unsigned int i = 0; i < textures.size(); i++) {
 			glActiveTexture(GL_TEXTURE0 + i);
@@ -111,6 +118,10 @@ public:
 		//Draw
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
+		
+		//Restore
+		//glBindVertexArray(previousVAO);
+		//glActiveTexture(previousTex);		
 	}
 
 private:
