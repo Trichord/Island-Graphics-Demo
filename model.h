@@ -44,10 +44,8 @@ public:
 	}
 
 	~Model() {
-		for (const auto &pair : loadedTextures) {
-			std::cout << "Texture name: " << pair.second.path << std::endl;
-			glDeleteTextures(1, &pair.second.id);	
-		}
+		for (const auto &pair : loadedTextures) 
+			glDeleteTextures(1, &pair.second.id);
 	}
 	
 	void draw(Shader &shader) {
