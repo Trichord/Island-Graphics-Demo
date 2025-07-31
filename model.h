@@ -250,7 +250,7 @@ private:
 		return textureID;
 	}
 
-	//Looks through loadedTextures and builds a vector of textures for the given material
+	//Looks through preloaded textures and builds a vector of textures for the given material
 	std::vector<Texture> texturesFromPreloaded(aiMaterial *material, aiTextureType type, TextureType typeName) {
 		
 		std::vector<Texture> textures;
@@ -263,10 +263,10 @@ private:
 
 			auto iterator = loadedTextures.find(name);
 
-			if (iterator == loadedTextures.end())
-				std::cout << "ERROR: Texture not pre-loaded!  Texture name: " << name << std::endl;
-			else
+			if (iterator != loadedTextures.end())
 				textures.emplace_back(iterator->second.id, iterator->second.type, iterator->second.path);
+			else
+				std::cout << "ERROR: Texture not pre-loaded!  Texture name: " << name << std::endl;
 		}
 
 		return textures;
