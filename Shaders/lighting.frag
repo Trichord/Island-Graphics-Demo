@@ -3,8 +3,8 @@
 #define NR_POINT_LIGHTS 4
 
 struct Material{
-    sampler2D diffuse;
-    sampler2D specular;
+    sampler2D texture_diffuse1;
+    sampler2D texture_specular1;
     float shininess;
 };
 
@@ -70,7 +70,7 @@ void main(){
 vec3 result = vec3(0.0f);
 vec3 norm = normalize(vNormalVector); //Normalize incoming surface normal vector (may have been distorted by scale/rotation from normal matrix)
 vec3 viewDirection = normalize(uViewPosition - vFragPosition); //Fragment to camera position
-MaterialTexture materialTexture =  MaterialTexture(texture(material.diffuse, vTexCoords), texture(material.specular, vTexCoords));
+MaterialTexture materialTexture =  MaterialTexture(texture(material.texture_diffuse1, vTexCoords), texture(material.texture_specular1, vTexCoords));
 
 if (directionalLightOn)
     result += CalcDirLight(directionalLight, norm, viewDirection, materialTexture);
@@ -79,7 +79,7 @@ if (pointLightOn){
 
     for (int i = 0; i < NR_POINT_LIGHTS; i++){
         vec3 lightDirection = normalize(pointLights[i].position - vFragPosition);
-        vec3 reflectDirection = reflect(-lightDirection, vNormalVector);
+        vec3 reflectDirection = reflect(-lightDirection, norm);
         result += CalcPointLight(pointLights[i], norm, vFragPosition, viewDirection, reflectDirection, lightDirection, materialTexture);
     }
 }
