@@ -44,8 +44,10 @@ public:
 	}
 
 	~Model() {
-		for (const auto &pair : loadedTextures)
-			glDeleteTextures(1, &pair.second.id);
+		for (const auto &pair : loadedTextures) {
+			std::cout << "Texture name: " << pair.second.path << std::endl;
+			glDeleteTextures(1, &pair.second.id);	
+		}
 	}
 	
 	void draw(Shader &shader) {
@@ -62,8 +64,14 @@ private:
 	void loadModel(std::string path) {
 
 		Assimp::Importer import;
-		//const aiScene *scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals); //For .obj files
-		const aiScene *scene = import.ReadFile(path, 0); //.assbin files
+		const aiScene *scene;
+
+		std::string fileFormat = path.substr(path.find_last_of('.'));
+
+		if (fileFormat == ".assbin")
+			scene = import.ReadFile(path, 0);
+		else 
+			scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
 			std::cout << "ERROR:ASSIMP::" << import.GetErrorString() << std::endl;
@@ -161,7 +169,11 @@ private:
 		if (mesh->mMaterialIndex >= 0) {
 			aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
 			std::vector<Texture> diffuseMaps = texturesFromPreloaded(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE);
-			std::vector<Texture> specularMaps = texturesFromPreloaded(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
+
+			std::vector<Texture> specularMaps;
+			if (material->GetTextureCount(aiTextureType_SPECULAR) > 0)
+				specularMaps = texturesFromPreloaded(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
+			
 			textures.reserve(diffuseMaps.size() + specularMaps.size());
 			textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
 			textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
@@ -184,7 +196,7 @@ private:
 				Texture texture;
 				texture.id = TextureFromFile(name.c_str(), directory);
 				texture.type = typeName;
-				texture.path = directory + '/' + name;
+				texture.path = name;
 				loadedTextures.insert({ texture.path, texture });
 			}
 		}
@@ -226,7 +238,7 @@ private:
 		}
 		else {
 			std::cout << "Error loading texture image from: " << fullPath << std::endl;
-			stbi_image_free(image);
+			//stbi_image_free(image);
 
 			GLubyte magenta[] = {255, 0, 255, 255};
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -249,7 +261,7 @@ private:
 		for (unsigned int i = 0; i < material->GetTextureCount(type); i++) {
 			aiString str;
 			material->GetTexture(type, i, &str);
-			std::string name = directory + '/' + str.C_Str();
+			std::string name = str.C_Str();
 
 			auto iterator = loadedTextures.find(name);
 
