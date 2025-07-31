@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <string>
 #include <assimp/Importer.hpp>
+#include <assimp/Exporter.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include "stb_image.h"
@@ -78,7 +79,7 @@ private:
 
 		if (fileFormat == ".assbin")
 			scene = import.ReadFile(path, 0);
-		else 
+		else
 			scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
@@ -87,6 +88,11 @@ private:
 		}
 
 		directory = path.substr(0, path.find_last_of('/') + 1);
+
+		//Export it for next time
+		if (fileFormat != ".assbin") {
+			exportScene(scene, path);
+		}
 
 		meshes.reserve(scene->mNumMeshes);
 		preloadTextures(scene);
@@ -280,5 +286,15 @@ private:
 		}
 
 		return textures;
+	}
+
+	void exportScene(const aiScene *scene, std::string &path) {
+
+		Assimp::Exporter exporter;
+		std::string fileName = path.substr(path.find_last_of('/') + 1);
+		fileName = fileName.substr(0, fileName.find_last_of('.'));
+		exporter.Export(scene, "assbin", directory + fileName + ".assbin");
+
+		std::cout << "Exported non .assbin file as \"" << fileName << ".assbin\" in: " << directory << std::endl;
 	}
 };
