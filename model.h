@@ -49,8 +49,18 @@ public:
 	}
 	
 	void draw(Shader &shader) {
+		GLint previousVAO = 0;
+		GLint previousTex = 0;
+		
+		glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
+		glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex); 
+		
 		for (unsigned int i = 0; i < meshes.size(); i++)
 			meshes[i].draw(shader);
+
+		//Restore
+		glBindVertexArray(previousVAO);
+		glActiveTexture(previousTex);
 	}
 
 private:
