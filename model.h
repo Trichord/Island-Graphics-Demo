@@ -44,8 +44,8 @@ public:
 	}
 
 	~Model() {
-		for (const auto &pair : loadedTextures) 
-			glDeleteTextures(1, &pair.second.id);
+		for (const auto &pair : loadedTextures)
+			glDeleteTextures(1, &pair.second.id);	
 	}
 	
 	void draw(Shader &shader) {
@@ -76,7 +76,7 @@ private:
 			return;
 		}
 
-		directory = path.substr(0, path.find_last_of('/'));
+		directory = path.substr(0, path.find_last_of('/') + 1);
 
 		meshes.reserve(scene->mNumMeshes);
 		preloadTextures(scene);
@@ -205,7 +205,7 @@ private:
 
 		unsigned int textureID;
 		int width, height, nrChannels;
-		std::string fullPath = directory + '/' + path;
+		std::string fullPath = directory + path;
 
 		glGenTextures(1, &textureID);
 		glBindTexture(GL_TEXTURE_2D, textureID);
