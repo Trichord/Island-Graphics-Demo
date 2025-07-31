@@ -81,24 +81,18 @@ public:
 		glDeleteBuffers(1, &VBO);
 		glDeleteVertexArrays(1, &VAO);
 	}
-	
 
-	//Will restore previously bound VAO and texture.  
+	//Global state restore handled by "Model" class
 	void draw(Shader& shader) const{
 
 		if (VAO == 0)
 			return;
 
-		GLint previousTex = 0;
-		GLint previousVAO = 0;
+		shader.use();
+
 		unsigned int diffuseNr = 1;
 		unsigned int specularNr = 1;
-
-		glGetIntegerv(GL_ACTIVE_TEXTURE, &previousTex);
-		glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
-			 
-		//shader.use();
-
+		 
 		for (unsigned int i = 0; i < textures.size(); i++) {
 			glActiveTexture(GL_TEXTURE0 + i);
 			std::string name;
@@ -118,10 +112,6 @@ public:
 		//Draw
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
-		
-		//Restore
-		//glBindVertexArray(previousVAO);
-		//glActiveTexture(previousTex);		
 	}
 
 private:
