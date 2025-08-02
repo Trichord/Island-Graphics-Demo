@@ -12,8 +12,8 @@
 
 //Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees.  Texture IDs are released on Model destruction
 class Model {
-public:
 
+public:
 	Model(const Model &) = delete;
 	Model &operator=(Model const&) = delete;
 
@@ -65,16 +65,13 @@ public:
 	}
 
 private:
-
 	std::vector<Mesh> meshes;
 	std::string directory;
 	std::unordered_map<std::string, Texture> loadedTextures;
 
 	void loadModel(std::string path) {
-
 		Assimp::Importer import;
 		const aiScene *scene;
-
 		std::string fileFormat = path.substr(path.find_last_of('.'));
 
 		if (fileFormat == ".assbin")
@@ -90,9 +87,14 @@ private:
 		directory = path.substr(0, path.find_last_of('/') + 1);
 
 		//Export it for next time
+<<<<<<< Updated upstream
 		if (fileFormat != ".assbin") {
 			exportScene(scene, path);
 		}
+=======
+		if (fileFormat != ".assbin")
+			exportScene(scene, path);
+>>>>>>> Stashed changes
 
 		meshes.reserve(scene->mNumMeshes);
 		preloadTextures(scene);
@@ -101,7 +103,6 @@ private:
 
 	//Fill "loadedTextures" map with all scene textures
 	void preloadTextures(const aiScene *scene) {
-
 		unsigned int totalTextures = 0;
 
 		for (unsigned int i = 0; i < scene->mNumMaterials; i++) {
@@ -121,7 +122,6 @@ private:
 
 	//Build meshes for current node, then recurse on node's children
 	void processNode(aiNode *node, const aiScene *scene) {
-
 		for (unsigned int i = 0; i < node->mNumMeshes; i++) {
 			aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
 			meshes.emplace_back(processMesh(mesh, scene));
@@ -133,7 +133,6 @@ private:
 
 	//Turn assimp data into our vertices, indices, and textures	
 	Mesh processMesh(aiMesh *mesh, const aiScene *scene) {
-
 		std::vector<Vertex> vertices;
 		std::vector<unsigned int> indices;
 		std::vector<Texture> textures;
@@ -183,8 +182,8 @@ private:
 		if (mesh->mMaterialIndex >= 0) {
 			aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
 			std::vector<Texture> diffuseMaps = texturesFromPreloaded(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE);
-
 			std::vector<Texture> specularMaps;
+			
 			if (material->GetTextureCount(aiTextureType_SPECULAR) > 0)
 				specularMaps = texturesFromPreloaded(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
 			
@@ -198,7 +197,6 @@ private:
 
 	//Load texture from file if not already in loadedTextures map.  Todo: Multi-thread loading from storage
 	void loadMaterialTextures(aiMaterial *mat, aiTextureType type,TextureType typeName) {
-
 		for (unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
 			aiString str;
 			mat->GetTexture(type, i, &str);
@@ -218,15 +216,13 @@ private:
 	
 	//Returns an OpenGL Texture ID.  If texture image fails to load, a solid magenta color is assigned to that texture ID
 	unsigned int TextureFromFile(char const *path, const std::string &directory) {
-
 		unsigned int textureID;
 		int width, height, nrChannels;
 		std::string fullPath = directory + path;
-
-		glGenTextures(1, &textureID);
-		glBindTexture(GL_TEXTURE_2D, textureID);
-		
 		unsigned char *image = stbi_load(fullPath.c_str(), &width, &height, &nrChannels, 0);
+		
+		glGenTextures(1, &textureID);
+		glBindTexture(GL_TEXTURE_2D, textureID);	
 
 		if (image) {
 			GLenum imageFormat;
@@ -268,7 +264,6 @@ private:
 
 	//Looks through preloaded textures and builds a vector of textures for the given material
 	std::vector<Texture> texturesFromPreloaded(aiMaterial *material, aiTextureType type, TextureType typeName) {
-		
 		std::vector<Texture> textures;
 		textures.reserve(material->GetTextureCount(type));
 
@@ -289,12 +284,20 @@ private:
 	}
 
 	void exportScene(const aiScene *scene, std::string &path) {
+<<<<<<< Updated upstream
 
 		Assimp::Exporter exporter;
 		std::string fileName = path.substr(path.find_last_of('/') + 1);
 		fileName = fileName.substr(0, fileName.find_last_of('.'));
 		exporter.Export(scene, "assbin", directory + fileName + ".assbin");
 
+=======
+		Assimp::Exporter exporter;
+		std::string fileName = path.substr(path.find_last_of('/') + 1);
+		fileName = fileName.substr(0, fileName.find_last_of('.'));
+		
+		exporter.Export(scene, "assbin", directory + fileName + ".assbin");
+>>>>>>> Stashed changes
 		std::cout << "Exported non .assbin file as \"" << fileName << ".assbin\" in: " << directory << std::endl;
 	}
 };
