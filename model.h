@@ -87,14 +87,8 @@ private:
 		directory = path.substr(0, path.find_last_of('/') + 1);
 
 		//Export it for next time
-<<<<<<< Updated upstream
-		if (fileFormat != ".assbin") {
-			exportScene(scene, path);
-		}
-=======
 		if (fileFormat != ".assbin")
 			exportScene(scene, path);
->>>>>>> Stashed changes
 
 		meshes.reserve(scene->mNumMeshes);
 		preloadTextures(scene);
@@ -300,4 +294,5 @@ private:
 >>>>>>> Stashed changes
 		std::cout << "Exported non .assbin file as \"" << fileName << ".assbin\" in: " << directory << std::endl;
 	}
+
 };
