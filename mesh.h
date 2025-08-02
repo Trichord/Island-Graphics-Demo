@@ -84,15 +84,14 @@ public:
 
 	//Global state restore handled by "Model" class
 	void draw(Shader& shader) const{
-
 		if (VAO == 0)
 			return;
+		
+		unsigned int diffuseNr = 1;
+		unsigned int specularNr = 1;
 
 		shader.use();
 
-		unsigned int diffuseNr = 1;
-		unsigned int specularNr = 1;
-		 
 		for (unsigned int i = 0; i < textures.size(); i++) {
 			glActiveTexture(GL_TEXTURE0 + i);
 			std::string name;
@@ -118,7 +117,6 @@ private:
 	unsigned int VAO = 0, VBO = 0, EBO = 0;
 	
 	void setupMesh() {
-
 		if (vertices.size() == 0 || indices.size() == 0) {
 			std::cout << "Error: no vertices or indices in mesh" << std::endl;
 			return;
