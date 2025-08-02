@@ -278,21 +278,12 @@ private:
 	}
 
 	void exportScene(const aiScene *scene, std::string &path) {
-<<<<<<< Updated upstream
-
-		Assimp::Exporter exporter;
-		std::string fileName = path.substr(path.find_last_of('/') + 1);
-		fileName = fileName.substr(0, fileName.find_last_of('.'));
-		exporter.Export(scene, "assbin", directory + fileName + ".assbin");
-
-=======
 		Assimp::Exporter exporter;
 		std::string fileName = path.substr(path.find_last_of('/') + 1);
 		fileName = fileName.substr(0, fileName.find_last_of('.'));
 		
 		exporter.Export(scene, "assbin", directory + fileName + ".assbin");
->>>>>>> Stashed changes
 		std::cout << "Exported non .assbin file as \"" << fileName << ".assbin\" in: " << directory << std::endl;
 	}
-
 };
+
