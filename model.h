@@ -12,18 +12,19 @@
 #include "stb_image.h"
 #include "shader.h"
 #include "mesh.h"
+#include "thread_pool.h"
 
 //Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees.  Texture IDs are released on Model destruction
 class Model {
 
 public:
 	Model(const Model &) = delete;
-	Model &operator=(Model const&) = delete;
+	Model &operator=(Model const &) = delete;
 
 	Model(std::string path) {
 		loadModel(path);
 	}
-	
+
 	Model(Model &&other) noexcept :
 		meshes(std::move(other.meshes)),
 		directory(std::move(other.directory)),
@@ -31,34 +32,34 @@ public:
 		other.loadedTextures.clear();
 	}
 
-	Model &operator=(Model &&other) noexcept{
+	Model &operator=(Model &&other) noexcept {
 		if (this != &other) {
-			
+
 			for (const auto &pair : loadedTextures)
 				glDeleteTextures(1, &pair.second.id);
 
 			meshes = std::move(other.meshes);
 			directory = std::move(other.directory);
 			loadedTextures = std::move(other.loadedTextures);
-		
+
 			other.loadedTextures.clear();
 		}
-		
+
 		return *this;
 	}
 
 	~Model() {
 		for (const auto &pair : loadedTextures)
-			glDeleteTextures(1, &pair.second.id);	
+			glDeleteTextures(1, &pair.second.id);
 	}
-	
+
 	void draw(Shader &shader) {
 		GLint previousVAO = 0;
 		GLint previousTex = 0;
-		
+
 		glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
-		glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex); 
-		
+		glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex);
+
 		for (unsigned int i = 0; i < meshes.size(); i++)
 			meshes[i].draw(shader);
 
@@ -69,8 +70,10 @@ public:
 
 private:
 	std::vector<Mesh> meshes;
+	std::vector<unsigned char *> imageFiles;
 	std::string directory;
 	std::unordered_map<std::string, Texture> loadedTextures;
+	ThreadPool threadPool{ 4u };
 
 	void loadModel(std::string path) {
 		Assimp::Importer import;
@@ -109,11 +112,12 @@ private:
 		}
 
 		loadedTextures.reserve(totalTextures);
+		imageFiles.reserve(totalTextures);
 
 		for (unsigned int i = 0; i < scene->mNumMaterials; i++) {
 			aiMaterial *material = scene->mMaterials[i];
-			loadMaterialTextures(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE);
-			loadMaterialTextures(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
+			getTextureNames(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE);
+			getTextureNames(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
 		}
 	}
 
@@ -179,10 +183,7 @@ private:
 		if (mesh->mMaterialIndex >= 0) {
 			aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
 			std::vector<Texture> diffuseMaps = texturesFromPreloaded(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE);
-			std::vector<Texture> specularMaps;
-			
-			if (material->GetTextureCount(aiTextureType_SPECULAR) > 0)
-				specularMaps = texturesFromPreloaded(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
+			std::vector<Texture> specularMaps = texturesFromPreloaded(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
 			
 			textures.reserve(diffuseMaps.size() + specularMaps.size());
 			textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
@@ -193,7 +194,7 @@ private:
 	}
 
 	//Load texture from file if not already in loadedTextures map.  Todo: Multi-thread loading from storage
-	void loadMaterialTextures(aiMaterial *mat, aiTextureType type,TextureType typeName) {
+	void getTextureNames(aiMaterial *mat, aiTextureType type,TextureType typeName) {
 		for (unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
 			aiString str;
 			mat->GetTexture(type, i, &str);
@@ -288,5 +289,14 @@ private:
 		exporter.Export(scene, "assbin", directory + fileName + ".assbin");
 		std::cout << "Exported non .assbin file as \"" << fileName << ".assbin\" in: " << directory << std::endl;
 	}
+
+	void loadImagesFromFile(char const *path, const std::string &directory) {
+		int width, height, nrChannels;
+		std::string fullPath = directory + path;
+		unsigned char *image = stbi_load(fullPath.c_str(), &width, &height, &nrChannels, 0);
+		imageFiles.push_back(image); //Don't forget to free these images somewhere
+	}
+
+
 };
 
