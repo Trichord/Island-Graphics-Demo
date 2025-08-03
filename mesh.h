@@ -1,8 +1,10 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include "shader.h"
+#include <vector>
 #include <string>
+#include <glm/glm.hpp>
+#include <glad/glad.h>
+#include "shader.h"
 
 enum TextureType {
 	TEXTURE_DIFFUSE,
