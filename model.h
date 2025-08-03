@@ -200,7 +200,8 @@ private:
 			mat->GetTexture(type, i, &str);
 			std::string name = str.C_Str();
 			
-			auto iterator = loadedTextures.find(name);
+			auto iterator = loadedTextures.find(name); //Switch to full directory for map, since that will match the map sent to ImageLoader
+			std::cout << "Looking for loadedTextures name: " << name << std::endl;
 
 			if (iterator == loadedTextures.end()) {
 				Texture texture;
@@ -208,6 +209,7 @@ private:
 				texture.type = typeName;
 				texture.path = name;
 				loadedTextures.insert({ texture.path, texture });
+				std::cout << "Inserted into map: " << texture.path << std::endl;
 			}
 		}
 	}
@@ -290,12 +292,7 @@ private:
 		std::cout << "Exported non .assbin file as \"" << fileName << ".assbin\" in: " << directory << std::endl;
 	}
 
-	void loadImagesFromFile(char const *path, const std::string &directory) {
-		int width, height, nrChannels;
-		std::string fullPath = directory + path;
-		unsigned char *image = stbi_load(fullPath.c_str(), &width, &height, &nrChannels, 0);
-		imageFiles.push_back(image); //Don't forget to free these images somewhere
-	}
+
 
 
 };
