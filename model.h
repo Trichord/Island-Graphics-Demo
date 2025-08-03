@@ -2,10 +2,13 @@
 
 #include <unordered_map>
 #include <string>
+#include <vector>
 #include <assimp/Importer.hpp>
 #include <assimp/Exporter.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <glad/glad.h>
+#include <glm/glm.hpp>
 #include "stb_image.h"
 #include "shader.h"
 #include "mesh.h"
