@@ -9,10 +9,10 @@
 #include <assimp/postprocess.h>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
-#include "stb_image.h"
 #include "shader.h"
 #include "mesh.h"
 #include "thread_pool.h"
+#include "image_loader.h"
 
 //Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees.  Texture IDs are released on Model destruction
 class Model {
@@ -68,9 +68,8 @@ public:
 
 private:
 	std::vector<Mesh> meshes;
-	std::vector<unsigned char *> imageFiles;
 	std::unordered_map<std::string, Texture> loadedTextures;
-	ThreadPool threadPool{ 4u };
+	//store path here?
 
 	void loadModel(std::string path) {
 		Assimp::Importer import;
@@ -107,13 +106,14 @@ private:
 		}
 
 		loadedTextures.reserve(totalTextures);
-		imageFiles.reserve(totalTextures);
 
 		for (unsigned int i = 0; i < scene->mNumMaterials; i++) {
 			aiMaterial *material = scene->mMaterials[i];
 			getTextureNames(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE);
 			getTextureNames(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
 		}
+
+		generateIDs();
 	}
 
 	//Build meshes for current node, then recurse on node's children
@@ -190,73 +190,20 @@ private:
 		return Mesh(std::move(vertices), std::move(indices), std::move(textures));
 	}
 
-	//Load texture from file if not already in loadedTextures map.  Todo: Multi-thread loading from storage
+	//Load texture from file if not already in loadedTextures map
 	void getTextureNames(aiMaterial *mat, aiTextureType type,TextureType typeName) {
 		for (unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
 			aiString str;
 			mat->GetTexture(type, i, &str);
-			std::string name = str.C_Str();
+			std::string filePath = str.C_Str();
 			
-			auto iterator = loadedTextures.find(name);
+			auto iterator = loadedTextures.find(filePath);
 
-			if (iterator == loadedTextures.end()) {
-				Texture texture;
-				texture.id = TextureFromFile(name.c_str());
-				texture.type = typeName;
-				texture.path = name;
-				loadedTextures.insert({ texture.path, texture });
-			}
+			if (iterator == loadedTextures.end())
+				loadedTextures.emplace(filePath, Texture{ 0, typeName });
 		}
 	}
 	
-	//Returns an OpenGL Texture ID.  If texture image fails to load, a solid magenta color is assigned to that texture ID
-	unsigned int TextureFromFile(char const *path) {
-		unsigned int textureID;
-		int width, height, nrChannels;
-		//std::string fullPath = directory + path;
-		unsigned char *image = stbi_load(path, &width, &height, &nrChannels, 0);
-		
-		glGenTextures(1, &textureID);
-		glBindTexture(GL_TEXTURE_2D, textureID);	
-
-		if (image) {
-			GLenum imageFormat;
-
-			if (nrChannels == 1)
-				imageFormat = GL_RED;
-			else if (nrChannels == 2)
-				imageFormat = GL_RG;
-			else if (nrChannels == 3)
-				imageFormat = GL_RGB;
-			else if (nrChannels == 4)
-				imageFormat = GL_RGBA;
-
-			glTexImage2D(GL_TEXTURE_2D, 0, imageFormat, width, height, 0, imageFormat, GL_UNSIGNED_BYTE, image);
-			glGenerateMipmap(GL_TEXTURE_2D);
-
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-			stbi_image_free(image);
-		}
-		else {
-			std::cout << "Error loading texture image from: " << path << std::endl;
-			//stbi_image_free(image);
-
-			GLubyte magenta[] = {255, 0, 255, 255};
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, magenta);
-			glGenerateMipmap(GL_TEXTURE_2D);
-		}
-
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-		return textureID;
-	}
-
 	//Looks through preloaded textures and builds a vector of textures for the given material
 	std::vector<Texture> texturesFromPreloaded(aiMaterial *material, aiTextureType type, TextureType typeName) {
 		std::vector<Texture> textures;
@@ -270,7 +217,7 @@ private:
 			auto iterator = loadedTextures.find(name);
 
 			if (iterator != loadedTextures.end())
-				textures.emplace_back(iterator->second.id, iterator->second.type, iterator->second.path);
+				textures.emplace_back(iterator->second.id, iterator->second.type);
 			else
 				std::cout << "ERROR: Texture not pre-loaded!  Texture name: " << name << std::endl;
 		}
@@ -286,6 +233,53 @@ private:
 			
 		exporter.Export(scene, "assbin", directory + fileName + ".assbin");
 		std::cout << "Exported non .assbin file as \"" << fileName << ".assbin\" in: " << directory << std::endl;
+	}
+
+	//Retrieves image data from the ImageLoader and generates OpenGL Texture ID's
+	void generateIDs() {
+		ImageLoader imageLoader(loadedTextures);
+		std::unordered_map<std::string, ImageData> imageData = imageLoader.getImageMap();
+
+		for (auto &imagePair : imageData) {
+			unsigned int textureID;
+			int nrChannels = imagePair.second.nrChannels;
+			unsigned char *data = imagePair.second.data;
+	
+			if (data) {
+				GLenum imageFormat;
+
+				if (nrChannels == 1)
+					imageFormat = GL_RED;
+				else if (nrChannels == 2)
+					imageFormat = GL_RG;
+				else if (nrChannels == 3)
+					imageFormat = GL_RGB;
+				else if (nrChannels == 4)
+					imageFormat = GL_RGBA;
+
+				glGenTextures(1, &textureID);
+				glBindTexture(GL_TEXTURE_2D, textureID);
+
+				glTexImage2D(GL_TEXTURE_2D, 0, imageFormat, imagePair.second.width, imagePair.second.height, 0, imageFormat, GL_UNSIGNED_BYTE, data);
+				glGenerateMipmap(GL_TEXTURE_2D);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+				glBindTexture(GL_TEXTURE_2D, 0);
+			}
+			else 
+				textureID = 0;
+
+			auto loadedTexIter = loadedTextures.find(imagePair.first);
+
+			if (loadedTexIter != loadedTextures.end())
+				loadedTexIter->second.id = textureID;
+			else
+				std::cout << "ERROR: Texture filepath not found in loadedTextures" << std::endl;
+		}
 	}
 };
 
