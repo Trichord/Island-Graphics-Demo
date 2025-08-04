@@ -7,6 +7,7 @@
 #include <condition_variable>
 #include "stb_image.h"
 #include "thread_pool.h"
+#include "mesh.h"
 
 extern ThreadPool threadPool;
 
@@ -23,7 +24,7 @@ struct ImageData {
 class ImageLoader {
 public:
 	//Queue up all filepaths in the thread pool
-	ImageLoader(const std::unordered_map<std::string, unsigned char *> &inputMap) : numImages(inputMap.size()), imagesLoaded(0)  {
+	ImageLoader(const std::unordered_map<std::string, Texture> &inputMap) : numImages(inputMap.size()), imagesLoaded(0)  {
 		for (auto const & [path, _] : inputMap)
 			threadPool.enqueue([this, path]() {
 				loadFromFile(path);
