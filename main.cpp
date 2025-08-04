@@ -9,6 +9,7 @@
 #include "camera.h"
 #include "shader.h"
 #include "model.h"
+#include "thread_pool.h"
 
 #define SCREEN_WIDTH 2560
 #define SCREEN_HEIGHT 1440
@@ -108,6 +109,8 @@ glm::vec3 pointLightPositions[] = {
     glm::vec3(0.0f,  0.0f, -3.0f)
 };
 
+ThreadPool threadPool{ 4 };
+
 int main() {
 
     //Creating the window
@@ -165,8 +168,9 @@ int main() {
     //Compile shader programs
     Shader lightingShader = Shader("./Shaders/lighting.vert", "./Shaders/lighting.frag");
 
-    //Model time!
+    //Load all models and stop thread pool
     Model backpack("./Models/Backpack/backpack.assbin");
+    threadPool.stopAllThreads();
 
     double totalTime = 0;
     double framesRendered = 0;

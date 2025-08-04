@@ -12,15 +12,20 @@ class ThreadPool {
 
 public:
     ~ThreadPool(){
+
         {
             std::unique_lock<std::mutex> lock(queueMutex);
-            stop = true;
+            
+            if (!stop) {
+                stop = true;
+                condition.notify_all();
+            } 
         }
 
-        condition.notify_all();
-
-        for (auto &thread : threads)
-            thread.join();
+        for (auto &thread : threads) {
+            if (thread.joinable())
+                thread.join();
+        }
     }
 
     ThreadPool(unsigned int numThreads) : stop(false) {
@@ -58,6 +63,18 @@ public:
 
         tasks.push(task);
         condition.notify_one();
+    }
+
+    void stopAllThreads() {
+        {
+            std::unique_lock<std::mutex> lock(queueMutex);
+            stop = true;
+        }
+
+        condition.notify_all();
+
+        for (auto &thread : threads)
+            thread.join();
     }
 
 private:
