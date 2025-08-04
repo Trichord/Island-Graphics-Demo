@@ -27,7 +27,6 @@ public:
 
 	Model(Model &&other) noexcept :
 		meshes(std::move(other.meshes)),
-		directory(std::move(other.directory)),
 		loadedTextures(std::move(other.loadedTextures)) {
 		other.loadedTextures.clear();
 	}
@@ -39,7 +38,6 @@ public:
 				glDeleteTextures(1, &pair.second.id);
 
 			meshes = std::move(other.meshes);
-			directory = std::move(other.directory);
 			loadedTextures = std::move(other.loadedTextures);
 
 			other.loadedTextures.clear();
@@ -71,7 +69,6 @@ public:
 private:
 	std::vector<Mesh> meshes;
 	std::vector<unsigned char *> imageFiles;
-	std::string directory;
 	std::unordered_map<std::string, Texture> loadedTextures;
 	ThreadPool threadPool{ 4u };
 
@@ -89,8 +86,6 @@ private:
 			std::cout << "ERROR:ASSIMP::" << import.GetErrorString() << std::endl;
 			return;
 		}
-
-		directory = path.substr(0, path.find_last_of('/') + 1);
 
 		//Export it for next time
 		if (fileFormat != ".assbin")
@@ -202,11 +197,11 @@ private:
 			mat->GetTexture(type, i, &str);
 			std::string name = str.C_Str();
 			
-			auto iterator = loadedTextures.find(name); //Switch to full directory for map, since that will match the map sent to ImageLoader
+			auto iterator = loadedTextures.find(name);
 
 			if (iterator == loadedTextures.end()) {
 				Texture texture;
-				texture.id = TextureFromFile(name.c_str(), directory);
+				texture.id = TextureFromFile(name.c_str());
 				texture.type = typeName;
 				texture.path = name;
 				loadedTextures.insert({ texture.path, texture });
@@ -215,11 +210,11 @@ private:
 	}
 	
 	//Returns an OpenGL Texture ID.  If texture image fails to load, a solid magenta color is assigned to that texture ID
-	unsigned int TextureFromFile(char const *path, const std::string &directory) {
+	unsigned int TextureFromFile(char const *path) {
 		unsigned int textureID;
 		int width, height, nrChannels;
-		std::string fullPath = directory + path;
-		unsigned char *image = stbi_load(fullPath.c_str(), &width, &height, &nrChannels, 0);
+		//std::string fullPath = directory + path;
+		unsigned char *image = stbi_load(path, &width, &height, &nrChannels, 0);
 		
 		glGenTextures(1, &textureID);
 		glBindTexture(GL_TEXTURE_2D, textureID);	
@@ -247,7 +242,7 @@ private:
 			stbi_image_free(image);
 		}
 		else {
-			std::cout << "Error loading texture image from: " << fullPath << std::endl;
+			std::cout << "Error loading texture image from: " << path << std::endl;
 			//stbi_image_free(image);
 
 			GLubyte magenta[] = {255, 0, 255, 255};
@@ -285,9 +280,10 @@ private:
 
 	void exportScene(const aiScene *scene, std::string &path) {
 		Assimp::Exporter exporter;
+		std::string directory = path.substr(0, path.find_last_of('/') + 1);
 		std::string fileName = path.substr(path.find_last_of('/') + 1);
 		fileName = fileName.substr(0, fileName.find_last_of('.'));
-		
+			
 		exporter.Export(scene, "assbin", directory + fileName + ".assbin");
 		std::cout << "Exported non .assbin file as \"" << fileName << ".assbin\" in: " << directory << std::endl;
 	}
