@@ -88,7 +88,7 @@ if (spotLightOn)
     result += CalcSpotLight(spotLight, norm, vFragPosition, viewDirection, materialTexture);
 
 if (!directionalLightOn && !pointLightOn && !spotLightOn)
-    result += vec3(materialTexture.diffuse) * 0.075;
+    result += vec3(materialTexture.diffuse) * 0.05f;
 
 FragColor = vec4(result, 1.0f);
 };
