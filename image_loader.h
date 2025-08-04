@@ -56,7 +56,7 @@ public:
 	}
 
 private:
-	unsigned int numImages;
+	size_t numImages;
 	unsigned int imagesLoaded;
 	std::unordered_map<std::string, ImageData> loadedImages;
 	std::mutex imagesMutex;
@@ -69,7 +69,7 @@ private:
 		//Lock and insert.  If stbi_load fails, we get a nullptr which is handled by model.h
 		{
 			std::unique_lock<std::mutex> lock(imagesMutex);
-			loadedImages.emplace(path, image, width, height, nrChannels);
+			loadedImages.emplace(path, ImageData{ image, width, height, nrChannels });
 			imagesLoaded++;
 			if (imagesLoaded == numImages)
 				condition.notify_one();

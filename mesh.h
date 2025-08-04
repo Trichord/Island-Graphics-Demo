@@ -20,10 +20,9 @@ struct Vertex {
 struct Texture {
 	unsigned int id;
 	TextureType type;
-	std::string path;
 
 	Texture() = default;
-	Texture(unsigned int i, TextureType t, std::string &p) : id(i), type(t), path(p) {};
+	Texture(unsigned int i, TextureType t) : id(i), type(t) {};
 };
 
 //Mesh owns its VAO / VBO / EBO.  Copying is disabled to avoid double frees or unecessary resource holding
