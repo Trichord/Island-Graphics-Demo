@@ -177,8 +177,8 @@ int main() {
  
     //Directional
     lightingShader.setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
-    lightingShader.setVec3("directionalLight.ambient", 0.05f, 0.05f, 0.05f);
-    lightingShader.setVec3("directionalLight.diffuse", 0.4f, 0.4f, 0.4f);
+    lightingShader.setVec3("directionalLight.ambient", 0.1f, 0.1f, 0.1f);
+    lightingShader.setVec3("directionalLight.diffuse", 1.0f, 1.0f, 1.0f);
     lightingShader.setVec3("directionalLight.specular", 1.0f, 1.0f, 1.0f);
     
     //Spotlight
@@ -186,7 +186,7 @@ int main() {
     lightingShader.setVec3("spotLight.direction", camera.Front);
     lightingShader.setFloat("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
     lightingShader.setFloat("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
-    lightingShader.setVec3("spotLight.ambient", 0.01f, 0.01f, 0.01f);
+    lightingShader.setVec3("spotLight.ambient", 0.05f, 0.05f, 0.05f);
     lightingShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
     lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
 
