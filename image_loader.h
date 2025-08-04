@@ -10,6 +10,16 @@
 
 extern ThreadPool threadPool;
 
+struct ImageData {
+	unsigned char *data;
+	int width;
+	int height;
+	int nrChannels;
+
+	ImageData() = default;
+	ImageData(unsigned char *d, int w, int h, int nr) : data(d), width(w), height(h), nrChannels(nr) {};
+};
+
 class ImageLoader {
 public:
 	//Queue up all filepaths in the thread pool
@@ -32,14 +42,22 @@ public:
 		freeImages();
 	}
 
-	const std::unordered_map<std::string, unsigned char *> &getImageMap() const {
+	const std::unordered_map<std::string, ImageData> &getImageMap() const {
 		return loadedImages;
+	}
+
+	void freeImages() {
+		for (auto &pair : loadedImages)
+			if (pair.second.data != nullptr) {
+				stbi_image_free(pair.second.data);
+				pair.second.data = nullptr;
+			}
 	}
 
 private:
 	unsigned int numImages;
 	unsigned int imagesLoaded;
-	std::unordered_map<std::string, unsigned char *> loadedImages;
+	std::unordered_map<std::string, ImageData> loadedImages;
 	std::mutex imagesMutex;
 	std::condition_variable condition;
 
@@ -47,19 +65,13 @@ private:
 		int width, height, nrChannels;
 		unsigned char *image = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
 		
-		//Lock and insert.  If stbi_load fails, we get a nullptr which is treated as a failed texture load by model.h
+		//Lock and insert.  If stbi_load fails, we get a nullptr which is handled by model.h
 		{
 			std::unique_lock<std::mutex> lock(imagesMutex);
-			loadedImages.insert({ path, image });
+			loadedImages.emplace(path, image, width, height, nrChannels);
 			imagesLoaded++;
 			if (imagesLoaded == numImages)
 				condition.notify_one();
 		}
-	}
-
-	void freeImages() {
-		for (auto &pair : loadedImages)
-			if (pair.second != nullptr)
-				stbi_image_free(pair.second);
 	}
 };
