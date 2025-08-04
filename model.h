@@ -182,6 +182,8 @@ private:
 		//Assign mesh-specific textures from loadedTextures map
 		if (mesh->mMaterialIndex >= 0) {
 			aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
+
+			//Get all the mesh's texture data from the preloaded list
 			std::vector<Texture> diffuseMaps = texturesFromPreloaded(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE);
 			std::vector<Texture> specularMaps = texturesFromPreloaded(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
 			
@@ -201,7 +203,6 @@ private:
 			std::string name = str.C_Str();
 			
 			auto iterator = loadedTextures.find(name); //Switch to full directory for map, since that will match the map sent to ImageLoader
-			std::cout << "Looking for loadedTextures name: " << name << std::endl;
 
 			if (iterator == loadedTextures.end()) {
 				Texture texture;
@@ -209,7 +210,6 @@ private:
 				texture.type = typeName;
 				texture.path = name;
 				loadedTextures.insert({ texture.path, texture });
-				std::cout << "Inserted into map: " << texture.path << std::endl;
 			}
 		}
 	}
@@ -291,9 +291,5 @@ private:
 		exporter.Export(scene, "assbin", directory + fileName + ".assbin");
 		std::cout << "Exported non .assbin file as \"" << fileName << ".assbin\" in: " << directory << std::endl;
 	}
-
-
-
-
 };
 
