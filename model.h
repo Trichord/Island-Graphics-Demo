@@ -99,6 +99,7 @@ private:
 	void preloadTextures(const aiScene *scene) {
 		unsigned int totalTextures = 0;
 
+		//Count
 		for (unsigned int i = 0; i < scene->mNumMaterials; i++) {
 			aiMaterial *material = scene->mMaterials[i];
 			totalTextures += material->GetTextureCount(aiTextureType_DIFFUSE);
@@ -107,6 +108,7 @@ private:
 
 		loadedTextures.reserve(totalTextures);
 
+		//Fill in loadedTextures map, minus the texture ID
 		for (unsigned int i = 0; i < scene->mNumMaterials; i++) {
 			aiMaterial *material = scene->mMaterials[i];
 			getTextureNames(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE);
@@ -161,8 +163,8 @@ private:
 			vertices.emplace_back(std::move(vertex));
 		}
 	
+		//Count and reserve
 		unsigned int totalIndices = 0;
-
 		for (unsigned int i = 0; i < mesh->mNumFaces; i++)
 			totalIndices += mesh->mFaces[i].mNumIndices;
 		indices.reserve(totalIndices);
@@ -238,7 +240,7 @@ private:
 	//Retrieves image data from the ImageLoader and generates OpenGL Texture ID's
 	void generateIDs() {
 		ImageLoader imageLoader(loadedTextures);
-		std::unordered_map<std::string, ImageData> imageData = imageLoader.getImageMap();
+		std::unordered_map<std::string, ImageData> imageData = imageLoader.getImageData();
 
 		for (auto &imagePair : imageData) {
 			unsigned int textureID;
