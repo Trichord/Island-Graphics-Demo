@@ -43,7 +43,7 @@ public:
 		freeImages();
 	}
 
-	const std::unordered_map<std::string, ImageData> &getImageMap() const {
+	const std::unordered_map<std::string, ImageData> &getImageData() const {
 		return loadedImages;
 	}
 
