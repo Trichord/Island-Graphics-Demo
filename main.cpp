@@ -6,12 +6,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 #include "camera.h"
 #include "shader.h"
 #include "model.h"
+#include "thread_pool.h"
 
 #define SCREEN_WIDTH 2560
 #define SCREEN_HEIGHT 1440
@@ -111,6 +109,8 @@ glm::vec3 pointLightPositions[] = {
     glm::vec3(0.0f,  0.0f, -3.0f)
 };
 
+ThreadPool threadPool{ 4 };
+
 int main() {
 
     //Creating the window
@@ -168,8 +168,9 @@ int main() {
     //Compile shader programs
     Shader lightingShader = Shader("./Shaders/lighting.vert", "./Shaders/lighting.frag");
 
-    //Model time!
+    //Load all models and stop thread pool
     Model backpack("./Models/Backpack/backpack.assbin");
+    threadPool.stopAllThreads();
 
     double totalTime = 0;
     double framesRendered = 0;
@@ -177,16 +178,11 @@ int main() {
     //Setup shader
     lightingShader.use();
     lightingShader.setBool("pointLightOn", false);
-
-    //Light strength and color
-    glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
-    glm::vec3 ambientColor = lightColor * 0.2f;
-    glm::vec3 diffuseColor = lightColor * 0.5f;
-    
+ 
     //Directional
     lightingShader.setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
-    lightingShader.setVec3("directionalLight.ambient", ambientColor);
-    lightingShader.setVec3("directionalLight.diffuse", diffuseColor);
+    lightingShader.setVec3("directionalLight.ambient", 0.1f, 0.1f, 0.1f);
+    lightingShader.setVec3("directionalLight.diffuse", 1.0f, 1.0f, 1.0f);
     lightingShader.setVec3("directionalLight.specular", 1.0f, 1.0f, 1.0f);
     
     //Spotlight
@@ -194,8 +190,8 @@ int main() {
     lightingShader.setVec3("spotLight.direction", camera.Front);
     lightingShader.setFloat("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
     lightingShader.setFloat("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
-    lightingShader.setVec3("spotLight.ambient", ambientColor);
-    lightingShader.setVec3("spotLight.diffuse", diffuseColor);
+    lightingShader.setVec3("spotLight.ambient", 0.05f, 0.05f, 0.05f);
+    lightingShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
     lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
 
     //Model
@@ -203,7 +199,7 @@ int main() {
     lightingShader.setMat4("modelMatrix", model);
 
     //Render Loop
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(window)){
 
         //Delta Time
         currentFrame = (float)glfwGetTime();
@@ -251,6 +247,13 @@ int main() {
 
         backpack.draw(lightingShader);
 
+        //Testing restore of "draw"
+        GLint previousVAO = 0;
+        GLint previousTex = 0;
+
+        glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -258,6 +261,7 @@ int main() {
     std::cout << "Average FPS: " << framesRendered / totalTime << std::endl;
 
     glfwTerminate();
+
     return 0;
 }
 
