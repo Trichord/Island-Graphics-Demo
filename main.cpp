@@ -186,14 +186,20 @@ int main() {
     lightingShader.setVec3("directionalLight.specular", 1.0f, 1.0f, 1.0f);
     
     //Spotlight
-    lightingShader.setVec3("spotLight.position", camera.Position);
-    lightingShader.setVec3("spotLight.direction", camera.Front);
-    lightingShader.setFloat("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
-    lightingShader.setFloat("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
     lightingShader.setVec3("spotLight.ambient", 0.05f, 0.05f, 0.05f);
     lightingShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
     lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
 
+    lightingShader.setVec3("spotLight.position", camera.Position);
+    lightingShader.setVec3("spotLight.direction", camera.Front);
+  
+    lightingShader.setFloat("spotLight.constant", 1.0f);
+    lightingShader.setFloat("spotLight.linear", 0.045f);
+    lightingShader.setFloat("spotLight.quadratic", 0.0075f);
+    
+    lightingShader.setFloat("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
+    lightingShader.setFloat("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
+    
     //Model
     glm::mat4 model = glm::mat4(1.0f);
     lightingShader.setMat4("modelMatrix", model);

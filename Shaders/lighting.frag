@@ -36,6 +36,10 @@ struct SpotLight{
     vec3 diffuse;
     vec3 specular;
 
+    float constant;
+    float linear;
+    float quadratic;
+
    float cutoff;
    float outerCutoff;
 };
@@ -132,6 +136,9 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, MaterialTexture materialTexture){  
         vec3 lightDirection = normalize(light.position - fragPos);
         vec3 reflectDirection = reflect(-lightDirection, normal);
+
+        float lightDistance = length(light.position - fragPos);
+        float attenuation = 1.0f / (light.constant + light.linear * lightDistance + light.quadratic * (lightDistance * lightDistance));
         
         //Calculate intensity of light.  Outside outer circle = 0, inside inner circle = 1
         float theta = dot(lightDirection, normalize(-light.direction));
@@ -147,6 +154,10 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, Mat
 
         diffuseLight *= intensity;
         specularLight *= intensity;
+
+        ambientLight *= attenuation;
+        diffuseLight *= attenuation;
+        specularLight *= attenuation;
 
         return ambientLight + diffuseLight + specularLight;  
 }
