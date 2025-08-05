@@ -15,6 +15,9 @@ struct Vertex {
 	glm::vec3 position;
 	glm::vec3 normal;
 	glm::vec2 texCoords;
+
+	Vertex() = default;
+	Vertex(float px, float py, float pz, float nx, float ny, float nz, float tu, float tv) : position( px, py, pz ), normal( nx, ny, nz ), texCoords( tu, tv ) {};
 };
 
 struct Texture {
