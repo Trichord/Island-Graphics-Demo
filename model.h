@@ -69,20 +69,19 @@ public:
 private:
 	std::vector<Mesh> meshes;
 	std::unordered_map<std::string, Texture> loadedTextures;
-	//store path here?
 
 	void loadModel(std::string path) {
-		Assimp::Importer import;
+		Assimp::Importer importer;
 		const aiScene *scene;
 		std::string fileFormat = path.substr(path.find_last_of('.'));
 
 		if (fileFormat == ".assbin")
-			scene = import.ReadFile(path, 0);
+			scene = importer.ReadFile(path, 0);
 		else
-			scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals);
+			scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-			std::cout << "ERROR:ASSIMP::" << import.GetErrorString() << std::endl;
+			std::cout << "ERROR:ASSIMP::" << importer.GetErrorString() << std::endl;
 			return;
 		}
 
@@ -91,6 +90,7 @@ private:
 			exportScene(scene, path);
 
 		meshes.reserve(scene->mNumMeshes);
+
 		preloadTextures(scene);
 		processNode(scene->mRootNode, scene);
 	}
@@ -115,6 +115,7 @@ private:
 			getTextureNames(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
 		}
 
+		//Texture ID's
 		generateIDs();
 	}
 
@@ -137,30 +138,19 @@ private:
 
 		vertices.reserve(mesh->mNumVertices);
 		
-		for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
-			Vertex vertex;
-			glm::vec3 vector;
+		for (unsigned int i = 0; i < mesh->mNumVertices; i++) {		
+			vertices.emplace_back(
+				mesh->mVertices[i].x,
+				mesh->mVertices[i].y,
+				mesh->mVertices[i].z,
 
-			vector.x = mesh->mVertices[i].x;
-			vector.y = mesh->mVertices[i].y;
-			vector.z = mesh->mVertices[i].z;
-			vertex.position = vector;
+				mesh->mNormals[i].x,
+				mesh->mNormals[i].y,
+				mesh->mNormals[i].z,
 
-			vector.x = mesh->mNormals[i].x;
-			vector.y = mesh->mNormals[i].y;
-			vector.z = mesh->mNormals[i].z;
-			vertex.normal = vector;
-
-			if (mesh->mTextureCoords[0]) {
-				glm::vec2 vec;
-				vec.x = mesh->mTextureCoords[0][i].x;
-				vec.y = mesh->mTextureCoords[0][i].y;
-				vertex.texCoords = vec;
-			}
-			else
-				vertex.texCoords = glm::vec2(0.0f);
-
-			vertices.emplace_back(std::move(vertex));
+				mesh->mTextureCoords[0] ? mesh->mTextureCoords[0][i].x : 0,
+				mesh->mTextureCoords[0] ? mesh->mTextureCoords[0][i].y : 0
+			);
 		}
 	
 		//Count and reserve
@@ -192,7 +182,7 @@ private:
 		return Mesh(std::move(vertices), std::move(indices), std::move(textures));
 	}
 
-	//Load texture from file if not already in loadedTextures map
+	//Create filepath : Texture pair, if not already in loadedTextures map
 	void getTextureNames(aiMaterial *mat, aiTextureType type,TextureType typeName) {
 		for (unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
 			aiString str;
@@ -237,11 +227,18 @@ private:
 		std::cout << "Exported non .assbin file as \"" << fileName << ".assbin\" in: " << directory << std::endl;
 	}
 
-	//Retrieves image data from the ImageLoader and generates OpenGL Texture ID's
+	//Retrieves image data from the ImageLoader (multi-threaded) and generates OpenGL Texture ID's
 	void generateIDs() {
 		ImageLoader imageLoader(loadedTextures);
 		std::unordered_map<std::string, ImageData> imageData = imageLoader.getImageData();
 
+		//Save previous texture unit, switch to unit 0, and save currently bound texture
+		GLint previousTexUnit = 0, previousTex = 0;
+		glGetIntegerv(GL_ACTIVE_TEXTURE, &previousTexUnit);
+		glActiveTexture(GL_TEXTURE0);
+		glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex);
+
+		//Generate new ID's
 		for (auto &imagePair : imageData) {
 			unsigned int textureID;
 			int nrChannels = imagePair.second.nrChannels;
@@ -250,6 +247,7 @@ private:
 			if (data) {
 				GLenum imageFormat;
 
+				//stb_image only ever returns a 1, 2, 3, or 4 for a valid image
 				if (nrChannels == 1)
 					imageFormat = GL_RED;
 				else if (nrChannels == 2)
@@ -268,9 +266,7 @@ private:
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-				glBindTexture(GL_TEXTURE_2D, 0);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);	
 			}
 			else 
 				textureID = 0;
@@ -282,6 +278,10 @@ private:
 			else
 				std::cout << "ERROR: Texture filepath not found in loadedTextures" << std::endl;
 		}
+
+		//Restore
+		glActiveTexture(previousTexUnit);
+		glBindTexture(GL_TEXTURE_2D, previousTex);	
 	}
 };
 
