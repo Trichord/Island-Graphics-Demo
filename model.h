@@ -52,10 +52,10 @@ public:
 	}
 
 	void draw(Shader &shader) {
-		GLint previousVAO = 0;
-		GLint previousTex = 0;
+		GLint previousVAO = 0, previousTexUnit = 0, previousTex = 0;
 
 		glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
+		glGetIntegerv(GL_ACTIVE_TEXTURE, &previousTexUnit);
 		glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex);
 
 		for (unsigned int i = 0; i < meshes.size(); i++)
@@ -63,7 +63,8 @@ public:
 
 		//Restore
 		glBindVertexArray(previousVAO);
-		glActiveTexture(previousTex);
+		glActiveTexture(previousTexUnit);
+		glBindTexture(GL_TEXTURE_2D, previousTex);
 	}
 
 private:
@@ -233,10 +234,11 @@ private:
 		std::unordered_map<std::string, ImageData> imageData = imageLoader.getImageData();
 
 		//Save previous texture unit, switch to unit 0, and save currently bound texture
-		GLint previousTexUnit = 0, previousTex = 0;
+		GLint previousTexUnit = 0, previousTex = 0, previousTex0 = 0;
 		glGetIntegerv(GL_ACTIVE_TEXTURE, &previousTexUnit);
-		glActiveTexture(GL_TEXTURE0);
 		glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex);
+		glActiveTexture(GL_TEXTURE0);
+		glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex0);
 
 		//Generate new ID's
 		for (auto &imagePair : imageData) {
@@ -279,9 +281,10 @@ private:
 				std::cout << "ERROR: Texture filepath not found in loadedTextures" << std::endl;
 		}
 
-		//Restore
+		//Restore previous texture bound to GL_TEXTURE0, then previously active unit
+		glBindTexture(GL_TEXTURE_2D, previousTex0);
 		glActiveTexture(previousTexUnit);
-		glBindTexture(GL_TEXTURE_2D, previousTex);	
+		glBindTexture(GL_TEXTURE_2D, previousTex);
 	}
 };
 
