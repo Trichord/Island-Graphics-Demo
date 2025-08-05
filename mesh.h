@@ -1,8 +1,10 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include "shader.h"
+#include <vector>
 #include <string>
+#include <glm/glm.hpp>
+#include <glad/glad.h>
+#include "shader.h"
 
 enum TextureType {
 	TEXTURE_DIFFUSE,
@@ -13,15 +15,17 @@ struct Vertex {
 	glm::vec3 position;
 	glm::vec3 normal;
 	glm::vec2 texCoords;
+
+	Vertex() = default;
+	Vertex(float px, float py, float pz, float nx, float ny, float nz, float tu, float tv) : position( px, py, pz ), normal( nx, ny, nz ), texCoords( tu, tv ) {};
 };
 
 struct Texture {
 	unsigned int id;
 	TextureType type;
-	std::string path;
 
 	Texture() = default;
-	Texture(unsigned int i, TextureType t, std::string &p) : id(i), type(t), path(p) {};
+	Texture(unsigned int i, TextureType t) : id(i), type(t) {};
 };
 
 //Mesh owns its VAO / VBO / EBO.  Copying is disabled to avoid double frees or unecessary resource holding
@@ -84,15 +88,14 @@ public:
 
 	//Global state restore handled by "Model" class
 	void draw(Shader& shader) const{
-
 		if (VAO == 0)
 			return;
+		
+		unsigned int diffuseNr = 1;
+		unsigned int specularNr = 1;
 
 		shader.use();
 
-		unsigned int diffuseNr = 1;
-		unsigned int specularNr = 1;
-		 
 		for (unsigned int i = 0; i < textures.size(); i++) {
 			glActiveTexture(GL_TEXTURE0 + i);
 			std::string name;
@@ -118,7 +121,6 @@ private:
 	unsigned int VAO = 0, VBO = 0, EBO = 0;
 	
 	void setupMesh() {
-
 		if (vertices.size() == 0 || indices.size() == 0) {
 			std::cout << "Error: no vertices or indices in mesh" << std::endl;
 			return;
