@@ -58,7 +58,7 @@ in vec3 vNormalVector;
 in vec3 vFragPosition;
 
 uniform vec3 uViewPosition;
-uniform Material material;
+uniform Material uMaterial;
 uniform DirectionalLight directionalLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 uniform SpotLight spotLight;
@@ -74,7 +74,7 @@ void main(){
 vec3 result = vec3(0.0f);
 vec3 norm = normalize(vNormalVector); //Normalize incoming surface normal vector (may have been distorted by scale/rotation from normal matrix)
 vec3 viewDirection = normalize(uViewPosition - vFragPosition); //Fragment to camera position
-MaterialTexture materialTexture =  MaterialTexture(texture(material.texture_diffuse1, vTexCoords), texture(material.texture_specular1, vTexCoords));
+MaterialTexture materialTexture =  MaterialTexture(texture(uMaterial.texture_diffuse1, vTexCoords), texture(uMaterial.texture_specular1, vTexCoords));
 
 if (directionalLightOn)
     result += CalcDirLight(directionalLight, norm, viewDirection, materialTexture);
@@ -103,7 +103,7 @@ vec3 CalcDirLight(DirectionalLight light, vec3 normal, vec3 viewDir, MaterialTex
         float diffuseStrength = max(dot(normal, lightDirection), 0.0f);
         
         //Specular light strength
-        float specularStrength = pow(max(dot(viewDir, reflectDirection), 0.0f), material.shininess);
+        float specularStrength = pow(max(dot(viewDir, reflectDirection), 0.0f), uMaterial.shininess);
 
         vec3 ambientLight = light.ambient * vec3(materialTexture.diffuse);
         vec3 diffuseLight = light.diffuse * diffuseStrength * vec3(materialTexture.diffuse);
@@ -118,7 +118,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
     
         float diffuseStrength = max(dot(normal, lightDir), 0.0f);
         
-        float specularStrength = pow(max(dot(viewDir, reflectDir), 0.0f), material.shininess);
+        float specularStrength = pow(max(dot(viewDir, reflectDir), 0.0f), uMaterial.shininess);
         
         vec3 ambientLight = light.ambient * vec3(materialTexture.diffuse);
         vec3 diffuseLight = light.diffuse * diffuseStrength * vec3(materialTexture.diffuse);
@@ -143,7 +143,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, Mat
         float intensity = clamp((theta - light.outerCutoff) / epsilon, 0.0f, 1.0f);
         
         float diff = max(dot(normal, viewDir), 0.0f);
-        float spec = pow(max(dot(viewDir, reflectDirection), 0.0f), material.shininess);     
+        float spec = pow(max(dot(viewDir, reflectDirection), 0.0f), uMaterial.shininess);     
 
         vec3 ambientLight = light.ambient * vec3(materialTexture.diffuse);
         vec3 diffuseLight = light.diffuse * diff * vec3(materialTexture.diffuse);
