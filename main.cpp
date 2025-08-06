@@ -112,7 +112,6 @@ glm::vec3 pointLightPositions[] = {
 ThreadPool threadPool;
 
 int main() {
-
     //Creating the window
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
