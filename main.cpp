@@ -109,7 +109,7 @@ glm::vec3 pointLightPositions[] = {
     glm::vec3(0.0f,  0.0f, -3.0f)
 };
 
-ThreadPool threadPool{ 4 };
+ThreadPool threadPool;
 
 int main() {
 
@@ -172,14 +172,11 @@ int main() {
     Model backpack("./Models/Backpack/backpack.assbin");
     threadPool.stopAllThreads();
 
-    double totalTime = 0;
-    double framesRendered = 0;
-
     //Setup shader
     lightingShader.use();
     lightingShader.setBool("uPointLightOn", false);
     lightingShader.setFloat("uMaterial.shininess", 32.0f);
- 
+
     //Directional
     lightingShader.setVec3("uDirectionalLight.direction", -0.2f, -1.0f, -0.3f);
     lightingShader.setVec3("uDirectionalLight.ambient", 0.1f, 0.1f, 0.1f);
@@ -219,6 +216,9 @@ int main() {
 
     lightingShader.setVec3("uViewPosition", camera.Position);
 
+    double totalTime = 0;
+    double framesRendered = 0;
+
     //Render Loop
     while (!glfwWindowShouldClose(window)){
         //Clear background
@@ -235,12 +235,11 @@ int main() {
         processInput(window);
         glfwPollEvents();
 
-        if (camera.cameraUpdated()) {
-
-            view = camera.GetViewMatrix();
-
-            lightingShader.setMat4("viewMatrix", view);
+        if (camera.cameraHasUpdated()) {
             lightingShader.setVec3("uViewPosition", camera.Position);
+            
+            view = camera.GetViewMatrix();
+            lightingShader.setMat4("viewMatrix", view);
 
             projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
             lightingShader.setMat4("projectionMatrix", projection);
@@ -289,11 +288,11 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
     lastX = (float)xPos;
     lastY = (float)yPos;
 
-    camera.ProcessMouseMovement(xOffset, yOffset, GL_TRUE);
+    camera.processMouseMovement(xOffset, yOffset, GL_TRUE);
 }
 
 void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
-    camera.ProcessMouseScroll((float)yOffset);
+    camera.processMouseScroll((float)yOffset);
 }
 
 void processInput(GLFWwindow* window) {
@@ -306,22 +305,22 @@ void processInput(GLFWwindow* window) {
     }
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, deltaTime);
+        camera.processKeyboard(FORWARD, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, deltaTime);
+        camera.processKeyboard(BACKWARD, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, deltaTime);
+        camera.processKeyboard(LEFT, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, deltaTime);
+        camera.processKeyboard(RIGHT, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        camera.ProcessKeyboard(UP, deltaTime);
+        camera.processKeyboard(UP, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-        camera.ProcessKeyboard(DOWN, deltaTime);
+        camera.processKeyboard(DOWN, deltaTime);
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
