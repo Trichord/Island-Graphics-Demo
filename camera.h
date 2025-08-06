@@ -1,5 +1,4 @@
-#ifndef CAMERA_H
-#define CAMERA_H
+#pragma once
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -67,7 +66,7 @@ public:
     }
 
     // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
-    void ProcessKeyboard(Camera_Movement direction, float deltaTime)
+    void processKeyboard(Camera_Movement direction, float deltaTime)
     {
         float velocity = MovementSpeed * deltaTime;
         if (direction == FORWARD)
@@ -82,10 +81,12 @@ public:
             Position += Up * velocity;
         if (direction == DOWN)
             Position -= Up * velocity;
+
+        hasChanged = true;
     }
 
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.
-    void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true)
+    void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true)
     {
         xoffset *= MouseSensitivity;
         yoffset *= MouseSensitivity;
@@ -104,19 +105,33 @@ public:
 
         // update Front, Right and Up Vectors using the updated Euler angles
         updateCameraVectors();
+        hasChanged = true;
     }
 
     // processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
-    void ProcessMouseScroll(float yoffset)
+    void processMouseScroll(float yoffset)
     {
         Zoom -= (float)yoffset;
         if (Zoom < 1.0f)
             Zoom = 1.0f;
         if (Zoom > 45.0f)
             Zoom = 45.0f;
+
+        hasChanged = true;
+    }
+
+    bool cameraHasUpdated() {
+        if (hasChanged) {
+            hasChanged = false;
+            return true;
+        }
+        else
+            return false;
     }
 
 private:
+    bool hasChanged = false;
+
     // calculates the front vector from the Camera's (updated) Euler Angles
     void updateCameraVectors()
     {
@@ -133,5 +148,4 @@ private:
         Up = glm::normalize(glm::cross(Right, Front));
     }
 };
-#endif
 

@@ -106,7 +106,7 @@ public:
 			else if (type == TEXTURE_SPECULAR)
 				name = "texture_specular" + std::to_string(specularNr++);
 
-			shader.setInt("material." + name, i);
+			shader.setInt("uMaterial." + name, i);
 			glBindTexture(GL_TEXTURE_2D, textures[i].id);
 
 		}
