@@ -24,7 +24,7 @@ enum LightType
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xPos, double yPos);
 void scrollCallback(GLFWwindow* window, double xOffset, double yOffset);
-void processInput(GLFWwindow* window, Shader targetShader);
+void processInput(GLFWwindow* window);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 //Delta Time
@@ -216,7 +216,7 @@ int main() {
         framesRendered++;
 
         //Process user input
-        processInput(window, lightingShader);
+        processInput(window);
 
         //Clear background
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -252,13 +252,6 @@ int main() {
             lightingShader.setBool("spotLightOn", false);
 
         backpack.draw(lightingShader);
-
-        //Testing restore of "draw"
-        GLint previousVAO = 0;
-        GLint previousTex = 0;
-
-        glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -296,7 +289,7 @@ void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
     camera.ProcessMouseScroll((float)yOffset);
 }
 
-void processInput(GLFWwindow* window, Shader targetShader) {
+void processInput(GLFWwindow* window) {
 
     float movementSpeed = 3.0f * deltaTime;
 
