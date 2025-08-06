@@ -24,7 +24,7 @@ enum LightType
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xPos, double yPos);
 void scrollCallback(GLFWwindow* window, double xOffset, double yOffset);
-void processInput(GLFWwindow* window, Shader targetShader);
+void processInput(GLFWwindow* window);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 //Delta Time
@@ -109,7 +109,7 @@ glm::vec3 pointLightPositions[] = {
     glm::vec3(0.0f,  0.0f, -3.0f)
 };
 
-ThreadPool threadPool{ 4 };
+ThreadPool threadPool;
 
 int main() {
 
@@ -172,40 +172,57 @@ int main() {
     Model backpack("./Models/Backpack/backpack.assbin");
     threadPool.stopAllThreads();
 
-    double totalTime = 0;
-    double framesRendered = 0;
-
     //Setup shader
     lightingShader.use();
-    lightingShader.setBool("pointLightOn", false);
- 
+    lightingShader.setBool("uPointLightOn", false);
+    lightingShader.setFloat("uMaterial.shininess", 32.0f);
+
     //Directional
-    lightingShader.setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
-    lightingShader.setVec3("directionalLight.ambient", 0.1f, 0.1f, 0.1f);
-    lightingShader.setVec3("directionalLight.diffuse", 1.0f, 1.0f, 1.0f);
-    lightingShader.setVec3("directionalLight.specular", 1.0f, 1.0f, 1.0f);
+    lightingShader.setVec3("uDirectionalLight.direction", -0.2f, -1.0f, -0.3f);
+    lightingShader.setVec3("uDirectionalLight.ambient", 0.1f, 0.1f, 0.1f);
+    lightingShader.setVec3("uDirectionalLight.diffuse", 1.0f, 1.0f, 1.0f);
+    lightingShader.setVec3("uDirectionalLight.specular", 1.0f, 1.0f, 1.0f);
     
     //Spotlight
-    lightingShader.setVec3("spotLight.ambient", 0.05f, 0.05f, 0.05f);
-    lightingShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
-    lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+    lightingShader.setVec3("uSpotLight.ambient", 0.05f, 0.05f, 0.05f);
+    lightingShader.setVec3("uSpotLight.diffuse", 1.0f, 1.0f, 1.0f);
+    lightingShader.setVec3("uSpotLight.specular", 1.0f, 1.0f, 1.0f);
 
-    lightingShader.setVec3("spotLight.position", camera.Position);
-    lightingShader.setVec3("spotLight.direction", camera.Front);
+    lightingShader.setVec3("uSpotLight.position", camera.Position);
+    lightingShader.setVec3("uSpotLight.direction", camera.Front);
   
-    lightingShader.setFloat("spotLight.constant", 1.0f);
-    lightingShader.setFloat("spotLight.linear", 0.045f);
-    lightingShader.setFloat("spotLight.quadratic", 0.0075f);
+    lightingShader.setFloat("uSpotLight.constant", 1.0f);
+    lightingShader.setFloat("uSpotLight.linear", 0.045f);
+    lightingShader.setFloat("uSpotLight.quadratic", 0.0075f);
     
-    lightingShader.setFloat("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
-    lightingShader.setFloat("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
+    lightingShader.setFloat("uSpotLight.cutoff", glm::cos(glm::radians(12.5f)));
+    lightingShader.setFloat("uSpotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
     
     //Model
     glm::mat4 model = glm::mat4(1.0f);
     lightingShader.setMat4("modelMatrix", model);
 
+    //Normal matrix
+    glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
+    lightingShader.setMat3("normalMatrix", normal);
+
+    //Define and set projection matrix
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+    lightingShader.setMat4("projectionMatrix", projection);
+
+    //Define and set the view matrix
+    glm::mat4 view = camera.GetViewMatrix();
+    lightingShader.setMat4("viewMatrix", view);
+
+    lightingShader.setVec3("uViewPosition", camera.Position);
+
+    double totalTime = 0;
+    double framesRendered = 0;
+
     //Render Loop
     while (!glfwWindowShouldClose(window)){
+        //Clear background
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         //Delta Time
         currentFrame = (float)glfwGetTime();
@@ -215,53 +232,35 @@ int main() {
         totalTime += deltaTime;
         framesRendered++;
 
-        //Process user input
-        processInput(window, lightingShader);
+        processInput(window);
+        glfwPollEvents();
 
-        //Clear background
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        if (camera.cameraHasUpdated()) {
+            lightingShader.setVec3("uViewPosition", camera.Position);
+            
+            view = camera.GetViewMatrix();
+            lightingShader.setMat4("viewMatrix", view);
 
-        lightingShader.setVec3("uViewPosition", camera.Position);
-        
-        //Define and set projection matrix
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-        lightingShader.setMat4("projectionMatrix", projection);
-
-        //Define and set the view matrix
-        glm::mat4 view = camera.GetViewMatrix();
-        lightingShader.setMat4("viewMatrix", view);
-
-        //Normal matrix
-        glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
-        lightingShader.setMat3("normalMatrix", normal);
-
-        //Materials
-        lightingShader.setFloat("material.shininess", 32.0f);
+            projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+            lightingShader.setMat4("projectionMatrix", projection);
+        }
 
         if (directionalLightOn) 
-            lightingShader.setBool("directionalLightOn", true);
+            lightingShader.setBool("uDirectionalLightOn", true);
         else
-            lightingShader.setBool("directionalLightOn", false);
+            lightingShader.setBool("uDirectionalLightOn", false);
 
         if (spotLightOn) {
-            lightingShader.setBool("spotLightOn", true);
-            lightingShader.setVec3("spotLight.position", camera.Position);
-            lightingShader.setVec3("spotLight.direction", camera.Front);
+            lightingShader.setBool("uSpotLightOn", true);
+            lightingShader.setVec3("uSpotLight.position", camera.Position);
+            lightingShader.setVec3("uSpotLight.direction", camera.Front);
         }
         else
-            lightingShader.setBool("spotLightOn", false);
+            lightingShader.setBool("uSpotLightOn", false);
 
         backpack.draw(lightingShader);
 
-        //Testing restore of "draw"
-        GLint previousVAO = 0;
-        GLint previousTex = 0;
-
-        glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex);
-
         glfwSwapBuffers(window);
-        glfwPollEvents();
     }
 
     std::cout << "Average FPS: " << framesRendered / totalTime << std::endl;
@@ -289,14 +288,14 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
     lastX = (float)xPos;
     lastY = (float)yPos;
 
-    camera.ProcessMouseMovement(xOffset, yOffset, GL_TRUE);
+    camera.processMouseMovement(xOffset, yOffset, GL_TRUE);
 }
 
 void scrollCallback(GLFWwindow* window, double xOffset, double yOffset) {
-    camera.ProcessMouseScroll((float)yOffset);
+    camera.processMouseScroll((float)yOffset);
 }
 
-void processInput(GLFWwindow* window, Shader targetShader) {
+void processInput(GLFWwindow* window) {
 
     float movementSpeed = 3.0f * deltaTime;
 
@@ -306,22 +305,22 @@ void processInput(GLFWwindow* window, Shader targetShader) {
     }
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, deltaTime);
+        camera.processKeyboard(FORWARD, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, deltaTime);
+        camera.processKeyboard(BACKWARD, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, deltaTime);
+        camera.processKeyboard(LEFT, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, deltaTime);
+        camera.processKeyboard(RIGHT, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        camera.ProcessKeyboard(UP, deltaTime);
+        camera.processKeyboard(UP, deltaTime);
 
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-        camera.ProcessKeyboard(DOWN, deltaTime);
+        camera.processKeyboard(DOWN, deltaTime);
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
