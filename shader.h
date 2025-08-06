@@ -151,4 +151,7 @@ public:
 		glUniform4fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(glm::vec4(x, y, z, w)));
 	}
 
+private:
+
+
 };
