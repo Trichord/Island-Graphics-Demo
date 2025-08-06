@@ -177,29 +177,29 @@ int main() {
 
     //Setup shader
     lightingShader.use();
-    lightingShader.setBool("pointLightOn", false);
+    lightingShader.setBool("uPointLightOn", false);
     lightingShader.setFloat("uMaterial.shininess", 32.0f);
  
     //Directional
-    lightingShader.setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
-    lightingShader.setVec3("directionalLight.ambient", 0.1f, 0.1f, 0.1f);
-    lightingShader.setVec3("directionalLight.diffuse", 1.0f, 1.0f, 1.0f);
-    lightingShader.setVec3("directionalLight.specular", 1.0f, 1.0f, 1.0f);
+    lightingShader.setVec3("uDirectionalLight.direction", -0.2f, -1.0f, -0.3f);
+    lightingShader.setVec3("uDirectionalLight.ambient", 0.1f, 0.1f, 0.1f);
+    lightingShader.setVec3("uDirectionalLight.diffuse", 1.0f, 1.0f, 1.0f);
+    lightingShader.setVec3("uDirectionalLight.specular", 1.0f, 1.0f, 1.0f);
     
     //Spotlight
-    lightingShader.setVec3("spotLight.ambient", 0.05f, 0.05f, 0.05f);
-    lightingShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
-    lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+    lightingShader.setVec3("uSpotLight.ambient", 0.05f, 0.05f, 0.05f);
+    lightingShader.setVec3("uSpotLight.diffuse", 1.0f, 1.0f, 1.0f);
+    lightingShader.setVec3("uSpotLight.specular", 1.0f, 1.0f, 1.0f);
 
-    lightingShader.setVec3("spotLight.position", camera.Position);
-    lightingShader.setVec3("spotLight.direction", camera.Front);
+    lightingShader.setVec3("uSpotLight.position", camera.Position);
+    lightingShader.setVec3("uSpotLight.direction", camera.Front);
   
-    lightingShader.setFloat("spotLight.constant", 1.0f);
-    lightingShader.setFloat("spotLight.linear", 0.045f);
-    lightingShader.setFloat("spotLight.quadratic", 0.0075f);
+    lightingShader.setFloat("uSpotLight.constant", 1.0f);
+    lightingShader.setFloat("uSpotLight.linear", 0.045f);
+    lightingShader.setFloat("uSpotLight.quadratic", 0.0075f);
     
-    lightingShader.setFloat("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
-    lightingShader.setFloat("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
+    lightingShader.setFloat("uSpotLight.cutoff", glm::cos(glm::radians(12.5f)));
+    lightingShader.setFloat("uSpotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
     
     //Model
     glm::mat4 model = glm::mat4(1.0f);
@@ -247,17 +247,17 @@ int main() {
         }
 
         if (directionalLightOn) 
-            lightingShader.setBool("directionalLightOn", true);
+            lightingShader.setBool("uDirectionalLightOn", true);
         else
-            lightingShader.setBool("directionalLightOn", false);
+            lightingShader.setBool("uDirectionalLightOn", false);
 
         if (spotLightOn) {
-            lightingShader.setBool("spotLightOn", true);
-            lightingShader.setVec3("spotLight.position", camera.Position);
-            lightingShader.setVec3("spotLight.direction", camera.Front);
+            lightingShader.setBool("uSpotLightOn", true);
+            lightingShader.setVec3("uSpotLight.position", camera.Position);
+            lightingShader.setVec3("uSpotLight.direction", camera.Front);
         }
         else
-            lightingShader.setBool("spotLightOn", false);
+            lightingShader.setBool("uSpotLightOn", false);
 
         backpack.draw(lightingShader);
 
