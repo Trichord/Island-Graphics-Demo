@@ -178,6 +178,7 @@ int main() {
     //Setup shader
     lightingShader.use();
     lightingShader.setBool("pointLightOn", false);
+    lightingShader.setFloat("uMaterial.shininess", 32.0f);
  
     //Directional
     lightingShader.setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
@@ -204,8 +205,24 @@ int main() {
     glm::mat4 model = glm::mat4(1.0f);
     lightingShader.setMat4("modelMatrix", model);
 
+    //Normal matrix
+    glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
+    lightingShader.setMat3("normalMatrix", normal);
+
+    //Define and set projection matrix
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+    lightingShader.setMat4("projectionMatrix", projection);
+
+    //Define and set the view matrix
+    glm::mat4 view = camera.GetViewMatrix();
+    lightingShader.setMat4("viewMatrix", view);
+
+    lightingShader.setVec3("uViewPosition", camera.Position);
+
     //Render Loop
     while (!glfwWindowShouldClose(window)){
+        //Clear background
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         //Delta Time
         currentFrame = (float)glfwGetTime();
@@ -215,28 +232,19 @@ int main() {
         totalTime += deltaTime;
         framesRendered++;
 
-        //Process user input
         processInput(window);
+        glfwPollEvents();
 
-        //Clear background
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        if (camera.cameraUpdated()) {
 
-        lightingShader.setVec3("uViewPosition", camera.Position);
-        
-        //Define and set projection matrix
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-        lightingShader.setMat4("projectionMatrix", projection);
+            view = camera.GetViewMatrix();
 
-        //Define and set the view matrix
-        glm::mat4 view = camera.GetViewMatrix();
-        lightingShader.setMat4("viewMatrix", view);
+            lightingShader.setMat4("viewMatrix", view);
+            lightingShader.setVec3("uViewPosition", camera.Position);
 
-        //Normal matrix
-        glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
-        lightingShader.setMat3("normalMatrix", normal);
-
-        //Materials
-        lightingShader.setFloat("material.shininess", 32.0f);
+            projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+            lightingShader.setMat4("projectionMatrix", projection);
+        }
 
         if (directionalLightOn) 
             lightingShader.setBool("directionalLightOn", true);
@@ -254,7 +262,6 @@ int main() {
         backpack.draw(lightingShader);
 
         glfwSwapBuffers(window);
-        glfwPollEvents();
     }
 
     std::cout << "Average FPS: " << framesRendered / totalTime << std::endl;
