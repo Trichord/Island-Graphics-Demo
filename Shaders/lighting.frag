@@ -79,14 +79,12 @@ MaterialTexture materialTexture =  MaterialTexture(texture(material.texture_diff
 if (directionalLightOn)
     result += CalcDirLight(directionalLight, norm, viewDirection, materialTexture);
 
-if (pointLightOn){
-
+if (pointLightOn)
     for (int i = 0; i < NR_POINT_LIGHTS; i++){
         vec3 lightDirection = normalize(pointLights[i].position - vFragPosition);
         vec3 reflectDirection = reflect(-lightDirection, norm);
         result += CalcPointLight(pointLights[i], norm, vFragPosition, viewDirection, reflectDirection, lightDirection, materialTexture);
     }
-}
 
 if (spotLightOn)
     result += CalcSpotLight(spotLight, norm, vFragPosition, viewDirection, materialTexture);
@@ -134,18 +132,17 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
 }
 
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, MaterialTexture materialTexture){  
-        vec3 lightDirection = normalize(light.position - fragPos);
-        vec3 reflectDirection = reflect(-lightDirection, normal);
+        vec3 reflectDirection = reflect(-viewDir, normal);
 
         float lightDistance = length(light.position - fragPos);
         float attenuation = 1.0f / (light.constant + light.linear * lightDistance + light.quadratic * (lightDistance * lightDistance));
         
         //Calculate intensity of light.  Outside outer circle = 0, inside inner circle = 1
-        float theta = dot(lightDirection, normalize(-light.direction));
+        float theta = dot(viewDir, normalize(-light.direction));
         float epsilon = light.cutoff - light.outerCutoff;
         float intensity = clamp((theta - light.outerCutoff) / epsilon, 0.0f, 1.0f);
         
-        float diff = max(dot(normal, lightDirection), 0.0f);
+        float diff = max(dot(normal, viewDir), 0.0f);
         float spec = pow(max(dot(viewDir, reflectDirection), 0.0f), material.shininess);     
 
         vec3 ambientLight = light.ambient * vec3(materialTexture.diffuse);
