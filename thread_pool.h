@@ -12,7 +12,6 @@ class ThreadPool {
 
 public:
     ~ThreadPool(){
-
         {
             std::unique_lock<std::mutex> lock(queueMutex);
             
@@ -32,7 +31,7 @@ public:
         unsigned int maxThreads = std::thread::hardware_concurrency();
 
         //Cap at 8 threads for PBR texture loading.
-        unsigned int numThreads = std::min(8u, maxThreads == 0 ? 2: maxThreads / 2);  
+        unsigned int numThreads = std::min(8u, maxThreads == 0 ? 2 : maxThreads / 2);  
         threads.reserve(numThreads);
 
         for (unsigned int i = 0; i < numThreads; i++) {
