@@ -1,5 +1,4 @@
-#ifndef CAMERA_H
-#define CAMERA_H
+#pragma once
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -82,6 +81,8 @@ public:
             Position += Up * velocity;
         if (direction == DOWN)
             Position -= Up * velocity;
+
+        hasChanged = true;
     }
 
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.
@@ -104,6 +105,7 @@ public:
 
         // update Front, Right and Up Vectors using the updated Euler angles
         updateCameraVectors();
+        hasChanged = true;
     }
 
     // processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
@@ -114,9 +116,22 @@ public:
             Zoom = 1.0f;
         if (Zoom > 45.0f)
             Zoom = 45.0f;
+
+        hasChanged = true;
+    }
+
+    bool cameraUpdated() {
+        if (hasChanged) {
+            hasChanged = false;
+            return true;
+        }
+        else
+            return false;
     }
 
 private:
+    bool hasChanged = false;
+
     // calculates the front vector from the Camera's (updated) Euler Angles
     void updateCameraVectors()
     {
@@ -133,5 +148,4 @@ private:
         Up = glm::normalize(glm::cross(Right, Front));
     }
 };
-#endif
 
