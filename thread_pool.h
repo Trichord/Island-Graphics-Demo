@@ -30,8 +30,8 @@ public:
     ThreadPool() : stop(false) {
         unsigned int maxThreads = std::thread::hardware_concurrency();
 
-        //Cap at 8 threads for PBR texture loading.
-        unsigned int numThreads = std::min(8u, maxThreads == 0 ? 2 : maxThreads / 2);  
+        //Cap at 6 threads for PBR texture loading.
+        unsigned int numThreads = std::min(6u, maxThreads == 0 ? 2 : maxThreads / 2);  
         threads.reserve(numThreads);
 
         for (unsigned int i = 0; i < numThreads; i++) {
