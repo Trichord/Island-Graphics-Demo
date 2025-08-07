@@ -120,7 +120,7 @@ public:
         hasChanged = true;
     }
 
-    bool cameraHasUpdated() {
+    bool hasUpdated() {
         if (hasChanged) {
             hasChanged = false;
             return true;
