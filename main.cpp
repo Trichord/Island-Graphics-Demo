@@ -139,11 +139,14 @@ int main() {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-
-    //Get actual width & height in pixels of the window and pass to openGL
+    /*
+    //Get actual width & height in pixels of the window and pass to openGL.  For selecting resolution before launching
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
     glViewport(0, 0, width, height);
+    */
+
+    glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     //Set Background Color
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -219,7 +222,7 @@ int main() {
     double framesRendered = 0;
 
     //Render Loop
-    while (!glfwWindowShouldClose(window)){
+    while (true){
         //Clear background
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -233,6 +236,9 @@ int main() {
 
         processInput(window);
         glfwPollEvents();
+        
+        if (glfwWindowShouldClose(window))
+            break;
 
         if (camera.hasUpdated()) {
             lightingShader.setVec3("uViewPosition", camera.Position);
