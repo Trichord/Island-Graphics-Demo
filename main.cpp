@@ -234,7 +234,7 @@ int main() {
         processInput(window);
         glfwPollEvents();
 
-        if (camera.cameraHasUpdated()) {
+        if (camera.hasUpdated()) {
             lightingShader.setVec3("uViewPosition", camera.Position);
             
             view = camera.GetViewMatrix();
