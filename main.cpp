@@ -153,6 +153,7 @@ int main() {
 
     //Enable Z-Buffer
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 
     //Automatically resize window
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
