@@ -10,6 +10,7 @@
 #include "shader.h"
 #include "model.h"
 #include "thread_pool.h"
+#include "skybox.h"
 
 #define SCREEN_WIDTH 2560
 #define SCREEN_HEIGHT 1440
@@ -170,9 +171,11 @@ int main() {
 
     //Compile shader programs
     Shader lightingShader = Shader("./Shaders/lighting.vert", "./Shaders/lighting.frag");
+    Shader skyboxShader = Shader("./Shaders/skybox.vert", "./Shaders/skybox.frag");
 
     //Load all models and stop thread pool
     Model backpack("./Models/Backpack/backpack.assbin");
+    Skybox skybox;
     threadPool.stopAllThreads();
 
     //Setup shader
@@ -241,6 +244,8 @@ int main() {
         if (glfwWindowShouldClose(window))
             break;
 
+        lightingShader.use();
+
         if (camera.hasUpdated()) {
             lightingShader.setVec3("uViewPosition", camera.Position);
             
@@ -265,6 +270,13 @@ int main() {
             lightingShader.setBool("uSpotLightOn", false);
 
         backpack.draw(lightingShader);
+
+        skyboxShader.use();
+        view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
+        skyboxShader.setMat4("viewMatrix", view);
+        skyboxShader.setMat4("projectionMatrix", projection);
+        skyboxShader.setInt("skybox", 0);
+        skybox.draw();
 
         glfwSwapBuffers(window);
     }
