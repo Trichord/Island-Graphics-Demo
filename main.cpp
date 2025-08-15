@@ -218,6 +218,7 @@ int main() {
 
     //Define and set the view matrix
     glm::mat4 view = camera.GetViewMatrix();
+    glm::mat4 noTransView = glm::mat4(glm::mat3(view));
     lightingShader.setMat4("viewMatrix", view);
 
     lightingShader.setVec3("uViewPosition", camera.Position);
@@ -250,6 +251,7 @@ int main() {
             lightingShader.setVec3("uViewPosition", camera.Position);
             
             view = camera.GetViewMatrix();
+            noTransView = glm::mat4(glm::mat3(view));
             lightingShader.setMat4("viewMatrix", view);
 
             projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
@@ -270,13 +272,7 @@ int main() {
             lightingShader.setBool("uSpotLightOn", false);
 
         backpack.draw(lightingShader);
-
-        skyboxShader.use();
-        view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
-        skyboxShader.setMat4("viewMatrix", view);
-        skyboxShader.setMat4("projectionMatrix", projection);
-        skyboxShader.setInt("skybox", 0);
-        skybox.draw();
+        skybox.draw(skyboxShader, noTransView, projection);
 
         glfwSwapBuffers(window);
     }
