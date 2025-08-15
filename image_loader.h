@@ -39,6 +39,20 @@ public:
 		}
 	}
 
+	ImageLoader(const std::vector<std::string>& filepaths) : numImages(filepaths.size()), imagesLoaded(0) {
+		for (auto const& path : filepaths)
+			threadPool.enqueue([this, path]() {
+			loadFromFile(path);
+				});
+	
+		{
+			std::unique_lock<std::mutex> lock(imagesMutex);
+			condition.wait(lock, [this] {
+				return imagesLoaded == numImages;
+				});
+		}
+	}
+
 	~ImageLoader() {
 		freeImages();
 	}
@@ -57,7 +71,7 @@ public:
 
 private:
 	size_t numImages;
-	unsigned int imagesLoaded;
+	std::atomic<unsigned int> imagesLoaded;
 	std::unordered_map<std::string, ImageData> loadedImages;
 	std::mutex imagesMutex;
 	std::condition_variable condition;
@@ -70,9 +84,9 @@ private:
 		{
 			std::unique_lock<std::mutex> lock(imagesMutex);
 			loadedImages.emplace(path, ImageData{ image, width, height, nrChannels });
+		}
 			imagesLoaded++;
 			if (imagesLoaded == numImages)
 				condition.notify_one();
-		}
 	}
 };
