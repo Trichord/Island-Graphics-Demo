@@ -5,6 +5,9 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include "camera.h"
+#include "shader.h"
+#include <glm/glm.hpp>
 
 //Skybox owns its texure ID's, VAO, VBO, and EBO.  Therefore copying is disabled
 class Skybox {
@@ -24,13 +27,12 @@ public:
         glDeleteVertexArrays(1, &skyboxVAO); 
     }
 
-    void draw() {
-        GLint previousVAO = 0, previousTexUnit = 0, previousTex = 0;
+    void draw(Shader &shader, const glm::mat4 &noTransView, const glm::mat4 &projection) const {
 
-        //Save
-        glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
-        glGetIntegerv(GL_ACTIVE_TEXTURE, &previousTexUnit);
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex);
+        shader.use();
+        shader.setInt("skybox", 0);
+        shader.setMat4("viewMatrix", noTransView);
+        shader.setMat4("projectionMatrix", projection);
 
         //Draw
         glBindVertexArray(skyboxVAO);
@@ -41,9 +43,8 @@ public:
         glDepthFunc(GL_LESS);
 
         //Restore
-        glBindVertexArray(previousVAO);
-        glActiveTexture(previousTexUnit);
-        glBindTexture(GL_TEXTURE_2D, previousTex);
+        glBindVertexArray(0);
+        glActiveTexture(0);
     }
 private:
 	unsigned int skyboxVAO, skyboxVBO, skyboxEBO, skyboxTextureID;
@@ -60,18 +61,18 @@ private:
     };
 
      inline static const unsigned int skyboxIndices[] = {
-        2, 1, 0,
-        0, 3, 2,
-        6, 5, 4,
-        4, 7, 6,
-        7, 3, 0,
-        0, 4, 7,
-        6, 2, 1,
-        1, 5, 6,
-        5, 1, 0,
-        0, 4, 5,
-        6, 7, 3,
-        3, 2, 6
+         0, 1, 2,
+         2, 3, 0,
+         5, 4, 7,
+         7, 6, 5,
+         4, 0, 3,
+         3, 7, 4,
+         1, 5, 6,
+         6, 2, 1,
+         4, 5, 1,
+         1, 0, 4,
+         3, 2, 6,
+         6, 7, 3
     };
 
     std::vector<std::string> skyboxPaths = {
@@ -136,20 +137,20 @@ private:
                 std::string face = path.substr(path.find_last_of('/') + 1);
                 face = face.substr(0, face.find_last_of('.'));
 
-                unsigned int cubeTargetOffset = 0;
+                int cubeTextureTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
 
                 if (face == "left")
-                    cubeTargetOffset = 1;
+                    cubeTextureTarget = GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
                 else if (face == "top")
-                    cubeTargetOffset = 2;
+                    cubeTextureTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
                 else if (face == "bottom")
-                    cubeTargetOffset = 3;
+                    cubeTextureTarget = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
+                else if (face == "front") //Flipped, coordinate system mismatch between cubemap and camera
+                    cubeTextureTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_Z; //OpenGL Spec says this is back, not front
                 else if (face == "back")
-                    cubeTargetOffset = 4;
-                else if (face == "front")
-                    cubeTargetOffset = 5;
-
-                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + cubeTargetOffset,
+                    cubeTextureTarget = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+                    
+                glTexImage2D(cubeTextureTarget,
                     0, GL_RGB, imagePair.second.width, imagePair.second.height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
                 );
             }
