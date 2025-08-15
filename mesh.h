@@ -86,7 +86,7 @@ public:
 		glDeleteVertexArrays(1, &VAO);
 	}
 
-	//Global state restore handled by "Model" class
+	//Reset to default VAO & active texture handled by model.h
 	void draw(Shader& shader) const{
 		if (VAO == 0)
 			return;
