@@ -16,7 +16,6 @@
 
 //Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees.  Texture IDs are released on Model destruction
 class Model {
-
 public:
 	Model(const Model &) = delete;
 	Model &operator=(Model const &) = delete;
@@ -52,19 +51,11 @@ public:
 	}
 
 	void draw(Shader &shader) {
-		GLint previousVAO = 0, previousTexUnit = 0, previousTex = 0;
-
-		glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previousVAO);
-		glGetIntegerv(GL_ACTIVE_TEXTURE, &previousTexUnit);
-		glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex);
-
 		for (unsigned int i = 0; i < meshes.size(); i++)
 			meshes[i].draw(shader);
 
-		//Restore
-		glBindVertexArray(previousVAO);
-		glActiveTexture(previousTexUnit);
-		glBindTexture(GL_TEXTURE_2D, previousTex);
+		glBindVertexArray(0);
+		glActiveTexture(0);
 	}
 
 private:
@@ -231,7 +222,7 @@ private:
 	//Retrieves image data from the ImageLoader (multi-threaded) and generates OpenGL Texture ID's
 	void generateIDs() {
 		ImageLoader imageLoader(loadedTextures);
-		std::unordered_map<std::string, ImageData> imageData = imageLoader.getImageData();
+		std::unordered_map<std::string, ImageData> loadedImages = imageLoader.getImageData();
 
 		//Save previous texture unit, switch to unit 0, and save currently bound texture
 		GLint previousTexUnit = 0, previousTex = 0, previousTex0 = 0;
@@ -241,7 +232,7 @@ private:
 		glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex0);
 
 		//Generate new ID's
-		for (auto &imagePair : imageData) {
+		for (auto &imagePair : loadedImages) {
 			unsigned int textureID;
 			int nrChannels = imagePair.second.nrChannels;
 			unsigned char *data = imagePair.second.data;
