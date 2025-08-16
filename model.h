@@ -55,7 +55,7 @@ public:
 			meshes[i].draw(shader);
 
 		glBindVertexArray(0);
-		glActiveTexture(0);
+		glActiveTexture(GL_TEXTURE0);
 	}
 
 private:
