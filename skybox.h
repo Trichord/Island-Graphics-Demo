@@ -44,7 +44,7 @@ public:
 
         //Restore
         glBindVertexArray(0);
-        glActiveTexture(0);
+        glActiveTexture(GL_TEXTURE0);
     }
 private:
 	unsigned int skyboxVAO, skyboxVBO, skyboxEBO, skyboxTextureID;
@@ -105,13 +105,6 @@ private:
         ImageLoader imageLoader(skyboxPaths);
         std::unordered_map<std::string, ImageData> loadedImages = imageLoader.getImageData();
 
-        //Save state
-        GLint previousTexUnit = 0, previousTex = 0, previousTex0 = 0;
-        glGetIntegerv(GL_ACTIVE_TEXTURE, &previousTexUnit);
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex);
-        glActiveTexture(GL_TEXTURE0);
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex0);
-
         glGenTextures(1, &skyboxTextureID);
         glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTextureID);
 
@@ -167,9 +160,6 @@ private:
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-        //Restore state
-        glBindTexture(GL_TEXTURE_2D, previousTex0);
-        glActiveTexture(previousTexUnit);
-        glBindTexture(GL_TEXTURE_2D, previousTex);
+        glActiveTexture(GL_TEXTURE0);
     }
 };

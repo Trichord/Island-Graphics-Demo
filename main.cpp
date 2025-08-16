@@ -27,6 +27,7 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos);
 void scrollCallback(GLFWwindow* window, double xOffset, double yOffset);
 void processInput(GLFWwindow* window);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+unsigned int genSpaceTexID();
 
 //Delta Time
 float deltaTime = 0.0f;
@@ -110,6 +111,34 @@ glm::vec3 pointLightPositions[] = {
     glm::vec3(0.0f,  0.0f, -3.0f)
 };
 
+float octahedronVerts[] = {
+    //Vertex          //Normals
+	0.0f, 0.0f, 1.0f, 0.57735026f, 0.57735026f, 0.57735026f,
+	1.0f, 0.0f, 0.0f, 0.57735026f, 0.57735026f, 0.57735026f,
+	0.0f, 1.0f, 0.0f, 0.57735026f, 0.57735026f, 0.57735026f,
+	0.0f, 0.0f, 1.0f, -0.57735026f, 0.57735026f, 0.57735026f,
+	0.0f, 1.0f, 0.0f, -0.57735026f, 0.57735026f, 0.57735026f,
+	-1.0f, 0.0f, 0.0f, -0.57735026f, 0.57735026f, 0.57735026f,
+	0.0f, 0.0f, 1.0f, -0.57735026f, -0.57735026f, 0.57735026f,
+	-1.0f, 0.0f, 0.0f, -0.57735026f, -0.57735026f, 0.57735026f,
+	0.0f, -1.0f, 0.0f, -0.57735026f, -0.57735026f, 0.57735026f,
+	0.0f, 0.0f, 1.0f, 0.57735026f, -0.57735026f, 0.57735026f,
+	0.0f, -1.0f, 0.0f, 0.57735026f, -0.57735026f, 0.57735026f,
+	1.0f, 0.0f, 0.0f, 0.57735026f, -0.57735026f, 0.57735026f,
+	0.0f, 0.0f, -1.0f, 0.57735026f, 0.57735026f, -0.57735026f,
+	0.0f, 1.0f, 0.0f, 0.57735026f, 0.57735026f, -0.57735026f,
+	1.0f, 0.0f, 0.0f, 0.57735026f, 0.57735026f, -0.57735026f,
+    0.0f, 0.0f, -1.0f, -0.57735026f, 0.57735026f, -0.57735026f,
+	-1.0f, 0.0f, 0.0f, -0.57735026f, 0.57735026f, -0.57735026f,
+	0.0f, 1.0f, 0.0f, -0.57735026f, 0.57735026f, -0.57735026f,
+    0.0f, 0.0f, -1.0f, -0.57735026f, -0.57735026f, -0.57735026f,
+	0.0f, -1.0f, 0.0f, -0.57735026f, -0.57735026f, -0.57735026f,
+	-1.0f, 0.0f, 0.0f, -0.57735026f, -0.57735026f, -0.57735026f,
+	0.0f, 0.0f, -1.0f, 0.57735026f, -0.57735026f, -0.57735026f,
+	1.0f, 0.0f, 0.0f, 0.57735026f, -0.57735026f, -0.57735026f,
+	0.0f, -1.0f, 0.0f, 0.57735026f, -0.57735026f, -0.57735026f
+};
+
 ThreadPool threadPool;
 
 int main() {
@@ -172,10 +201,13 @@ int main() {
     //Compile shader programs
     Shader lightingShader = Shader("./Shaders/lighting.vert", "./Shaders/lighting.frag");
     Shader skyboxShader = Shader("./Shaders/skybox.vert", "./Shaders/skybox.frag");
+    Shader reflectiveShader = Shader("./Shaders/reflective.vert", "./Shaders/reflective.frag");
 
     //Load all models and stop thread pool
     Model backpack("./Models/Backpack/backpack.assbin");
     Skybox skybox;
+    unsigned int spaceCubeTexID = genSpaceTexID();
+
     threadPool.stopAllThreads();
 
     //Setup shader
@@ -226,6 +258,19 @@ int main() {
     double totalTime = 0;
     double framesRendered = 0;
 
+    //Octahedron
+    unsigned int spaceCubeVAO, spaceCubeVBO;
+    glGenVertexArrays(1, &spaceCubeVAO);
+    glBindVertexArray(spaceCubeVAO);
+    glGenBuffers(1, &spaceCubeVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, spaceCubeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(octahedronVerts), octahedronVerts, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glBindVertexArray(0);
+
     //Render Loop
     while (true){
         //Clear background
@@ -271,7 +316,24 @@ int main() {
         else
             lightingShader.setBool("uSpotLightOn", false);
 
+        //Draw everything
         backpack.draw(lightingShader);
+
+        glm::mat4 spaceCubeModel = glm::mat4(1.0f);
+        spaceCubeModel = glm::translate(spaceCubeModel, glm::vec3(-5.0, 0.0f, 0.0f));
+        reflectiveShader.use();
+        reflectiveShader.setMat4("modelMatrix", spaceCubeModel);
+        reflectiveShader.setMat4("viewMatrix", view);
+        reflectiveShader.setMat3("normalMatrix", (glm::mat3)(glm::transpose(glm::inverse(spaceCubeModel))));
+        reflectiveShader.setVec3("cameraPos", camera.Position);
+        reflectiveShader.setMat4("projectionMatrix", projection);
+        reflectiveShader.setMat4("viewMatrix", view);
+        reflectiveShader.setInt("skybox", 0);
+        glBindVertexArray(spaceCubeVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, spaceCubeTexID);
+        glDrawArrays(GL_TRIANGLES, 0, 24);
+
         skybox.draw(skyboxShader, noTransView, projection);
 
         glfwSwapBuffers(window);
@@ -346,4 +408,76 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
     else if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
         directionalLightOn = !directionalLightOn;
+}
+
+unsigned int genSpaceTexID() {
+    ImageLoader imageLoader(std::vector<std::string> {
+        "./Textures/nebula/right.png",
+            "./Textures/nebula/left.png",
+            "./Textures/nebula/top.png",
+            "./Textures/nebula/bottom.png",
+            "./Textures/nebula/front.png",
+            "./Textures/nebula/back.png"
+    });
+
+    std::unordered_map<std::string, ImageData> loadedImages = imageLoader.getImageData();
+
+    unsigned int spaceCubeID;
+    glGenTextures(1, &spaceCubeID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, spaceCubeID);
+
+    //Cubemap ID
+    for (auto& imagePair : loadedImages) {
+        int nrChannels = imagePair.second.nrChannels;
+        unsigned char* data = imagePair.second.data;
+
+        if (data) {
+            GLenum imageFormat;
+
+            //stb_image only ever returns a 1, 2, 3, or 4 for a valid image
+            if (nrChannels == 1)
+                imageFormat = GL_RED;
+            else if (nrChannels == 2)
+                imageFormat = GL_RG;
+            else if (nrChannels == 3)
+                imageFormat = GL_RGB;
+            else if (nrChannels == 4)
+                imageFormat = GL_RGBA;
+
+            std::string path = imagePair.first;
+            std::string face = path.substr(path.find_last_of('/') + 1);
+            face = face.substr(0, face.find_last_of('.'));
+
+            int cubeTextureTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+
+            if (face == "left")
+                cubeTextureTarget = GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
+            else if (face == "top")
+                cubeTextureTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
+            else if (face == "bottom")
+                cubeTextureTarget = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
+            else if (face == "front") //Flipped, coordinate system mismatch between cubemap and camera
+                cubeTextureTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_Z; //OpenGL Spec says this is back, not front
+            else if (face == "back")
+                cubeTextureTarget = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+
+            glTexImage2D(cubeTextureTarget,
+                0, GL_RGB, imagePair.second.width, imagePair.second.height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+            );
+        }
+        else {
+            std::cout << "Cube texture failed to load: " << imagePair.first << std::endl;
+            return 0;
+        }
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    glActiveTexture(GL_TEXTURE0);
+
+    return spaceCubeID;
 }
