@@ -11,6 +11,7 @@
 #include "model.h"
 #include "thread_pool.h"
 #include "skybox.h"
+#include "space_icosohedron.h"
 
 #define SCREEN_WIDTH 2560
 #define SCREEN_HEIGHT 1440
@@ -27,7 +28,6 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos);
 void scrollCallback(GLFWwindow* window, double xOffset, double yOffset);
 void processInput(GLFWwindow* window);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-unsigned int genSpaceTexID();
 
 //Delta Time
 float deltaTime = 0.0f;
@@ -43,7 +43,7 @@ Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 bool firstMouseMovement = true;
 bool spotLightOn = false;
 bool directionalLightOn = true;
-//bool pointLightsOn = false;
+bool pointLightsOn = false;
 
 glm::vec3 pointLightPositions[] = {
     glm::vec3(0.7f,  0.2f,  2.0f),
@@ -52,73 +52,13 @@ glm::vec3 pointLightPositions[] = {
     glm::vec3(0.0f,  0.0f, -3.0f)
 };
 
-const float icosahedronVerts[] = {
-    //Vertices                     //Normals
-    -0.5257311f, 0.8506508f, 0.0f, -0.5773503f, 0.5773503f, 0.5773503f,
-    -0.8506508f, 0.0f, 0.5257311f, -0.5773503f, 0.5773503f, 0.5773503f,
-    0.0f, 0.5257311f, 0.8506508f, -0.5773503f, 0.5773503f, 0.5773503f,
-    -0.5257311f, 0.8506508f, 0.0f, 0.0f, 0.8944272f, 0.4472136f,
-    0.0f, 0.5257311f, 0.8506508f, 0.0f, 0.8944272f, 0.4472136f,
-    0.5257311f, 0.8506508f, 0.0f, 0.0f, 0.8944272f, 0.4472136f,
-    -0.5257311f, 0.8506508f, 0.0f, 0.4472136f, 0.8944272f, 0.0f,
-    0.5257311f, 0.8506508f, 0.0f, 0.4472136f, 0.8944272f, 0.0f,
-    0.0f, 0.5257311f, -0.8506508f, 0.4472136f, 0.8944272f, 0.0f,
-    -0.5257311f, 0.8506508f, 0.0f, 0.0f, 0.8944272f, -0.4472136f,
-    0.0f, 0.5257311f, -0.8506508f, 0.0f, 0.8944272f, -0.4472136f,
-    -0.8506508f, 0.0f, -0.5257311f, 0.0f, 0.8944272f, -0.4472136f,
-    -0.5257311f, 0.8506508f, 0.0f, -0.5773503f, 0.5773503f, -0.5773503f,
-    -0.8506508f, 0.0f, -0.5257311f, -0.5773503f, 0.5773503f, -0.5773503f,
-    -0.8506508f, 0.0f, 0.5257311f, -0.5773503f, 0.5773503f, -0.5773503f,
-    0.5257311f, 0.8506508f, 0.0f, 0.5773503f, 0.5773503f, 0.5773503f,
-    0.0f, 0.5257311f, 0.8506508f, 0.5773503f, 0.5773503f, 0.5773503f,
-    0.8506508f, 0.0f, 0.5257311f, 0.5773503f, 0.5773503f, 0.5773503f,
-    0.0f, 0.5257311f, 0.8506508f, -0.3577674f, 0.0f, 0.9341724f,
-    -0.8506508f, 0.0f, 0.5257311f, -0.3577674f, 0.0f, 0.9341724f,
-    0.0f, -0.5257311f, 0.8506508f, -0.3577674f, 0.0f, 0.9341724f,
-    -0.8506508f, 0.0f, 0.5257311f, -0.9341724f, -0.3577674f, 0.0f,
-    -0.8506508f, 0.0f, -0.5257311f, -0.9341724f, -0.3577674f, 0.0f,
-    -0.5257311f, -0.8506508f, 0.0f, -0.9341724f, -0.3577674f, 0.0f,
-    -0.8506508f, 0.0f, -0.5257311f, -0.3577674f, 0.0f, -0.9341724f,
-    0.0f, 0.5257311f, -0.8506508f, -0.3577674f, 0.0f, -0.9341724f,
-    0.0f, -0.5257311f, -0.8506508f, -0.3577674f, 0.0f, -0.9341724f,
-    0.0f, 0.5257311f, -0.8506508f, 0.5773503f, 0.5773503f, -0.5773503f,
-    0.5257311f, 0.8506508f, 0.0f, 0.5773503f, 0.5773503f, -0.5773503f,
-    0.8506508f, 0.0f, -0.5257311f, 0.5773503f, 0.5773503f, -0.5773503f,
-    0.5257311f, -0.8506508f, 0.0f, 0.5773503f, -0.5773503f, 0.5773503f,
-    0.8506508f, 0.0f, 0.5257311f, 0.5773503f, -0.5773503f, 0.5773503f,
-    0.0f, -0.5257311f, 0.8506508f, 0.5773503f, -0.5773503f, 0.5773503f,
-    0.5257311f, -0.8506508f, 0.0f, -0.2772655f, -0.8964797f, 0.3427480f,
-    0.0f, -0.5257311f, 0.8506508f, -0.2772655f, -0.8964797f, 0.3427480f,
-    -0.5257311f, -0.8506508f, 0.0f, -0.2772655f, -0.8964797f, 0.3427480f,
-    0.5257311f, -0.8506508f, 0.0f, 0.0f, -0.9341724f, -0.3577674f,
-    -0.5257311f, -0.8506508f, 0.0f, 0.0f, -0.9341724f, -0.3577674f,
-    0.0f, -0.5257311f, -0.8506508f, 0.0f, -0.9341724f, -0.3577674f,
-    0.5257311f, -0.8506508f, 0.0f, 0.5773503f, -0.5773503f, -0.5773503f,
-    0.0f, -0.5257311f, -0.8506508f, 0.5773503f, -0.5773503f, -0.5773503f,
-    0.8506508f, 0.0f, -0.5257311f, 0.5773503f, -0.5773503f, -0.5773503f,
-    0.5257311f, -0.8506508f, 0.0f, 0.9341724f, -0.3577674f, 0.0f,
-    0.8506508f, 0.0f, -0.5257311f, 0.9341724f, -0.3577674f, 0.0f,
-    0.8506508f, 0.0f, 0.5257311f, 0.9341724f, -0.3577674f, 0.0f,
-    0.0f, -0.5257311f, 0.8506508f, 0.3577674f, 0.0f, 0.9341724f,
-    0.8506508f, 0.0f, 0.5257311f, 0.3577674f, 0.0f, 0.9341724f,
-    0.0f, 0.5257311f, 0.8506508f, 0.3577674f, 0.0f, 0.9341724f,
-    -0.5257311f, -0.8506508f, 0.0f, -0.5773503f, -0.5773503f, 0.5773503f,
-    0.0f, -0.5257311f, 0.8506508f, -0.5773503f, -0.5773503f, 0.5773503f,
-    -0.8506508f, 0.0f, 0.5257311f, -0.5773503f, -0.5773503f, 0.5773503f,
-    0.0f, -0.5257311f, -0.8506508f, -0.5773503f, -0.5773503f, -0.5773503f,
-    -0.5257311f, -0.8506508f, 0.0f, -0.5773503f, -0.5773503f, -0.5773503f,
-    -0.8506508f, 0.0f, -0.5257311f, -0.5773503f, -0.5773503f, -0.5773503f,
-    0.8506508f, 0.0f, -0.5257311f, 0.3577674f, 0.0f, -0.9341724f,
-    0.0f, -0.5257311f, -0.8506508f, 0.3577674f, 0.0f, -0.9341724f,
-    0.0f, 0.5257311f, -0.8506508f, 0.3577674f, 0.0f, -0.9341724f,
-    0.8506508f, 0.0f, 0.5257311f, 0.9341724f, 0.3577674f, 0.0f,
-    0.8506508f, 0.0f, -0.5257311f, 0.9341724f, 0.3577674f, 0.0f,
-    0.5257311f, 0.8506508f, 0.0f, 0.9341724f, 0.3577674f, 0.0f
-};
-
 ThreadPool threadPool;
 
 int main() {
+    //Average FPS
+    double totalTime = 0;
+    double framesRendered = 0;
+
     //Creating the window
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -153,26 +93,17 @@ int main() {
     glViewport(0, 0, width, height);
     */
 
+    //OpenGL Options
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-    //Set Background Color
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-
-    //Enable Z-Buffer
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    //Automatically resize window
+    //GLFW Settings
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
-    //Enable mouse capture and register callback for mouse movements
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
-
-    //Register mouse scroll-wheel callback function
     glfwSetScrollCallback(window, scrollCallback);
-
-    //glfw key handler to eliminate key-bounce
     glfwSetKeyCallback(window, keyCallback);
 
     //Compile shader programs
@@ -180,6 +111,7 @@ int main() {
     Shader skyboxShader = Shader("./Shaders/skybox.vert", "./Shaders/skybox.frag");
     Shader reflectiveShader = Shader("./Shaders/reflective.vert", "./Shaders/reflective.frag");
     
+    //Set matrices UBO location
     lightingShader.setUniformBlock("matrices", 0);
     skyboxShader.setUniformBlock("matrices", 0);
     reflectiveShader.setUniformBlock("matrices", 0);
@@ -187,46 +119,42 @@ int main() {
     //Load all models and stop thread pool
     Model backpack("./Models/Backpack/backpack.assbin"); 
     Skybox skybox;
-    unsigned int spaceCubeTexID = genSpaceTexID();
+    SpaceIcosoheron spaceIcosoheron;
     threadPool.stopAllThreads();
 
-    //Setup shader
+    //Setup lighting shader
     lightingShader.use();
-    lightingShader.setBool("uPointLightOn", false);
-    lightingShader.setFloat("uMaterial.shininess", 32.0f);
+    lightingShader.setBool("pointLightOn", false);
+    lightingShader.setFloat("material.shininess", 32.0f);
 
-    //Directional
-    lightingShader.setVec3("uDirectionalLight.direction", -0.2f, -1.0f, -0.3f);
-    lightingShader.setVec3("uDirectionalLight.ambient", 0.1f, 0.1f, 0.1f);
-    lightingShader.setVec3("uDirectionalLight.diffuse", 1.0f, 1.0f, 1.0f);
-    lightingShader.setVec3("uDirectionalLight.specular", 1.0f, 1.0f, 1.0f);
+    lightingShader.setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
+    lightingShader.setVec3("directionalLight.ambient", 0.1f, 0.1f, 0.1f);
+    lightingShader.setVec3("directionalLight.diffuse", 1.0f, 1.0f, 1.0f);
+    lightingShader.setVec3("directionalLight.specular", 1.0f, 1.0f, 1.0f);
     
-    //Spotlight
-    lightingShader.setVec3("uSpotLight.ambient", 0.05f, 0.05f, 0.05f);
-    lightingShader.setVec3("uSpotLight.diffuse", 1.0f, 1.0f, 1.0f);
-    lightingShader.setVec3("uSpotLight.specular", 1.0f, 1.0f, 1.0f);
+    lightingShader.setVec3("spotLight.ambient", 0.05f, 0.05f, 0.05f);
+    lightingShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
+    lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
 
-    lightingShader.setVec3("uSpotLight.position", camera.Position);
-    lightingShader.setVec3("uSpotLight.direction", camera.Front);
+    lightingShader.setVec3("spotLight.position", camera.Position);
+    lightingShader.setVec3("spotLight.direction", camera.Front);
   
-    lightingShader.setFloat("uSpotLight.constant", 1.0f);
-    lightingShader.setFloat("uSpotLight.linear", 0.045f);
-    lightingShader.setFloat("uSpotLight.quadratic", 0.0075f);
+    lightingShader.setFloat("spotLight.constant", 1.0f);
+    lightingShader.setFloat("spotLight.linear", 0.045f);
+    lightingShader.setFloat("spotLight.quadratic", 0.0075f);
     
-    lightingShader.setFloat("uSpotLight.cutoff", glm::cos(glm::radians(12.5f)));
-    lightingShader.setFloat("uSpotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
+    lightingShader.setFloat("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
+    lightingShader.setFloat("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
     
-    //Model
+    //Setup matrices
     glm::mat4 model = glm::mat4(1.0f);
-    lightingShader.setMat4("modelMatrix", model);
-    glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-    lightingShader.setMat3("normalMatrix", normal);
-
-    //Define and set the view matrix
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 viewNoTrans = glm::mat4(glm::mat3(view));
-    lightingShader.setVec3("uViewPosition", camera.Position);
+    glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
+    glm::mat4 spaceIcoModel = glm::mat4(1.0f);
+    spaceIcoModel = glm::translate(spaceIcoModel, glm::vec3(-5.0, 0.0f, 0.0f));
+    glm::mat3 spaceIcoNormalMat = (glm::mat3)(glm::transpose(glm::inverse(spaceIcoModel)));
 
     //Matrices Uniform Buffer Object
     unsigned int uboMatrices;
@@ -237,24 +165,16 @@ int main() {
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
     glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection));
 
-    double totalTime = 0;
-    double framesRendered = 0;
+    //Final shader uniform setup before loop
+    lightingShader.setMat4("modelMatrix", model);
+    lightingShader.setMat3("normalMatrix", normal);
+    lightingShader.setVec3("viewPosition", camera.Position);
 
-    //Octahedron
-    unsigned int spaceCubeVAO, spaceCubeVBO;
-    glGenVertexArrays(1, &spaceCubeVAO);
-    glBindVertexArray(spaceCubeVAO);
-    glGenBuffers(1, &spaceCubeVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, spaceCubeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(icosahedronVerts), icosahedronVerts, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-    glBindVertexArray(0);
-    glm::mat4 spaceCubeModel = glm::mat4(1.0f);
-    spaceCubeModel = glm::translate(spaceCubeModel, glm::vec3(-5.0, 0.0f, 0.0f));
-    glm::mat3 spaceCubeNormalMat = (glm::mat3)(glm::transpose(glm::inverse(spaceCubeModel)));
+    skyboxShader.use();
+    skyboxShader.setInt("skybox", 0);
+
+    reflectiveShader.use();
+    reflectiveShader.setInt("skybox", 0);
 
     //Render Loop
     while (true){
@@ -278,42 +198,36 @@ int main() {
         lightingShader.use();
 
         if (camera.hasUpdated()) {
-            lightingShader.setVec3("uViewPosition", camera.Position);
+            lightingShader.setVec3("viewPosition", camera.Position);
             view = camera.GetViewMatrix();
             viewNoTrans = glm::mat4(glm::mat3(view));
             glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
         }
 
         if (directionalLightOn) 
-            lightingShader.setBool("uDirectionalLightOn", true);
+            lightingShader.setBool("directionalLightOn", true);
         else
-            lightingShader.setBool("uDirectionalLightOn", false);
+            lightingShader.setBool("directionalLightOn", false);
 
         if (spotLightOn) {
-            lightingShader.setBool("uSpotLightOn", true);
-            lightingShader.setVec3("uSpotLight.position", camera.Position);
-            lightingShader.setVec3("uSpotLight.direction", camera.Front);
+            lightingShader.setBool("spotLightOn", true);
+            lightingShader.setVec3("spotLight.position", camera.Position);
+            lightingShader.setVec3("spotLight.direction", camera.Front);
         }
         else
-            lightingShader.setBool("uSpotLightOn", false);
+            lightingShader.setBool("spotLightOn", false);
 
-        //Draw everything
+        //Draw
         backpack.draw(lightingShader);
 
-        //Space Octahedron
         reflectiveShader.use();
-        spaceCubeModel = glm::rotate(spaceCubeModel, (float)glm::radians(deltaTime * 10), glm::vec3(.885, .543, .75));
-        reflectiveShader.setMat4("modelMatrix", spaceCubeModel);
-        reflectiveShader.setMat3("normalMatrix", (glm::mat3)(glm::transpose(glm::inverse(spaceCubeModel))));
+        spaceIcoModel = glm::rotate(spaceIcoModel, (float)glm::radians(deltaTime * 10), glm::vec3(.885, .543, .75));
+        reflectiveShader.setMat4("modelMatrix", spaceIcoModel);
+        reflectiveShader.setMat3("normalMatrix", (glm::mat3)(glm::transpose(glm::inverse(spaceIcoModel))));
         reflectiveShader.setVec3("cameraPos", camera.Position);
-        reflectiveShader.setInt("skybox", 0);
-        glBindVertexArray(spaceCubeVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, spaceCubeTexID);
-        glDrawArrays(GL_TRIANGLES, 0, 60);
+        spaceIcosoheron.draw();
 
         skyboxShader.use();
-        skyboxShader.setInt("skybox", 0);
         skyboxShader.setMat4("viewNoTrans", viewNoTrans);
         skybox.draw();
 
@@ -381,84 +295,13 @@ void processInput(GLFWwindow* window) {
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-  //  if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
-      //  pointLightsOn = !pointLightsOn;
-
+     /*
+     if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+        pointLightsOn = !pointLightsOn;
+     */
      if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
         spotLightOn = !spotLightOn;
 
     else if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
         directionalLightOn = !directionalLightOn;
-}
-
-unsigned int genSpaceTexID() {
-    ImageLoader imageLoader(std::vector<std::string> {
-        "./Textures/nebula/right.png",
-            "./Textures/nebula/left.png",
-            "./Textures/nebula/top.png",
-            "./Textures/nebula/bottom.png",
-            "./Textures/nebula/front.png",
-            "./Textures/nebula/back.png"
-    });
-
-    std::unordered_map<std::string, ImageData> loadedImages = imageLoader.getImageData();
-
-    unsigned int spaceCubeID;
-    glGenTextures(1, &spaceCubeID);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, spaceCubeID);
-
-    //Cubemap ID
-    for (auto& imagePair : loadedImages) {
-        int nrChannels = imagePair.second.nrChannels;
-        unsigned char* data = imagePair.second.data;
-
-        if (data) {
-            GLenum imageFormat;
-
-            //stb_image only ever returns a 1, 2, 3, or 4 for a valid image
-            if (nrChannels == 1)
-                imageFormat = GL_RED;
-            else if (nrChannels == 2)
-                imageFormat = GL_RG;
-            else if (nrChannels == 3)
-                imageFormat = GL_RGB;
-            else if (nrChannels == 4)
-                imageFormat = GL_RGBA;
-
-            std::string path = imagePair.first;
-            std::string face = path.substr(path.find_last_of('/') + 1);
-            face = face.substr(0, face.find_last_of('.'));
-
-            int cubeTextureTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
-
-            if (face == "left")
-                cubeTextureTarget = GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
-            else if (face == "top")
-                cubeTextureTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
-            else if (face == "bottom")
-                cubeTextureTarget = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
-            else if (face == "front") //Flipped, coordinate system mismatch between cubemap and camera
-                cubeTextureTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_Z; //OpenGL Spec says this is back, not front
-            else if (face == "back")
-                cubeTextureTarget = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
-
-            glTexImage2D(cubeTextureTarget,
-                0, GL_RGB, imagePair.second.width, imagePair.second.height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
-            );
-        }
-        else {
-            std::cout << "Cube texture failed to load: " << imagePair.first << std::endl;
-            return 0;
-        }
-    }
-
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-    glActiveTexture(GL_TEXTURE0);
-
-    return spaceCubeID;
 }
