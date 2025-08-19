@@ -183,7 +183,7 @@ int main() {
     lightingShader.setUniformBlock("matrices", 0);
     skyboxShader.setUniformBlock("matrices", 0);
     reflectiveShader.setUniformBlock("matrices", 0);
-   
+    
     //Load all models and stop thread pool
     Model backpack("./Models/Backpack/backpack.assbin"); 
     Skybox skybox;
@@ -312,7 +312,10 @@ int main() {
         glBindTexture(GL_TEXTURE_CUBE_MAP, spaceCubeTexID);
         glDrawArrays(GL_TRIANGLES, 0, 60);
 
-        skybox.draw(skyboxShader, viewNoTrans, projection);
+        skyboxShader.use();
+        skyboxShader.setInt("skybox", 0);
+        skyboxShader.setMat4("viewNoTrans", viewNoTrans);
+        skybox.draw();
 
         glfwSwapBuffers(window);
     }
