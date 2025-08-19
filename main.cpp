@@ -116,7 +116,6 @@ const float icosahedronVerts[] = {
     0.5257311f, 0.8506508f, 0.0f, 0.9341724f, 0.3577674f, 0.0f
 };
 
-
 ThreadPool threadPool;
 
 int main() {
@@ -180,12 +179,15 @@ int main() {
     Shader lightingShader = Shader("./Shaders/lighting.vert", "./Shaders/lighting.frag");
     Shader skyboxShader = Shader("./Shaders/skybox.vert", "./Shaders/skybox.frag");
     Shader reflectiveShader = Shader("./Shaders/reflective.vert", "./Shaders/reflective.frag");
-
+    
+    lightingShader.setUniformBlock("matrices", 0);
+    skyboxShader.setUniformBlock("matrices", 0);
+    reflectiveShader.setUniformBlock("matrices", 0);
+   
     //Load all models and stop thread pool
-    Model backpack("./Models/Backpack/backpack.assbin");
+    Model backpack("./Models/Backpack/backpack.assbin"); 
     Skybox skybox;
     unsigned int spaceCubeTexID = genSpaceTexID();
-
     threadPool.stopAllThreads();
 
     //Setup shader
@@ -217,21 +219,23 @@ int main() {
     //Model
     glm::mat4 model = glm::mat4(1.0f);
     lightingShader.setMat4("modelMatrix", model);
-
-    //Normal matrix
     glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
-    lightingShader.setMat3("normalMatrix", normal);
-
-    //Define and set projection matrix
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-    lightingShader.setMat4("projectionMatrix", projection);
+    lightingShader.setMat3("normalMatrix", normal);
 
     //Define and set the view matrix
     glm::mat4 view = camera.GetViewMatrix();
-    glm::mat4 noTransView = glm::mat4(glm::mat3(view));
-    lightingShader.setMat4("viewMatrix", view);
-
+    glm::mat4 viewNoTrans = glm::mat4(glm::mat3(view));
     lightingShader.setVec3("uViewPosition", camera.Position);
+
+    //Matrices Uniform Buffer Object
+    unsigned int uboMatrices;
+    glGenBuffers(1, &uboMatrices);
+    glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+    glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, uboMatrices);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
+    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection));
 
     double totalTime = 0;
     double framesRendered = 0;
@@ -275,13 +279,9 @@ int main() {
 
         if (camera.hasUpdated()) {
             lightingShader.setVec3("uViewPosition", camera.Position);
-            
             view = camera.GetViewMatrix();
-            noTransView = glm::mat4(glm::mat3(view));
-            lightingShader.setMat4("viewMatrix", view);
-
-            projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
-            lightingShader.setMat4("projectionMatrix", projection);
+            viewNoTrans = glm::mat4(glm::mat3(view));
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
         }
 
         if (directionalLightOn) 
@@ -304,17 +304,15 @@ int main() {
         reflectiveShader.use();
         spaceCubeModel = glm::rotate(spaceCubeModel, (float)glm::radians(deltaTime * 10), glm::vec3(.885, .543, .75));
         reflectiveShader.setMat4("modelMatrix", spaceCubeModel);
-        reflectiveShader.setMat4("viewMatrix", view);
         reflectiveShader.setMat3("normalMatrix", (glm::mat3)(glm::transpose(glm::inverse(spaceCubeModel))));
         reflectiveShader.setVec3("cameraPos", camera.Position);
-        reflectiveShader.setMat4("projectionMatrix", projection);
         reflectiveShader.setInt("skybox", 0);
         glBindVertexArray(spaceCubeVAO);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, spaceCubeTexID);
         glDrawArrays(GL_TRIANGLES, 0, 60);
 
-        skybox.draw(skyboxShader, noTransView, projection);
+        skybox.draw(skyboxShader, viewNoTrans, projection);
 
         glfwSwapBuffers(window);
     }

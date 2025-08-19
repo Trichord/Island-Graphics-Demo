@@ -27,12 +27,11 @@ public:
         glDeleteVertexArrays(1, &skyboxVAO); 
     }
 
-    void draw(Shader &shader, const glm::mat4 &noTransView, const glm::mat4 &projection) const {
+    void draw(Shader &shader, const glm::mat4 & viewNoTrans, const glm::mat4 &projection) const {
 
         shader.use();
         shader.setInt("skybox", 0);
-        shader.setMat4("viewMatrix", noTransView);
-        shader.setMat4("projectionMatrix", projection);
+        shader.setMat4("viewNoTrans", viewNoTrans);
 
         //Draw
         glBindVertexArray(skyboxVAO);
