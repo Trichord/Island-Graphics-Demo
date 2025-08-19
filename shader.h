@@ -189,6 +189,24 @@ public:
 			glUniform4f(location, x, y, z, w);
 	}
 
+	void setUniformBlock(const std::string& name, unsigned int index) {
+		auto iter = uniformLocations.find(name);
+
+		if (iter != uniformLocations.end()) {
+			glUniformBlockBinding(ID, iter->second, index);
+			return;
+		}
+
+		GLint blockID = glGetUniformBlockIndex(ID, name.c_str());
+		
+		if (blockID != -1) {
+			uniformLocations.emplace(name, blockID);
+			glUniformBlockBinding(ID, blockID, index);
+		}
+		else
+			std::cout << "Unknown uniform " << name << std::endl;	
+	}
+
 private:
 	std::unordered_map<std::string, GLint> uniformLocations;
 
