@@ -10,94 +10,56 @@
 #include <iostream>
 #include <unordered_map>
 
+//Owns program ID, no copying
 class Shader {
 public:
 	//Shader program ID
-	unsigned int ID;
+	GLuint ID = 0;
 
-	Shader(const char* vertexPath, const char* fragmentPath) {
+	Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = NULL) {
+		GLuint vertexShaderID, fragmentShaderID, geometryShaderID;
 
-		/*******************
-		Read code from files
-		********************/
+		vertexShaderID = createShaderID(GL_VERTEX_SHADER, vertexPath);
+		fragmentShaderID = createShaderID(GL_FRAGMENT_SHADER, fragmentPath);
+		geometryShaderID = createShaderID(GL_GEOMETRY_SHADER, geometryPath);
 
-		std::string vertexCode, fragmentCode;
-		std::ifstream vShaderFile, fShaderFile;
+		if (!(vertexShaderID && fragmentShaderID))
+			return;
 
-		//Ensure ifstream objects can throw exceptions
-		vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-		fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-
-		try {
-			//open the files
-			vShaderFile.open(vertexPath);
-			fShaderFile.open(fragmentPath);
-			std::stringstream vShaderStream, fShaderStream;
-			
-			//Read file buffer contents into stream
-			vShaderStream << vShaderFile.rdbuf();
-			fShaderStream << fShaderFile.rdbuf();
-
-			vShaderFile.close();
-			fShaderFile.close();
-
-			//convert stream to string
-			vertexCode = vShaderStream.str();
-			fragmentCode = fShaderStream.str();
-		}
-
-		catch (std::ifstream::failure e) {
-			std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ" << std::endl;
-		}
-
-		const char* vShaderCode = vertexCode.c_str();
-		const char* fShaderCode = fragmentCode.c_str();
-
-		/*************************
-		Compile the shader program
-		**************************/
-
-		unsigned int vertex, fragment;
-		int success;
-		char infoLog[512];
-
-		//Vertex shader
-		vertex = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(vertex, 1, &vShaderCode, NULL);
-		glCompileShader(vertex);
-
-	
-		glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
-		if (!success) {
-			glGetShaderInfoLog(vertex, 512, NULL, infoLog);
-			std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED" << std::endl << infoLog << std::endl;
-		}
-
-		//Fragment Shader
-		fragment = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(fragment, 1, &fShaderCode, NULL);
-		glCompileShader(fragment);
-
-		glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
-		if (!success) {
-			glGetShaderInfoLog(fragment, 512, NULL, infoLog);
-			std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED" << std::endl << infoLog << std::endl;
-		}
-
-		//Shader program
 		ID = glCreateProgram();
-		glAttachShader(ID, vertex);
-		glAttachShader(ID, fragment);
+
+		glAttachShader(ID, vertexShaderID);
+		glAttachShader(ID, fragmentShaderID);
+		
+		if (geometryShaderID)
+			glAttachShader(ID, geometryShaderID);
+
 		glLinkProgram(ID);
 
+		int success;
 		glGetProgramiv(ID, GL_LINK_STATUS, &success);
 		if (!success) {
 			glGetProgramInfoLog(ID, 512, NULL, infoLog);
-			std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED" << std::endl << infoLog << std::endl;
+			std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED" << std::endl << infoLog << std::endl;
+			return;
 		}
 
-		glDeleteShader(vertex);
-		glDeleteShader(fragment);
+		glDeleteShader(vertexShaderID);
+		glDeleteShader(fragmentShaderID);
+
+		if (geometryShaderID)
+			glDeleteShader(geometryShaderID);
+	}
+
+	Shader(const Shader&) = delete;
+	Shader& operator=(const Shader&) = delete;
+
+	Shader(Shader&&) noexcept = default;
+	Shader& operator=(Shader&&) noexcept = default;
+
+	~Shader() {
+		if(ID)
+			glDeleteProgram(ID);
 	}
 
 	void use() {
@@ -172,7 +134,6 @@ public:
 
 		if (location != -1)
 			glUniform3f(location, x, y, z);
-
 	}
 
 	void setVec4(const std::string &name, glm::vec4 value)  {
@@ -208,6 +169,7 @@ public:
 	}
 
 private:
+	char infoLog[512];
 	std::unordered_map<std::string, GLint> uniformLocations;
 
 	GLint getCachedLocation(const std::string &name) {
@@ -224,5 +186,53 @@ private:
 			std::cout << "Unknown uniform: " << name << std::endl;
 
 		return location;
+	}
+
+	GLuint createShaderID(GLenum type, const char* path) {
+
+		if (!path)
+			return 0;
+
+		std::string code;
+		std::ifstream shaderFile;
+
+		//Ensure ifstream objects can throw exceptions
+		shaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+		try {
+			shaderFile.open(path);
+
+			std::stringstream shaderStream;
+
+			//Read file buffer contents into stream
+			shaderStream << shaderFile.rdbuf();
+			shaderFile.close();
+
+			//convert stream to string
+			code = shaderStream.str();
+		}
+
+		catch (std::ifstream::failure &e) {
+			std::cerr << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ" << e.what() << std::endl;
+			return 0;
+		}
+
+		unsigned int shaderCodeID;
+		int success;
+		const char* shaderCode = code.c_str();
+
+		shaderCodeID = glCreateShader(type);
+		glShaderSource(shaderCodeID, 1, &shaderCode, NULL);
+		glCompileShader(shaderCodeID);
+
+		glGetShaderiv(shaderCodeID, GL_COMPILE_STATUS, &success);
+		if (!success) {
+			glGetShaderInfoLog(shaderCodeID, 512, NULL, infoLog);
+			std::cerr << "ERROR::SHADER_TYPE_" << type << "::COMPILATION_FAILED" << std::endl << infoLog << std::endl;
+			glDeleteShader(shaderCodeID);
+			return 0;
+		}
+
+		return shaderCodeID;
 	}
 };
