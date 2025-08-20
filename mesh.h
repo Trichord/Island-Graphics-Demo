@@ -35,9 +35,6 @@ public:
 	std::vector<unsigned int> indices;
 	std::vector<Texture> textures;
 
-	Mesh(const Mesh &) = delete;
-	Mesh &operator=(Mesh const &) = delete;
-
 	//Don't forget to call std::move when calling Mesh constructor!  Avoid copies
 	Mesh(std::vector<Vertex>&& verts, std::vector<unsigned int>&& inds, std::vector<Texture>&& texts) :
 		vertices(std::move(verts)),
@@ -78,6 +75,9 @@ public:
 		}
 		return *this;
 	}
+
+	Mesh(const Mesh&) = delete;
+	Mesh& operator=(Mesh const&) = delete;
 
 	//Free GPU resources on mesh destruction
 	~Mesh(){
