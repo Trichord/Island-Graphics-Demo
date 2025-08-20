@@ -26,7 +26,7 @@ public:
 	virtual void draw() = 0;
 
 protected:
-	unsigned int modelVAO = 0, modelVBO = 0, modelTexID = 0;
+	unsigned int modelVAO = 0, modelVBO = 0, modelEBO = 0, modelTexID = 0;
 	std::vector<std::string> texturePaths;
 
 	virtual void setupBuffer() = 0;
