@@ -9,6 +9,7 @@
 #include <sstream>
 #include <iostream>
 #include <unordered_map>
+#include <array>
 
 //Owns program ID, no copying
 class Shader {
@@ -39,8 +40,8 @@ public:
 		int success;
 		glGetProgramiv(ID, GL_LINK_STATUS, &success);
 		if (!success) {
-			glGetProgramInfoLog(ID, 512, NULL, infoLog);
-			std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED" << std::endl << infoLog << std::endl;
+			glGetProgramInfoLog(ID, 512, NULL, infoLog.data());
+			std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED" << std::endl << infoLog.data() << std::endl;
 			return;
 		}
 
@@ -54,8 +55,28 @@ public:
 	Shader(const Shader&) = delete;
 	Shader& operator=(const Shader&) = delete;
 
-	Shader(Shader&&) noexcept = default;
-	Shader& operator=(Shader&&) noexcept = default;
+	Shader(Shader&& other) noexcept {
+		ID = other.ID;
+		uniformLocations = std::move(other.uniformLocations);
+		infoLog = std::move(other.infoLog);
+		other.ID = 0;
+	};
+
+	Shader& operator=(Shader&& other) noexcept {
+		if (this != &other) {
+			if (ID)
+				glDeleteProgram(ID);
+
+			ID = other.ID;
+			uniformLocations = std::move(other.uniformLocations);
+			infoLog = std::move(other.infoLog);
+			other.ID = 0;
+		}
+
+		return *this;
+	};
+
+	explicit operator bool() const noexcept { return ID != 0; }
 
 	~Shader() {
 		if(ID)
@@ -165,11 +186,11 @@ public:
 			glUniformBlockBinding(ID, blockID, index);
 		}
 		else
-			std::cout << "Unknown uniform " << name << std::endl;	
+			std::cerr << "Unknown uniform Block: " << name << std::endl;	
 	}
 
 private:
-	char infoLog[512];
+	std::array<char, 512> infoLog{};
 	std::unordered_map<std::string, GLint> uniformLocations;
 
 	GLint getCachedLocation(const std::string &name) {
@@ -182,8 +203,8 @@ private:
 
 		if (location != -1)
 			uniformLocations.emplace(name, location);
-		else
-			std::cout << "Unknown uniform: " << name << std::endl;
+		//else
+			//std::cout << "Unknown uniform: " << name << std::endl;
 
 		return location;
 	}
@@ -213,7 +234,7 @@ private:
 		}
 
 		catch (std::ifstream::failure &e) {
-			std::cerr << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ" << e.what() << std::endl;
+			std::cerr << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ::" << e.what() << std::endl;
 			return 0;
 		}
 
@@ -227,8 +248,8 @@ private:
 
 		glGetShaderiv(shaderCodeID, GL_COMPILE_STATUS, &success);
 		if (!success) {
-			glGetShaderInfoLog(shaderCodeID, 512, NULL, infoLog);
-			std::cerr << "ERROR::SHADER_TYPE_" << type << "::COMPILATION_FAILED" << std::endl << infoLog << std::endl;
+			glGetShaderInfoLog(shaderCodeID, 512, NULL, infoLog.data());
+			std::cerr << "ERROR::SHADER_TYPE_" << type << "::COMPILATION_FAILED" << std::endl << infoLog.data() << std::endl;
 			glDeleteShader(shaderCodeID);
 			return 0;
 		}
