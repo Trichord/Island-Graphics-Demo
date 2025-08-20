@@ -12,10 +12,10 @@
 //CubeMappedModel owns its texure ID's, VAO, VBO, and EBO.  Therefore copying is disabled
 class CubeMappedModel {
 public:
+	CubeMappedModel() = default;
+	
 	CubeMappedModel(const CubeMappedModel&) = delete;
 	CubeMappedModel& operator=(CubeMappedModel const&) = delete;
-
-	CubeMappedModel() = default;
 
 	~CubeMappedModel() {
 		glDeleteTextures(1, &modelTexID);
@@ -29,7 +29,7 @@ protected:
 	unsigned int modelVAO = 0, modelVBO = 0, modelEBO = 0, modelTexID = 0;
 	std::vector<std::string> texturePaths;
 
-	virtual void setupBuffer() = 0;
+	virtual void setupBuffers() = 0;
 
 	void loadTextures() {
 		ImageLoader imageLoader(texturePaths);

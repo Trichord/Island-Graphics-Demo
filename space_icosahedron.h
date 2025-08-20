@@ -15,7 +15,7 @@ public:
 		};
 
 		loadTextures();
-		setupBuffer();
+		setupBuffers();
 	}
 
 	void draw() {
@@ -92,7 +92,7 @@ protected:
         0.5257311f, 0.8506508f, 0.0f, 0.9341724f, 0.3577674f, 0.0f
     };
 
-	void setupBuffer() override {
+	void setupBuffers() override {
 		glGenVertexArrays(1, &modelVAO);
 		glBindVertexArray(modelVAO);
 		glGenBuffers(1, &modelVBO);
