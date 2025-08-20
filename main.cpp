@@ -11,7 +11,7 @@
 #include "model.h"
 #include "thread_pool.h"
 #include "skybox.h"
-#include "space_icosohedron.h"
+#include "space_icosahedron.h"
 
 #define SCREEN_WIDTH 2560
 #define SCREEN_HEIGHT 1440
@@ -119,7 +119,7 @@ int main() {
     //Load all models and stop thread pool
     Model backpack("./Models/Backpack/backpack.assbin"); 
     Skybox skybox;
-    SpaceIcosoheron spaceIcosoheron;
+    SpaceIcosaheron spaceIcosaheron;
     threadPool.stopAllThreads();
 
     //Setup lighting shader
@@ -153,7 +153,7 @@ int main() {
     glm::mat4 viewNoTrans = glm::mat4(glm::mat3(view));
     glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
     glm::mat4 spaceIcoModel = glm::mat4(1.0f);
-    spaceIcoModel = glm::translate(spaceIcoModel, glm::vec3(-5.0, 0.0f, 0.0f));
+    spaceIcoModel = glm::translate(spaceIcoModel, glm::vec3(-5.0f, 0.0f, 0.0f));
     glm::mat3 spaceIcoNormalMat = (glm::mat3)(glm::transpose(glm::inverse(spaceIcoModel)));
 
     //Matrices Uniform Buffer Object
@@ -224,7 +224,7 @@ int main() {
         reflectiveShader.setMat4("modelMatrix", spaceIcoModel);
         reflectiveShader.setMat3("normalMatrix", (glm::mat3)(glm::transpose(glm::inverse(spaceIcoModel))));
         reflectiveShader.setVec3("cameraPos", camera.Position);
-        spaceIcosoheron.draw();
+        spaceIcosaheron.draw();
 
         skyboxShader.use();
         skyboxShader.setMat4("viewNoTrans", viewNoTrans);

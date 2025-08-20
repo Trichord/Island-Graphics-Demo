@@ -2,9 +2,9 @@
 
 #include "cube_mapped_model.h"
 
-class SpaceIcosoheron : public CubeMappedModel {
+class SpaceIcosaheron : public CubeMappedModel {
 public:
-    SpaceIcosoheron() {
+    SpaceIcosaheron() {
 		texturePaths = {
             "./Textures/nebula/right.png",
             "./Textures/nebula/left.png",
@@ -26,10 +26,9 @@ public:
 
 		//Restore
 		glBindVertexArray(0);
-		glActiveTexture(GL_TEXTURE0);
 	}
 protected:
-    const float vertices[576] = {
+    const float vertices[360] = {
         //Vertices                     //Normals
         -0.5257311f, 0.8506508f, 0.0f, -0.5773503f, 0.5773503f, 0.5773503f,
         -0.8506508f, 0.0f, 0.5257311f, -0.5773503f, 0.5773503f, 0.5773503f,
