@@ -17,9 +17,6 @@
 //Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees.  Texture IDs are released on Model destruction
 class Model {
 public:
-	Model(const Model &) = delete;
-	Model &operator=(Model const &) = delete;
-
 	Model(std::string path) {
 		loadModel(path);
 	}
@@ -44,6 +41,9 @@ public:
 
 		return *this;
 	}
+
+	Model(const Model&) = delete;
+	Model& operator=(Model const&) = delete;
 
 	~Model() {
 		for (const auto &pair : loadedTextures)

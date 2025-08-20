@@ -11,22 +11,6 @@
 class ThreadPool {
 
 public:
-    ~ThreadPool(){
-        {
-            std::unique_lock<std::mutex> lock(queueMutex);
-            
-            if (!stop) {
-                stop = true;
-                condition.notify_all();
-            } 
-        }
-
-        for (auto &thread : threads) {
-            if (thread.joinable())
-                thread.join();
-        }
-    }
-
     ThreadPool() : stop(false) {
         unsigned int maxThreads = std::thread::hardware_concurrency();
 
@@ -55,6 +39,22 @@ public:
                     task();
                 }
                 }); 
+        }
+    }
+
+    ~ThreadPool() {
+        {
+            std::unique_lock<std::mutex> lock(queueMutex);
+
+            if (!stop) {
+                stop = true;
+                condition.notify_all();
+            }
+        }
+
+        for (auto& thread : threads) {
+            if (thread.joinable())
+                thread.join();
         }
     }
 
