@@ -249,7 +249,17 @@ private:
 		glGetShaderiv(shaderCodeID, GL_COMPILE_STATUS, &success);
 		if (!success) {
 			glGetShaderInfoLog(shaderCodeID, 512, NULL, infoLog.data());
-			std::cerr << "ERROR::SHADER_TYPE_" << type << "::COMPILATION_FAILED" << std::endl << infoLog.data() << std::endl;
+
+			std::string shaderTypeString;
+
+			if (type == GL_VERTEX_SHADER)
+				shaderTypeString = "GL_VERTEX_SHADER";
+			else if (type == GL_FRAGMENT_SHADER)
+				shaderTypeString = "GL_FRAGMENT_SHADER";
+			else if (type == GL_GEOMETRY_SHADER)
+				shaderTypeString = "GL_GEOMETRY_SHADER";
+
+			std::cerr << "ERROR::SHADER_TYPE_" << shaderTypeString << "::COMPILATION_FAILED" << std::endl << infoLog.data() << std::endl;
 			glDeleteShader(shaderCodeID);
 			return 0;
 		}
