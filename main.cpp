@@ -100,7 +100,7 @@ int main() {
     glfwSetKeyCallback(window, keyCallback);
 
     //Compile shader programs
-    Shader lightingShader = Shader("./Shaders/geo.vert", "./Shaders/plain_diffuse.frag", "./Shaders/geo.geom");
+    Shader lightingShader = Shader("./Shaders/lighting.vert", "./Shaders/lighting.frag");
     Shader skyboxShader = Shader("./Shaders/skybox.vert", "./Shaders/skybox.frag");
     Shader reflectiveShader = Shader("./Shaders/reflective.vert", "./Shaders/reflective.frag");
     
@@ -188,7 +188,6 @@ int main() {
             break;
 
         lightingShader.use();
-        lightingShader.setFloat("time", (float)glfwGetTime());
 
         if (camera.hasUpdated()) {
             lightingShader.setVec3("viewPosition", camera.Position);
@@ -297,4 +296,5 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
     else if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
         directionalLightOn = !directionalLightOn;
+
 }
