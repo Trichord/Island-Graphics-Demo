@@ -296,5 +296,5 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
     else if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
         directionalLightOn = !directionalLightOn;
-
 }
+
