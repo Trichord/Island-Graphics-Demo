@@ -174,19 +174,18 @@ public:
 	void setUniformBlock(const std::string& name, unsigned int index) {
 		auto iter = uniformLocations.find(name);
 
-		if (iter != uniformLocations.end()) {
+		if (iter != uniformLocations.end() && iter->second != -1) {
 			glUniformBlockBinding(ID, iter->second, index);
 			return;
 		}
 
 		GLint blockID = glGetUniformBlockIndex(ID, name.c_str());
-		
-		if (blockID != -1) {
-			uniformLocations.emplace(name, blockID);
+		uniformLocations.emplace(name, blockID);
+
+		if (blockID != -1)
 			glUniformBlockBinding(ID, blockID, index);
-		}
 		else
-			std::cerr << "Unknown uniform Block: " << name << std::endl;	
+			std::cerr << "ShaderID: " << ID << ", unknown uniform block : " << name << std::endl;	
 	}
 
 private:
@@ -201,10 +200,9 @@ private:
 
 		GLint location = glGetUniformLocation(ID, name.c_str());
 
-		if (location != -1)
-			uniformLocations.emplace(name, location);
-		//else
-			//std::cout << "Unknown uniform: " << name << std::endl;
+		uniformLocations.emplace(name, location);
+		if (location == -1)
+			std::cout << "Shader ID: " << ID << ", unknown uniform : " << name << std::endl;
 
 		return location;
 	}
