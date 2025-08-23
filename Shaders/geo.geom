@@ -7,6 +7,7 @@ in VS_OUT {
 } geo_in[];
 
 out vec2 texCoords;
+
 uniform float time;
 
 vec3 getNormal(){

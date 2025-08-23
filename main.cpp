@@ -103,11 +103,13 @@ int main() {
     Shader lightingShader = Shader("./Shaders/lighting.vert", "./Shaders/lighting.frag");
     Shader skyboxShader = Shader("./Shaders/skybox.vert", "./Shaders/skybox.frag");
     Shader reflectiveShader = Shader("./Shaders/reflective.vert", "./Shaders/reflective.frag");
+    Shader explodingGeoShader = Shader("./Shaders/geo.vert", "./Shaders/geo.frag", "./Shaders/geo.geom");
     
     //Set matrices UBO location
     lightingShader.setUniformBlock("matrices", 0);
     skyboxShader.setUniformBlock("matrices", 0);
     reflectiveShader.setUniformBlock("matrices", 0);
+    explodingGeoShader.setUniformBlock("matrices", 0);
     
     //Load all models and stop thread pool
     Model backpack("./Models/Backpack/backpack.assbin"); 
@@ -169,6 +171,10 @@ int main() {
     reflectiveShader.use();
     reflectiveShader.setInt("skybox", 0);
 
+    explodingGeoShader.use();
+    explodingGeoShader.setMat4("modelMatrix", glm::translate(glm::mat4(1.0f), glm::vec3(7.0f, 0.0f, 0.0f)));
+    explodingGeoShader.setFloat("time", (float)glfwGetTime());
+
     while (true){
         //Clear background
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -211,6 +217,10 @@ int main() {
 
         //Draw
         backpack.draw(lightingShader);
+
+        explodingGeoShader.use();
+        explodingGeoShader.setFloat("time", (float)glfwGetTime());
+        backpack.draw(explodingGeoShader);
 
         reflectiveShader.use();
         spaceIcoModel = glm::rotate(spaceIcoModel, (float)glm::radians(deltaTime * 10), glm::vec3(.885, .543, .75));

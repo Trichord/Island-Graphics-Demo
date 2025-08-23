@@ -1,8 +1,16 @@
 #version 330 core
 
-in vec3 color;
+struct MaterialProperties {
+    sampler2D texture_diffuse1;
+    sampler2D texture_specular1;
+};
+
+in vec2 texCoords;
 out vec4 fragColor;
+uniform MaterialProperties material;
 
 void main() {
-	fragColor = vec4(color, 1.0f);
+    //Compiler will complain if texture_specular1 is not used.  Its a holdover from the old lighting model, to-be-replaced with PBR system
+    vec4 tex = texture(material.texture_specular1, texCoords);
+	fragColor = texture(material.texture_diffuse1, texCoords) + tex * 0.00001f;
 }
