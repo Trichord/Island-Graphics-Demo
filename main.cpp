@@ -220,7 +220,9 @@ int main() {
 
         explodingGeoShader.use();
         explodingGeoShader.setFloat("time", (float)glfwGetTime());
+        glDisable(GL_CULL_FACE);
         backpack.draw(explodingGeoShader);
+        glEnable(GL_CULL_FACE);
 
         reflectiveShader.use();
         spaceIcoModel = glm::rotate(spaceIcoModel, (float)glm::radians(deltaTime * 10), glm::vec3(.885, .543, .75));
