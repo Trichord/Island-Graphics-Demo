@@ -127,18 +127,18 @@ vec3 calcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, v
 }
 
 vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, MaterialTexture materialTexture){  
-        vec3 lightPos = normalize(light.position - fragPos);
-        vec3 reflectDir = reflect(-lightPos, normal);
+        vec3 fragToLight = normalize(light.position - fragPos);
+        vec3 reflectDir = reflect(-fragToLight, normal);
 
         float lightDistance = length(light.position - fragPos);
         float attenuation = 1.0f / (light.constant + light.linear * lightDistance + light.quadratic * (lightDistance * lightDistance));
         
         //Calculate intensity of light.  Beyond outerCutoff = 0, inside cutoff = 1, otherwise blend
-        float theta = dot(viewDir, normalize(-light.direction));
+        float theta = dot(fragToLight, normalize(-light.direction));
         float epsilon = light.cutoff - light.outerCutoff;
         float intensity = clamp((theta - light.outerCutoff) / epsilon, 0.0f, 1.0f);
         
-        float diff = max(dot(normal, viewDir), 0.0f);
+        float diff = max(dot(normal, fragToLight), 0.0f);
         float spec = pow(max(dot(viewDir, reflectDir), 0.0f), material.shininess);     
 
         vec3 ambient = light.ambient * vec3(materialTexture.diffuse);
