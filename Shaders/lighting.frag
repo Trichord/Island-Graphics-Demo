@@ -69,24 +69,26 @@ uniform SpotLight spotLight;
 
 out vec4 fragColor;
 
+vec3 normalizedSurfaceNormal;
+
 void main() {
     vec3 result = vec3(0.0f);
-    vec3 norm = normalize(normalVector); //Normal vector may have been distorted by scale/rotation
+    normalizedSurfaceNormal = normalize(normalVector); //Normal vector may have been distorted by scale/rotation
     vec3 viewDir = normalize(viewPosition - fragPosition);
     MaterialTexture materialTexture =  MaterialTexture(texture(material.texture_diffuse1, texCoords), texture(material.texture_specular1, texCoords)); //Sample textures once
 
     if (directionalLightOn)
-        result += calcDirLight(directionalLight, norm, viewDir, materialTexture);
+        result += calcDirLight(directionalLight, normalizedSurfaceNormal, viewDir, materialTexture);
 
     if (pointLightOn)
         for (int i = 0; i < MAX_POINT_LIGHTS; i++){
             vec3 lightDir = normalize(pointLights[i].position - fragPosition);
-            vec3 reflectDir = reflect(-lightDir, norm);
-            result += calcPointLight(pointLights[i], norm, fragPosition, viewDir, reflectDir, lightDir, materialTexture);
+            vec3 reflectDir = reflect(-lightDir, normalizedSurfaceNormal);
+            result += calcPointLight(pointLights[i], normalizedSurfaceNormal, fragPosition, viewDir, reflectDir, lightDir, materialTexture);
         }
 
     if (spotLightOn)
-        result += calcSpotLight(spotLight, norm, fragPosition, viewDir, materialTexture);
+        result += calcSpotLight(spotLight, normalizedSurfaceNormal, fragPosition, viewDir, materialTexture);
 
     if (!directionalLightOn && !pointLightOn && !spotLightOn)
         result += vec3(materialTexture.diffuse) * 0.05f;
