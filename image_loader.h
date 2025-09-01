@@ -25,6 +25,8 @@ class ImageLoader {
 public:
 	//Queue up all filepaths in the thread pool
 	ImageLoader(const std::unordered_map<std::string, Texture> &inputMap) : numImages(inputMap.size()), imagesLoaded(0)  {
+		stbi_set_flip_vertically_on_load(true);
+		
 		for (auto const & [path, _] : inputMap)
 			threadPool.enqueue([this, path]() {
 				loadFromFile(path);
@@ -34,22 +36,21 @@ public:
 		{
 			std::unique_lock<std::mutex> lock(imagesMutex);
 			condition.wait(lock, [this] {
-				return imagesLoaded == numImages; 
-				});
+				return imagesLoaded == numImages; });
 		}
 	}
 
 	ImageLoader(const std::vector<std::string>& filepaths) : numImages(filepaths.size()), imagesLoaded(0) {
+		stbi_set_flip_vertically_on_load(true);
+		
 		for (auto const& path : filepaths)
 			threadPool.enqueue([this, path]() {
 			loadFromFile(path);
 				});
-	
 		{
 			std::unique_lock<std::mutex> lock(imagesMutex);
 			condition.wait(lock, [this] {
-				return imagesLoaded == numImages;
-				});
+				return imagesLoaded == numImages; });
 		}
 	}
 
