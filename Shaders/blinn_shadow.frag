@@ -45,7 +45,7 @@ void main() {
 	vec3 lightColor = vec3(1.0);
 
 	//ambient
-	vec3 ambient = 0.3 * color;
+	vec3 ambient = 0.3 * lightColor;
 
 	//diffuse
 	vec3 lightDir = normalize(lightPos - fs_in.fragPos);
