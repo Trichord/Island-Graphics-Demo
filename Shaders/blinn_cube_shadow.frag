@@ -47,10 +47,10 @@ float shadowCalculation (vec3 fragPos, vec3 normal, vec3 lightDir){
 void main() {
 	vec3 color = vec3(texture(texture_diffuse1, fs_in.texCoords));
 	vec3 normalizedNormal = normalize(fs_in.normalVector);
-	vec3 lightColor = vec3(1.0);
+	vec3 lightColor = vec3(0.75);
 
 	//ambient
-	vec3 ambient = 0.3 * color;
+	vec3 ambient = 0.3 * lightColor;
 
 	//diffuse
 	vec3 lightDir = normalize(lightPos - fs_in.fragPos);
