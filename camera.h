@@ -33,21 +33,21 @@ public:
     float mouseSensitivity;
     float zoom;
 
-    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH) : 
+    Camera(glm::vec3 pos = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 u = glm::vec3(0.0f, 1.0f, 0.0f), float y = YAW, float p = PITCH) : 
         front(glm::vec3(0.0f, 0.0f, -1.0f)), movementSpeed(SPEED), mouseSensitivity(SENSITIVITY), zoom(ZOOM) {
         
-        position = position;
-        worldUp = up;
-        yaw = yaw;
-        pitch = pitch;
+        position = pos;
+        worldUp = u;
+        yaw = y;
+        pitch = p;
         updateCameraVectors();
     }
 
-    Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : front(glm::vec3(0.0f, 0.0f, -1.0f)), movementSpeed(SPEED), mouseSensitivity(SENSITIVITY), zoom(ZOOM) {
+    Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float y, float p) : front(glm::vec3(0.0f, 0.0f, -1.0f)), movementSpeed(SPEED), mouseSensitivity(SENSITIVITY), zoom(ZOOM) {
         position = glm::vec3(posX, posY, posZ);
         worldUp = glm::vec3(upX, upY, upZ);
-        yaw = yaw;
-        pitch = pitch;
+        yaw = y;
+        pitch = p;
         updateCameraVectors();
     }
 
@@ -119,12 +119,12 @@ private:
 
     //calculates the front vector from the Camera's (updated) Euler angles
     void updateCameraVectors() {
-        glm::vec3 front;
+        glm::vec3 newFront;
         float cosPitch = cos(glm::radians(pitch));
-        front.x = cos(glm::radians(yaw)) * cosPitch;
-        front.y = sin(glm::radians(pitch));
-        front.z = sin(glm::radians(yaw)) * cosPitch;
-        front = glm::normalize(front);
+        newFront.x = cos(glm::radians(yaw)) * cosPitch;
+        newFront.y = sin(glm::radians(pitch));
+        newFront.z = sin(glm::radians(yaw)) * cosPitch;
+        front = glm::normalize(newFront);
         right = glm::normalize(glm::cross(front, worldUp));
         up = glm::normalize(glm::cross(right, front));
     }
