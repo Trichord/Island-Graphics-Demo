@@ -224,13 +224,6 @@ private:
 		ImageLoader imageLoader(loadedTextures);
 		std::unordered_map<std::string, ImageData> loadedImages = imageLoader.getImageData();
 
-		//Save previous texture unit, switch to unit 0, and save currently bound texture
-		GLint previousTexUnit = 0, previousTex = 0, previousTex0 = 0;
-		glGetIntegerv(GL_ACTIVE_TEXTURE, &previousTexUnit);
-		glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex);
-		glActiveTexture(GL_TEXTURE0);
-		glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTex0);
-
 		//Generate new ID's
 		for (auto &imagePair : loadedImages) {
 			unsigned int textureID;
@@ -272,10 +265,7 @@ private:
 				std::cout << "ERROR: Texture filepath not found in loadedTextures" << std::endl;
 		}
 
-		//Restore previous texture bound to GL_TEXTURE0, then previously active unit
-		glBindTexture(GL_TEXTURE_2D, previousTex0);
-		glActiveTexture(previousTexUnit);
-		glBindTexture(GL_TEXTURE_2D, previousTex);
+		glActiveTexture(GL_TEXTURE0);
 	}
 };
 
