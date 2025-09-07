@@ -131,8 +131,8 @@ int main() {
     lightingShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
     lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
 
-    lightingShader.setVec3("spotLight.position", camera.Position);
-    lightingShader.setVec3("spotLight.direction", camera.Front);
+    lightingShader.setVec3("spotLight.position", camera.position);
+    lightingShader.setVec3("spotLight.direction", camera.front);
   
     lightingShader.setFloat("spotLight.constant", 1.0f);
     lightingShader.setFloat("spotLight.linear", 0.045f);
@@ -143,7 +143,7 @@ int main() {
     
     //Setup matrices
     glm::mat4 model = glm::mat4(1.0f);
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 viewNoTrans = glm::mat4(glm::mat3(view));
     glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
@@ -163,7 +163,7 @@ int main() {
     //Final shader uniform setup before loop
     lightingShader.setMat4("modelMatrix", model);
     lightingShader.setMat3("normalMatrix", normal);
-    lightingShader.setVec3("viewPosition", camera.Position);
+    lightingShader.setVec3("viewPosition", camera.position);
 
     skyboxShader.use();
     skyboxShader.setInt("skybox", 0);
@@ -196,7 +196,7 @@ int main() {
         lightingShader.use();
 
         if (camera.hasUpdated()) {
-            lightingShader.setVec3("viewPosition", camera.Position);
+            lightingShader.setVec3("viewPosition", camera.position);
             view = camera.GetViewMatrix();
             viewNoTrans = glm::mat4(glm::mat3(view));
             glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
@@ -209,8 +209,8 @@ int main() {
 
         if (spotLightOn) {
             lightingShader.setBool("spotLightOn", true);
-            lightingShader.setVec3("spotLight.position", camera.Position);
-            lightingShader.setVec3("spotLight.direction", camera.Front);
+            lightingShader.setVec3("spotLight.position", camera.position);
+            lightingShader.setVec3("spotLight.direction", camera.front);
         }
         else
             lightingShader.setBool("spotLightOn", false);
@@ -228,7 +228,7 @@ int main() {
         spaceIcoModel = glm::rotate(spaceIcoModel, (float)glm::radians(deltaTime * 10), glm::vec3(.885, .543, .75));
         reflectiveShader.setMat4("modelMatrix", spaceIcoModel);
         reflectiveShader.setMat3("normalMatrix", (glm::mat3)(glm::transpose(glm::inverse(spaceIcoModel))));
-        reflectiveShader.setVec3("cameraPos", camera.Position);
+        reflectiveShader.setVec3("cameraPos", camera.position);
         spaceIcosaheron.draw();
 
         skyboxShader.use();
