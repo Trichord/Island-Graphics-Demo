@@ -3,12 +3,11 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
-#include <assimp/Importer.hpp>
-#include <assimp/Exporter.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <fastgltf/core.hpp>
+#include <fastgltf/types.hpp>
+#include <filesystem>
 #include "shader.h"
 #include "mesh.h"
 #include "thread_pool.h"
@@ -59,29 +58,30 @@ public:
 	}
 
 private:
+	static fastgltf::Parser parser;
 	std::vector<Mesh> meshes;
 	std::unordered_map<std::string, Texture> loadedTextures;
 
-	void loadModel(std::string path) {
-		Assimp::Importer importer;
-		const aiScene *scene;
-		std::string fileFormat = path.substr(path.find_last_of('.'));
+	void loadModel(std::filesystem::path path) {
+		
+		auto data = fastgltf::GltfDataBuffer::FromPath(path);
 
-		if (fileFormat == ".assbin")
-			scene = importer.ReadFile(path, 0);
-		else
-			scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals);
-
-		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-			std::cout << "ERROR:ASSIMP::" << importer.GetErrorString() << std::endl;
+		if (data.error() != fastgltf::Error::None) {
+			std::cerr << "FastGLTF error loading from " << path << std::endl;
 			return;
 		}
 
-		//Export it for next time
-		if (fileFormat != ".assbin")
-			exportScene(scene, path);
+		//JSON only for now
+		auto asset = parser.loadGltfJson(data.get(), path.parent_path(), fastgltf::Options::GenerateMeshIndices);
 
-		meshes.reserve(scene->mNumMeshes);
+		if (auto error = asset.error(); error != fastgltf::Error::None) {
+			std::cerr << "FastGLTF buffer/parsing/validation error from " << path << std::endl;
+			return;
+		}
+
+		meshes.reserve(asset->meshes.size());
+
+		for (auto &fastgltf::Image image : asset->images)
 
 		preloadTextures(scene);
 		processNode(scene->mRootNode, scene);
