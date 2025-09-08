@@ -7,6 +7,7 @@
 #include "shader.h"
 
 enum TextureType {
+	TEXUTURE_NONE,
 	TEXTURE_DIFFUSE,
 	TEXTURE_SPECULAR
 };
@@ -24,7 +25,7 @@ struct Texture {
 	unsigned int id;
 	TextureType type;
 
-	Texture() = default;
+	Texture() : id(0), type(TEXUTURE_NONE) {};
 	Texture(unsigned int i, TextureType t) : id(i), type(t) {};
 };
 
