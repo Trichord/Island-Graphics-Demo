@@ -81,7 +81,18 @@ private:
 
 		meshes.reserve(asset->meshes.size());
 
-		for (auto &fastgltf::Image image : asset->images)
+		for (fastgltf::Image& image : asset->images) {
+			if (auto* uri = std::get_if<fastgltf::sources::URI>(&image.data)) {
+				
+				if (!uri->uri.isLocalPath())
+					continue;
+
+				std::string imagePath(uri->uri.path().begin(), uri->uri.path().end());
+
+				loadedTextures.emplace(imagePath, Texture());
+			}
+		}
+
 
 		preloadTextures(scene);
 		processNode(scene->mRootNode, scene);
