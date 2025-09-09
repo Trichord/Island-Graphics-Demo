@@ -47,6 +47,51 @@ bool pointLightsOn = false;
 
 ThreadPool threadPool;
 
+float cubeVertices[] = {
+    // back face
+    -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+     1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+     1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
+     1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+    -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+    -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
+    // front face
+    -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+     1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
+     1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+     1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+    -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
+    -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+    // left face
+    -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+    -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
+    -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+    -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+    -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+    -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+    // right face
+     1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+     1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+     1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
+     1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+     1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+     1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
+     // bottom face
+     -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+      1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
+      1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+      1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+     -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+     -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+     // top face
+     -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+      1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+      1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
+      1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+     -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+     -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
+};
+
 int main() {
     //Average FPS
     double totalTime = 0;
@@ -103,6 +148,7 @@ int main() {
 
     //Compile shader programs
     Shader pbrShader = Shader("./Shaders/point_PBR.vert", "./Shaders/point_PBR.frag");
+    Shader lightSource = Shader("./Shaders/light_source.vert", "./Shaders/light_source.frag");
     
     //Load all models and stop thread pool
     Model gltfTestModel("./Models/test/scene.gltf"); 
@@ -115,6 +161,8 @@ int main() {
     glm::mat4 viewNoTrans = glm::mat4(glm::mat3(view));
     glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
 
+    glm::vec3 lightPosition = glm::vec3(-2.0f, 2.0f, 0.0f);
+
     //Matrices Uniform Buffer Object
     unsigned int uboMatrices;
     glGenBuffers(1, &uboMatrices);
@@ -124,17 +172,35 @@ int main() {
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
     glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection));
 
+    //light source VAO
+    unsigned int lightSourceVBO, lightSourceVAO;
+    glGenVertexArrays(1, &lightSourceVAO);
+    glGenBuffers(1, &lightSourceVBO);
+    glBindVertexArray(lightSourceVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, lightSourceVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glBindVertexArray(0);
+
     //Final shader uniform setup before loop
     pbrShader.use();
     pbrShader.setUniformBlock("matrices", 0);
     pbrShader.setMat4("modelMatrix", glm::scale(model, glm::vec3(.01f)));
     pbrShader.setMat3("normalMatrix", normal);
-    pbrShader.setVec3("lightPosition", glm::vec3(-2.0f, 2.0f, 0.0f));
+    pbrShader.setVec3("lightPosition", lightPosition);
     pbrShader.setVec3("cameraPosition", camera.position);
     pbrShader.setInt("albedoMap", 0);
     pbrShader.setInt("metallicRoughnessMap", 1);
     pbrShader.setInt("normalMap", 2);
     pbrShader.setInt("aoMap", 3);
+
+    lightSource.use();
+    lightSource.setUniformBlock("matrices", 0);
+    glm::mat4 lightSourceModel = glm::mat4(1.0f);
+    lightSourceModel = glm::translate(lightSourceModel, lightPosition);
+    lightSourceModel = glm::scale(lightSourceModel, glm::vec3(0.02f));
+    lightSource.setMat4("modelMatrix", lightSourceModel);
 
     while (true){
         //Clear background
@@ -154,6 +220,11 @@ int main() {
         if (glfwWindowShouldClose(window))
             break;
 
+        lightPosition.x = sin((float)glfwGetTime() * 0.25f);
+        lightPosition.z = cos((float)glfwGetTime() * 0.25f);
+
+        pbrShader.use();
+        pbrShader.setVec3("lightPosition", lightPosition);
 
         if (camera.hasUpdated()) {
             pbrShader.setVec3("cameraPosition", camera.position);
@@ -161,8 +232,18 @@ int main() {
             viewNoTrans = glm::mat4(glm::mat3(view));
             glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
         }
-
+ 
         gltfTestModel.draw(pbrShader);
+
+        lightSource.use();
+        lightSourceModel = glm::mat4(1.0f);
+        lightSourceModel = glm::translate(lightSourceModel, lightPosition);
+        lightSourceModel = glm::scale(lightSourceModel, glm::vec3(0.02f));
+        lightSource.setMat4("modelMatrix", lightSourceModel);
+
+        glBindVertexArray(lightSourceVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
         glfwSwapBuffers(window);
     }
 
