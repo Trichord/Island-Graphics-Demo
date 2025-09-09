@@ -3,19 +3,25 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <filesystem>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <fastgltf/core.hpp>
 #include <fastgltf/types.hpp>
-#include <filesystem>
+#include <fastgltf/tools.hpp>
+#include <fastgltf/glm_element_traits.hpp>
 #include "shader.h"
-#include "mesh.h"
+#include "primitive.h"
 #include "thread_pool.h"
 #include "image_loader.h"
 
 //Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees.  Texture IDs are released on Model destruction
 class Model {
 public:
+	struct Mesh {
+		std::vector<Primitive> primitives;
+	};
+
 	Model(std::string path) {
 		loadModel(path);
 	}
@@ -60,7 +66,7 @@ public:
 private:
 	static fastgltf::Parser parser;
 	std::vector<Mesh> meshes;
-	std::unordered_map<std::string, Texture> loadedTextures;
+	std::unordered_map<std::string, Primitive::Texture> loadedTextures;
 
 	void loadModel(std::filesystem::path path) {
 		
@@ -72,16 +78,80 @@ private:
 		}
 
 		//JSON only for now
-		auto asset = parser.loadGltfJson(data.get(), path.parent_path(), fastgltf::Options::GenerateMeshIndices);
+		auto assetResult = parser.loadGltfJson(data.get(), path.parent_path(), fastgltf::Options::GenerateMeshIndices | fastgltf::Options::LoadExternalBuffers);
 
-		if (auto error = asset.error(); error != fastgltf::Error::None) {
+		if (auto error = assetResult.error(); error != fastgltf::Error::None) {
 			std::cerr << "FastGLTF buffer/parsing/validation error from " << path << std::endl;
 			return;
 		}
 
-		meshes.reserve(asset->meshes.size());
+		fastgltf::Asset& asset = assetResult.get();
 
-		for (fastgltf::Image& image : asset->images) {
+		meshes.resize(asset.meshes.size());
+
+		for (fastgltf::Mesh &gltfMesh : asset.meshes) {
+			Mesh mesh;
+			mesh.primitives.reserve(gltfMesh.primitives.size());
+
+			for (fastgltf::Primitive& gltfPrimitive : gltfMesh.primitives) {
+				std::vector<Primitive::Vertex> vertices;
+				std::vector<std::uint32_t> indices;
+
+				auto* positionIt = gltfPrimitive.findAttribute("POSITION");
+				auto* normalIt = gltfPrimitive.findAttribute("NORMAL");
+				auto* tangentIt = gltfPrimitive.findAttribute("TANGENT");
+				auto* texCoordIt = gltfPrimitive.findAttribute("TEXCOORD_0");
+
+				auto& positionAccessor = asset.accessors[positionIt->accessorIndex];
+				auto& normalAccessor = asset.accessors[normalIt->accessorIndex];
+				auto& tangentAccessor = asset.accessors[tangentIt->accessorIndex];
+				auto& texCoordAccessor = asset.accessors[texCoordIt->accessorIndex];
+				auto& indicesAccessor = asset.accessors[gltfPrimitive.indicesAccessor.value()];
+
+				if (!positionAccessor.bufferViewIndex.has_value()) {
+					std::cerr << "No position data" << std::endl;
+					continue;
+				}
+
+				vertices.resize(positionAccessor.count);
+				indices.resize(indicesAccessor.count);
+
+				fastgltf::iterateAccessorWithIndex<glm::vec3>(asset, positionAccessor,
+					[&](glm::vec3 position, std::size_t index) {
+						vertices[index].position = position;
+					});
+
+				fastgltf::iterateAccessorWithIndex<glm::vec3>(asset, normalAccessor,
+					[&](glm::vec3 normal, std::size_t index) {
+						vertices[index].normal = normal;
+					});
+
+				fastgltf::iterateAccessorWithIndex<glm::vec4>(asset, tangentAccessor,
+					[&](glm::vec4 tangent, std::size_t index) {
+						vertices[index].tangent = tangent;
+					});
+					
+				fastgltf::iterateAccessorWithIndex<glm::vec2>(asset, texCoordAccessor,
+					[&](glm::vec2 texCoords, std::size_t index) {
+						vertices[index].texCoords = texCoords;
+					});
+
+				std::size_t idx = 0;
+				fastgltf::iterateAccessor<std::uint32_t>(asset, indicesAccessor, 
+					[&](std::uint32_t index) {
+						indices[idx++] = index;
+					});
+
+				//Textures...
+				mesh.primitives.emplace_back(std::move(vertices), std::move(indices), );
+
+			}
+			
+			
+			
+			
+			
+			
 			if (auto* uri = std::get_if<fastgltf::sources::URI>(&image.data)) {
 				
 				if (!uri->uri.isLocalPath())
