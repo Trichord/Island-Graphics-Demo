@@ -22,6 +22,11 @@ public:
 		std::vector<Primitive> primitives;
 	};
 
+	struct Material {
+		std::uint32_t index;
+		std::vector<Primitive::Texture> textures;
+	};
+
 	Model(std::string path) {
 		loadModel(path);
 	}
@@ -87,6 +92,8 @@ private:
 
 		fastgltf::Asset& asset = assetResult.get();
 
+		preloadTextures(asset);
+
 		meshes.resize(asset.meshes.size());
 
 		for (fastgltf::Mesh &gltfMesh : asset.meshes) {
@@ -144,23 +151,12 @@ private:
 
 				//Textures...
 				mesh.primitives.emplace_back(std::move(vertices), std::move(indices), );
-
 			}
 			
 			
 			
 			
-			
-			
-			if (auto* uri = std::get_if<fastgltf::sources::URI>(&image.data)) {
-				
-				if (!uri->uri.isLocalPath())
-					continue;
 
-				std::string imagePath(uri->uri.path().begin(), uri->uri.path().end());
-
-				loadedTextures.emplace(imagePath, Texture());
-			}
 		}
 
 
@@ -169,39 +165,42 @@ private:
 	}
 
 	//Fill "loadedTextures" map with all scene textures
-	void preloadTextures(const aiScene *scene) {
-		unsigned int totalTextures = 0;
+	void preloadTextures(const fastgltf::Asset &asset) {
 
-		//Count
-		for (unsigned int i = 0; i < scene->mNumMaterials; i++) {
-			aiMaterial *material = scene->mMaterials[i];
-			totalTextures += material->GetTextureCount(aiTextureType_DIFFUSE);
-			totalTextures += material->GetTextureCount(aiTextureType_SPECULAR);
-		}
+		for (const fastgltf::Material& material : asset.materials) {
 
-		loadedTextures.reserve(totalTextures);
+			auto getTexInfo = [&](const fastgltf::TextureInfo &texInfo, const Primitive::TextureType &texType) {
+				const auto& texture = asset.textures[texInfo.textureIndex];
+				const auto& image = asset.images[texture.imageIndex.value()];
 
-		//Fill in loadedTextures map, minus the texture ID
-		for (unsigned int i = 0; i < scene->mNumMaterials; i++) {
-			aiMaterial *material = scene->mMaterials[i];
-			getTextureNames(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE);
-			getTextureNames(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
+				if (auto* uri = std::get_if<fastgltf::sources::URI>(&image.data)) {
+					std::string imagePath(uri->uri.path().begin(), uri->uri.path().end());
+
+					if (!uri->uri.isLocalPath()) {
+						std::cerr << "URI not local: " << imagePath << std::endl;
+						return;
+					}
+
+					loadedTextures.emplace(imagePath, Primitive::Texture(texType));
+				}
+			};
+
+			if (material.pbrData.baseColorTexture.has_value()) {
+				const auto& texInfo = material.pbrData.baseColorTexture.value();
+				
+			}
+
+			getTexInfo(material.pbrData.baseColorTexture.value(), Primitive::TextureType::TEXTURE_BASE_COLOR);
+			getTexInfo(material.pbrData.metallicRoughnessTexture.value(), Primitive::TextureType::TEXTURE_METALLIC_ROUGHNESS);
+			getTexInfo(material.normalTexture.value(), Primitive::TextureType::TEXTURE_NORMAL);
+			getTexInfo(material.occlusionTexture.value(), Primitive::TextureType::TEXTURE_OCCLUSION);		
 		}
 
 		//Texture ID's
 		generateIDs();
 	}
 
-	//Build meshes for current node, then recurse on node's children
-	void processNode(aiNode *node, const aiScene *scene) {
-		for (unsigned int i = 0; i < node->mNumMeshes; i++) {
-			aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-			meshes.emplace_back(processMesh(mesh, scene));
-		}
 
-		for (unsigned int i = 0; i < node->mNumChildren; i++)
-			processNode(node->mChildren[i], scene);
-	}
 
 	//Turn assimp data into our vertices, indices, and textures	
 	Mesh processMesh(aiMesh *mesh, const aiScene *scene) {
@@ -290,15 +289,6 @@ private:
 		return textures;
 	}
 
-	void exportScene(const aiScene *scene, std::string &path) {
-		Assimp::Exporter exporter;
-		std::string directory = path.substr(0, path.find_last_of('/') + 1);
-		std::string fileName = path.substr(path.find_last_of('/') + 1);
-		fileName = fileName.substr(0, fileName.find_last_of('.'));
-			
-		exporter.Export(scene, "assbin", directory + fileName + ".assbin");
-		std::cout << "Exported non .assbin file as \"" << fileName << ".assbin\" in: " << directory << std::endl;
-	}
 
 	//Retrieves image data from the ImageLoader (multi-threaded) and generates OpenGL Texture ID's
 	void generateIDs() {
@@ -307,7 +297,7 @@ private:
 
 		//Generate new ID's
 		for (auto &imagePair : loadedImages) {
-			unsigned int textureID;
+			GLuint textureID;
 			int nrChannels = imagePair.second.nrChannels;
 			unsigned char *data = imagePair.second.data;
 	

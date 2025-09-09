@@ -10,8 +10,8 @@
 class Primitive{
 public:
 	enum TextureType {
-		TEXUTURE_NONE,
-		TEXTURE_BASE_COLOR_FACTOR,
+		TEXTURE_NONE,
+		TEXTURE_BASE_COLOR,
 		TEXTURE_METALLIC_ROUGHNESS,
 		TEXTURE_NORMAL,
 		TEXTURE_OCCLUSION
@@ -30,11 +30,10 @@ public:
 	};
 
 	struct Texture {
-		unsigned int id;
 		TextureType type;
+		GLuint id;
 
-		Texture() : id(0), type(TEXUTURE_NONE) {};
-		Texture(unsigned int i, TextureType t) : id(i), type(t) {};
+		Texture(TextureType t = TEXTURE_NONE, GLuint i = 0) : id(i), type(t) {};
 	};
 
 	std::vector<Vertex> vertices;
