@@ -3,9 +3,8 @@
 out vec4 fragColor;
 
 uniform sampler2D albedoMap;
+uniform sampler2D metallicRoughnessMap;
 uniform sampler2D normalMap;
-uniform sampler2D metallicMap;
-uniform sampler2D roughnessMap;
 uniform sampler2D aoMap;
 
 const float PI = 3.14159265359;
@@ -64,8 +63,9 @@ void main() {
 	//vec3 albedo = texture(albedoMap, texCoords).rgb;
 	vec3 albedo = pow(texture(albedoMap, fs_in.texCoords).rgb, vec3(2.2)); //For now.  To do: GL_SRGB when creating albedo and ao map textures
 	vec3 normal = texture(normalMap, fs_in.texCoords).rgb * 2.0 - 1.0; //From [0, 1] to [-1, 1]
-	float metallic = texture(metallicMap, fs_in.texCoords).r;
-	float roughness = texture(roughnessMap, fs_in.texCoords).r;
+	vec2 metallicRoughness = texture(metallicRoughnessMap, fs_in.texCoords).rg;
+	float metallic = metallicRoughness.r;
+	float roughness = metallicRoughness.g;
 	float ao = texture(aoMap, fs_in.texCoords).r;
 
 	vec3 N = normalize(normal);
