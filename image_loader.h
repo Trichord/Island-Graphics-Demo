@@ -5,9 +5,10 @@
 #include <unordered_map>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 #include "stb_image.h"
 #include "thread_pool.h"
-#include "model.h"
+#include "texture.h"
 
 extern ThreadPool threadPool;
 
@@ -21,10 +22,12 @@ struct ImageData {
 	ImageData(unsigned char *d, int w, int h, int nr) : data(d), width(w), height(h), nrChannels(nr) {};
 };
 
+
+
 class ImageLoader {
 public:
 	//Queue up all filepaths in the thread pool
-	ImageLoader(const std::unordered_map<std::string, Model::Texture> &inputMap) : numImages(inputMap.size()), imagesLoaded(0)  {
+	ImageLoader(const std::unordered_map<std::string, Texture> &inputMap) : numImages(inputMap.size()), imagesLoaded(0)  {
 		
 		for (auto const & [path, _] : inputMap)
 			threadPool.enqueue([this, path]() {

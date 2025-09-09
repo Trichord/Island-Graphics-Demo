@@ -13,29 +13,15 @@
 #include <fastgltf/types.hpp>
 #include <fastgltf/tools.hpp>
 #include <fastgltf/glm_element_traits.hpp>
+#include "texture.h"
 #include "shader.h"
+#include "image_loader.h"
 #include "primitive.h"
 #include "thread_pool.h"
-#include "image_loader.h"
 
 //Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees.  Texture IDs are released on Model destruction
 class Model {
 public:
-	enum TextureType {
-		TEXTURE_NONE,
-		TEXTURE_BASE_COLOR,
-		TEXTURE_METALLIC_ROUGHNESS,
-		TEXTURE_NORMAL,
-		TEXTURE_OCCLUSION
-	};
-
-	struct Texture {
-		TextureType type;
-		GLuint id;
-
-		Texture(TextureType t = TEXTURE_NONE, GLuint i = 0) : id(i), type(t) {};
-	};
-
 	struct Material {
 		std::uint32_t index;
 		std::vector<Texture> textures;
@@ -106,7 +92,6 @@ private:
 	std::array<Texture, 4> textures;
 
 	void loadModel(std::filesystem::path path) {
-
 		auto data = fastgltf::GltfDataBuffer::FromPath(path);
 
 		if (data.error() != fastgltf::Error::None) {
@@ -124,7 +109,7 @@ private:
 
 		fastgltf::Asset& asset = assetResult.get();
 
-		preloadTextures(asset);
+		preloadTextures(asset, path.parent_path());
 		meshes.resize(asset.meshes.size());
 		loadMeshes(asset);
 	}
@@ -186,11 +171,12 @@ private:
 				//Textures...
 				mesh.primitives.emplace_back(std::move(vertices), std::move(indices));
 			}
+			meshes.push_back(std::move(mesh));
 		}
 	}
 
 	//Fill "textureMap" map with all scene textures
-	void preloadTextures(const fastgltf::Asset &asset) {
+	void preloadTextures(const fastgltf::Asset &asset, const std::filesystem::path parentPath) {
 
 		for (const fastgltf::Material& material : asset.materials) {
 
@@ -200,6 +186,7 @@ private:
 
 				if (auto* uri = std::get_if<fastgltf::sources::URI>(&image.data)) {
 					std::string imagePath(uri->uri.path().begin(), uri->uri.path().end());
+					imagePath = parentPath.string() + '/' + imagePath;
 
 					if (!uri->uri.isLocalPath()) {
 						std::cerr << "URI not local: " << imagePath << std::endl;

@@ -99,59 +99,21 @@ int main() {
     glfwSetScrollCallback(window, scrollCallback);
     glfwSetKeyCallback(window, keyCallback);
 
-    stbi_set_flip_vertically_on_load(true);
+    //stbi_set_flip_vertically_on_load(true);
 
     //Compile shader programs
-    Shader lightingShader = Shader("./Shaders/lighting.vert", "./Shaders/lighting.frag");
-    Shader skyboxShader = Shader("./Shaders/skybox.vert", "./Shaders/skybox.frag");
-    Shader reflectiveShader = Shader("./Shaders/reflective.vert", "./Shaders/reflective.frag");
-    Shader explodingGeoShader = Shader("./Shaders/geo.vert", "./Shaders/geo.frag", "./Shaders/geo.geom");
-    
-    //Set matrices UBO location
-    lightingShader.setUniformBlock("matrices", 0);
-    skyboxShader.setUniformBlock("matrices", 0);
-    reflectiveShader.setUniformBlock("matrices", 0);
-    explodingGeoShader.setUniformBlock("matrices", 0);
+    Shader pbrShader = Shader("./Shaders/point_PBR.vert", "./Shaders/point_PBR.frag");
     
     //Load all models and stop thread pool
-    Model backpack("./Models/Backpack/backpack.assbin"); 
-    Skybox skybox;
-    SpaceIcosaheron spaceIcosaheron;
+    Model gltfTestModel("./Models/test/scene.gltf"); 
     threadPool.stopAllThreads();
-
-    //Setup lighting shader
-    lightingShader.use();
-    lightingShader.setBool("pointLightOn", false);
-    lightingShader.setFloat("material.shininess", 32.0f);
-
-    lightingShader.setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
-    lightingShader.setVec3("directionalLight.ambient", 0.1f, 0.1f, 0.1f);
-    lightingShader.setVec3("directionalLight.diffuse", 1.0f, 1.0f, 1.0f);
-    lightingShader.setVec3("directionalLight.specular", 1.0f, 1.0f, 1.0f);
-    
-    lightingShader.setVec3("spotLight.ambient", 0.05f, 0.05f, 0.05f);
-    lightingShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
-    lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
-
-    lightingShader.setVec3("spotLight.position", camera.position);
-    lightingShader.setVec3("spotLight.direction", camera.front);
-  
-    lightingShader.setFloat("spotLight.constant", 1.0f);
-    lightingShader.setFloat("spotLight.linear", 0.045f);
-    lightingShader.setFloat("spotLight.quadratic", 0.0075f);
-    
-    lightingShader.setFloat("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
-    lightingShader.setFloat("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
-    
+ 
     //Setup matrices
     glm::mat4 model = glm::mat4(1.0f);
     glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 viewNoTrans = glm::mat4(glm::mat3(view));
     glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
-    glm::mat4 spaceIcoModel = glm::mat4(1.0f);
-    spaceIcoModel = glm::translate(spaceIcoModel, glm::vec3(-5.0f, 0.0f, 0.0f));
-    glm::mat3 spaceIcoNormalMat = (glm::mat3)(glm::transpose(glm::inverse(spaceIcoModel)));
 
     //Matrices Uniform Buffer Object
     unsigned int uboMatrices;
@@ -163,19 +125,16 @@ int main() {
     glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection));
 
     //Final shader uniform setup before loop
-    lightingShader.setMat4("modelMatrix", model);
-    lightingShader.setMat3("normalMatrix", normal);
-    lightingShader.setVec3("viewPosition", camera.position);
-
-    skyboxShader.use();
-    skyboxShader.setInt("skybox", 0);
-
-    reflectiveShader.use();
-    reflectiveShader.setInt("skybox", 0);
-
-    explodingGeoShader.use();
-    explodingGeoShader.setMat4("modelMatrix", glm::translate(glm::mat4(1.0f), glm::vec3(7.0f, 0.0f, 0.0f)));
-    explodingGeoShader.setFloat("time", (float)glfwGetTime());
+    pbrShader.use();
+    pbrShader.setUniformBlock("matrices", 0);
+    pbrShader.setMat4("modelMatrix", glm::scale(model, glm::vec3(.01f)));
+    pbrShader.setMat3("normalMatrix", normal);
+    pbrShader.setVec3("lightPosition", glm::vec3(-2.0f, 2.0f, 0.0f));
+    pbrShader.setVec3("cameraPosition", camera.position);
+    pbrShader.setInt("albedoMap", 0);
+    pbrShader.setInt("metallicRoughnessMap", 1);
+    pbrShader.setInt("normalMap", 2);
+    pbrShader.setInt("aoMap", 3);
 
     while (true){
         //Clear background
@@ -195,48 +154,15 @@ int main() {
         if (glfwWindowShouldClose(window))
             break;
 
-        lightingShader.use();
 
         if (camera.hasUpdated()) {
-            lightingShader.setVec3("viewPosition", camera.position);
+            pbrShader.setVec3("cameraPosition", camera.position);
             view = camera.GetViewMatrix();
             viewNoTrans = glm::mat4(glm::mat3(view));
             glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
         }
 
-        if (directionalLightOn) 
-            lightingShader.setBool("directionalLightOn", true);
-        else
-            lightingShader.setBool("directionalLightOn", false);
-
-        if (spotLightOn) {
-            lightingShader.setBool("spotLightOn", true);
-            lightingShader.setVec3("spotLight.position", camera.position);
-            lightingShader.setVec3("spotLight.direction", camera.front);
-        }
-        else
-            lightingShader.setBool("spotLightOn", false);
-
-        //Draw
-        backpack.draw(lightingShader);
-
-        explodingGeoShader.use();
-        explodingGeoShader.setFloat("time", (float)glfwGetTime());
-        glDisable(GL_CULL_FACE);
-        backpack.draw(explodingGeoShader);
-        glEnable(GL_CULL_FACE);
-
-        reflectiveShader.use();
-        spaceIcoModel = glm::rotate(spaceIcoModel, (float)glm::radians(deltaTime * 10), glm::vec3(.885, .543, .75));
-        reflectiveShader.setMat4("modelMatrix", spaceIcoModel);
-        reflectiveShader.setMat3("normalMatrix", (glm::mat3)(glm::transpose(glm::inverse(spaceIcoModel))));
-        reflectiveShader.setVec3("cameraPos", camera.position);
-        spaceIcosaheron.draw();
-
-        skyboxShader.use();
-        skyboxShader.setMat4("viewNoTrans", viewNoTrans);
-        skybox.draw();
-
+        gltfTestModel.draw(pbrShader);
         glfwSwapBuffers(window);
     }
 

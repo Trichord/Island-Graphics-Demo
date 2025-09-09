@@ -11,7 +11,7 @@ layout (std140) uniform matrices {
 };
 
 out VS_OUT {
-	vec3 tangentLightPositions[4];
+	vec3 tangentLightPosition;
 	vec3 tangentCameraPos;
 	vec3 tangentWorldPos;
 	vec2 texCoords;
@@ -19,9 +19,8 @@ out VS_OUT {
 
 uniform mat4 modelMatrix;
 uniform mat3 normalMatrix;
-
-uniform vec3 lightPositions[4];
-uniform vec3 cameraPos;
+uniform vec3 lightPosition;
+uniform vec3 cameraPosition;
 
 void main () {
 	//TBN matrix for normal map
@@ -33,10 +32,8 @@ void main () {
 
 	vs_out.texCoords = aTexCoords;
 	vs_out.tangentWorldPos = TBN * (modelMatrix * vec4(aPos, 1.0)).xyz;
-	vs_out.tangentCameraPos = TBN * cameraPos;
-	
-	for(int i = 0; i < 4; ++i)
-		vs_out.tangentLightPositions[i] = TBN * lightPositions[i];
+	vs_out.tangentCameraPos = TBN * cameraPosition;
+	vs_out.tangentLightPosition = TBN * lightPosition;
 	
 	gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(aPos, 1.0);
 }

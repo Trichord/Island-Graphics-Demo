@@ -9,10 +9,10 @@ uniform sampler2D aoMap;
 
 const float PI = 3.14159265359;
 
-uniform vec3 lightColors[4];
+vec3 lightColor = vec3(100.0, 100.0, 100.0);
 
 in VS_OUT {
-	vec3 tangentLightPositions[4];
+	vec3 tangentLightPosition;
 	vec3 tangentCameraPos;
 	vec3 tangentWorldPos;
 	vec2 texCoords;
@@ -77,32 +77,30 @@ void main() {
 	//reflectance equation
 	vec3 Lo = vec3(0.0);
 
-	for(int i = 0; i < 4; ++i){
-		//per-light radiance
-		float lightDistance = length(fs_in.tangentLightPositions[i] - fs_in.tangentWorldPos);
-		float attenuation = 1.0 / (lightDistance * lightDistance);
-		vec3 radiance = lightColors[i] * attenuation;
+	//per-light radiance
+	float lightDistance = length(fs_in.tangentLightPosition - fs_in.tangentWorldPos);
+	float attenuation = 1.0 / (lightDistance * lightDistance);
+	vec3 radiance = lightColor * attenuation;
 
-		//Cook-Torrance BRDF
-		vec3 L = normalize(fs_in.tangentLightPositions[i] - fs_in.tangentWorldPos);
-		vec3 H = normalize(L + V);
+	//Cook-Torrance BRDF
+	vec3 L = normalize(fs_in.tangentLightPosition - fs_in.tangentWorldPos);
+	vec3 H = normalize(L + V);
 
-		float NDF = distributionGGX(N, H, roughness);
-		float G = geometrySmith(N, V, L, roughness);
-		vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+	float NDF = distributionGGX(N, H, roughness);
+	float G = geometrySmith(N, V, L, roughness);
+	vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
 
-		vec3 kS = F;
-		vec3 kD = vec3(1.0) - kS;
-		kD *= 1.0 - metallic;
+	vec3 kS = F;
+	vec3 kD = vec3(1.0) - kS;
+	kD *= 1.0 - metallic;
 
-		vec3 numerator = NDF * G * F;
-		float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.000001;
-		vec3 specular = numerator / denominator;
+	vec3 numerator = NDF * G * F;
+	float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.000001;
+	vec3 specular = numerator / denominator;
 
-		//add to outgoing radiance Lo
-		float NdotL = max(dot(N, L), 0.0);
-		Lo += (kD * albedo / PI + specular) * radiance * NdotL;
-	}
+	//add to outgoing radiance Lo
+	float NdotL = max(dot(N, L), 0.0);
+	Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 
 	vec3 ambient = vec3(0.03) * albedo * ao;
 	vec3 color = ambient + Lo;
