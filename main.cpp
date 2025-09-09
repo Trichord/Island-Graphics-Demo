@@ -136,7 +136,7 @@ int main() {
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
+    //glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
 
     //GLFW Settings
@@ -151,9 +151,11 @@ int main() {
     //Compile shader programs
     Shader pbrShader = Shader("./Shaders/point_PBR.vert", "./Shaders/point_PBR.frag");
     Shader lightSource = Shader("./Shaders/light_source.vert", "./Shaders/light_source.frag");
+    Shader skyboxShader = Shader("./Shaders/skybox.vert", "./Shaders/skybox.frag");
     
     //Load all models and stop thread pool
     Model gltfTestModel("./Models/test/scene.gltf"); 
+    Skybox skybox;
     threadPool.stopAllThreads();
  
     //Setup matrices
@@ -204,6 +206,9 @@ int main() {
     lightSourceModel = glm::scale(lightSourceModel, glm::vec3(0.02f));
     lightSource.setMat4("modelMatrix", lightSourceModel);
 
+    skyboxShader.use();
+    skyboxShader.setInt("skybox", 0);
+
     while (true){
         //Clear background
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -245,6 +250,10 @@ int main() {
 
         glBindVertexArray(lightSourceVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        skyboxShader.use();
+        skyboxShader.setMat4("viewNoTrans", viewNoTrans);
+        skybox.draw();
 
         glfwSwapBuffers(window);
     }
