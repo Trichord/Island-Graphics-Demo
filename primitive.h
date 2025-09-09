@@ -2,6 +2,9 @@
 
 #include <vector>
 #include <string>
+#include <cstdint>
+#include <cstddef>
+#include <iostream>
 #include <glm/glm.hpp>
 #include <glad/glad.h>
 #include "shader.h"
@@ -9,14 +12,6 @@
 //Primitive owns its VAO / VBO / EBO.  Copying is disabled to avoid double frees or unecessary resource holding
 class Primitive{
 public:
-	enum TextureType {
-		TEXTURE_NONE,
-		TEXTURE_BASE_COLOR,
-		TEXTURE_METALLIC_ROUGHNESS,
-		TEXTURE_NORMAL,
-		TEXTURE_OCCLUSION
-	};
-
 	struct Vertex {
 		glm::vec3 position;
 		glm::vec3 normal;
@@ -29,29 +24,19 @@ public:
 		};
 	};
 
-	struct Texture {
-		TextureType type;
-		GLuint id;
-
-		Texture(TextureType t = TEXTURE_NONE, GLuint i = 0) : id(i), type(t) {};
-	};
-
 	std::vector<Vertex> vertices;
 	std::vector<std::uint32_t> indices;
-	std::vector<Texture> textures;
 
 	//Don't forget to call std::move when calling Primitive constructor!  Avoid copies
-	Primitive(std::vector<Vertex>&& verts, std::vector<std::uint32_t>&& inds, std::vector<Texture>&& texts) :
+	Primitive(std::vector<Vertex>&& verts, std::vector<std::uint32_t>&& inds) :
 		vertices(std::move(verts)),
-		indices(std::move(inds)),
-		textures(std::move(texts)) {
+		indices(std::move(inds)) {
 		setupPrimitive();
 	}
 
 	Primitive(Primitive&&other) noexcept :
 		vertices(std::move(other.vertices)),
-		indices(std::move(other.indices)),
-		textures(std::move(other.textures)) {
+		indices(std::move(other.indices)) {
 		VAO = other.VAO;
 		VBO = other.VBO;
 		EBO = other.EBO;
@@ -69,7 +54,6 @@ public:
 
 			vertices = std::move(other.vertices);
 			indices = std::move(other.indices);
-			textures = std::move(other.textures);
 			VAO = other.VAO;
 			VBO = other.VBO;
 			EBO = other.EBO;
@@ -92,32 +76,10 @@ public:
 	}
 
 	//Reset to default VAO & active texture handled by model.h
-	void draw(Shader& shader) const{
+	void draw() const{
 		if (VAO == 0)
 			return;
-		
-		unsigned int diffuseNr = 1;
-		unsigned int specularNr = 1;
 
-		shader.use();
-
-		for (unsigned int i = 0; i < textures.size(); i++) {
-			glActiveTexture(GL_TEXTURE0 + i);
-			std::string name;
-			TextureType type = textures[i].type;
-
-			if (type == TEXTURE_DIFFUSE)
-				name = "texture_diffuse" + std::to_string(diffuseNr++);
-			else if (type == TEXTURE_SPECULAR)
-				name = "texture_specular" + std::to_string(specularNr++);
-
-			shader.setInt("material." + name, i);
-			glBindTexture(GL_TEXTURE_2D, textures[i].id);
-
-		}
-		glActiveTexture(GL_TEXTURE0);
-
-		//Draw
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
 	}
@@ -150,9 +112,13 @@ private:
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
 
-		//textures
+		//tangent
 		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoords));
+		glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, tangent));
+
+		//textures
+		glEnableVertexAttribArray(3);
+		glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoords));
 
 		//reset VAO
 		glBindVertexArray(0);

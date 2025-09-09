@@ -7,7 +7,7 @@
 #include <condition_variable>
 #include "stb_image.h"
 #include "thread_pool.h"
-#include "mesh.h"
+#include "model.h"
 
 extern ThreadPool threadPool;
 
@@ -24,8 +24,7 @@ struct ImageData {
 class ImageLoader {
 public:
 	//Queue up all filepaths in the thread pool
-	ImageLoader(const std::unordered_map<std::string, Texture> &inputMap) : numImages(inputMap.size()), imagesLoaded(0)  {
-		stbi_set_flip_vertically_on_load(true);
+	ImageLoader(const std::unordered_map<std::string, Model::Texture> &inputMap) : numImages(inputMap.size()), imagesLoaded(0)  {
 		
 		for (auto const & [path, _] : inputMap)
 			threadPool.enqueue([this, path]() {
@@ -41,7 +40,6 @@ public:
 	}
 
 	ImageLoader(const std::vector<std::string>& filepaths) : numImages(filepaths.size()), imagesLoaded(0) {
-		stbi_set_flip_vertically_on_load(true);
 		
 		for (auto const& path : filepaths)
 			threadPool.enqueue([this, path]() {

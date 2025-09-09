@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <cstdint>
+#include <cstddef>
+#include <iostream>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <fastgltf/core.hpp>
@@ -18,13 +21,28 @@
 //Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees.  Texture IDs are released on Model destruction
 class Model {
 public:
-	struct Mesh {
-		std::vector<Primitive> primitives;
+	enum TextureType {
+		TEXTURE_NONE,
+		TEXTURE_BASE_COLOR,
+		TEXTURE_METALLIC_ROUGHNESS,
+		TEXTURE_NORMAL,
+		TEXTURE_OCCLUSION
+	};
+
+	struct Texture {
+		TextureType type;
+		GLuint id;
+
+		Texture(TextureType t = TEXTURE_NONE, GLuint i = 0) : id(i), type(t) {};
 	};
 
 	struct Material {
 		std::uint32_t index;
-		std::vector<Primitive::Texture> textures;
+		std::vector<Texture> textures;
+	};
+
+	struct Mesh {
+		std::vector<Primitive> primitives;
 	};
 
 	Model(std::string path) {
@@ -33,20 +51,20 @@ public:
 
 	Model(Model &&other) noexcept :
 		meshes(std::move(other.meshes)),
-		loadedTextures(std::move(other.loadedTextures)) {
-		other.loadedTextures.clear();
+		textureMap(std::move(other.textureMap)) {
+		other.textureMap.clear();
 	}
 
 	Model &operator=(Model &&other) noexcept {
 		if (this != &other) {
 
-			for (const auto &pair : loadedTextures)
+			for (const auto &pair : textureMap)
 				glDeleteTextures(1, &pair.second.id);
 
 			meshes = std::move(other.meshes);
-			loadedTextures = std::move(other.loadedTextures);
+			textureMap = std::move(other.textureMap);
 
-			other.loadedTextures.clear();
+			other.textureMap.clear();
 		}
 
 		return *this;
@@ -56,25 +74,39 @@ public:
 	Model& operator=(Model const&) = delete;
 
 	~Model() {
-		for (const auto &pair : loadedTextures)
+		for (const auto &pair : textureMap)
 			glDeleteTextures(1, &pair.second.id);
 	}
 
 	void draw(Shader &shader) {
-		for (unsigned int i = 0; i < meshes.size(); i++)
-			meshes[i].draw(shader);
+		shader.use();
+
+		//Base color, metallic-roughness, normal, occlusion
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, textures[0].id);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, textures[1].id);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, textures[2].id);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, textures[3].id);
+
+		for (const Mesh& mesh : meshes)
+			for (const Primitive& primitive : mesh.primitives)
+				primitive.draw();
 
 		glBindVertexArray(0);
 		glActiveTexture(GL_TEXTURE0);
 	}
 
 private:
-	static fastgltf::Parser parser;
+	inline static fastgltf::Parser parser;
 	std::vector<Mesh> meshes;
-	std::unordered_map<std::string, Primitive::Texture> loadedTextures;
+	std::unordered_map<std::string, Texture> textureMap;
+	std::array<Texture, 4> textures;
 
 	void loadModel(std::filesystem::path path) {
-		
+
 		auto data = fastgltf::GltfDataBuffer::FromPath(path);
 
 		if (data.error() != fastgltf::Error::None) {
@@ -93,14 +125,16 @@ private:
 		fastgltf::Asset& asset = assetResult.get();
 
 		preloadTextures(asset);
-
 		meshes.resize(asset.meshes.size());
+		loadMeshes(asset);
+	}
 
-		for (fastgltf::Mesh &gltfMesh : asset.meshes) {
+	void loadMeshes(const fastgltf::Asset& asset) {
+		for (const fastgltf::Mesh& gltfMesh : asset.meshes) {
 			Mesh mesh;
 			mesh.primitives.reserve(gltfMesh.primitives.size());
 
-			for (fastgltf::Primitive& gltfPrimitive : gltfMesh.primitives) {
+			for (const fastgltf::Primitive& gltfPrimitive : gltfMesh.primitives) {
 				std::vector<Primitive::Vertex> vertices;
 				std::vector<std::uint32_t> indices;
 
@@ -137,39 +171,30 @@ private:
 					[&](glm::vec4 tangent, std::size_t index) {
 						vertices[index].tangent = tangent;
 					});
-					
+
 				fastgltf::iterateAccessorWithIndex<glm::vec2>(asset, texCoordAccessor,
 					[&](glm::vec2 texCoords, std::size_t index) {
 						vertices[index].texCoords = texCoords;
 					});
 
 				std::size_t idx = 0;
-				fastgltf::iterateAccessor<std::uint32_t>(asset, indicesAccessor, 
+				fastgltf::iterateAccessor<std::uint32_t>(asset, indicesAccessor,
 					[&](std::uint32_t index) {
 						indices[idx++] = index;
 					});
 
 				//Textures...
-				mesh.primitives.emplace_back(std::move(vertices), std::move(indices), );
+				mesh.primitives.emplace_back(std::move(vertices), std::move(indices));
 			}
-			
-			
-			
-			
-
 		}
-
-
-		preloadTextures(scene);
-		processNode(scene->mRootNode, scene);
 	}
 
-	//Fill "loadedTextures" map with all scene textures
+	//Fill "textureMap" map with all scene textures
 	void preloadTextures(const fastgltf::Asset &asset) {
 
 		for (const fastgltf::Material& material : asset.materials) {
 
-			auto getTexInfo = [&](const fastgltf::TextureInfo &texInfo, const Primitive::TextureType &texType) {
+			auto getTexInfo = [&](const fastgltf::TextureInfo &texInfo, const TextureType &texType) {
 				const auto& texture = asset.textures[texInfo.textureIndex];
 				const auto& image = asset.images[texture.imageIndex.value()];
 
@@ -181,7 +206,7 @@ private:
 						return;
 					}
 
-					loadedTextures.emplace(imagePath, Primitive::Texture(texType));
+					textureMap.emplace(imagePath, Texture(texType));
 				}
 			};
 
@@ -190,109 +215,20 @@ private:
 				
 			}
 
-			getTexInfo(material.pbrData.baseColorTexture.value(), Primitive::TextureType::TEXTURE_BASE_COLOR);
-			getTexInfo(material.pbrData.metallicRoughnessTexture.value(), Primitive::TextureType::TEXTURE_METALLIC_ROUGHNESS);
-			getTexInfo(material.normalTexture.value(), Primitive::TextureType::TEXTURE_NORMAL);
-			getTexInfo(material.occlusionTexture.value(), Primitive::TextureType::TEXTURE_OCCLUSION);		
+			getTexInfo(material.pbrData.baseColorTexture.value(), TEXTURE_BASE_COLOR);
+			getTexInfo(material.pbrData.metallicRoughnessTexture.value(), TEXTURE_METALLIC_ROUGHNESS);
+			getTexInfo(material.normalTexture.value(), TEXTURE_NORMAL);
+			getTexInfo(material.occlusionTexture.value(), TEXTURE_OCCLUSION);		
 		}
 
-		//Texture ID's
-		generateIDs();
+		generateTextureIDs();
+		assembleTexureInfo();
+
 	}
-
-
-
-	//Turn assimp data into our vertices, indices, and textures	
-	Mesh processMesh(aiMesh *mesh, const aiScene *scene) {
-		std::vector<Vertex> vertices;
-		std::vector<unsigned int> indices;
-		std::vector<Texture> textures;
-
-		vertices.reserve(mesh->mNumVertices);
-		
-		for (unsigned int i = 0; i < mesh->mNumVertices; i++) {		
-			vertices.emplace_back(
-				mesh->mVertices[i].x,
-				mesh->mVertices[i].y,
-				mesh->mVertices[i].z,
-
-				mesh->mNormals[i].x,
-				mesh->mNormals[i].y,
-				mesh->mNormals[i].z,
-
-				mesh->mTextureCoords[0] ? mesh->mTextureCoords[0][i].x : 0,
-				mesh->mTextureCoords[0] ? mesh->mTextureCoords[0][i].y : 0
-			);
-		}
-	
-		//Count and reserve
-		unsigned int totalIndices = 0;
-		for (unsigned int i = 0; i < mesh->mNumFaces; i++)
-			totalIndices += mesh->mFaces[i].mNumIndices;
-		indices.reserve(totalIndices);
-
-		//Build all indices
-		for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
-			aiFace face = mesh->mFaces[i];
-			for (unsigned int j = 0; j < face.mNumIndices; j++)
-				indices.emplace_back(face.mIndices[j]);
-		}
-		
-		//Assign mesh-specific textures from loadedTextures map
-		if (mesh->mMaterialIndex >= 0) {
-			aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
-
-			//Get all the mesh's texture data from the preloaded list
-			std::vector<Texture> diffuseMaps = texturesFromPreloaded(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE);
-			std::vector<Texture> specularMaps = texturesFromPreloaded(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR);
-			
-			textures.reserve(diffuseMaps.size() + specularMaps.size());
-			textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-			textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
-		}
-
-		return Mesh(std::move(vertices), std::move(indices), std::move(textures));
-	}
-
-	//Create filepath : Texture pair, if not already in loadedTextures map
-	void getTextureNames(aiMaterial *mat, aiTextureType type,TextureType typeName) {
-		for (unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
-			aiString str;
-			mat->GetTexture(type, i, &str);
-			std::string filePath = str.C_Str();
-			
-			auto iterator = loadedTextures.find(filePath);
-
-			if (iterator == loadedTextures.end())
-				loadedTextures.emplace(filePath, Texture{ 0, typeName });
-		}
-	}
-	
-	//Looks through preloaded textures and builds a vector of textures for the given material
-	std::vector<Texture> texturesFromPreloaded(aiMaterial *material, aiTextureType type, TextureType typeName) {
-		std::vector<Texture> textures;
-		textures.reserve(material->GetTextureCount(type));
-
-		for (unsigned int i = 0; i < material->GetTextureCount(type); i++) {
-			aiString str;
-			material->GetTexture(type, i, &str);
-			std::string name = str.C_Str();
-
-			auto iterator = loadedTextures.find(name);
-
-			if (iterator != loadedTextures.end())
-				textures.emplace_back(iterator->second.id, iterator->second.type);
-			else
-				std::cout << "ERROR: Texture not pre-loaded!  Texture name: " << name << std::endl;
-		}
-
-		return textures;
-	}
-
 
 	//Retrieves image data from the ImageLoader (multi-threaded) and generates OpenGL Texture ID's
-	void generateIDs() {
-		ImageLoader imageLoader(loadedTextures);
+	void generateTextureIDs() {
+		ImageLoader imageLoader(textureMap);
 		std::unordered_map<std::string, ImageData> loadedImages = imageLoader.getImageData();
 
 		//Generate new ID's
@@ -325,18 +261,39 @@ private:
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);	
 			}
-			else 
+			else {
 				textureID = 0;
+				std::cerr << "STBI Failed to load image from: " << imagePair.first << std::endl;
+			}
 
-			auto loadedTexIter = loadedTextures.find(imagePair.first);
+			auto loadedTexIter = textureMap.find(imagePair.first);
 
-			if (loadedTexIter != loadedTextures.end())
+			if (loadedTexIter != textureMap.end())
 				loadedTexIter->second.id = textureID;
 			else
-				std::cout << "ERROR: Texture filepath not found in loadedTextures" << std::endl;
+				std::cout << "ERROR: Texture filepath not found in textureMap" << std::endl;
 		}
 
 		glActiveTexture(GL_TEXTURE0);
+	}
+
+	void assembleTexureInfo(){
+		for (const auto& pair : textureMap) {
+			if (pair.second.type == TEXTURE_BASE_COLOR)
+				textures[0] = Texture(TEXTURE_BASE_COLOR, pair.second.id);
+
+			else if (pair.second.type == TEXTURE_METALLIC_ROUGHNESS)
+				textures[1] = Texture(TEXTURE_METALLIC_ROUGHNESS, pair.second.id);
+
+			else if (pair.second.type == TEXTURE_NORMAL)
+				textures[2] = Texture(TEXTURE_NORMAL, pair.second.id);
+
+			else if (pair.second.type == TEXTURE_OCCLUSION)
+				textures[3] = Texture(TEXTURE_OCCLUSION, pair.second.id);
+
+			else 
+				std::cerr << "MODEL::MISSING TEXTURE TYPE" << std::endl;
+		}
 	}
 };
 
