@@ -9,7 +9,7 @@ uniform sampler2D aoMap;
 
 const float PI = 3.14159265359;
 
-vec3 lightColor = vec3(100.0, 100.0, 100.0);
+vec3 lightColor = vec3(5.0);
 
 in VS_OUT {
 	vec3 tangentLightPosition;
@@ -60,13 +60,13 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0){
 }
 
 void main() {
-	//vec3 albedo = texture(albedoMap, texCoords).rgb;
-	vec3 albedo = pow(texture(albedoMap, fs_in.texCoords).rgb, vec3(2.2)); //For now.  To do: GL_SRGB when creating albedo and ao map textures
+	vec3 albedo = texture(albedoMap, fs_in.texCoords).rgb;
 	vec3 normal = texture(normalMap, fs_in.texCoords).rgb * 2.0 - 1.0; //From [0, 1] to [-1, 1]
 	vec2 metallicRoughness = texture(metallicRoughnessMap, fs_in.texCoords).rg;
 	float metallic = metallicRoughness.r;
 	float roughness = metallicRoughness.g;
 	float ao = texture(aoMap, fs_in.texCoords).r;
+	ao = mix(0.4, 1.0, ao);
 
 	vec3 N = normalize(normal);
 	vec3 V = normalize(fs_in.tangentCameraPos - fs_in.tangentWorldPos);
@@ -103,13 +103,11 @@ void main() {
 	Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 
 	vec3 ambient = vec3(0.03) * albedo * ao;
+
 	vec3 color = ambient + Lo;
 
 	//Reinhard tone mapping
 	color = color / (color + vec3(1.0));
-
-	//Manual gamma correction since we are not sampling textures yet
-	color = pow(color, vec3(1.0/2.2));
 
 	fragColor = vec4(color, 1.0);
 }

@@ -118,8 +118,11 @@ int main() {
 
     glfwMakeContextCurrent(window);
 
-    //Vsync
+    //Vsync Off
     glfwSwapInterval(0);
+
+    //Vsync On
+    //glfwSwapInterval(1);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
@@ -136,8 +139,9 @@ int main() {
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glEnable(GL_DEPTH_TEST);
-    //glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
+    glEnable(GL_FRAMEBUFFER_SRGB);
 
     //GLFW Settings
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
