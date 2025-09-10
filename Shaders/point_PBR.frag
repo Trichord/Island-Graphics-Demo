@@ -66,7 +66,6 @@ void main() {
 	float metallic = metallicRoughness.r;
 	float roughness = metallicRoughness.g;
 	float ao = texture(aoMap, fs_in.texCoords).r;
-	ao = mix(0.4, 1.0, ao);
 
 	vec3 N = normalize(normal);
 	vec3 V = normalize(fs_in.tangentCameraPos - fs_in.tangentWorldPos);
