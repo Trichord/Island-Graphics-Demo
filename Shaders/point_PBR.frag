@@ -9,7 +9,7 @@ uniform sampler2D aoMap;
 
 const float PI = 3.14159265359;
 
-vec3 lightColor = vec3(5.0);
+vec3 lightColor = vec3(2.5);
 
 in VS_OUT {
 	vec3 tangentLightPosition;
