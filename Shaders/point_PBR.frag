@@ -3,17 +3,16 @@
 out vec4 fragColor;
 
 uniform sampler2D albedoMap;
+uniform sampler2D metallicRoughnessMap;
 uniform sampler2D normalMap;
-uniform sampler2D metallicMap;
-uniform sampler2D roughnessMap;
 uniform sampler2D aoMap;
 
 const float PI = 3.14159265359;
 
-uniform vec3 lightColors[4];
+vec3 lightColor = vec3(2.5);
 
 in VS_OUT {
-	vec3 tangentLightPositions[4];
+	vec3 tangentLightPosition;
 	vec3 tangentCameraPos;
 	vec3 tangentWorldPos;
 	vec2 texCoords;
@@ -61,11 +60,11 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0){
 }
 
 void main() {
-	//vec3 albedo = texture(albedoMap, texCoords).rgb;
-	vec3 albedo = pow(texture(albedoMap, fs_in.texCoords).rgb, vec3(2.2)); //For now.  To do: GL_SRGB when creating albedo and ao map textures
+	vec3 albedo = texture(albedoMap, fs_in.texCoords).rgb;
 	vec3 normal = texture(normalMap, fs_in.texCoords).rgb * 2.0 - 1.0; //From [0, 1] to [-1, 1]
-	float metallic = texture(metallicMap, fs_in.texCoords).r;
-	float roughness = texture(roughnessMap, fs_in.texCoords).r;
+	vec2 metallicRoughness = texture(metallicRoughnessMap, fs_in.texCoords).rg;
+	float metallic = metallicRoughness.r;
+	float roughness = metallicRoughness.g;
 	float ao = texture(aoMap, fs_in.texCoords).r;
 
 	vec3 N = normalize(normal);
@@ -77,41 +76,37 @@ void main() {
 	//reflectance equation
 	vec3 Lo = vec3(0.0);
 
-	for(int i = 0; i < 4; ++i){
-		//per-light radiance
-		float lightDistance = length(fs_in.tangentLightPositions[i] - fs_in.tangentWorldPos);
-		float attenuation = 1.0 / (lightDistance * lightDistance);
-		vec3 radiance = lightColors[i] * attenuation;
+	//per-light radiance
+	float lightDistance = length(fs_in.tangentLightPosition - fs_in.tangentWorldPos);
+	float attenuation = 1.0 / (lightDistance * lightDistance);
+	vec3 radiance = lightColor * attenuation;
 
-		//Cook-Torrance BRDF
-		vec3 L = normalize(fs_in.tangentLightPositions[i] - fs_in.tangentWorldPos);
-		vec3 H = normalize(L + V);
+	//Cook-Torrance BRDF
+	vec3 L = normalize(fs_in.tangentLightPosition - fs_in.tangentWorldPos);
+	vec3 H = normalize(L + V);
 
-		float NDF = distributionGGX(N, H, roughness);
-		float G = geometrySmith(N, V, L, roughness);
-		vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
+	float NDF = distributionGGX(N, H, roughness);
+	float G = geometrySmith(N, V, L, roughness);
+	vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
 
-		vec3 kS = F;
-		vec3 kD = vec3(1.0) - kS;
-		kD *= 1.0 - metallic;
+	vec3 kS = F;
+	vec3 kD = vec3(1.0) - kS;
+	kD *= 1.0 - metallic;
 
-		vec3 numerator = NDF * G * F;
-		float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.000001;
-		vec3 specular = numerator / denominator;
+	vec3 numerator = NDF * G * F;
+	float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.000001;
+	vec3 specular = numerator / denominator;
 
-		//add to outgoing radiance Lo
-		float NdotL = max(dot(N, L), 0.0);
-		Lo += (kD * albedo / PI + specular) * radiance * NdotL;
-	}
+	//add to outgoing radiance Lo
+	float NdotL = max(dot(N, L), 0.0);
+	Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 
 	vec3 ambient = vec3(0.03) * albedo * ao;
+
 	vec3 color = ambient + Lo;
 
 	//Reinhard tone mapping
 	color = color / (color + vec3(1.0));
-
-	//Manual gamma correction since we are not sampling textures yet
-	color = pow(color, vec3(1.0/2.2));
 
 	fragColor = vec4(color, 1.0);
 }
