@@ -274,18 +274,18 @@ private:
 	}
 
 	void assembleTexureInfo(){
-		for (const auto& pair : textureMap) {
-			if (pair.second.type == TEXTURE_BASE_COLOR)
-				textures[0] = Texture(TEXTURE_BASE_COLOR, pair.second.id);
+		for (const auto& [_, texture] : textureMap) {
+			if (texture.type == TEXTURE_BASE_COLOR)
+				textures[0] = Texture(TEXTURE_BASE_COLOR, texture.id);
 
-			else if (pair.second.type == TEXTURE_METALLIC_ROUGHNESS)
-				textures[1] = Texture(TEXTURE_METALLIC_ROUGHNESS, pair.second.id);
+			else if (texture.type == TEXTURE_METALLIC_ROUGHNESS)
+				textures[1] = Texture(TEXTURE_METALLIC_ROUGHNESS, texture.id);
 
-			else if (pair.second.type == TEXTURE_NORMAL)
-				textures[2] = Texture(TEXTURE_NORMAL, pair.second.id);
+			else if (texture.type == TEXTURE_NORMAL)
+				textures[2] = Texture(TEXTURE_NORMAL, texture.id);
 
-			else if (pair.second.type == TEXTURE_OCCLUSION)
-				textures[3] = Texture(TEXTURE_OCCLUSION, pair.second.id);
+			else if (texture.type == TEXTURE_OCCLUSION)
+				textures[3] = Texture(TEXTURE_OCCLUSION, texture.id);
 
 			else 
 				std::cerr << "MODEL::MISSING TEXTURE TYPE" << std::endl;
