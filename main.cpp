@@ -47,6 +47,51 @@ bool pointLightsOn = false;
 
 ThreadPool threadPool;
 
+float cubeVertices[] = {
+    // back face
+    -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+     1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+     1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
+     1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+    -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+    -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
+    // front face
+    -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+     1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
+     1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+     1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+    -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
+    -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+    // left face
+    -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+    -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
+    -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+    -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+    -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+    -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+    // right face
+     1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+     1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+     1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
+     1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+     1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+     1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
+     // bottom face
+     -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+      1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
+      1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+      1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+     -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+     -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+     // top face
+     -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+      1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+      1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
+      1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+     -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+     -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
+};
+
 int main() {
     //Average FPS
     double totalTime = 0;
@@ -57,6 +102,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, 8);
 
     //Windowed
     //GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "OpenGL Demo", NULL, NULL);
@@ -72,8 +118,11 @@ int main() {
 
     glfwMakeContextCurrent(window);
 
-    //Vsync
+    //Vsync Off
     glfwSwapInterval(0);
+
+    //Vsync On
+    //glfwSwapInterval(1);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
@@ -91,6 +140,8 @@ int main() {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_FRAMEBUFFER_SRGB);
 
     //GLFW Settings
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -99,57 +150,26 @@ int main() {
     glfwSetScrollCallback(window, scrollCallback);
     glfwSetKeyCallback(window, keyCallback);
 
+    //stbi_set_flip_vertically_on_load(true);
+
     //Compile shader programs
-    Shader lightingShader = Shader("./Shaders/lighting.vert", "./Shaders/lighting.frag");
+    Shader pbrShader = Shader("./Shaders/point_PBR.vert", "./Shaders/point_PBR.frag");
+    Shader lightSource = Shader("./Shaders/light_source.vert", "./Shaders/light_source.frag");
     Shader skyboxShader = Shader("./Shaders/skybox.vert", "./Shaders/skybox.frag");
-    Shader reflectiveShader = Shader("./Shaders/reflective.vert", "./Shaders/reflective.frag");
-    Shader explodingGeoShader = Shader("./Shaders/geo.vert", "./Shaders/geo.frag", "./Shaders/geo.geom");
-    
-    //Set matrices UBO location
-    lightingShader.setUniformBlock("matrices", 0);
-    skyboxShader.setUniformBlock("matrices", 0);
-    reflectiveShader.setUniformBlock("matrices", 0);
-    explodingGeoShader.setUniformBlock("matrices", 0);
     
     //Load all models and stop thread pool
-    Model backpack("./Models/Backpack/backpack.assbin"); 
+    Model gltfTestModel("./Models/test/scene.gltf"); 
     Skybox skybox;
-    SpaceIcosaheron spaceIcosaheron;
     threadPool.stopAllThreads();
-
-    //Setup lighting shader
-    lightingShader.use();
-    lightingShader.setBool("pointLightOn", false);
-    lightingShader.setFloat("material.shininess", 32.0f);
-
-    lightingShader.setVec3("directionalLight.direction", -0.2f, -1.0f, -0.3f);
-    lightingShader.setVec3("directionalLight.ambient", 0.1f, 0.1f, 0.1f);
-    lightingShader.setVec3("directionalLight.diffuse", 1.0f, 1.0f, 1.0f);
-    lightingShader.setVec3("directionalLight.specular", 1.0f, 1.0f, 1.0f);
-    
-    lightingShader.setVec3("spotLight.ambient", 0.05f, 0.05f, 0.05f);
-    lightingShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
-    lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
-
-    lightingShader.setVec3("spotLight.position", camera.Position);
-    lightingShader.setVec3("spotLight.direction", camera.Front);
-  
-    lightingShader.setFloat("spotLight.constant", 1.0f);
-    lightingShader.setFloat("spotLight.linear", 0.045f);
-    lightingShader.setFloat("spotLight.quadratic", 0.0075f);
-    
-    lightingShader.setFloat("spotLight.cutoff", glm::cos(glm::radians(12.5f)));
-    lightingShader.setFloat("spotLight.outerCutoff", glm::cos(glm::radians(17.5f)));
-    
+ 
     //Setup matrices
     glm::mat4 model = glm::mat4(1.0f);
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 viewNoTrans = glm::mat4(glm::mat3(view));
     glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
-    glm::mat4 spaceIcoModel = glm::mat4(1.0f);
-    spaceIcoModel = glm::translate(spaceIcoModel, glm::vec3(-5.0f, 0.0f, 0.0f));
-    glm::mat3 spaceIcoNormalMat = (glm::mat3)(glm::transpose(glm::inverse(spaceIcoModel)));
+
+    glm::vec3 lightPosition = glm::vec3(-2.0f, 2.0f, 0.0f);
 
     //Matrices Uniform Buffer Object
     unsigned int uboMatrices;
@@ -160,20 +180,38 @@ int main() {
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
     glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection));
 
+    //light source VAO
+    unsigned int lightSourceVBO, lightSourceVAO;
+    glGenVertexArrays(1, &lightSourceVAO);
+    glGenBuffers(1, &lightSourceVBO);
+    glBindVertexArray(lightSourceVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, lightSourceVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glBindVertexArray(0);
+
     //Final shader uniform setup before loop
-    lightingShader.setMat4("modelMatrix", model);
-    lightingShader.setMat3("normalMatrix", normal);
-    lightingShader.setVec3("viewPosition", camera.Position);
+    pbrShader.use();
+    pbrShader.setUniformBlock("matrices", 0);
+    pbrShader.setMat4("modelMatrix", glm::scale(model, glm::vec3(.01f)));
+    pbrShader.setMat3("normalMatrix", normal);
+    pbrShader.setVec3("lightPosition", lightPosition);
+    pbrShader.setVec3("cameraPosition", camera.position);
+    pbrShader.setInt("albedoMap", 0);
+    pbrShader.setInt("metallicRoughnessMap", 1);
+    pbrShader.setInt("normalMap", 2);
+    pbrShader.setInt("aoMap", 3);
+
+    lightSource.use();
+    lightSource.setUniformBlock("matrices", 0);
+    glm::mat4 lightSourceModel = glm::mat4(1.0f);
+    lightSourceModel = glm::translate(lightSourceModel, lightPosition);
+    lightSourceModel = glm::scale(lightSourceModel, glm::vec3(0.02f));
+    lightSource.setMat4("modelMatrix", lightSourceModel);
 
     skyboxShader.use();
     skyboxShader.setInt("skybox", 0);
-
-    reflectiveShader.use();
-    reflectiveShader.setInt("skybox", 0);
-
-    explodingGeoShader.use();
-    explodingGeoShader.setMat4("modelMatrix", glm::translate(glm::mat4(1.0f), glm::vec3(7.0f, 0.0f, 0.0f)));
-    explodingGeoShader.setFloat("time", (float)glfwGetTime());
 
     while (true){
         //Clear background
@@ -193,43 +231,29 @@ int main() {
         if (glfwWindowShouldClose(window))
             break;
 
-        lightingShader.use();
+        lightPosition.x = sin((float)glfwGetTime() * 0.25f);
+        lightPosition.z = cos((float)glfwGetTime() * 0.25f);
+
+        pbrShader.use();
+        pbrShader.setVec3("lightPosition", lightPosition);
 
         if (camera.hasUpdated()) {
-            lightingShader.setVec3("viewPosition", camera.Position);
+            pbrShader.setVec3("cameraPosition", camera.position);
             view = camera.GetViewMatrix();
             viewNoTrans = glm::mat4(glm::mat3(view));
             glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
         }
+ 
+        gltfTestModel.draw(pbrShader);
 
-        if (directionalLightOn) 
-            lightingShader.setBool("directionalLightOn", true);
-        else
-            lightingShader.setBool("directionalLightOn", false);
+        lightSource.use();
+        lightSourceModel = glm::mat4(1.0f);
+        lightSourceModel = glm::translate(lightSourceModel, lightPosition);
+        lightSourceModel = glm::scale(lightSourceModel, glm::vec3(0.02f));
+        lightSource.setMat4("modelMatrix", lightSourceModel);
 
-        if (spotLightOn) {
-            lightingShader.setBool("spotLightOn", true);
-            lightingShader.setVec3("spotLight.position", camera.Position);
-            lightingShader.setVec3("spotLight.direction", camera.Front);
-        }
-        else
-            lightingShader.setBool("spotLightOn", false);
-
-        //Draw
-        backpack.draw(lightingShader);
-
-        explodingGeoShader.use();
-        explodingGeoShader.setFloat("time", (float)glfwGetTime());
-        glDisable(GL_CULL_FACE);
-        backpack.draw(explodingGeoShader);
-        glEnable(GL_CULL_FACE);
-
-        reflectiveShader.use();
-        spaceIcoModel = glm::rotate(spaceIcoModel, (float)glm::radians(deltaTime * 10), glm::vec3(.885, .543, .75));
-        reflectiveShader.setMat4("modelMatrix", spaceIcoModel);
-        reflectiveShader.setMat3("normalMatrix", (glm::mat3)(glm::transpose(glm::inverse(spaceIcoModel))));
-        reflectiveShader.setVec3("cameraPos", camera.Position);
-        spaceIcosaheron.draw();
+        glBindVertexArray(lightSourceVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
         skyboxShader.use();
         skyboxShader.setMat4("viewNoTrans", viewNoTrans);
