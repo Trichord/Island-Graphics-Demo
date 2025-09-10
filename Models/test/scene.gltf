@@ -129,6 +129,9 @@
     },
     {
       "uri": "textures/material_normal.png"
+    },
+    {
+      "uri": "textures/material_occlusion.png"
     }
   ],
   "materials": [
@@ -139,7 +142,8 @@
         "index": 2
       },
       "occlusionTexture": {
-        "index": 1
+        "index": 3,
+	"texCoord": 0
       },
       "pbrMetallicRoughness": {
         "baseColorTexture": {
@@ -258,6 +262,10 @@
     {
       "sampler": 0,
       "source": 2
+    },
+    {
+      "sampler": 0,
+      "source": 3
     }
   ]
 }
