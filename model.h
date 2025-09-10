@@ -219,28 +219,37 @@ private:
 		std::unordered_map<std::string, ImageData> loadedImages = imageLoader.getImageData();
 
 		//Generate new ID's
-		for (auto &imagePair : loadedImages) {
+		for (auto const &[path, imageData] : loadedImages) {
 			GLuint textureID;
-			int nrChannels = imagePair.second.nrChannels;
-			unsigned char *data = imagePair.second.data;
+			int nrChannels = imageData.nrChannels;
+			unsigned char *data = imageData.data;
 	
 			if (data) {
 				GLenum imageFormat;
+				GLenum internalFormat;
 
 				//stb_image only ever returns a 1, 2, 3, or 4 for a valid image
-				if (nrChannels == 1)
+				if (nrChannels == 1) {
 					imageFormat = GL_RED;
-				else if (nrChannels == 2)
+					internalFormat = GL_RED;
+				}
+				else if (nrChannels == 2) {
 					imageFormat = GL_RG;
-				else if (nrChannels == 3)
+					internalFormat = GL_RG;
+				}
+				else if (nrChannels == 3) {
 					imageFormat = GL_RGB;
-				else if (nrChannels == 4)
+					internalFormat = imageData.enableSRGB ? GL_SRGB : GL_RGB;
+				}
+				else if (nrChannels == 4) {
 					imageFormat = GL_RGBA;
+					internalFormat = imageData.enableSRGB ? GL_SRGB_ALPHA : GL_RGBA;
+				}
 
 				glGenTextures(1, &textureID);
 				glBindTexture(GL_TEXTURE_2D, textureID);
 
-				glTexImage2D(GL_TEXTURE_2D, 0, imageFormat, imagePair.second.width, imagePair.second.height, 0, imageFormat, GL_UNSIGNED_BYTE, data);
+				glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, imageData.width, imageData.height, 0, imageFormat, GL_UNSIGNED_BYTE, data);
 				glGenerateMipmap(GL_TEXTURE_2D);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -250,10 +259,10 @@ private:
 			}
 			else {
 				textureID = 0;
-				std::cerr << "STBI Failed to load image from: " << imagePair.first << std::endl;
+				std::cerr << "STBI Failed to load image from: " << path << std::endl;
 			}
 
-			auto loadedTexIter = textureMap.find(imagePair.first);
+			auto loadedTexIter = textureMap.find(path);
 
 			if (loadedTexIter != textureMap.end())
 				loadedTexIter->second.id = textureID;

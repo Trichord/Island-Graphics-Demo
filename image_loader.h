@@ -17,22 +17,23 @@ struct ImageData {
 	int width;
 	int height;
 	int nrChannels;
+	bool enableSRGB;
 
 	ImageData() = default;
-	ImageData(unsigned char *d, int w, int h, int nr) : data(d), width(w), height(h), nrChannels(nr) {};
+	ImageData(unsigned char *d, int w, int h, int nr, bool sRGB) : data(d), width(w), height(h), nrChannels(nr), enableSRGB(sRGB) {};
 };
-
-
 
 class ImageLoader {
 public:
 	//Queue up all filepaths in the thread pool
 	ImageLoader(const std::unordered_map<std::string, Texture> &inputMap) : numImages(inputMap.size()), imagesLoaded(0)  {
 		
-		for (auto const & [path, _] : inputMap)
-			threadPool.enqueue([this, path]() {
-				loadFromFile(path);
-			});
+		for (auto const& [path, texture] : inputMap) {
+			TextureType texType = texture.type;
+			threadPool.enqueue([this, path, texType]() {
+				loadFromFile(path, texType);
+				});
+		}
 
 		//Wait for all images to be loaded before leaving constructor
 		{
@@ -41,12 +42,12 @@ public:
 				return imagesLoaded == numImages; });
 		}
 	}
-
+	
 	ImageLoader(const std::vector<std::string>& filepaths) : numImages(filepaths.size()), imagesLoaded(0) {
 		
 		for (auto const& path : filepaths)
 			threadPool.enqueue([this, path]() {
-			loadFromFile(path);
+			loadFromFile(path, TEXTURE_NONE);
 				});
 		{
 			std::unique_lock<std::mutex> lock(imagesMutex);
@@ -54,7 +55,7 @@ public:
 				return imagesLoaded == numImages; });
 		}
 	}
-
+	
 	~ImageLoader() {
 		freeImages();
 	}
@@ -78,14 +79,14 @@ private:
 	std::mutex imagesMutex;
 	std::condition_variable condition;
 
-	void loadFromFile(const std::string &path) {
+	void loadFromFile(const std::string &path, TextureType texType) {
 		int width, height, nrChannels;
 		unsigned char *image = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
 		
 		//Lock and insert.  If stbi_load fails, we get a nullptr which is handled by model.h
 		{
 			std::unique_lock<std::mutex> lock(imagesMutex);
-			loadedImages.emplace(path, ImageData{ image, width, height, nrChannels });
+			loadedImages.emplace(path, ImageData{ image, width, height, nrChannels, texType == TEXTURE_BASE_COLOR ? true : false });
 		}
 			imagesLoaded++;
 			if (imagesLoaded == numImages)
