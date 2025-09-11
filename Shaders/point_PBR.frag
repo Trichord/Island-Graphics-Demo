@@ -30,21 +30,15 @@ float distributionGGX(vec3 N, vec3 H, float roughness){
 	return a2 / denom;
 }
 
-//Schlick-GGX for geometric shadowing
-float geometrySchlickGGX(float NdotV, float roughness){
-	float r = roughness + 1.0;
-	float k = r * r * 0.125;
-	float denom = NdotV * (1.0 - k) + k;
-
-	return NdotV / denom;
-}
-
-//Smith's method
+//Smith's method with Schlick-GGX for geometric shadowing
 float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness){
 	float NdotV = max(dot(N, V), 0.0);
 	float NdotL = max(dot(N, L), 0.0);
-	float ggx1 = geometrySchlickGGX(NdotL, roughness);
-	float ggx2 = geometrySchlickGGX(NdotV, roughness);
+	float r = roughness + 1.0;
+	float k = r * r * 0.125;
+	
+	float ggx1 = NdotL / (NdotL * (1.0 - k) + k);
+	float ggx2 = NdotV / (NdotV * (1.0 - k) + k);
 
 	return ggx1 * ggx2;
 }
@@ -70,6 +64,16 @@ void main() {
 	vec3 N = normalize(normal);
 	vec3 V = normalize(fs_in.tangentCameraPos - fs_in.tangentWorldPos);
 
+	float NdotV = dot(N, V);
+
+	//Early exit if light doesn't hit surface
+	if (NdotV <= 0.0){
+		vec3 color = vec3(0.03) * albedo * ao;
+		color = color / (color + vec3(1.0));
+		fragColor = vec4(color, 1.0);
+		return;
+	}
+
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo, metallic);
 
@@ -94,7 +98,7 @@ void main() {
 	kD *= 1.0 - metallic;
 
 	vec3 numerator = NDF * G * F;
-	float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.000001;
+	float denominator = 4.0 * max(NdotV, 0.0) * max(dot(N, L), 0.0) + 0.000001;
 	vec3 specular = numerator / denominator;
 
 	//add to outgoing radiance Lo
