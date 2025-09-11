@@ -66,7 +66,6 @@ public:
 	void draw(Shader &shader) {
 		shader.use();
 
-		//Base color, metallic-roughness, normal, occlusion
 		for(unsigned int i = 0; i < 4; ++i){
 			glActiveTexture(GL_TEXTURE0 + i);
 			glBindTexture(GL_TEXTURE_2D, textureIDs[i]);
@@ -84,6 +83,9 @@ private:
 	inline static fastgltf::Parser parser;
 	std::vector<Mesh> meshes;
 	std::unordered_map<std::string, TextureType> texturePaths;
+	
+	/*	Array contains, in this order: 
+		Base color, metallic-roughness, normal, occlusion */
 	std::array<GLuint, 4> textureIDs;
 
 	void loadModel(std::filesystem::path path) {
@@ -192,10 +194,8 @@ private:
 				}
 			};
 
-			if (material.pbrData.baseColorTexture.has_value()) {
+			if (material.pbrData.baseColorTexture.has_value())
 				const auto& texInfo = material.pbrData.baseColorTexture.value();
-				
-			}
 
 			getTexInfo(material.pbrData.baseColorTexture.value(), TEXTURE_BASE_COLOR);
 			getTexInfo(material.pbrData.metallicRoughnessTexture.value(), TEXTURE_METALLIC_ROUGHNESS);
@@ -271,9 +271,6 @@ private:
 
 		else if (type == TEXTURE_OCCLUSION)
 			textureIDs[3] = id;
-		
-		else 
-				std::cerr << "MODEL::MISSING TEXTURE TYPE" << std::endl;
 	}
 };
 
