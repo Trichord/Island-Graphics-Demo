@@ -64,16 +64,6 @@ void main() {
 	vec3 N = normalize(normal);
 	vec3 V = normalize(fs_in.tangentCameraPos - fs_in.tangentWorldPos);
 
-	float NdotV = dot(N, V);
-
-	//Early exit if light doesn't hit surface
-	if (NdotV <= 0.0){
-		vec3 color = vec3(0.03) * albedo * ao;
-		color = color / (color + vec3(1.0));
-		fragColor = vec4(color, 1.0);
-		return;
-	}
-
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo, metallic);
 
@@ -98,7 +88,7 @@ void main() {
 	kD *= 1.0 - metallic;
 
 	vec3 numerator = NDF * G * F;
-	float denominator = 4.0 * max(NdotV, 0.0) * max(dot(N, L), 0.0) + 0.000001;
+	float denominator = 4.0 * max(dot(N,V), 0.0) * max(dot(N, L), 0.0) + 0.000001;
 	vec3 specular = numerator / denominator;
 
 	//add to outgoing radiance Lo
