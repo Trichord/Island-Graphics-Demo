@@ -22,9 +22,9 @@ uniform vec3 lightPosition;
 
 void main () {
 	mat4 viewModel = viewMatrix * modelMatrix;
-
+	vec3 normalTangent = normalMatrix * aTangent.xyz;
 	//TBN matrix for normal map
-	vec3 T = normalize(vec3(viewModel * vec4(aTangent.xyz, 0.0)));
+	vec3 T = normalize(vec3(viewModel * vec4(normalTangent, 0.0)));
 	vec3 N = normalize(mat3(viewMatrix) * normalMatrix * aNormal);
 	T = normalize(T - dot(T, N) * N); 
 	vec3 B = normalize(cross(N, T) * aTangent.w);
