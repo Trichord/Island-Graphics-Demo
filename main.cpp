@@ -197,7 +197,6 @@ int main() {
     pbrShader.setMat4("modelMatrix", glm::scale(model, glm::vec3(.01f)));
     pbrShader.setMat3("normalMatrix", normal);
     pbrShader.setVec3("lightPosition", lightPosition);
-    pbrShader.setVec3("cameraPosition", camera.position);
     pbrShader.setInt("albedoMap", 0);
     pbrShader.setInt("metallicRoughnessMap", 1);
     pbrShader.setInt("normalMap", 2);
@@ -238,7 +237,6 @@ int main() {
         pbrShader.setVec3("lightPosition", lightPosition);
 
         if (camera.hasUpdated()) {
-            pbrShader.setVec3("cameraPosition", camera.position);
             view = camera.GetViewMatrix();
             viewNoTrans = glm::mat4(glm::mat3(view));
             glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
