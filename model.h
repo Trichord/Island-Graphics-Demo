@@ -22,35 +22,34 @@
 //Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees.  Texture IDs are released on Model destruction
 class Model {
 public:
-	struct Material {
-		std::uint32_t index;
-		std::vector<Texture> textures;
-	};
-
 	struct Mesh {
 		std::vector<Primitive> primitives;
 	};
 
 	Model(std::string path) {
+		textureIDs.fill(0);
 		loadModel(path);
 	}
 
 	Model(Model &&other) noexcept :
 		meshes(std::move(other.meshes)),
-		textureMap(std::move(other.textureMap)) {
-		other.textureMap.clear();
+		texturePaths(std::move(other.texturePaths)),
+		textureIDs(std::move(other.textureIDs))	{
+		other.texturePaths.clear();
+		other.textureIDs.fill(0);
 	}
 
 	Model &operator=(Model &&other) noexcept {
 		if (this != &other) {
 
-			for (const auto &pair : textureMap)
-				glDeleteTextures(1, &pair.second.id);
+			for (const GLuint &textureID : textureIDs)
+				glDeleteTextures(1, &textureID);
 
 			meshes = std::move(other.meshes);
-			textureMap = std::move(other.textureMap);
-
-			other.textureMap.clear();
+			texturePaths = std::move(other.texturePaths);
+			textureIDs = std::move(other.textureIDs);
+			other.texturePaths.clear();
+			other.textureIDs.fill(0);
 		}
 
 		return *this;
@@ -60,22 +59,17 @@ public:
 	Model& operator=(Model const&) = delete;
 
 	~Model() {
-		for (const auto &pair : textureMap)
-			glDeleteTextures(1, &pair.second.id);
+		for (const GLuint& textureID : textureIDs)
+			glDeleteTextures(1, &textureID);
 	}
 
 	void draw(Shader &shader) {
 		shader.use();
 
-		//Base color, metallic-roughness, normal, occlusion
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textures[0].id);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, textures[1].id);
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, textures[2].id);
-		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, textures[3].id);
+		for(unsigned int i = 0; i < 4; ++i){
+			glActiveTexture(GL_TEXTURE0 + i);
+			glBindTexture(GL_TEXTURE_2D, textureIDs[i]);
+		}
 
 		for (const Mesh& mesh : meshes)
 			for (const Primitive& primitive : mesh.primitives)
@@ -88,8 +82,11 @@ public:
 private:
 	inline static fastgltf::Parser parser;
 	std::vector<Mesh> meshes;
-	std::unordered_map<std::string, Texture> textureMap;
-	std::array<Texture, 4> textures;
+	std::unordered_map<std::string, TextureType> texturePaths;
+	
+	/*	Array contains, in this order: 
+		Base color, metallic-roughness, normal, occlusion */
+	std::array<GLuint, 4> textureIDs;
 
 	void loadModel(std::filesystem::path path) {
 		auto data = fastgltf::GltfDataBuffer::FromPath(path);
@@ -193,29 +190,24 @@ private:
 						return;
 					}
 
-					textureMap.emplace(imagePath, Texture(texType));
+					texturePaths.emplace(imagePath, texType);
 				}
 			};
 
-			if (material.pbrData.baseColorTexture.has_value()) {
+			if (material.pbrData.baseColorTexture.has_value())
 				const auto& texInfo = material.pbrData.baseColorTexture.value();
-				
-			}
 
 			getTexInfo(material.pbrData.baseColorTexture.value(), TEXTURE_BASE_COLOR);
 			getTexInfo(material.pbrData.metallicRoughnessTexture.value(), TEXTURE_METALLIC_ROUGHNESS);
 			getTexInfo(material.normalTexture.value(), TEXTURE_NORMAL);
 			getTexInfo(material.occlusionTexture.value(), TEXTURE_OCCLUSION);		
 		}
-
 		generateTextureIDs();
-		assembleTexureInfo();
-
 	}
 
 	//Retrieves image data from the ImageLoader (multi-threaded) and generates OpenGL Texture ID's
 	void generateTextureIDs() {
-		ImageLoader imageLoader(textureMap);
+		ImageLoader imageLoader(texturePaths);
 		std::unordered_map<std::string, ImageData> loadedImages = imageLoader.getImageData();
 
 		//Generate new ID's
@@ -239,11 +231,11 @@ private:
 				}
 				else if (nrChannels == 3) {
 					imageFormat = GL_RGB;
-					internalFormat = imageData.enableSRGB ? GL_SRGB : GL_RGB;
+					internalFormat = imageData.textureType == TEXTURE_BASE_COLOR ? GL_SRGB : GL_RGB;
 				}
 				else if (nrChannels == 4) {
 					imageFormat = GL_RGBA;
-					internalFormat = imageData.enableSRGB ? GL_SRGB_ALPHA : GL_RGBA;
+					internalFormat = imageData.textureType == TEXTURE_BASE_COLOR ? GL_SRGB_ALPHA : GL_RGBA;
 				}
 
 				glGenTextures(1, &textureID);
@@ -261,35 +253,24 @@ private:
 				textureID = 0;
 				std::cerr << "STBI Failed to load image from: " << path << std::endl;
 			}
-
-			auto loadedTexIter = textureMap.find(path);
-
-			if (loadedTexIter != textureMap.end())
-				loadedTexIter->second.id = textureID;
-			else
-				std::cout << "ERROR: Texture filepath not found in textureMap" << std::endl;
+			assembleTexureInfo(imageData.textureType, textureID);
 		}
 
 		glActiveTexture(GL_TEXTURE0);
 	}
 
-	void assembleTexureInfo(){
-		for (const auto& [_, texture] : textureMap) {
-			if (texture.type == TEXTURE_BASE_COLOR)
-				textures[0] = Texture(TEXTURE_BASE_COLOR, texture.id);
+	void assembleTexureInfo(TextureType type, GLuint id){
+		if (type == TEXTURE_BASE_COLOR)
+			textureIDs[0] = id;
 
-			else if (texture.type == TEXTURE_METALLIC_ROUGHNESS)
-				textures[1] = Texture(TEXTURE_METALLIC_ROUGHNESS, texture.id);
+		else if (type == TEXTURE_METALLIC_ROUGHNESS)
+			textureIDs[1] = id;
 
-			else if (texture.type == TEXTURE_NORMAL)
-				textures[2] = Texture(TEXTURE_NORMAL, texture.id);
+		else if (type == TEXTURE_NORMAL)
+			textureIDs[2] = id;
 
-			else if (texture.type == TEXTURE_OCCLUSION)
-				textures[3] = Texture(TEXTURE_OCCLUSION, texture.id);
-
-			else 
-				std::cerr << "MODEL::MISSING TEXTURE TYPE" << std::endl;
-		}
+		else if (type == TEXTURE_OCCLUSION)
+			textureIDs[3] = id;
 	}
 };
 

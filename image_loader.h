@@ -17,21 +17,20 @@ struct ImageData {
 	int width;
 	int height;
 	int nrChannels;
-	bool enableSRGB;
+	TextureType textureType;
 
 	ImageData() = default;
-	ImageData(unsigned char *d, int w, int h, int nr, bool sRGB) : data(d), width(w), height(h), nrChannels(nr), enableSRGB(sRGB) {};
+	ImageData(unsigned char *d, int w, int h, int nr, TextureType tex) : data(d), width(w), height(h), nrChannels(nr), textureType(tex) {};
 };
 
 class ImageLoader {
 public:
 	//Queue up all filepaths in the thread pool
-	ImageLoader(const std::unordered_map<std::string, Texture> &inputMap) : numImages(inputMap.size()), imagesLoaded(0)  {
+	ImageLoader(const std::unordered_map<std::string, TextureType> &inputMap) : numImages(inputMap.size()), imagesLoaded(0)  {
 		
-		for (auto const& [path, texture] : inputMap) {
-			TextureType texType = texture.type;
-			threadPool.enqueue([this, path, texType]() {
-				loadFromFile(path, texType);
+		for (auto const& [path, type] : inputMap) {
+			threadPool.enqueue([this, path, type]() {
+				loadFromFile(path, type);
 				});
 		}
 
@@ -86,7 +85,7 @@ private:
 		//Lock and insert.  If stbi_load fails, we get a nullptr which is handled by model.h
 		{
 			std::unique_lock<std::mutex> lock(imagesMutex);
-			loadedImages.emplace(path, ImageData{ image, width, height, nrChannels, texType == TEXTURE_BASE_COLOR ? true : false });
+			loadedImages.emplace(path, ImageData{ image, width, height, nrChannels, texType});
 		}
 			imagesLoaded++;
 			if (imagesLoaded == numImages)

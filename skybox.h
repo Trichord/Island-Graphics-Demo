@@ -6,12 +6,12 @@ class Skybox : public CubeMappedModel {
 public:
 	Skybox() {
 		texturePaths = {
-			"./Textures/skybox/right.jpg",
-			"./Textures/skybox/left.jpg",
-			"./Textures/skybox/top.jpg",
-			"./Textures/skybox/bottom.jpg",
-			"./Textures/skybox/front.jpg",
-			"./Textures/skybox/back.jpg"
+			"./Textures/skybox/right.png",
+			"./Textures/skybox/left.png",
+			"./Textures/skybox/top.png",
+			"./Textures/skybox/bottom.png",
+			"./Textures/skybox/front.png",
+			"./Textures/skybox/back.png"
 		};
 
 		loadTextures();

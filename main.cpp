@@ -178,7 +178,7 @@ int main() {
     glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, uboMatrices);
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
-    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection));
+    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection * view));
 
     //light source VAO
     unsigned int lightSourceVBO, lightSourceVAO;
@@ -197,7 +197,6 @@ int main() {
     pbrShader.setMat4("modelMatrix", glm::scale(model, glm::vec3(.01f)));
     pbrShader.setMat3("normalMatrix", normal);
     pbrShader.setVec3("lightPosition", lightPosition);
-    pbrShader.setVec3("cameraPosition", camera.position);
     pbrShader.setInt("albedoMap", 0);
     pbrShader.setInt("metallicRoughnessMap", 1);
     pbrShader.setInt("normalMap", 2);
@@ -238,10 +237,10 @@ int main() {
         pbrShader.setVec3("lightPosition", lightPosition);
 
         if (camera.hasUpdated()) {
-            pbrShader.setVec3("cameraPosition", camera.position);
             view = camera.GetViewMatrix();
             viewNoTrans = glm::mat4(glm::mat3(view));
             glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
+            glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection * view));
         }
  
         gltfTestModel.draw(pbrShader);
@@ -256,7 +255,7 @@ int main() {
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         skyboxShader.use();
-        skyboxShader.setMat4("viewNoTrans", viewNoTrans);
+        skyboxShader.setMat4("projectionViewNoTranslation", projection * viewNoTrans);
         skybox.draw();
 
         glfwSwapBuffers(window);
