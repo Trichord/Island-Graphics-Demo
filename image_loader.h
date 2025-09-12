@@ -6,6 +6,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
+#include <filesystem>
 #include "stb_image.h"
 #include "thread_pool.h"
 #include "texture.h"
@@ -26,7 +27,7 @@ struct ImageData {
 class ImageLoader {
 public:
 	//Queue up all filepaths in the thread pool
-	ImageLoader(const std::unordered_map<std::string, TextureType> &inputMap) : numImages(inputMap.size()), imagesLoaded(0)  {
+	ImageLoader(const std::unordered_map<std::filesystem::path, TextureType> &inputMap) : numImages(inputMap.size()), numImagesLoaded(0)  {
 		
 		for (auto const& [path, type] : inputMap) {
 			threadPool.enqueue([this, path, type]() {
@@ -38,11 +39,11 @@ public:
 		{
 			std::unique_lock<std::mutex> lock(imagesMutex);
 			condition.wait(lock, [this] {
-				return imagesLoaded == numImages; });
+				return numImagesLoaded == numImages; });
 		}
 	}
 	
-	ImageLoader(const std::vector<std::string>& filepaths) : numImages(filepaths.size()), imagesLoaded(0) {
+	ImageLoader(const std::vector<std::filesystem::path>& filepaths) : numImages(filepaths.size()), numImagesLoaded(0) {
 		
 		for (auto const& path : filepaths)
 			threadPool.enqueue([this, path]() {
@@ -51,7 +52,7 @@ public:
 		{
 			std::unique_lock<std::mutex> lock(imagesMutex);
 			condition.wait(lock, [this] {
-				return imagesLoaded == numImages; });
+				return numImagesLoaded == numImages; });
 		}
 	}
 	
@@ -59,36 +60,36 @@ public:
 		freeImages();
 	}
 
-	const std::unordered_map<std::string, ImageData> &getImageData() const {
+	const std::unordered_map<std::filesystem::path, ImageData>&getImageData() const {
 		return loadedImages;
 	}
 
 	void freeImages() {
-		for (auto &pair : loadedImages)
-			if (pair.second.data != nullptr) {
-				stbi_image_free(pair.second.data);
-				pair.second.data = nullptr;
+		for (auto& [path, image] : loadedImages)
+			if (image.data != nullptr) {
+				stbi_image_free(image.data);
+				image.data = nullptr;
 			}
 	}
 
 private:
 	size_t numImages;
-	std::atomic<unsigned int> imagesLoaded;
-	std::unordered_map<std::string, ImageData> loadedImages;
+	std::atomic<unsigned int> numImagesLoaded;
+	std::unordered_map<std::filesystem::path, ImageData> loadedImages;
 	std::mutex imagesMutex;
 	std::condition_variable condition;
 
-	void loadFromFile(const std::string &path, TextureType texType) {
+	void loadFromFile(const std::filesystem::path &path, TextureType texType) {
 		int width, height, nrChannels;
-		unsigned char *image = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
+		unsigned char *image = stbi_load(path.string().c_str(), &width, &height, &nrChannels, 0);
 		
 		//Lock and insert.  If stbi_load fails, we get a nullptr which is handled by model.h
 		{
 			std::unique_lock<std::mutex> lock(imagesMutex);
 			loadedImages.emplace(path, ImageData{ image, width, height, nrChannels, texType});
 		}
-			imagesLoaded++;
-			if (imagesLoaded == numImages)
+		numImagesLoaded++;
+			if (numImagesLoaded == numImages)
 				condition.notify_one();
 	}
 };
