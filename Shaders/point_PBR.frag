@@ -3,6 +3,7 @@
 out vec4 fragColor;
 
 uniform sampler2D albedoMap;
+//uniform sampler2D metallicRoughnessAOMap;
 uniform sampler2D metallicRoughnessMap;
 uniform sampler2D normalMap;
 uniform sampler2D aoMap;
@@ -11,18 +12,17 @@ const float PI = 3.14159265359;
 
 vec3 lightColor = vec3(2.5);
 
+//Positions in tangent view space
 in VS_OUT {
-	vec3 tangentLightPosition;
-	vec3 tangentCameraPos;
-	vec3 tangentWorldPos;
+	vec3 lightPos;
+	vec3 fragPos;
 	vec2 texCoords;
 } fs_in;
 
 //Trowbridge-Reitz GGX for normal distribution function
-float distributionGGX(vec3 N, vec3 H, float roughness){
+float distributionGGX(float NdotH, float roughness){
 	float a = roughness * roughness;
 	float a2 = a * a;
-	float NdotH = max(dot(N, H), 0.0);
 	float NdotH2 = NdotH * NdotH;
 	float denom = NdotH2 * (a2 - 1.0) + 1.0;
 	denom = PI * denom * denom;
@@ -30,23 +30,17 @@ float distributionGGX(vec3 N, vec3 H, float roughness){
 	return a2 / denom;
 }
 
-//Schlick-GGX for geometric shadowing
-float geometrySchlickGGX(float NdotV, float roughness){
+//Smith's method with Schlick-GGX for geometric shadowing
+float geometrySmith(float NdotV, float NdotL, float roughness){
 	float r = roughness + 1.0;
 	float k = r * r * 0.125;
-	float denom = NdotV * (1.0 - k) + k;
+	float invK = 1.0 - k;
 
-	return NdotV / denom;
-}
+	//ggx1 * ggx2
+	float numerator = NdotL * NdotV;
+	float denom = (NdotL * invK + k) * (NdotV * invK + k);
 
-//Smith's method
-float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness){
-	float NdotV = max(dot(N, V), 0.0);
-	float NdotL = max(dot(N, L), 0.0);
-	float ggx1 = geometrySchlickGGX(NdotL, roughness);
-	float ggx2 = geometrySchlickGGX(NdotV, roughness);
-
-	return ggx1 * ggx2;
+	return numerator / denom;
 }
 
 //Fresnel-Schlick approximation (unrolled x^5)
@@ -66,9 +60,24 @@ void main() {
 	float metallic = metallicRoughness.r;
 	float roughness = metallicRoughness.g;
 	float ao = texture(aoMap, fs_in.texCoords).r;
+	
+	/* For packed textures
+	vec3 metallicRoughnessAO = texture(metallicRoughnessAOMap, fs_in.texCoords).rgb;
+	float metallic = metallicRoughnessAO.r;
+	float roughness = metallicRoughnessAO.g;
+	float ao = metallicRoughnessAO.b;
+	*/
 
 	vec3 N = normalize(normal);
-	vec3 V = normalize(fs_in.tangentCameraPos - fs_in.tangentWorldPos);
+	vec3 V = normalize(-fs_in.fragPos);
+
+	//dot products
+	vec3 L = normalize(fs_in.lightPos - fs_in.fragPos);
+	vec3 H = normalize(L + V);
+	float NdotV = max(dot(N, V), 0.0);
+	float NdotL = max(dot(N, L), 0.0);
+	float NdotH = max(dot(N, H), 0.0);
+	float rawHdotV = dot(H, V);
 
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo, metallic);
@@ -76,33 +85,29 @@ void main() {
 	//reflectance equation
 	vec3 Lo = vec3(0.0);
 
-	//per-light radiance
-	float lightDistance = length(fs_in.tangentLightPosition - fs_in.tangentWorldPos);
+	//radiance
+	float lightDistance = length(fs_in.lightPos - fs_in.fragPos);
 	float attenuation = 1.0 / (lightDistance * lightDistance);
 	vec3 radiance = lightColor * attenuation;
 
 	//Cook-Torrance BRDF
-	vec3 L = normalize(fs_in.tangentLightPosition - fs_in.tangentWorldPos);
-	vec3 H = normalize(L + V);
+	float NDF = distributionGGX(NdotH, roughness);
+	float G = geometrySmith(NdotV, NdotL, roughness);
+	vec3 F = fresnelSchlick(rawHdotV, F0);
 
-	float NDF = distributionGGX(N, H, roughness);
-	float G = geometrySmith(N, V, L, roughness);
-	vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
-
+	//specular and diffuse terms
 	vec3 kS = F;
 	vec3 kD = vec3(1.0) - kS;
 	kD *= 1.0 - metallic;
 
 	vec3 numerator = NDF * G * F;
-	float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.000001;
-	vec3 specular = numerator / denominator;
+	float denom = 4.0 * max(dot(N,V), 0.0) * max(dot(N, L), 0.0) + 0.000001;
+	vec3 specular = numerator / denom;
 
 	//add to outgoing radiance Lo
-	float NdotL = max(dot(N, L), 0.0);
 	Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 
 	vec3 ambient = vec3(0.03) * albedo * ao;
-
 	vec3 color = ambient + Lo;
 
 	//Reinhard tone mapping
