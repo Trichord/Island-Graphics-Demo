@@ -37,10 +37,11 @@ float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness){
 	float r = roughness + 1.0;
 	float k = r * r * 0.125;
 	
-	float ggx1 = NdotL / (NdotL * (1.0 - k) + k);
-	float ggx2 = NdotV / (NdotV * (1.0 - k) + k);
+	//ggx1 * ggx2
+	float numerator = NdotL * NdotV;
+	float denom = (NdotL * (1.0 - k) + k) * (NdotV * (1.0 - k) + k);
 
-	return ggx1 * ggx2;
+	return numerator / denom;
 }
 
 //Fresnel-Schlick approximation (unrolled x^5)
@@ -88,8 +89,8 @@ void main() {
 	kD *= 1.0 - metallic;
 
 	vec3 numerator = NDF * G * F;
-	float denominator = 4.0 * max(dot(N,V), 0.0) * max(dot(N, L), 0.0) + 0.000001;
-	vec3 specular = numerator / denominator;
+	float denom = 4.0 * max(dot(N,V), 0.0) * max(dot(N, L), 0.0) + 0.000001;
+	vec3 specular = numerator / denom;
 
 	//add to outgoing radiance Lo
 	float NdotL = max(dot(N, L), 0.0);
