@@ -55,7 +55,7 @@ protected:
 		6, 7, 3
 	};
 
-	void setupBuffers() override {
+	void setupBuffers() {
 		glGenVertexArrays(1, &modelVAO);
 		glBindVertexArray(modelVAO);
 		glGenBuffers(1, &modelVBO);
