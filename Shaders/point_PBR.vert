@@ -25,7 +25,7 @@ void main () {
 	vec3 normalTangent = normalMatrix * aTangent.xyz;
 
 	//TBN matrix for normal map
-	vec3 T = normalize(vec3(viewModel * vec4(normalTangent, 0.0)));
+	vec3 T = normalize(mat3(viewModel) * normalTangent);
 	vec3 N = normalize(mat3(viewMatrix) * normalMatrix * aNormal);
 	T = normalize(T - dot(T, N) * N); 
 	vec3 B = normalize(cross(N, T) * aTangent.w);

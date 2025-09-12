@@ -36,10 +36,11 @@ float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness){
 	float NdotL = max(dot(N, L), 0.0);
 	float r = roughness + 1.0;
 	float k = r * r * 0.125;
-	
+	float invK = 1.0 - k;
+
 	//ggx1 * ggx2
 	float numerator = NdotL * NdotV;
-	float denom = (NdotL * (1.0 - k) + k) * (NdotV * (1.0 - k) + k);
+	float denom = (NdotL * invK + k) * (NdotV * invK + k);
 
 	return numerator / denom;
 }
