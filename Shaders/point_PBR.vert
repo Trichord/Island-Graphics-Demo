@@ -21,16 +21,18 @@ uniform mat3 normalMatrix;
 uniform vec3 lightPosition;
 
 void main () {
+	mat4 viewModel = viewMatrix * modelMatrix;
+
 	//TBN matrix for normal map
-	vec3 T = normalize(vec3(viewMatrix * modelMatrix * vec4(aTangent.xyz, 0.0)));
+	vec3 T = normalize(vec3(viewModel * vec4(aTangent.xyz, 0.0)));
 	vec3 N = normalize(mat3(viewMatrix) * normalMatrix * aNormal);
 	T = normalize(T - dot(T, N) * N); 
 	vec3 B = normalize(cross(N, T) * aTangent.w);
 	mat3 TBN = transpose(mat3(T, B, N));
 
 	vs_out.texCoords = aTexCoords;
-	vs_out.fragPos = TBN * (viewMatrix * modelMatrix * vec4(aPos, 1.0)).xyz;
+	vs_out.fragPos = TBN * (viewModel * vec4(aPos, 1.0)).xyz;
 	vs_out.lightPos = TBN * (viewMatrix * vec4(lightPosition, 1.0)).xyz;
 	
-	gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(aPos, 1.0);
+	gl_Position = projectionMatrix * viewModel * vec4(aPos, 1.0);
 }
