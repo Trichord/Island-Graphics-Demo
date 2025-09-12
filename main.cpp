@@ -178,7 +178,7 @@ int main() {
     glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, uboMatrices);
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
-    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection));
+    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection * view));
 
     //light source VAO
     unsigned int lightSourceVBO, lightSourceVAO;
@@ -240,6 +240,7 @@ int main() {
             view = camera.GetViewMatrix();
             viewNoTrans = glm::mat4(glm::mat3(view));
             glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
+            glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection * view));
         }
  
         gltfTestModel.draw(pbrShader);
@@ -254,7 +255,7 @@ int main() {
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         skyboxShader.use();
-        skyboxShader.setMat4("viewNoTrans", viewNoTrans);
+        skyboxShader.setMat4("projectionViewNoTranslation", projection * viewNoTrans);
         skybox.draw();
 
         glfwSwapBuffers(window);
