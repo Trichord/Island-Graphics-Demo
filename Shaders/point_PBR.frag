@@ -3,9 +3,8 @@
 out vec4 fragColor;
 
 uniform sampler2D albedoMap;
-uniform sampler2D metallicRoughnessMap;
+uniform sampler2D metallicRoughnessAOMap;
 uniform sampler2D normalMap;
-uniform sampler2D aoMap;
 
 const float PI = 3.14159265359;
 
@@ -58,10 +57,10 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0){
 void main() {
 	vec3 albedo = texture(albedoMap, fs_in.texCoords).rgb;
 	vec3 normal = texture(normalMap, fs_in.texCoords).rgb * 2.0 - 1.0; //From [0, 1] to [-1, 1]
-	vec2 metallicRoughness = texture(metallicRoughnessMap, fs_in.texCoords).rg;
-	float metallic = metallicRoughness.r;
-	float roughness = metallicRoughness.g;
-	float ao = texture(aoMap, fs_in.texCoords).r;
+	vec3 metallicRoughnessAO = texture(metallicRoughnessAOMap, fs_in.texCoords).rgb;
+	float metallic = metallicRoughnessAO.r;
+	float roughness = metallicRoughnessAO.g;
+	float ao = metallicRoughnessAO.b;
 
 	vec3 N = normalize(normal);
 	vec3 V = normalize(-fs_in.fragPos);
