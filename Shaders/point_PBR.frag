@@ -20,10 +20,9 @@ in VS_OUT {
 } fs_in;
 
 //Trowbridge-Reitz GGX for normal distribution function
-float distributionGGX(vec3 N, vec3 H, float roughness){
+float distributionGGX(float NdotH, float roughness){
 	float a = roughness * roughness;
 	float a2 = a * a;
-	float NdotH = max(dot(N, H), 0.0);
 	float NdotH2 = NdotH * NdotH;
 	float denom = NdotH2 * (a2 - 1.0) + 1.0;
 	denom = PI * denom * denom;
@@ -32,9 +31,7 @@ float distributionGGX(vec3 N, vec3 H, float roughness){
 }
 
 //Smith's method with Schlick-GGX for geometric shadowing
-float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness){
-	float NdotV = max(dot(N, V), 0.0);
-	float NdotL = max(dot(N, L), 0.0);
+float geometrySmith(float NdotV, float NdotL, float roughness){
 	float r = roughness + 1.0;
 	float k = r * r * 0.125;
 	float invK = 1.0 - k;
@@ -74,25 +71,31 @@ void main() {
 	vec3 N = normalize(normal);
 	vec3 V = normalize(-fs_in.fragPos);
 
+	//dot products
+	vec3 L = normalize(fs_in.lightPos - fs_in.fragPos);
+	vec3 H = normalize(L + V);
+	float NdotV = max(dot(N, V), 0.0);
+	float NdotL = max(dot(N, L), 0.0);
+	float NdotH = max(dot(N, H), 0.0);
+	float rawHdotV = dot(H, V);
+
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo, metallic);
 
 	//reflectance equation
 	vec3 Lo = vec3(0.0);
 
-	//per-light radiance
+	//radiance
 	float lightDistance = length(fs_in.lightPos - fs_in.fragPos);
 	float attenuation = 1.0 / (lightDistance * lightDistance);
 	vec3 radiance = lightColor * attenuation;
 
 	//Cook-Torrance BRDF
-	vec3 L = normalize(fs_in.lightPos - fs_in.fragPos);
-	vec3 H = normalize(L + V);
+	float NDF = distributionGGX(NdotH, roughness);
+	float G = geometrySmith(NdotV, NdotL, roughness);
+	vec3 F = fresnelSchlick(rawHdotV, F0);
 
-	float NDF = distributionGGX(N, H, roughness);
-	float G = geometrySmith(N, V, L, roughness);
-	vec3 F = fresnelSchlick(clamp(dot(H, V), 0.0, 1.0), F0);
-
+	//specular and diffuse terms
 	vec3 kS = F;
 	vec3 kD = vec3(1.0) - kS;
 	kD *= 1.0 - metallic;
@@ -102,11 +105,9 @@ void main() {
 	vec3 specular = numerator / denom;
 
 	//add to outgoing radiance Lo
-	float NdotL = max(dot(N, L), 0.0);
 	Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 
 	vec3 ambient = vec3(0.03) * albedo * ao;
-
 	vec3 color = ambient + Lo;
 
 	//Reinhard tone mapping
