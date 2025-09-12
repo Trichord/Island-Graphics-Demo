@@ -11,7 +11,7 @@
 #include "model.h"
 #include "thread_pool.h"
 #include "skybox.h"
-#include "space_icosahedron.h"
+#include "space_model.h"
 
 #define SCREEN_WIDTH 2560
 #define SCREEN_HEIGHT 1440
@@ -139,7 +139,7 @@ int main() {
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
+    //glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_FRAMEBUFFER_SRGB);
 
@@ -156,18 +156,23 @@ int main() {
     Shader pbrShader = Shader("./Shaders/point_PBR.vert", "./Shaders/point_PBR.frag");
     Shader lightSource = Shader("./Shaders/light_source.vert", "./Shaders/light_source.frag");
     Shader skyboxShader = Shader("./Shaders/skybox.vert", "./Shaders/skybox.frag");
+    Shader reflectiveSpaceShader = Shader("./Shaders/reflective.vert", "./Shaders/reflective.frag");
     
     //Load all models and stop thread pool
     Model gltfTestModel("./Models/test/scene.gltf"); 
+    SpaceModel spaceModel("./Models/space_model/scene.gltf");
     Skybox skybox;
     threadPool.stopAllThreads();
  
     //Setup matrices
     glm::mat4 model = glm::mat4(1.0f);
+    glm::mat4 spaceModelMatrix = glm::translate(model, glm::vec3(-5.0f, 0.0f, 0.0f));
+    spaceModelMatrix = glm::scale(spaceModelMatrix, glm::vec3(0.5f));
+    glm::mat3 spaceNormal = glm::transpose(glm::inverse(glm::mat3(spaceModelMatrix)));
     glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 viewNoTrans = glm::mat4(glm::mat3(view));
-    glm::mat3 normal = (glm::mat3)(glm::transpose(glm::inverse(model)));
+    glm::mat3 normal = glm::transpose(glm::inverse(glm::mat3(model)));
 
     glm::vec3 lightPosition = glm::vec3(-2.0f, 2.0f, 0.0f);
 
@@ -212,6 +217,12 @@ int main() {
     skyboxShader.use();
     skyboxShader.setInt("skybox", 0);
 
+    reflectiveSpaceShader.use();
+    reflectiveSpaceShader.setUniformBlock("matrices", 0);
+    reflectiveSpaceShader.setInt("cubemap", 0);
+    reflectiveSpaceShader.setMat4("modelMatrix", spaceModelMatrix);
+    reflectiveSpaceShader.setMat3("normalMatrix", spaceNormal);
+
     while (true){
         //Clear background
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -244,6 +255,11 @@ int main() {
         }
  
         gltfTestModel.draw(pbrShader);
+
+        reflectiveSpaceShader.use();
+        spaceModelMatrix = glm::rotate(spaceModelMatrix, glm::radians(10.0f) * deltaTime, glm::vec3(0.4f, 1.0f, 0.2344f));
+        reflectiveSpaceShader.setMat4("modelMatrix", spaceModelMatrix);
+        spaceModel.draw();
 
         lightSource.use();
         lightSourceModel = glm::mat4(1.0f);
