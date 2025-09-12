@@ -7,7 +7,7 @@ layout (location = 3) in vec2 aTexCoords;
 
 layout (std140) uniform matrices {
 	mat4 viewMatrix;
-	mat4 projectionMatrix;
+	mat4 projectionViewMatrix;
 };
 
 out VS_OUT {
@@ -35,5 +35,5 @@ void main () {
 	vs_out.fragPos = TBN * (viewModel * vec4(aPos, 1.0)).xyz;
 	vs_out.lightPos = TBN * (viewMatrix * vec4(lightPosition, 1.0)).xyz;
 	
-	gl_Position = projectionMatrix * viewModel * vec4(aPos, 1.0);
+	gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0);
 }
