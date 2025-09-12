@@ -4,11 +4,11 @@ layout (location = 0) in vec3 aPos;
 
 layout (std140) uniform matrices {
 	mat4 viewMatrix;
-	mat4 projectionMatrix;
+	mat4 projectionViewMatrix;
 };
 
 uniform mat4 modelMatrix;
 
 void main() {
-	gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(aPos, 1.0f);
+	gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0f);
 }

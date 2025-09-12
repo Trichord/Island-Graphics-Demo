@@ -74,7 +74,7 @@ protected:
 					cubeTextureTarget = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
 
 				glTexImage2D(cubeTextureTarget,
-					0, GL_RGB, imagePair.second.width, imagePair.second.height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+					0, GL_SRGB8, imagePair.second.width, imagePair.second.height, 0, imageFormat, GL_UNSIGNED_BYTE, data
 				);
 			}
 			else {
