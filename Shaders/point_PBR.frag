@@ -11,10 +11,10 @@ const float PI = 3.14159265359;
 
 vec3 lightColor = vec3(2.5);
 
+//Positions in tangent view space
 in VS_OUT {
-	vec3 tangentLightPosition;
-	vec3 tangentCameraPos;
-	vec3 tangentWorldPos;
+	vec3 lightPos;
+	vec3 fragPos;
 	vec2 texCoords;
 } fs_in;
 
@@ -62,7 +62,7 @@ void main() {
 	float ao = texture(aoMap, fs_in.texCoords).r;
 
 	vec3 N = normalize(normal);
-	vec3 V = normalize(fs_in.tangentCameraPos - fs_in.tangentWorldPos);
+	vec3 V = normalize(-fs_in.fragPos);
 
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo, metallic);
@@ -71,12 +71,12 @@ void main() {
 	vec3 Lo = vec3(0.0);
 
 	//per-light radiance
-	float lightDistance = length(fs_in.tangentLightPosition - fs_in.tangentWorldPos);
+	float lightDistance = length(fs_in.lightPos - fs_in.fragPos);
 	float attenuation = 1.0 / (lightDistance * lightDistance);
 	vec3 radiance = lightColor * attenuation;
 
 	//Cook-Torrance BRDF
-	vec3 L = normalize(fs_in.tangentLightPosition - fs_in.tangentWorldPos);
+	vec3 L = normalize(fs_in.lightPos - fs_in.fragPos);
 	vec3 H = normalize(L + V);
 
 	float NDF = distributionGGX(N, H, roughness);
