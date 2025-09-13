@@ -1,0 +1,26 @@
+#pragma once
+
+#include <vector>
+#include <filesystem>
+#include <string>
+#include <glad/glad.h>
+
+//Cube mapped models handle their VAO's and VBO's differently, so default behavior is no copy
+class CubeMappedModel {
+
+public:
+	CubeMappedModel() = default;
+	CubeMappedModel(const CubeMappedModel&) = delete;
+	CubeMappedModel& operator=(CubeMappedModel const&) = delete;
+	CubeMappedModel(CubeMappedModel&& other) noexcept;
+	CubeMappedModel& operator=(CubeMappedModel&& other) noexcept;
+	virtual ~CubeMappedModel();
+
+	virtual void draw() = 0;
+
+protected:
+	GLuint cubemapTextureID = 0;
+	std::vector<std::filesystem::path> texturePaths;
+
+	void loadTextures();
+};

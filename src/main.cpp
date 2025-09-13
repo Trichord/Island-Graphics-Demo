@@ -1,17 +1,17 @@
 #define STB_IMAGE_IMPLEMENTATION
 
+#include "../headers/camera.h"
+#include "shader.h"
+#include "model.h"
+#include "thread_pool.h"
+#include "../headers/skybox.h"
+#include "../headers/space_model.h"
 #include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "../headers/camera.h"
-#include "shader.h"
-#include "model.h"
-#include "thread_pool.h"
-#include "skybox.h"
-#include "space_model.h"
 
 #define SCREEN_WIDTH 2560
 #define SCREEN_HEIGHT 1440
