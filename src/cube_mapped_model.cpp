@@ -1,6 +1,6 @@
 #include "../headers/cube_mapped_model.h"
 #include "../headers/camera.h"
-#include "image_loader.h"
+#include "../headers/image_loader.h"
 #include <filesystem>
 #include <iostream>
 #include <string>

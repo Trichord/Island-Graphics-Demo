@@ -1,12 +1,11 @@
-#pragma once
-
+#include "../headers/fastgltf_loader.h"
+#include "../src/primitive.h"
 #include <iostream>
 #include <vector>
 #include <fastgltf/core.hpp>
 #include <fastgltf/types.hpp>
 #include <fastgltf/tools.hpp>
 #include <fastgltf/glm_element_traits.hpp>
-#include "primitive.h"
 
 fastgltf::Asset fastgltfLoadAsset(std::filesystem::path path) {
 
