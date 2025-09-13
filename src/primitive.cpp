@@ -1,5 +1,5 @@
 #include "../headers/primitive.h"
-#include "shader.h"
+#include "../headers/shader.h"
 #include <vector>
 #include <string>
 #include <cstdint>

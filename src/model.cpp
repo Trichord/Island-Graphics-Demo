@@ -3,8 +3,8 @@
 #include "../headers/image_loader.h"
 #include "../headers/fastgltf_loader.h"
 #include "../headers/primitive.h"
-#include "shader.h"
-#include "thread_pool.h"
+#include "../headers/shader.h"
+#include "../headers/thread_pool.h"
 #include <unordered_map>
 #include <string>
 #include <vector>
