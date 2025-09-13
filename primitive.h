@@ -18,10 +18,14 @@ public:
 		glm::vec4 tangent;
 		glm::vec2 texCoords;
 
-		Vertex() = default;
-		Vertex(float px, float py, float pz, float nx, float ny, float nz, float tx, float ty, float tz, float tw, float u = 0, float v = 0) :
+		Vertex(float px = 0.0f, float py = 0.0f, float pz = 0.0f, float nx = 0.0f, float ny = 0.0f, float nz = 0.0f, 
+			float tx = 0.0f, float ty = 0.0f, float tz = 0.0f, float tw = 0.0f, float u = 0.0f, float v = 0.0f) :
 			position(px, py, pz), normal(nx, ny, nz), tangent(tx, ty, tz, tw), texCoords(u, v) {
 		};
+	};
+
+	struct Mesh {
+		std::vector<Primitive> primitives;
 	};
 
 	std::vector<Vertex> vertices;

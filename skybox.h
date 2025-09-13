@@ -1,21 +1,23 @@
 #pragma once
 
+#include <vector>
 #include "cube_mapped_model.h"
+#include "glad/glad.h"
 
 class Skybox : public CubeMappedModel {
 public:
-	Skybox() {
-		texturePaths = {
-			"./Textures/skybox/right.png",
-			"./Textures/skybox/left.png",
-			"./Textures/skybox/top.png",
-			"./Textures/skybox/bottom.png",
-			"./Textures/skybox/front.png",
-			"./Textures/skybox/back.png"
-		};
+	Skybox(const std::vector<std::string> &skyboxPaths) {
+		for (const std::string& imagePath : skyboxPaths)
+			texturePaths.emplace_back(imagePath);
 
 		loadTextures();
 		setupBuffers();
+	}
+
+	~Skybox() {
+		glDeleteBuffers(1, &modelVBO);
+		glDeleteBuffers(1, &modelEBO);
+		glDeleteVertexArrays(1, &modelVAO);
 	}
 
 	void draw() {
@@ -29,6 +31,7 @@ public:
 		glBindVertexArray(0);
 	}
 protected:
+	GLuint modelVAO = 0, modelVBO = 0, modelEBO = 0;
 	const float vertices[24] = {
 		-1.0f, -1.0f, -1.0f,
 		 1.0f, -1.0f, -1.0f,
@@ -55,7 +58,7 @@ protected:
 		6, 7, 3
 	};
 
-	void setupBuffers() override {
+	void setupBuffers() {
 		glGenVertexArrays(1, &modelVAO);
 		glBindVertexArray(modelVAO);
 		glGenBuffers(1, &modelVBO);
