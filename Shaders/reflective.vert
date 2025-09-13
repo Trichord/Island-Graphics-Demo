@@ -13,9 +13,10 @@ uniform mat4 modelMatrix;
 
 out vec3 normal;
 out vec3 fragPos;
+out vec3 position;
 
 void main() {
 	normal = normalMatrix * aNorm;
-	fragPos = vec3(viewMatrix * modelMatrix * vec4(aPos, 1.0f));
-	gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0f);
+	position = vec3(modelMatrix * vec4(aPos, 1.0f));
+	gl_Position = projectionViewMatrix * vec4(position, 1.0f);
 }
