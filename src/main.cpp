@@ -1,5 +1,3 @@
-#define STB_IMAGE_IMPLEMENTATION
-
 #include "../headers/camera.h"
 #include "shader.h"
 #include "model.h"
