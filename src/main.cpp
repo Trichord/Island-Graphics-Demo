@@ -1,7 +1,7 @@
 #include "../headers/camera.h"
-#include "shader.h"
+#include "../headers/shader.h"
 #include "../headers/model.h"
-#include "thread_pool.h"
+#include "../headers/thread_pool.h"
 #include "../headers/skybox.h"
 #include "../headers/space_model.h"
 #include <iostream>
