@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <filesystem>
 #include <string>
-#include "camera.h"
+#include "../headers/camera.h"
 #include "shader.h"
 #include <glm/glm.hpp>
 
