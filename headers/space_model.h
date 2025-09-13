@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../headers/cube_mapped_model.h"
-#include "../src/primitive.h"
+#include "cube_mapped_model.h"
+#include "primitive.h"
 #include <vector>
 #include <filesystem>
 
