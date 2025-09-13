@@ -157,11 +157,20 @@ int main() {
     Shader lightSource = Shader("./Shaders/light_source.vert", "./Shaders/light_source.frag");
     Shader skyboxShader = Shader("./Shaders/skybox.vert", "./Shaders/skybox.frag");
     Shader reflectiveSpaceShader = Shader("./Shaders/reflective.vert", "./Shaders/reflective.frag");
+
+    std::vector<std::string> skyBoxPaths = {
+        "./Textures/skybox/right.png",
+            "./Textures/skybox/left.png",
+            "./Textures/skybox/top.png",
+            "./Textures/skybox/bottom.png",
+            "./Textures/skybox/front.png",
+            "./Textures/skybox/back.png"
+    };
     
     //Load all models and stop thread pool
     Model gltfTestModel("./Models/test/scene.gltf"); 
     SpaceModel spaceModel("./Models/dodecahedron/scene.gltf");
-    Skybox skybox;
+    Skybox skybox(skyBoxPaths);
     threadPool.stopAllThreads();
  
     //Setup matrices
@@ -343,11 +352,12 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
      /*
      if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
         pointLightsOn = !pointLightsOn;
-     */
+     
      if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
         spotLightOn = !spotLightOn;
-
+    
     else if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
         directionalLightOn = !directionalLightOn;
+     */
 }
 

@@ -10,24 +10,35 @@
 #include "shader.h"
 #include <glm/glm.hpp>
 
-//CubeMappedModel owns its texure ID's, VAO, VBO, and EBO.  Therefore copying is disabled
+//Cube mapped models handle their VAO's and VBO's differently
 class CubeMappedModel {
+
 public:
 	CubeMappedModel() = default;
-	
 	CubeMappedModel(const CubeMappedModel&) = delete;
 	CubeMappedModel& operator=(CubeMappedModel const&) = delete;
+	virtual void draw() = 0;
+
+	CubeMappedModel(CubeMappedModel&& other) noexcept : modelTexID(other.modelTexID) {
+		other.modelTexID = 0;
+	}
+
+	CubeMappedModel& operator=(CubeMappedModel&& other) noexcept {
+
+		if (this != &other) {
+			modelTexID = other.modelTexID;
+			other.modelTexID = 0;
+		}
+
+		return *this;
+	}
 
 	~CubeMappedModel() {
 		glDeleteTextures(1, &modelTexID);
-		glDeleteBuffers(1, &modelVBO);
-		glDeleteVertexArrays(1, &modelVAO);
 	}
 
-	virtual void draw() = 0;
-
 protected:
-	unsigned int modelVAO = 0, modelVBO = 0, modelEBO = 0, modelTexID = 0;
+	GLuint modelTexID = 0;
 	std::vector<std::filesystem::path> texturePaths;
 
 	void loadTextures() {
