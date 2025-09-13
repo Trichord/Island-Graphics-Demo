@@ -139,7 +139,7 @@ int main() {
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glEnable(GL_DEPTH_TEST);
-    //glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_FRAMEBUFFER_SRGB);
 
@@ -257,9 +257,10 @@ int main() {
         gltfTestModel.draw(pbrShader);
 
         reflectiveSpaceShader.use();
-        spaceModelMatrix = glm::rotate(spaceModelMatrix, glm::radians(10.0f) * deltaTime, glm::vec3(0.4f, 1.0f, 0.2344f));
+        spaceModelMatrix = glm::rotate(spaceModelMatrix, glm::radians(2.5f) * deltaTime, glm::vec3(0.4f, 1.0f, 0.2344f));
         reflectiveSpaceShader.setMat4("modelMatrix", spaceModelMatrix);
         reflectiveSpaceShader.setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(spaceModelMatrix))));
+        reflectiveSpaceShader.setVec3("cameraPos", camera.position);
         spaceModel.draw();
 
         lightSource.use();
