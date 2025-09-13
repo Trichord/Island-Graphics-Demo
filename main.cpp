@@ -160,14 +160,14 @@ int main() {
     
     //Load all models and stop thread pool
     Model gltfTestModel("./Models/test/scene.gltf"); 
-    SpaceModel spaceModel("./Models/space_model/scene.gltf");
+    SpaceModel spaceModel("./Models/dodecahedron/scene.gltf");
     Skybox skybox;
     threadPool.stopAllThreads();
  
     //Setup matrices
     glm::mat4 model = glm::mat4(1.0f);
-    glm::mat4 spaceModelMatrix = glm::translate(model, glm::vec3(-5.0f, 0.0f, 0.0f));
-    spaceModelMatrix = glm::scale(spaceModelMatrix, glm::vec3(0.5f));
+    glm::mat4 spaceModelMatrix = glm::translate(model, glm::vec3(-4.0f, 0.0f, 0.0f));
+    spaceModelMatrix = glm::scale(spaceModelMatrix, glm::vec3(0.75f));
     glm::mat3 spaceNormal = glm::transpose(glm::inverse(glm::mat3(spaceModelMatrix)));
     glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
     glm::mat4 view = camera.GetViewMatrix();
@@ -259,6 +259,7 @@ int main() {
         reflectiveSpaceShader.use();
         spaceModelMatrix = glm::rotate(spaceModelMatrix, glm::radians(10.0f) * deltaTime, glm::vec3(0.4f, 1.0f, 0.2344f));
         reflectiveSpaceShader.setMat4("modelMatrix", spaceModelMatrix);
+        reflectiveSpaceShader.setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(spaceModelMatrix))));
         spaceModel.draw();
 
         lightSource.use();

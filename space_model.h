@@ -75,11 +75,9 @@ protected:
 
 				auto* positionIt = gltfPrimitive.findAttribute("POSITION");
 				auto* normalIt = gltfPrimitive.findAttribute("NORMAL");
-				auto* tangentIt = gltfPrimitive.findAttribute("TANGENT");
 
 				auto& positionAccessor = asset.accessors[positionIt->accessorIndex];
 				auto& normalAccessor = asset.accessors[normalIt->accessorIndex];
-				auto& tangentAccessor = asset.accessors[tangentIt->accessorIndex];
 				auto& indicesAccessor = asset.accessors[gltfPrimitive.indicesAccessor.value()];
 
 				if (!positionAccessor.bufferViewIndex.has_value()) {
@@ -98,11 +96,6 @@ protected:
 				fastgltf::iterateAccessorWithIndex<glm::vec3>(asset, normalAccessor,
 					[&](glm::vec3 normal, std::size_t index) {
 						vertices[index].normal = normal;
-					});
-
-				fastgltf::iterateAccessorWithIndex<glm::vec4>(asset, tangentAccessor,
-					[&](glm::vec4 tangent, std::size_t index) {
-						vertices[index].tangent = tangent;
 					});
 
 				std::size_t idx = 0;
