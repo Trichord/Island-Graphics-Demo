@@ -1,6 +1,6 @@
 #include "../headers/camera.h"
 #include "shader.h"
-#include "model.h"
+#include "../headers/model.h"
 #include "thread_pool.h"
 #include "../headers/skybox.h"
 #include "../headers/space_model.h"
