@@ -1,6 +1,6 @@
 #include "../headers/space_model.h"
 #include "../headers/fastgltf_loader.h"
-#include "primitive.h"
+#include "../headers/primitive.h"
 #include <vector>
 #include <filesystem>
 #include "glad/glad.h"
