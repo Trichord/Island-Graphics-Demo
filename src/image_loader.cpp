@@ -2,8 +2,8 @@
 #include "stb_image.h"
 
 #include "../headers/image_loader.h"
-#include "thread_pool.h"
-#include "texture.h"
+#include "../headers/thread_pool.h"
+#include "../headers/texture.h"
 #include <vector>
 #include <string>
 #include <unordered_map>
