@@ -53,7 +53,7 @@ protected:
 			int nrChannels = image.nrChannels;
 
 			if (image.data) {
-				GLenum imageFormat;
+				GLenum imageFormat = 3;
 
 				//stb_image only ever returns a 1, 2, 3, or 4 for a valid image
 				if (nrChannels == 1)

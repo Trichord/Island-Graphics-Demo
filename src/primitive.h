@@ -10,7 +10,7 @@
 #include "shader.h"
 
 //Primitive owns its VAO / VBO / EBO.  Copying is disabled to avoid double frees or unecessary resource holding
-class Primitive{
+class Primitive {
 public:
 	struct Vertex {
 		glm::vec3 position;
