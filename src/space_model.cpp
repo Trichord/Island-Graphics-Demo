@@ -1,5 +1,5 @@
 #include "../headers/space_model.h"
-#include "fastgltf_loader.h"
+#include "../headers/fastgltf_loader.h"
 #include "primitive.h"
 #include <vector>
 #include <filesystem>

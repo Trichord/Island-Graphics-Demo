@@ -1,5 +1,11 @@
 #pragma once
 
+#include "texture.h"
+#include "shader.h"
+#include "../headers/image_loader.h"
+#include "primitive.h"
+#include "thread_pool.h"
+#include "../headers/fastgltf_loader.h"
 #include <unordered_map>
 #include <string>
 #include <vector>
@@ -13,12 +19,6 @@
 #include <fastgltf/types.hpp>
 #include <fastgltf/tools.hpp>
 #include <fastgltf/glm_element_traits.hpp>
-#include "texture.h"
-#include "shader.h"
-#include "image_loader.h"
-#include "primitive.h"
-#include "thread_pool.h"
-#include "fastgltf_loader.h"
 
 //Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees.  Texture IDs are released on Model destruction
 class Model {
