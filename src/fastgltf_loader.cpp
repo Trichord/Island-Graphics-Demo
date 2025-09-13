@@ -1,5 +1,5 @@
 #include "../headers/fastgltf_loader.h"
-#include "../src/primitive.h"
+#include "../headers/primitive.h"
 #include <iostream>
 #include <vector>
 #include <fastgltf/core.hpp>

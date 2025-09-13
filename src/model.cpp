@@ -2,8 +2,8 @@
 #include "../headers/texture.h"
 #include "../headers/image_loader.h"
 #include "../headers/fastgltf_loader.h"
+#include "../headers/primitive.h"
 #include "shader.h"
-#include "primitive.h"
 #include "thread_pool.h"
 #include <unordered_map>
 #include <string>
