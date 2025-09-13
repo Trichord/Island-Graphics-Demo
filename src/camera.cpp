@@ -1,5 +1,3 @@
-#pragma once
-
 #include "../headers/camera.h"
 #include <glad/glad.h>
 #include <glm/glm.hpp>
