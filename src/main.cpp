@@ -180,7 +180,6 @@ int main() {
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 viewNoTrans = glm::mat4(glm::mat3(view));
     glm::mat3 normal = glm::transpose(glm::inverse(glm::mat3(model)));
-
     glm::vec3 lightPosition = glm::vec3(-2.0f, 2.0f, 0.0f);
 
     //Matrices Uniform Buffer Object
@@ -189,8 +188,8 @@ int main() {
     glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
     glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, uboMatrices);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
-    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection * view));
+    glm::mat4 packedMatrices[] = { view, projection * view };
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, 2 * sizeof(glm::mat4), packedMatrices);
 
     //light source VAO
     unsigned int lightSourceVBO, lightSourceVAO;
@@ -257,8 +256,9 @@ int main() {
         if (camera.hasUpdated()) {
             view = camera.GetViewMatrix();
             viewNoTrans = glm::mat4(glm::mat3(view));
-            glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
-            glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection * view));
+            packedMatrices[0] = view;
+            packedMatrices[1] = projection * view;
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, 2 * sizeof(glm::mat4), packedMatrices);
         }
  
         gltfTestModel.draw(pbrShader);
