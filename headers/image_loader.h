@@ -17,27 +17,26 @@ struct ImageData {
 	int width;
 	int height;
 	int nrChannels;
-	TextureType textureType;
 
 	ImageData() = default;
-	ImageData(unsigned char *d, int w, int h, int nr, TextureType tex) : data(d), width(w), height(h), nrChannels(nr), textureType(tex) {};
+	ImageData(unsigned char *d, int w, int h, int nr) : data(d), width(w), height(h), nrChannels(nr) {};
 };
 
 class ImageLoader {
 public:
-	ImageLoader(const std::unordered_map<std::filesystem::path, TextureType>& inputMap);
+	ImageLoader(const std::unordered_map<std::filesystem::path, unsigned int>& inputMap);
 	ImageLoader(const std::vector<std::filesystem::path>& filepaths);	
 	~ImageLoader();
 
-	const std::unordered_map<std::filesystem::path, ImageData>& getImageData() const;
+	const std::vector<ImageData>& getImageData() const;
 	void freeImages();
 
 private:
 	size_t numImages;
 	std::atomic<unsigned int> numImagesLoaded;
-	std::unordered_map<std::filesystem::path, ImageData> loadedImages;
+	std::vector<ImageData> loadedImages;
 	std::mutex imagesMutex;
 	std::condition_variable condition;
 
-	void loadFromFile(const std::filesystem::path& path, TextureType texType);
+	void loadFromFile(const std::filesystem::path& path, unsigned int assetImageIndex);
 };
