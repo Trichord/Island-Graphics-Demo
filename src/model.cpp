@@ -20,37 +20,42 @@
 #include <fastgltf/glm_element_traits.hpp>
 
 Model::Model(std::string path) {
-	textureIDs.fill(0);
 	loadModel(path);
 }
 
 Model::Model(Model&& other) noexcept :
 	meshes(std::move(other.meshes)),
-	texturePaths(std::move(other.texturePaths)),
-	textureIDs(std::move(other.textureIDs)) {
-	other.texturePaths.clear();
-	other.textureIDs.fill(0);
+	materials(std::move(other.materials)),
+	assetImages(std::move(other.assetImages)) {
+	
+	for (unsigned int i = 0; i < other.assetImages.size(); ++i)
+		other.assetImages[i] = 0;
 }
 
 Model& Model::operator=(Model&& other) noexcept {
 
 	if (this != &other) {
 
-		for (const GLuint& textureID : textureIDs)
+		for (const GLuint& textureID : assetImages)
 			glDeleteTextures(1, &textureID);
 
 		meshes = std::move(other.meshes);
-		texturePaths = std::move(other.texturePaths);
-		textureIDs = std::move(other.textureIDs);
-		other.texturePaths.clear();
-		other.textureIDs.fill(0);
+		materials = std::move(other.materials),
+		assetImages = std::move(other.assetImages);
+		
+		assetImages.resize(other.assetImages.size(), 0);
+
+		for (unsigned int i = 0; i < other.assetImages.size(); ++i) {
+			assetImages[i] = other.assetImages[i];
+			other.assetImages[i] = 0;
+		}
 	}
 
 	return *this;
 }
 
 Model::~Model() {
-	for (const GLuint& textureID : textureIDs)
+	for (const GLuint& textureID : assetImages)
 		glDeleteTextures(1, &textureID);
 }
 
@@ -58,9 +63,9 @@ void Model::draw(Shader& shader) {
 	shader.use();
 
 	//textureIDs contains, in this order: albedo, metallic-roughness, normal, occlusion
-	for (unsigned int i = 0; i < 4; ++i) {
+	for (unsigned int i = 0; i < 4; ++i) { //This loop will not work with multiple materials
 		glActiveTexture(GL_TEXTURE0 + i);
-		glBindTexture(GL_TEXTURE_2D, textureIDs[i]);
+		glBindTexture(GL_TEXTURE_2D, assetImages[i]);
 	}
 
 	for (const Primitive::Mesh& mesh : meshes)
@@ -80,11 +85,14 @@ void Model::loadModel(std::filesystem::path path) {
 
 //Fill "textureMap" map with all scene textures
 void Model::preloadTextures(const fastgltf::Asset& asset, const std::filesystem::path parentPath) {
+	std::unordered_map<std::filesystem::path, unsigned int> texturePaths;
+
 	for (const fastgltf::Material& material : asset.materials) {
 
-		auto getTexInfo = [&](const fastgltf::TextureInfo& texInfo, const TextureType& texType) {
+		auto getTexInfo = [&](const fastgltf::TextureInfo& texInfo) {
 			const auto& texture = asset.textures[texInfo.textureIndex];
-			const auto& image = asset.images[texture.imageIndex.value()];
+			const unsigned int assetImageIndex = texture.imageIndex.value();
+			const auto& image = asset.images[assetImageIndex];
 
 			/* Texture wrap options
 			auto wrapS = fastgltf::Wrap::Repeat;
@@ -105,25 +113,30 @@ void Model::preloadTextures(const fastgltf::Asset& asset, const std::filesystem:
 					return;
 				}
 
-				texturePaths.emplace(fullImagePath, texType);
+				texturePaths.emplace(fullImagePath, assetImageIndex);
 			}
-			};
+		};
 
-		getTexInfo(material.pbrData.baseColorTexture.value(), TEXTURE_BASE_COLOR);
-		getTexInfo(material.pbrData.metallicRoughnessTexture.value(), TEXTURE_METALLIC_ROUGHNESS);
-		getTexInfo(material.normalTexture.value(), TEXTURE_NORMAL);
-		getTexInfo(material.occlusionTexture.value(), TEXTURE_OCCLUSION);
+		getTexInfo(material.pbrData.baseColorTexture.value()); //TEXTURE_BASE_COLOR
+		getTexInfo(material.pbrData.metallicRoughnessTexture.value()); //TEXTURE_METALLIC_ROUGHNESS
+		getTexInfo(material.normalTexture.value()); //TEXTURE_NORMAL
+		getTexInfo(material.occlusionTexture.value()); //TEXTURE_OCCLUSION
 	}
-	generateTextureIDs();
+
+	ImageLoader imageLoader(texturePaths);
+	std::vector<ImageData> imageData = imageLoader.getImageData();
+
+	for
+
 }
 
 //Retrieves image data from the ImageLoader (multi-threaded) and generates OpenGL Texture ID's
-void Model::generateTextureIDs() {
+void Model::generateTextureIDs(std::unordered_map<std::filesystem::path, unsigned int> texturePaths) {
 	ImageLoader imageLoader(texturePaths);
-	std::unordered_map<std::filesystem::path, ImageData> loadedImages = imageLoader.getImageData();
+	std::vector<ImageData> loadedImages = imageLoader.getImageData();
 
 	//Generate new ID's
-	for (auto const& [path, image] : loadedImages) {
+	for (auto const& image : loadedImages) {
 		GLuint textureID;
 		int nrChannels = image.nrChannels;
 
