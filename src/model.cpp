@@ -5,13 +5,13 @@
 #include "../headers/primitive.h"
 #include "../headers/shader.h"
 #include "../headers/thread_pool.h"
-#include <unordered_map>
 #include <string>
 #include <vector>
 #include <filesystem>
 #include <cstdint>
 #include <cstddef>
 #include <iostream>
+#include <stdexcept>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <fastgltf/core.hpp>
@@ -85,8 +85,9 @@ void Model::loadModel(std::filesystem::path path) {
 
 //Fill "textureMap" map with all scene textures
 void Model::preloadTextures(const fastgltf::Asset& asset, const std::filesystem::path parentPath) {
-	std::unordered_map<std::filesystem::path, unsigned int> texturePaths;
 
+
+	/*
 	for (const fastgltf::Material& material : asset.materials) {
 
 		auto getTexInfo = [&](const fastgltf::TextureInfo& texInfo) {
@@ -102,7 +103,7 @@ void Model::preloadTextures(const fastgltf::Asset& asset, const std::filesystem:
 				wrapS = asset.samplers[texture.samplerIndex.value()].wrapS;
 				wrapT = asset.samplers[texture.samplerIndex.value()].wrapT;
 			}
-			*/
+			
 
 			if (auto* uri = std::get_if<fastgltf::sources::URI>(&image.data)) {
 				std::filesystem::path relativeImagePath(uri->uri.path().begin(), uri->uri.path().end());
@@ -122,26 +123,44 @@ void Model::preloadTextures(const fastgltf::Asset& asset, const std::filesystem:
 		getTexInfo(material.normalTexture.value()); //TEXTURE_NORMAL
 		getTexInfo(material.occlusionTexture.value()); //TEXTURE_OCCLUSION
 	}
+	*/
 
+	std::vector<std::filesystem::path> texturePaths = getURIs(asset, parentPath);
 	ImageLoader imageLoader(texturePaths);
 	std::vector<ImageData> imageData = imageLoader.getImageData();
+	generateTextureIDs(imageData);
+}
 
-	for
+std::vector<std::filesystem::path> Model::getURIs(const fastgltf::Asset& asset, const std::filesystem::path parentPath) {
+	std::vector<std::filesystem::path> URIpaths;
+	URIpaths.reserve(asset.images.size());
 
+	for (unsigned int i = 0; i < asset.images.size(); ++i) {
+		fastgltf::Image image = asset.images[i];
+
+		if (auto* uri = std::get_if<fastgltf::sources::URI>(&image.data)) {
+			std::filesystem::path relativeImagePath(uri->uri.path().begin(), uri->uri.path().end());
+			std::filesystem::path fullImagePath = parentPath / relativeImagePath;
+
+			if (!uri->uri.isLocalPath()) 
+				throw std::runtime_error("URI not local: " + fullImagePath.string());
+		
+			URIpaths.emplace_back(fullImagePath);
+		}	
+	}
+
+	return URIpaths;
 }
 
 //Retrieves image data from the ImageLoader (multi-threaded) and generates OpenGL Texture ID's
-void Model::generateTextureIDs(std::unordered_map<std::filesystem::path, unsigned int> texturePaths) {
-	ImageLoader imageLoader(texturePaths);
-	std::vector<ImageData> loadedImages = imageLoader.getImageData();
-
+void Model::generateTextureIDs(const std::vector<ImageData> &images, bool sRGB) {
 	//Generate new ID's
-	for (auto const& image : loadedImages) {
+	for (unsigned int i = 0; i < images.size(); ++i){
 		GLuint textureID;
-		int nrChannels = image.nrChannels;
 
-		if (image.data) {
+		if (images[i].data) {
 			GLenum imageFormat = 3, internalFormat = 3;
+			int nrChannels = images[i].nrChannels;
 
 			//stb_image only ever returns a 1, 2, 3, or 4 for a valid image
 			if (nrChannels == 1) {
@@ -154,17 +173,17 @@ void Model::generateTextureIDs(std::unordered_map<std::filesystem::path, unsigne
 			}
 			else if (nrChannels == 3) {
 				imageFormat = GL_RGB;
-				internalFormat = image.textureType == TEXTURE_BASE_COLOR ? GL_SRGB : GL_RGB;
+				internalFormat = sRGB ? GL_SRGB : GL_RGB;
 			}
 			else if (nrChannels == 4) {
 				imageFormat = GL_RGBA;
-				internalFormat = image.textureType == TEXTURE_BASE_COLOR ? GL_SRGB_ALPHA : GL_RGBA;
+				internalFormat = sRGB ? GL_SRGB_ALPHA : GL_RGBA;
 			}
 
 			glGenTextures(1, &textureID);
 			glBindTexture(GL_TEXTURE_2D, textureID);
 
-			glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, image.width, image.height, 0, imageFormat, GL_UNSIGNED_BYTE, image.data);
+			glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, images[i].width, images[i].height, 0, imageFormat, GL_UNSIGNED_BYTE, images[i].data);
 			glGenerateMipmap(GL_TEXTURE_2D);
 
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -172,27 +191,11 @@ void Model::generateTextureIDs(std::unordered_map<std::filesystem::path, unsigne
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		}
-		else {
+		else 
 			textureID = 0;
-			std::cerr << "STBI Failed to load image at: " << path.string() << std::endl;
-		}
-		assembleTexureInfo(image.textureType, textureID);
+		
+		assetImages[i] = textureID;
 	}
 
 	glActiveTexture(GL_TEXTURE0);
 }
-
-void Model::assembleTexureInfo(TextureType type, GLuint id) {
-	if (type == TEXTURE_BASE_COLOR)
-		textureIDs[0] = id;
-
-	else if (type == TEXTURE_METALLIC_ROUGHNESS)
-		textureIDs[1] = id;
-
-	else if (type == TEXTURE_NORMAL)
-		textureIDs[2] = id;
-
-	else if (type == TEXTURE_OCCLUSION)
-		textureIDs[3] = id;
-}
-
