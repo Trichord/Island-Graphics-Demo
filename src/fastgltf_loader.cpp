@@ -81,8 +81,7 @@ std::vector<Primitive::Mesh> fastgltfLoadMeshes(const fastgltf::Asset& asset) {
 					indices[idx++] = index;
 				});
 
-			//Textures...
-			mesh.primitives.emplace_back(std::move(vertices), std::move(indices));
+			mesh.primitives.emplace_back(std::move(vertices), std::move(indices), gltfPrimitive.materialIndex);
 		}
 
 		meshes.push_back(std::move(mesh));

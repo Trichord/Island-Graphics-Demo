@@ -41,8 +41,9 @@ private:
 	std::vector<GLuint> assetImages;
 
 	void loadModel(std::filesystem::path path);
-	void preloadTextures(const fastgltf::Asset& asset, const std::filesystem::path parentPath);
+	void loadMaterials(const fastgltf::Asset& asset);
+	void loadTextures(const fastgltf::Asset& asset, const std::filesystem::path parentPath);
 	std::vector<std::filesystem::path> getURIs(const fastgltf::Asset& asset, const std::filesystem::path parentPath);
-	void generateTextureIDs(const std::vector<ImageData>& images, bool sRGB);
+	void generateTextureID(const ImageData& image, bool sRGB);
 };
 

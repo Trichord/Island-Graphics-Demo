@@ -78,56 +78,22 @@ void Model::draw(Shader& shader) {
 
 void Model::loadModel(std::filesystem::path path) {
 	fastgltf::Asset asset = fastgltfLoadAsset(path);
-	preloadTextures(asset, path.parent_path());
+	
 	meshes.resize(asset.meshes.size());
 	meshes = fastgltfLoadMeshes(asset);
+
+	loadMaterials(asset);
+
+	loadTextures(asset, path.parent_path());
 }
 
-//Fill "textureMap" map with all scene textures
-void Model::preloadTextures(const fastgltf::Asset& asset, const std::filesystem::path parentPath) {
-
-
-	/*
-	for (const fastgltf::Material& material : asset.materials) {
-
-		auto getTexInfo = [&](const fastgltf::TextureInfo& texInfo) {
-			const auto& texture = asset.textures[texInfo.textureIndex];
-			const unsigned int assetImageIndex = texture.imageIndex.value();
-			const auto& image = asset.images[assetImageIndex];
-
-			/* Texture wrap options
-			auto wrapS = fastgltf::Wrap::Repeat;
-			auto wrapT = fastgltf::Wrap::Repeat;
-
-			if (texture.samplerIndex.has_value()) {
-				wrapS = asset.samplers[texture.samplerIndex.value()].wrapS;
-				wrapT = asset.samplers[texture.samplerIndex.value()].wrapT;
-			}
-			
-
-			if (auto* uri = std::get_if<fastgltf::sources::URI>(&image.data)) {
-				std::filesystem::path relativeImagePath(uri->uri.path().begin(), uri->uri.path().end());
-				std::filesystem::path fullImagePath = parentPath / relativeImagePath;
-
-				if (!uri->uri.isLocalPath()) {
-					std::cerr << "URI not local: " << fullImagePath.string() << std::endl;
-					return;
-				}
-
-				texturePaths.emplace(fullImagePath, assetImageIndex);
-			}
-		};
-
-		getTexInfo(material.pbrData.baseColorTexture.value()); //TEXTURE_BASE_COLOR
-		getTexInfo(material.pbrData.metallicRoughnessTexture.value()); //TEXTURE_METALLIC_ROUGHNESS
-		getTexInfo(material.normalTexture.value()); //TEXTURE_NORMAL
-		getTexInfo(material.occlusionTexture.value()); //TEXTURE_OCCLUSION
-	}
-	*/
-
+void Model::loadTextures(const fastgltf::Asset& asset, const std::filesystem::path parentPath) {
 	std::vector<std::filesystem::path> texturePaths = getURIs(asset, parentPath);
 	ImageLoader imageLoader(texturePaths);
 	std::vector<ImageData> imageData = imageLoader.getImageData();
+
+
+
 	generateTextureIDs(imageData);
 }
 
@@ -152,15 +118,12 @@ std::vector<std::filesystem::path> Model::getURIs(const fastgltf::Asset& asset, 
 	return URIpaths;
 }
 
-//Retrieves image data from the ImageLoader (multi-threaded) and generates OpenGL Texture ID's
-void Model::generateTextureIDs(const std::vector<ImageData> &images, bool sRGB) {
-	//Generate new ID's
-	for (unsigned int i = 0; i < images.size(); ++i){
+void Model::generateTextureID(const ImageData &image, bool sRGB) {
 		GLuint textureID;
 
-		if (images[i].data) {
+		if (image.data) {
 			GLenum imageFormat = 3, internalFormat = 3;
-			int nrChannels = images[i].nrChannels;
+			int nrChannels = image.nrChannels;
 
 			//stb_image only ever returns a 1, 2, 3, or 4 for a valid image
 			if (nrChannels == 1) {
@@ -183,7 +146,7 @@ void Model::generateTextureIDs(const std::vector<ImageData> &images, bool sRGB) 
 			glGenTextures(1, &textureID);
 			glBindTexture(GL_TEXTURE_2D, textureID);
 
-			glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, images[i].width, images[i].height, 0, imageFormat, GL_UNSIGNED_BYTE, images[i].data);
+			glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, image.width, image.height, 0, imageFormat, GL_UNSIGNED_BYTE, image.data);
 			glGenerateMipmap(GL_TEXTURE_2D);
 
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -198,4 +161,38 @@ void Model::generateTextureIDs(const std::vector<ImageData> &images, bool sRGB) 
 	}
 
 	glActiveTexture(GL_TEXTURE0);
+}
+
+void Model::loadMaterials(const fastgltf::Asset& asset) {
+	materials.resize(asset.materials.size());
+	
+	for (const fastgltf::Material& material : asset.materials) {
+
+		auto getTexInfo = [&](const fastgltf::TextureInfo& texInfo) {
+			const auto& texture = asset.textures[texInfo.textureIndex];
+			const unsigned int assetImageIndex = texture.imageIndex.value();
+		
+			auto wrapS = fastgltf::Wrap::Repeat;
+			auto wrapT = fastgltf::Wrap::Repeat;
+
+			if (texture.samplerIndex.has_value()) {
+				wrapS = asset.samplers[texture.samplerIndex.value()].wrapS;
+				wrapT = asset.samplers[texture.samplerIndex.value()].wrapT;
+			}
+
+
+			
+		};
+
+		if (material.pbrData.baseColorTexture.has_value()) {
+			getTexInfo(material.pbrData.baseColorTexture.value());
+			
+		}
+		
+		
+		getTexInfo(material.pbrData.metallicRoughnessTexture.value()); //TEXTURE_METALLIC_ROUGHNESS
+		getTexInfo(material.normalTexture.value()); //TEXTURE_NORMAL
+		getTexInfo(material.occlusionTexture.value()); //TEXTURE_OCCLUSION
+	}
+	
 }
