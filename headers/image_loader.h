@@ -22,9 +22,12 @@ struct ImageData {
 	ImageData(unsigned char *d, int w, int h, int nr) : data(d), width(w), height(h), nrChannels(nr) {};
 };
 
+/*
+ImageLoader takes in a vector of image filepaths, and returns a vector of ImageData from stb_image in the exact same order.
+*/
+
 class ImageLoader {
 public:
-	ImageLoader(const std::unordered_map<std::filesystem::path, unsigned int>& inputMap);
 	ImageLoader(const std::vector<std::filesystem::path>& filepaths);	
 	~ImageLoader();
 
