@@ -120,7 +120,6 @@ void Model::loadMaterials(const std::vector<ImageData>& imageData) {
 		if (processedImageIndices.insert(index).second) {
 			GLuint texID = texture_manager::generateTextureID(imageData[index], sampler, index, sRGB);
 			assetImages[index] = texID;
-			processedImageIndices.insert(index);
 		}
 
 		return static_cast<unsigned int>(index);
