@@ -41,45 +41,52 @@ std::vector<Primitive::Mesh> fastgltf_loader::loadMeshes(const fastgltf::Asset& 
 			auto* tangentIt = gltfPrimitive.findAttribute("TANGENT");
 			auto* texCoordIt = gltfPrimitive.findAttribute("TEXCOORD_0");
 
-			auto& positionAccessor = asset.accessors[positionIt->accessorIndex];
-			auto& normalAccessor = asset.accessors[normalIt->accessorIndex];
-			auto& tangentAccessor = asset.accessors[tangentIt->accessorIndex];
-			auto& texCoordAccessor = asset.accessors[texCoordIt->accessorIndex];
-			auto& indicesAccessor = asset.accessors[gltfPrimitive.indicesAccessor.value()];
+			if (positionIt) {
+				auto& positionAccessor = asset.accessors[positionIt->accessorIndex];
+				vertices.resize(positionAccessor.count);
 
-			if (!positionAccessor.bufferViewIndex.has_value()) {
-				std::cerr << "No position data" << std::endl;
-				continue;
+				fastgltf::iterateAccessorWithIndex<glm::vec3>(asset, positionAccessor,
+					[&](glm::vec3 position, std::size_t index) {
+						vertices[index].position = position;
+					});
 			}
 
-			vertices.resize(positionAccessor.count);
-			indices.resize(indicesAccessor.count);
+			if (normalIt) {
+				auto& normalAccessor = asset.accessors[normalIt->accessorIndex];
 
-			fastgltf::iterateAccessorWithIndex<glm::vec3>(asset, positionAccessor,
-				[&](glm::vec3 position, std::size_t index) {
-					vertices[index].position = position;
-				});
+				fastgltf::iterateAccessorWithIndex<glm::vec3>(asset, normalAccessor,
+					[&](glm::vec3 normal, std::size_t index) {
+						vertices[index].normal = normal;
+					});
+			}
 
-			fastgltf::iterateAccessorWithIndex<glm::vec3>(asset, normalAccessor,
-				[&](glm::vec3 normal, std::size_t index) {
-					vertices[index].normal = normal;
-				});
+			if (tangentIt) {
+				auto& tangentAccessor = asset.accessors[tangentIt->accessorIndex];
 
-			fastgltf::iterateAccessorWithIndex<glm::vec4>(asset, tangentAccessor,
-				[&](glm::vec4 tangent, std::size_t index) {
-					vertices[index].tangent = tangent;
-				});
+				fastgltf::iterateAccessorWithIndex<glm::vec4>(asset, tangentAccessor,
+					[&](glm::vec4 tangent, std::size_t index) {
+						vertices[index].tangent = tangent;
+					});
+			}
+			if (texCoordIt) {
+				auto& texCoordAccessor = asset.accessors[texCoordIt->accessorIndex];
 
-			fastgltf::iterateAccessorWithIndex<glm::vec2>(asset, texCoordAccessor,
-				[&](glm::vec2 texCoords, std::size_t index) {
-					vertices[index].texCoords = texCoords;
-				});
+				fastgltf::iterateAccessorWithIndex<glm::vec2>(asset, texCoordAccessor,
+					[&](glm::vec2 texCoords, std::size_t index) {
+						vertices[index].texCoords = texCoords;
+					});
 
-			std::size_t idx = 0;
-			fastgltf::iterateAccessor<std::uint32_t>(asset, indicesAccessor,
-				[&](std::uint32_t index) {
-					indices[idx++] = index;
-				});
+			}
+			if (gltfPrimitive.indicesAccessor.has_value()) {
+				auto& indicesAccessor = asset.accessors[gltfPrimitive.indicesAccessor.value()];
+				indices.resize(indicesAccessor.count);
+
+				std::size_t idx = 0;
+				fastgltf::iterateAccessor<std::uint32_t>(asset, indicesAccessor,
+					[&](std::uint32_t index) {
+						indices[idx++] = index;
+					});
+			}
 
 			mesh.primitives.emplace_back(std::move(vertices), std::move(indices), static_cast<unsigned int>(gltfPrimitive.materialIndex.value()));
 		}
