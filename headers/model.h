@@ -1,17 +1,19 @@
 #pragma once
 
-#include "texture.h"
 #include "shader.h"
 #include "primitive.h"
+#include "image_loader.h"
 #include <fastgltf/types.hpp>
-#include <unordered_map>
-#include <string>
+#include <unordered_set>
 #include <vector>
 #include <filesystem>
-#include <iostream>
 #include <glad/glad.h>
 
-//Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees.  Texture IDs are released on Model destruction
+/* 
+Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees. Texture IDs are released on Model destruction. 
+assetImages is a 1:1 mapping of gltf's images array, but with OpenGL texture IDs instead of URIs.  Order of fastgltf's images is preserved
+*/
+
 class Model {
 public:
 	Model(std::string path);
@@ -24,13 +26,20 @@ public:
 	void draw(Shader& shader);
 
 private:
+	struct Material {
+		unsigned int albedoImageIndex, metallicRoughnessImageIndex, normalImageIndex, aoImageIndex;
+
+		Material(unsigned int alb = 0, unsigned int metRough = 0, unsigned int norm = 0, unsigned int ao = 0) : albedoImageIndex(alb), metallicRoughnessImageIndex(metRough), normalImageIndex(norm), aoImageIndex(ao) {};
+	};
+
+	fastgltf::Asset asset;
 	std::vector<Primitive::Mesh> meshes;
-	std::unordered_map<std::filesystem::path, TextureType> texturePaths;
-	std::array<GLuint, 4> textureIDs;
+	std::vector<Material> materials;
+	std::vector<GLuint> assetImages;
+	std::unordered_set<unsigned int> processedImageIndices;
 
 	void loadModel(std::filesystem::path path);
-	void preloadTextures(const fastgltf::Asset& asset, const std::filesystem::path parentPath);
-	void generateTextureIDs();
-	void assembleTexureInfo(TextureType type, GLuint id);
+	void loadTextures(const std::filesystem::path parentPath);
+	void loadMaterials(const std::vector<ImageData>& imagedata);
 };
 
