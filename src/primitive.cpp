@@ -10,7 +10,8 @@
 
 
 //Don't forget to call std::move when calling Primitive constructor!  Avoid copies
-Primitive::Primitive(std::vector<Vertex>&& verts, std::vector<std::uint32_t>&& inds) :
+Primitive::Primitive(std::vector<Vertex>&& verts, std::vector<std::uint32_t>&& inds, unsigned int matIndex) :
+	materialIndex(matIndex),
 	vertices(std::move(verts)),
 	indices(std::move(inds)) {
 	setupPrimitiveBuffers();
