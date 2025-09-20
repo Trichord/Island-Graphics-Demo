@@ -24,6 +24,7 @@ Model::Model(std::string path) {
 }
 
 Model::Model(Model&& other) noexcept :
+	asset(std::move(other.asset)),
 	meshes(std::move(other.meshes)),
 	materials(std::move(other.materials)),
 	assetImages(std::move(other.assetImages)) {
@@ -39,11 +40,13 @@ Model& Model::operator=(Model&& other) noexcept {
 		for (const GLuint& textureID : assetImages)
 			glDeleteTextures(1, &textureID);
 
+		asset = std::move(other.asset);
 		meshes = std::move(other.meshes);
-		materials = std::move(other.materials),
+		materials = std::move(other.materials);
 		assetImages = std::move(other.assetImages);
 		
 		assetImages.resize(other.assetImages.size(), 0);
+		other.asset = fastgltf::Asset {};
 
 		for (unsigned int i = 0; i < other.assetImages.size(); ++i) {
 			assetImages[i] = other.assetImages[i];
@@ -87,26 +90,28 @@ void Model::draw(Shader& shader) {
 }
 
 void Model::loadModel(std::filesystem::path path) {
-	fastgltf::Asset asset = fastgltfLoadAsset(path);
+	asset = fastgltfLoadAsset(path);
 	
 	meshes.resize(asset.meshes.size());
 	meshes = fastgltfLoadMeshes(asset);
 
 	assetImages.resize(asset.images.size());
-	loadTextures(asset, path.parent_path());
+	loadTextures(path.parent_path());
+
+	asset = fastgltf::Asset{};
 }
 
-void Model::loadTextures(const fastgltf::Asset& asset, const std::filesystem::path parentPath) {
-	std::vector<std::filesystem::path> texturePaths = getURIs(asset, parentPath);
+void Model::loadTextures(const std::filesystem::path parentPath) {
+	std::vector<std::filesystem::path> texturePaths = getURIs(parentPath);
 	ImageLoader imageLoader(texturePaths);
 	std::vector<ImageData> imageData = imageLoader.getImageData();
 
-	getMaterials(asset, imageData);
+	getMaterials(imageData);
 
 	//generateTextureIDs(imageData);
 }
 
-std::vector<std::filesystem::path> Model::getURIs(const fastgltf::Asset& asset, const std::filesystem::path parentPath) {
+std::vector<std::filesystem::path> Model::getURIs(const std::filesystem::path parentPath) {
 	std::vector<std::filesystem::path> URIpaths;
 	URIpaths.reserve(asset.images.size());
 
@@ -127,58 +132,58 @@ std::vector<std::filesystem::path> Model::getURIs(const fastgltf::Asset& asset, 
 	return URIpaths;
 }
 
-void Model::getMaterials(const fastgltf::Asset& asset, const std::vector<ImageData>& imageData) {
+void Model::getMaterials(const std::vector<ImageData>& imageData) {
 	materials.resize(asset.materials.size());
-
-	auto getTexInfo = [&](const fastgltf::TextureInfo& texInfo, bool sRGB) {
-		const auto& texture = asset.textures[texInfo.textureIndex];
-		
-		auto magFilter = fastgltf::Filter::Linear;
-		auto minFilter = fastgltf::Filter::LinearMipMapLinear;
-		auto wrapS = fastgltf::Wrap::Repeat;
-		auto wrapT = fastgltf::Wrap::Repeat;
-
-		if (texture.samplerIndex.has_value()) {
-			auto samplerIndex = texture.samplerIndex.value();
-			wrapS = asset.samplers[samplerIndex].wrapS;
-			wrapT = asset.samplers[samplerIndex].wrapT;
-
-			if(asset.samplers[samplerIndex].magFilter.has_value())
-				magFilter = asset.samplers[samplerIndex].magFilter.value();
-
-			if(asset.samplers[samplerIndex].minFilter.has_value())
-				minFilter = asset.samplers[samplerIndex].minFilter.value();
-		}
-
-		const unsigned int assetImageIndex = static_cast<unsigned int>(texture.imageIndex.value());
-		Sampler sampler = { static_cast<uint16_t>(magFilter), static_cast<uint16_t>(minFilter), static_cast<uint16_t>(wrapS), static_cast<uint16_t>(wrapT) };
-
-		generateTextureID(imageData[assetImageIndex], sampler, assetImageIndex, sRGB);
-	};
 	
 	for (unsigned int i = 0; i < asset.materials.size(); ++i){
 		const auto &material = asset.materials[i];
 		
 		auto& baseColorTexture = material.pbrData.baseColorTexture.value();
-		getTexInfo(baseColorTexture, true);
-		auto baseColorIndex = asset.textures[baseColorTexture.textureIndex].imageIndex.value();
-		materials[i].albedoImageIndex = static_cast<unsigned int>(baseColorIndex);
+		auto [baseTexImageIndex, baseTexSampler] = getTextureInfo(baseColorTexture);
+		materials[i].albedoImageIndex = static_cast<unsigned int>(baseTexImageIndex);
+		generateTextureID(imageData[baseTexImageIndex], baseTexSampler, baseTexImageIndex, true);
 		
 		auto& metallicRoughnessTexture = material.pbrData.metallicRoughnessTexture.value();
-		getTexInfo(metallicRoughnessTexture, false);
-		auto& metallicRoughnessIndex = asset.textures[metallicRoughnessTexture.textureIndex].imageIndex.value();
-		materials[i].metallicRoughnessImageIndex = static_cast<unsigned int>(metallicRoughnessIndex);
+		auto [metallicTexImageIndex, metallicSampler] = getTextureInfo(metallicRoughnessTexture);
+		materials[i].metallicRoughnessImageIndex = static_cast<unsigned int>(metallicTexImageIndex);
+		generateTextureID(imageData[metallicTexImageIndex], metallicSampler, metallicTexImageIndex, false);
 		
 		auto& normalTexture = material.normalTexture.value();
-		getTexInfo(normalTexture, false);
-		auto normalIndex = asset.textures[normalTexture.textureIndex].imageIndex.value();
-		materials[i].normalImageIndex = static_cast<unsigned int>(normalIndex);
+		auto [normalTexImageIndex, normalSampler] = getTextureInfo(normalTexture);
+		materials[i].normalImageIndex = static_cast<unsigned int>(normalTexImageIndex);
+		generateTextureID(imageData[normalTexImageIndex], normalSampler, normalTexImageIndex, false);
 
 		auto& occlusionTexture = material.occlusionTexture.value();
-		getTexInfo(occlusionTexture, false);
-		auto aoIndex = asset.textures[occlusionTexture.textureIndex].imageIndex.value();
-		materials[i].aoImageIndex = static_cast<unsigned int>(aoIndex);
+		auto [aoImageIndex, aoSampler] = getTextureInfo(occlusionTexture);
+		materials[i].aoImageIndex = static_cast<unsigned int>(aoImageIndex);
+		generateTextureID(imageData[aoImageIndex], aoSampler, aoImageIndex, false);
 	}
+}
+
+std::pair<unsigned int, Model::Sampler> Model::getTextureInfo(const fastgltf::TextureInfo& texInfo) const {
+	const auto& texture = asset.textures[texInfo.textureIndex];
+
+	auto magFilter = fastgltf::Filter::Linear;
+	auto minFilter = fastgltf::Filter::LinearMipMapLinear;
+	auto wrapS = fastgltf::Wrap::Repeat;
+	auto wrapT = fastgltf::Wrap::Repeat;
+
+	if (texture.samplerIndex.has_value()) {
+		auto samplerIndex = texture.samplerIndex.value();
+		wrapS = asset.samplers[samplerIndex].wrapS;
+		wrapT = asset.samplers[samplerIndex].wrapT;
+
+		if (asset.samplers[samplerIndex].magFilter.has_value())
+			magFilter = asset.samplers[samplerIndex].magFilter.value();
+
+		if (asset.samplers[samplerIndex].minFilter.has_value())
+			minFilter = asset.samplers[samplerIndex].minFilter.value();
+	}
+
+	const unsigned int assetImageIndex = static_cast<unsigned int>(texture.imageIndex.value());
+	Sampler sampler = { static_cast<uint16_t>(magFilter), static_cast<uint16_t>(minFilter), static_cast<uint16_t>(wrapS), static_cast<uint16_t>(wrapT) };
+
+	return { assetImageIndex, sampler };
 }
 
 void Model::generateTextureID(const ImageData& image, Sampler sampler, unsigned int index, bool sRGB) {
@@ -215,10 +220,10 @@ void Model::generateTextureID(const ImageData& image, Sampler sampler, unsigned 
 		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, image.width, image.height, 0, imageFormat, GL_UNSIGNED_BYTE, image.data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, sampler.wrapS);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, sampler.wrapT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, sampler.minFilter);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, sampler.magFilter);
 	}
 	else
 		textureID = 0;
