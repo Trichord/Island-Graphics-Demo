@@ -1,7 +1,6 @@
 #pragma once
 
 #include "thread_pool.h"
-#include "texture.h"
 #include <vector>
 #include <string>
 #include <unordered_map>
