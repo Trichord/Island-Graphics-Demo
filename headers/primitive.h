@@ -17,17 +17,18 @@ public:
 		glm::vec3 normal;
 		glm::vec4 tangent;
 		glm::vec2 texCoords;
-		unsigned int materialIndex;
 
 		Vertex(float px = 0.0f, float py = 0.0f, float pz = 0.0f, float nx = 0.0f, float ny = 0.0f, float nz = 0.0f, 
-			float tx = 0.0f, float ty = 0.0f, float tz = 0.0f, float tw = 0.0f, float u = 0.0f, float v = 0.0f, float matIndex = 0) :
-			position(px, py, pz), normal(nx, ny, nz), tangent(tx, ty, tz, tw), texCoords(u, v), materialIndex(matIndex) {
+			float tx = 0.0f, float ty = 0.0f, float tz = 0.0f, float tw = 0.0f, float u = 0.0f, float v = 0.0f) :
+			position(px, py, pz), normal(nx, ny, nz), tangent(tx, ty, tz, tw), texCoords(u, v){
 		};
 	};
 
 	struct Mesh {
 		std::vector<Primitive> primitives;
 	};
+	
+	unsigned int materialIndex = 0;
 
 	Primitive(std::vector<Vertex>&& verts, std::vector<std::uint32_t>&& inds, unsigned int matIndex);
 	Primitive(Primitive&& other) noexcept;
@@ -43,7 +44,6 @@ public:
 
 private:
 	unsigned int VAO = 0, VBO = 0, EBO = 0;
-	unsigned int materialIndex = 0;
 	
 	void setupPrimitiveBuffers();
 };
