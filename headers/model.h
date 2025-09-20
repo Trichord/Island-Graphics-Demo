@@ -40,15 +40,18 @@ private:
 
 		Sampler(uint16_t mag = GL_LINEAR, uint16_t min = GL_LINEAR_MIPMAP_LINEAR, uint16_t ws = GL_REPEAT, uint16_t wt = GL_REPEAT) : magFilter(mag), minFilter(min), wrapS(ws), wrapT(wt) {};
 	};
+
+	fastgltf::Asset asset;
 	std::vector<Primitive::Mesh> meshes;
 	std::vector<Material> materials;
 	std::vector<GLuint> assetImages;
 	std::unordered_set<unsigned int> processedImageIndices;
 
 	void loadModel(std::filesystem::path path);
-	void loadTextures(const fastgltf::Asset& asset, const std::filesystem::path parentPath);
-	void getMaterials(const fastgltf::Asset& asset, const std::vector<ImageData>& imagedata);
-	std::vector<std::filesystem::path> getURIs(const fastgltf::Asset& asset, const std::filesystem::path parentPath);
+	void loadTextures(const std::filesystem::path parentPath);
+	void getMaterials(const std::vector<ImageData>& imagedata);
+	std::vector<std::filesystem::path> getURIs(const std::filesystem::path parentPath);
+	std::pair<unsigned int, Sampler> getTextureInfo(const fastgltf::TextureInfo& texInfo) const;
 	void generateTextureID(const ImageData& image, Sampler sampler, unsigned int index, bool sRGB);
 };
 
