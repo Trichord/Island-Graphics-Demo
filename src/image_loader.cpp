@@ -1,40 +1,29 @@
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 
 #include "../headers/image_loader.h"
 #include "../headers/thread_pool.h"
-#include "../headers/texture.h"
+#include "stb_image.h"
 #include <vector>
 #include <string>
-#include <unordered_map>
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
 #include <filesystem>
-
-//Queue up all filepaths in the thread pool
-ImageLoader::ImageLoader(const std::unordered_map<std::filesystem::path, TextureType>& inputMap) : numImages(inputMap.size()), numImagesLoaded(0) {
-
-	for (auto const& [path, type] : inputMap) {
-		threadPool.enqueue([this, path, type]() {
-			loadFromFile(path, type);
-			});
-	}
-
-	//Wait for all images to be loaded before leaving constructor
-	{
-		std::unique_lock<std::mutex> lock(imagesMutex);
-		condition.wait(lock, [this] {
-			return numImagesLoaded == numImages; });
-	}
-}
+#include <iostream>
 
 ImageLoader::ImageLoader(const std::vector<std::filesystem::path>& filepaths) : numImages(filepaths.size()), numImagesLoaded(0) {
 
-	for (auto const& path : filepaths)
-		threadPool.enqueue([this, path]() {
-		loadFromFile(path, TEXTURE_NONE);
+	loadedImages.resize(numImages);
+
+	//Queue up all filepaths in the thread pool
+	for (unsigned int i = 0; i < filepaths.size(); ++i) {
+		std::filesystem::path path = filepaths[i];
+		threadPool.enqueue([this, path, i]() {
+			loadFromFile(path, i);
 			});
+	}
+	
+	//Wait for all images to be loaded before leaving constructor
 	{
 		std::unique_lock<std::mutex> lock(imagesMutex);
 		condition.wait(lock, [this] {
@@ -46,28 +35,33 @@ ImageLoader::~ImageLoader() {
 	freeImages();
 }
 
-const std::unordered_map<std::filesystem::path, ImageData>& ImageLoader::getImageData() const {
+const std::vector<ImageData>& ImageLoader::getImageData() const {
 	return loadedImages;
 }
 
 void ImageLoader::freeImages() {
-	for (auto& [path, image] : loadedImages)
+	for (auto& image : loadedImages)
 		if (image.data != nullptr) {
 			stbi_image_free(image.data);
 			image.data = nullptr;
 		}
 }
 
-void ImageLoader::loadFromFile(const std::filesystem::path& path, TextureType texType) {
+void ImageLoader::loadFromFile(const std::filesystem::path& path, unsigned int index) {
 	int width, height, nrChannels;
-	unsigned char* image = stbi_load(path.string().c_str(), &width, &height, &nrChannels, 0);
+	unsigned char* data = stbi_load(path.string().c_str(), &width, &height, &nrChannels, 0);
+
+	if(!data)
+		std::cerr << "STBI Failed to load image at: " << path.string() << std::endl;
 
 	//Lock and insert.  If stbi_load fails, we get a nullptr which is handled by model.h
 	{
 		std::unique_lock<std::mutex> lock(imagesMutex);
-		loadedImages.emplace(path, ImageData{ image, width, height, nrChannels, texType });
+		loadedImages[index] = ImageData(data, width, height, nrChannels);
 	}
+
 	numImagesLoaded++;
+
 	if (numImagesLoaded == numImages)
 		condition.notify_one();
 }

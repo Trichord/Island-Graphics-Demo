@@ -10,76 +10,59 @@
 #include <glad/glad.h>
 
 CubeMappedModel::CubeMappedModel(CubeMappedModel&& other) noexcept
-    : cubemapTextureID(other.cubemapTextureID) {
-  other.cubemapTextureID = 0;
+	: cubemapTextureID(other.cubemapTextureID) {
+	other.cubemapTextureID = 0;
 }
 
 CubeMappedModel& CubeMappedModel::operator=(CubeMappedModel&& other) noexcept {
-  if (this != &other) {
-    cubemapTextureID = other.cubemapTextureID;
-    other.cubemapTextureID = 0;
-  }
+	if (this != &other) {
+		cubemapTextureID = other.cubemapTextureID;
+		other.cubemapTextureID = 0;
+	}
 
-  return *this;
+	return *this;
 }
 
 CubeMappedModel::~CubeMappedModel() { glDeleteTextures(1, &cubemapTextureID); }
 
 void CubeMappedModel::loadTextures() {
-  ImageLoader imageLoader(texturePaths);
-  std::unordered_map<std::filesystem::path, ImageData> loadedImages =
-      imageLoader.getImageData();
+	ImageLoader imageLoader(texturePaths);
+	std::vector<ImageData> loadedImages = imageLoader.getImageData();
 
-  glGenTextures(1, &cubemapTextureID);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTextureID);
+	glGenTextures(1, &cubemapTextureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTextureID);
 
-  // Cubemap ID
-  for (auto& [path, image] : loadedImages) {
-    int nrChannels = image.nrChannels;
+	// Cubemap ID
+	for (unsigned int i = 0; i < 6; ++i){
+		int nrChannels = loadedImages[i].nrChannels;
 
-    if (image.data) {
-      GLenum imageFormat = 3;
+		if (loadedImages[i].data) {
+			GLenum imageFormat = 3;
 
-      // stb_image only ever returns a 1, 2, 3, or 4 for a valid image
-      if (nrChannels == 1)
-        imageFormat = GL_RED;
-      else if (nrChannels == 2)
-        imageFormat = GL_RG;
-      else if (nrChannels == 3)
-        imageFormat = GL_RGB;
-      else if (nrChannels == 4)
-        imageFormat = GL_RGBA;
+			// stb_image only ever returns a 1, 2, 3, or 4 for a valid image
+			if (nrChannels == 1)
+				imageFormat = GL_RED;
+			else if (nrChannels == 2)
+				imageFormat = GL_RG;
+			else if (nrChannels == 3)
+				imageFormat = GL_RGB;
+			else if (nrChannels == 4)
+				imageFormat = GL_RGBA;
 
-      std::string face = path.stem().string();
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_SRGB8, loadedImages[i].width, loadedImages[i].height, 0,
+				imageFormat, GL_UNSIGNED_BYTE, loadedImages[i].data);
+		}
+		else {
+			cubemapTextureID = 0;
+			return;
+		}
+	}
 
-      int cubeTextureTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-      if (face == "left")
-        cubeTextureTarget = GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
-      else if (face == "top")
-        cubeTextureTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
-      else if (face == "bottom")
-        cubeTextureTarget = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
-      else if (face == "front")
-        cubeTextureTarget = GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
-      else if (face == "back")
-        cubeTextureTarget = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
-
-      glTexImage2D(cubeTextureTarget, 0, GL_SRGB8, image.width, image.height, 0,
-                   imageFormat, GL_UNSIGNED_BYTE, image.data);
-    } else {
-      std::cout << "Cube texture failed to load: " << path.string()
-                << std::endl;
-      cubemapTextureID = 0;
-      return;
-    }
-  }
-
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-  glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE0);
 }

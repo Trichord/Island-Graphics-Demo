@@ -5,7 +5,8 @@
 #include <string>
 #include <glad/glad.h>
 
-//Cube mapped models handle their VAO's and VBO's differently, so default behavior is no copy
+//Cube mapped models handle their VAO's and VBO's differently, so default behavior is no copy.
+//texturePaths should be filled in this order: right, left, top, bottom, front, back
 class CubeMappedModel {
 
 public:

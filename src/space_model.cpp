@@ -33,7 +33,7 @@ void SpaceModel::draw() {
 }
 
 void SpaceModel::loadModel(std::filesystem::path& path) {
-	fastgltf::Asset asset = fastgltfLoadAsset(path);
+	fastgltf::Asset asset = fastgltf_loader::loadAsset(path);
 	meshes.resize(asset.meshes.size());
-	meshes = fastgltfLoadMeshes(asset);
+	meshes = fastgltf_loader::loadMeshes(asset);
 }
