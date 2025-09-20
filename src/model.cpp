@@ -82,8 +82,6 @@ void Model::loadModel(std::filesystem::path path) {
 	meshes.resize(asset.meshes.size());
 	meshes = fastgltfLoadMeshes(asset);
 
-	loadMaterials(asset);
-
 	loadTextures(asset, path.parent_path());
 }
 
@@ -92,9 +90,9 @@ void Model::loadTextures(const fastgltf::Asset& asset, const std::filesystem::pa
 	ImageLoader imageLoader(texturePaths);
 	std::vector<ImageData> imageData = imageLoader.getImageData();
 
+	getMaterials(asset, imageData);
 
-
-	generateTextureIDs(imageData);
+	//generateTextureIDs(imageData);
 }
 
 std::vector<std::filesystem::path> Model::getURIs(const fastgltf::Asset& asset, const std::filesystem::path parentPath) {
@@ -118,81 +116,77 @@ std::vector<std::filesystem::path> Model::getURIs(const fastgltf::Asset& asset, 
 	return URIpaths;
 }
 
-void Model::generateTextureID(const ImageData &image, bool sRGB) {
-		GLuint textureID;
-
-		if (image.data) {
-			GLenum imageFormat = 3, internalFormat = 3;
-			int nrChannels = image.nrChannels;
-
-			//stb_image only ever returns a 1, 2, 3, or 4 for a valid image
-			if (nrChannels == 1) {
-				imageFormat = GL_RED;
-				internalFormat = GL_RED;
-			}
-			else if (nrChannels == 2) {
-				imageFormat = GL_RG;
-				internalFormat = GL_RG;
-			}
-			else if (nrChannels == 3) {
-				imageFormat = GL_RGB;
-				internalFormat = sRGB ? GL_SRGB : GL_RGB;
-			}
-			else if (nrChannels == 4) {
-				imageFormat = GL_RGBA;
-				internalFormat = sRGB ? GL_SRGB_ALPHA : GL_RGBA;
-			}
-
-			glGenTextures(1, &textureID);
-			glBindTexture(GL_TEXTURE_2D, textureID);
-
-			glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, image.width, image.height, 0, imageFormat, GL_UNSIGNED_BYTE, image.data);
-			glGenerateMipmap(GL_TEXTURE_2D);
-
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		}
-		else 
-			textureID = 0;
-		
-		assetImages[i] = textureID;
-	}
-
-	glActiveTexture(GL_TEXTURE0);
-}
-
-void Model::loadMaterials(const fastgltf::Asset& asset) {
+void Model::getMaterials(const fastgltf::Asset& asset, const std::vector<ImageData>& imageData) {
 	materials.resize(asset.materials.size());
 	
-	for (const fastgltf::Material& material : asset.materials) {
+	for (unsigned int i = 0; i < asset.materials.size(); ++i){
 
 		auto getTexInfo = [&](const fastgltf::TextureInfo& texInfo) {
 			const auto& texture = asset.textures[texInfo.textureIndex];
 			const unsigned int assetImageIndex = texture.imageIndex.value();
 		
+			auto magFilter = fastgltf::Filter::Linear;
+			auto minFilter = fastgltf::Filter::LinearMipMapLinear;
 			auto wrapS = fastgltf::Wrap::Repeat;
 			auto wrapT = fastgltf::Wrap::Repeat;
 
 			if (texture.samplerIndex.has_value()) {
+				auto sampler = texture.samplerIndex.value();
 				wrapS = asset.samplers[texture.samplerIndex.value()].wrapS;
 				wrapT = asset.samplers[texture.samplerIndex.value()].wrapT;
 			}
 
-
 			
 		};
 
-		if (material.pbrData.baseColorTexture.has_value()) {
-			getTexInfo(material.pbrData.baseColorTexture.value());
-			
-		}
-		
-		
+		getTexInfo(material.pbrData.baseColorTexture.value());
 		getTexInfo(material.pbrData.metallicRoughnessTexture.value()); //TEXTURE_METALLIC_ROUGHNESS
 		getTexInfo(material.normalTexture.value()); //TEXTURE_NORMAL
 		getTexInfo(material.occlusionTexture.value()); //TEXTURE_OCCLUSION
-	}
 	
+		
+	}
+}
+
+void Model::generateTextureID(const ImageData& image, unsigned int index, bool sRGB) {
+	GLuint textureID;
+
+	if (image.data) {
+		GLenum imageFormat = 3, internalFormat = 3;
+		int nrChannels = image.nrChannels;
+
+		//stb_image only ever returns a 1, 2, 3, or 4 for a valid image
+		if (nrChannels == 1) {
+			imageFormat = GL_RED;
+			internalFormat = GL_RED;
+		}
+		else if (nrChannels == 2) {
+			imageFormat = GL_RG;
+			internalFormat = GL_RG;
+		}
+		else if (nrChannels == 3) {
+			imageFormat = GL_RGB;
+			internalFormat = sRGB ? GL_SRGB : GL_RGB;
+		}
+		else if (nrChannels == 4) {
+			imageFormat = GL_RGBA;
+			internalFormat = sRGB ? GL_SRGB_ALPHA : GL_RGBA;
+		}
+
+		glGenTextures(1, &textureID);
+		glBindTexture(GL_TEXTURE_2D, textureID);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, image.width, image.height, 0, imageFormat, GL_UNSIGNED_BYTE, image.data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	}
+	else
+		textureID = 0;
+
+	assetImages[index] = textureID;
+	glActiveTexture(GL_TEXTURE0);
 }
