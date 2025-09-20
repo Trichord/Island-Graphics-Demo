@@ -2,7 +2,6 @@
 
 #include "../headers/image_loader.h"
 #include "../headers/thread_pool.h"
-#include "../headers/texture.h"
 #include "stb_image.h"
 #include <vector>
 #include <string>

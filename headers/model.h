@@ -1,15 +1,12 @@
 #pragma once
 
-#include "texture.h"
 #include "shader.h"
 #include "primitive.h"
 #include "image_loader.h"
 #include <fastgltf/types.hpp>
 #include <unordered_set>
-#include <string>
 #include <vector>
 #include <filesystem>
-#include <iostream>
 #include <glad/glad.h>
 
 /* 
@@ -35,12 +32,6 @@ private:
 		Material(unsigned int alb = 0, unsigned int metRough = 0, unsigned int norm = 0, unsigned int ao = 0) : albedoImageIndex(alb), metallicRoughnessImageIndex(metRough), normalImageIndex(norm), aoImageIndex(ao) {};
 	};
 
-	struct Sampler {
-		std::uint16_t magFilter, minFilter, wrapS, wrapT;
-
-		Sampler(uint16_t mag = GL_LINEAR, uint16_t min = GL_LINEAR_MIPMAP_LINEAR, uint16_t ws = GL_REPEAT, uint16_t wt = GL_REPEAT) : magFilter(mag), minFilter(min), wrapS(ws), wrapT(wt) {};
-	};
-
 	fastgltf::Asset asset;
 	std::vector<Primitive::Mesh> meshes;
 	std::vector<Material> materials;
@@ -49,9 +40,6 @@ private:
 
 	void loadModel(std::filesystem::path path);
 	void loadTextures(const std::filesystem::path parentPath);
-	void getMaterials(const std::vector<ImageData>& imagedata);
-	std::vector<std::filesystem::path> getURIs(const std::filesystem::path parentPath);
-	std::pair<unsigned int, Sampler> getTextureInfo(const fastgltf::TextureInfo& texInfo) const;
-	void generateTextureID(const ImageData& image, Sampler sampler, unsigned int index, bool sRGB);
+	void loadMaterials(const std::vector<ImageData>& imagedata);
 };
 
