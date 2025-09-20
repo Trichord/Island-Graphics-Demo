@@ -5,7 +5,7 @@
 #include "primitive.h"
 #include "image_loader.h"
 #include <fastgltf/types.hpp>
-#include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <vector>
 #include <filesystem>
@@ -15,8 +15,6 @@
 /* 
 Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees. Texture IDs are released on Model destruction. 
 assetImages is a 1:1 mapping of gltf's images array, but with OpenGL texture IDs instead of URIs.  Order of fastgltf's images is preserved
-materials is a 1:1 mapping of gltf's materials array to the assetImages texture IDs 
-samplers takes the "source" from gltf (an image index in the image array) as a key and maps it to the correct sampler options
 */
 
 class Model {
@@ -45,11 +43,12 @@ private:
 	std::vector<Primitive::Mesh> meshes;
 	std::vector<Material> materials;
 	std::vector<GLuint> assetImages;
+	std::unordered_set<unsigned int> processedImageIndices;
 
 	void loadModel(std::filesystem::path path);
 	void loadTextures(const fastgltf::Asset& asset, const std::filesystem::path parentPath);
 	void getMaterials(const fastgltf::Asset& asset, const std::vector<ImageData>& imagedata);
 	std::vector<std::filesystem::path> getURIs(const fastgltf::Asset& asset, const std::filesystem::path parentPath);
-	void generateTextureID(const ImageData& image, unsigned int index, bool sRGB);
+	void generateTextureID(const ImageData& image, Sampler sampler, unsigned int index, bool sRGB);
 };
 

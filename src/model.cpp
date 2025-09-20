@@ -62,15 +62,25 @@ Model::~Model() {
 void Model::draw(Shader& shader) {
 	shader.use();
 
-	//textureIDs contains, in this order: albedo, metallic-roughness, normal, occlusion
-	for (unsigned int i = 0; i < 4; ++i) { //This loop will not work with multiple materials
-		glActiveTexture(GL_TEXTURE0 + i);
-		glBindTexture(GL_TEXTURE_2D, assetImages[i]);
-	}
+	for (const Primitive::Mesh& mesh : meshes) {
+		for (const Primitive& primitive : mesh.primitives) {
+			Material material = materials[primitive.materialIndex];
+			
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, assetImages[material.albedoImageIndex]);
 
-	for (const Primitive::Mesh& mesh : meshes)
-		for (const Primitive& primitive : mesh.primitives)
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, assetImages[material.metallicRoughnessImageIndex]);
+
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, assetImages[material.normalImageIndex]);
+
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D, assetImages[material.aoImageIndex]);
+
 			primitive.draw();
+		}
+	}
 
 	glBindVertexArray(0);
 	glActiveTexture(GL_TEXTURE0);
@@ -82,6 +92,7 @@ void Model::loadModel(std::filesystem::path path) {
 	meshes.resize(asset.meshes.size());
 	meshes = fastgltfLoadMeshes(asset);
 
+	assetImages.resize(asset.images.size());
 	loadTextures(asset, path.parent_path());
 }
 
@@ -118,37 +129,62 @@ std::vector<std::filesystem::path> Model::getURIs(const fastgltf::Asset& asset, 
 
 void Model::getMaterials(const fastgltf::Asset& asset, const std::vector<ImageData>& imageData) {
 	materials.resize(asset.materials.size());
+
+	auto getTexInfo = [&](const fastgltf::TextureInfo& texInfo, bool sRGB) {
+		const auto& texture = asset.textures[texInfo.textureIndex];
+		
+		auto magFilter = fastgltf::Filter::Linear;
+		auto minFilter = fastgltf::Filter::LinearMipMapLinear;
+		auto wrapS = fastgltf::Wrap::Repeat;
+		auto wrapT = fastgltf::Wrap::Repeat;
+
+		if (texture.samplerIndex.has_value()) {
+			auto samplerIndex = texture.samplerIndex.value();
+			wrapS = asset.samplers[samplerIndex].wrapS;
+			wrapT = asset.samplers[samplerIndex].wrapT;
+
+			if(asset.samplers[samplerIndex].magFilter.has_value())
+				magFilter = asset.samplers[samplerIndex].magFilter.value();
+
+			if(asset.samplers[samplerIndex].minFilter.has_value())
+				minFilter = asset.samplers[samplerIndex].minFilter.value();
+		}
+
+		const unsigned int assetImageIndex = static_cast<unsigned int>(texture.imageIndex.value());
+		Sampler sampler = { static_cast<uint16_t>(magFilter), static_cast<uint16_t>(minFilter), static_cast<uint16_t>(wrapS), static_cast<uint16_t>(wrapT) };
+
+		generateTextureID(imageData[assetImageIndex], sampler, assetImageIndex, sRGB);
+	};
 	
 	for (unsigned int i = 0; i < asset.materials.size(); ++i){
-
-		auto getTexInfo = [&](const fastgltf::TextureInfo& texInfo) {
-			const auto& texture = asset.textures[texInfo.textureIndex];
-			const unsigned int assetImageIndex = texture.imageIndex.value();
+		const auto &material = asset.materials[i];
 		
-			auto magFilter = fastgltf::Filter::Linear;
-			auto minFilter = fastgltf::Filter::LinearMipMapLinear;
-			auto wrapS = fastgltf::Wrap::Repeat;
-			auto wrapT = fastgltf::Wrap::Repeat;
-
-			if (texture.samplerIndex.has_value()) {
-				auto sampler = texture.samplerIndex.value();
-				wrapS = asset.samplers[texture.samplerIndex.value()].wrapS;
-				wrapT = asset.samplers[texture.samplerIndex.value()].wrapT;
-			}
-
-			
-		};
-
-		getTexInfo(material.pbrData.baseColorTexture.value());
-		getTexInfo(material.pbrData.metallicRoughnessTexture.value()); //TEXTURE_METALLIC_ROUGHNESS
-		getTexInfo(material.normalTexture.value()); //TEXTURE_NORMAL
-		getTexInfo(material.occlusionTexture.value()); //TEXTURE_OCCLUSION
-	
+		auto& baseColorTexture = material.pbrData.baseColorTexture.value();
+		getTexInfo(baseColorTexture, true);
+		auto baseColorIndex = asset.textures[baseColorTexture.textureIndex].imageIndex.value();
+		materials[i].albedoImageIndex = static_cast<unsigned int>(baseColorIndex);
 		
+		auto& metallicRoughnessTexture = material.pbrData.metallicRoughnessTexture.value();
+		getTexInfo(metallicRoughnessTexture, false);
+		auto& metallicRoughnessIndex = asset.textures[metallicRoughnessTexture.textureIndex].imageIndex.value();
+		materials[i].metallicRoughnessImageIndex = static_cast<unsigned int>(metallicRoughnessIndex);
+		
+		auto& normalTexture = material.normalTexture.value();
+		getTexInfo(normalTexture, false);
+		auto normalIndex = asset.textures[normalTexture.textureIndex].imageIndex.value();
+		materials[i].normalImageIndex = static_cast<unsigned int>(normalIndex);
+
+		auto& occlusionTexture = material.occlusionTexture.value();
+		getTexInfo(occlusionTexture, false);
+		auto aoIndex = asset.textures[occlusionTexture.textureIndex].imageIndex.value();
+		materials[i].aoImageIndex = static_cast<unsigned int>(aoIndex);
 	}
 }
 
-void Model::generateTextureID(const ImageData& image, unsigned int index, bool sRGB) {
+void Model::generateTextureID(const ImageData& image, Sampler sampler, unsigned int index, bool sRGB) {
+	if (processedImageIndices.find(index) != processedImageIndices.end())
+		return;
+
 	GLuint textureID;
 
 	if (image.data) {
@@ -189,4 +225,6 @@ void Model::generateTextureID(const ImageData& image, unsigned int index, bool s
 
 	assetImages[index] = textureID;
 	glActiveTexture(GL_TEXTURE0);
+
+	processedImageIndices.insert(index);
 }
