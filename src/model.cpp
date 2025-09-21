@@ -129,16 +129,24 @@ void Model::loadMaterials(const std::vector<ImageData>& imageData) {
 	for (unsigned int i = 0; i < asset.materials.size(); ++i) {
 		const auto& material = asset.materials[i];
 
-		auto& baseColorTexture = material.pbrData.baseColorTexture.value();
-		materials[i].albedoImageIndex = processMaterialTexture(baseColorTexture, true);
+		if (material.pbrData.baseColorTexture.has_value()) {
+			auto& baseColorTexture = material.pbrData.baseColorTexture.value();
+			materials[i].albedoImageIndex = processMaterialTexture(baseColorTexture, true);
+		}
 
-		auto& metallicRoughnessTexture = material.pbrData.metallicRoughnessTexture.value();
-		materials[i].metallicRoughnessImageIndex = processMaterialTexture(metallicRoughnessTexture, false);
+		if (material.pbrData.metallicRoughnessTexture.has_value()) {
+			auto& metallicRoughnessTexture = material.pbrData.metallicRoughnessTexture.value();
+			materials[i].metallicRoughnessImageIndex = processMaterialTexture(metallicRoughnessTexture, false);
+		}
 
-		auto& normalTexture = material.normalTexture.value();
-		materials[i].normalImageIndex = processMaterialTexture(normalTexture, false);
+		if (material.normalTexture.has_value()) {
+			auto& normalTexture = material.normalTexture.value();
+			materials[i].normalImageIndex = processMaterialTexture(normalTexture, false);
+		}
 
-		auto& occlusionTexture = material.occlusionTexture.value();
-		materials[i].aoImageIndex = processMaterialTexture(occlusionTexture, false);
+		if (material.occlusionTexture.has_value()) {
+			auto& occlusionTexture = material.occlusionTexture.value();
+			materials[i].aoImageIndex = processMaterialTexture(occlusionTexture, false);
+		}
 	}
 }

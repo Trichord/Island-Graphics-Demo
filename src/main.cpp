@@ -166,18 +166,13 @@ int main() {
     };
     
     //Load all models and stop thread pool
-    Model gltfTestModel("./models/materials/FlightHelmet.gltf"); 
-    SpaceModel spaceModel("./models/dodecahedron/scene.gltf");
+    Model gltfTestModel("./models/island/FloatingIsland_AddTextureblend.gltf"); 
     Skybox skybox(skyBoxPaths);
     threadPool.stopAllThreads();
  
     //Setup matrices
     glm::mat4 model = glm::mat4(1.0f);
-    glm::mat4 spaceModelMatrix = glm::translate(model, glm::vec3(-4.0f, 0.0f, 0.0f));
-    spaceModelMatrix = glm::scale(spaceModelMatrix, glm::vec3(0.75f));
-    model = glm::scale(model, glm::vec3(2.0f));
-    glm::mat3 spaceNormal = glm::transpose(glm::inverse(glm::mat3(spaceModelMatrix)));
-    glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 600.0f);
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 viewNoTrans = glm::mat4(glm::mat3(view));
     glm::mat3 normalMV = glm::transpose(glm::inverse(glm::mat3(view * model)));
@@ -223,12 +218,6 @@ int main() {
     skyboxShader.use();
     skyboxShader.setInt("skybox", 0);
 
-    reflectiveSpaceShader.use();
-    reflectiveSpaceShader.setUniformBlock("matrices", 0);
-    reflectiveSpaceShader.setInt("cubemap", 0);
-    reflectiveSpaceShader.setMat4("modelMatrix", spaceModelMatrix);
-    reflectiveSpaceShader.setMat3("normalMatrix", spaceNormal);
-
     while (true){
         //Clear background
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -263,13 +252,6 @@ int main() {
         }
  
         gltfTestModel.draw(pbrShader);
-
-        reflectiveSpaceShader.use();
-        spaceModelMatrix = glm::rotate(spaceModelMatrix, glm::radians(2.5f) * deltaTime, glm::vec3(0.4f, 1.0f, 0.2344f));
-        reflectiveSpaceShader.setMat4("modelMatrix", spaceModelMatrix);
-        reflectiveSpaceShader.setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(spaceModelMatrix))));
-        reflectiveSpaceShader.setVec3("cameraPos", camera.position);
-        spaceModel.draw();
 
         lightSource.use();
         lightSourceModel = glm::mat4(1.0f);
