@@ -43,3 +43,52 @@ GLuint texture_manager::generateTextureID(const ImageData& image, Sampler sample
 
 	return textureID;
 }
+
+GLuint texture_manager::generateCubemapTextureID(const std::vector<ImageData>& imageData, bool sRGB) {
+	GLuint cubemapTextureID;
+	glGenTextures(1, &cubemapTextureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTextureID);
+
+	// Cubemap ID
+	for (unsigned int i = 0; i < 6; ++i) {
+		int nrChannels = imageData[i].nrChannels;
+
+		if (imageData[i].data) {
+			GLenum imageFormat = 3, internalFormat = 3;
+
+			// stb_image only ever returns a 1, 2, 3, or 4 for a valid image
+			if (nrChannels == 1) {
+				imageFormat = GL_RED;
+				internalFormat = GL_RED;
+			}
+			else if (nrChannels == 2) {
+				imageFormat = GL_RG;
+				internalFormat = GL_RG;
+			}
+			else if (nrChannels == 3) {
+				imageFormat = GL_RGB;
+				internalFormat = sRGB ? GL_SRGB : GL_RGB;
+			}
+			else if (nrChannels == 4) {
+				imageFormat = GL_RGBA;
+				internalFormat = sRGB ? GL_SRGB_ALPHA : GL_RGBA;
+			}
+
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, internalFormat, imageData[i].width, imageData[i].height, 0,
+				imageFormat, GL_UNSIGNED_BYTE, imageData[i].data);
+		}
+		else {
+			cubemapTextureID = 0;
+		}
+	}
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	glActiveTexture(GL_TEXTURE0);
+
+	return cubemapTextureID;
+}
