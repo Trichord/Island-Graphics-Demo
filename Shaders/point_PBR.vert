@@ -17,16 +17,15 @@ out VS_OUT {
 } vs_out;
 
 uniform mat4 modelMatrix;
-uniform mat3 normalMatrix;
+uniform mat3 normalMV; // transpose(inverse(mat3(viewMatrix * modelMatrix)));
 uniform vec3 lightPosition;
 
 void main () {
 	mat4 viewModel = viewMatrix * modelMatrix;
-	vec3 normalTangent = normalMatrix * aTangent.xyz;
 
 	//TBN matrix for normal map
-	vec3 T = normalize(mat3(viewModel) * normalTangent);
-	vec3 N = normalize(mat3(viewMatrix) * normalMatrix * aNormal);
+	vec3 T = normalize(normalMV * aTangent.xyz);
+	vec3 N = normalize(normalMV * aNormal);
 	T = normalize(T - dot(T, N) * N); 
 	vec3 B = normalize(cross(N, T) * aTangent.w);
 	mat3 TBN = transpose(mat3(T, B, N));
