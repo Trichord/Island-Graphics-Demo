@@ -94,7 +94,7 @@ void main() {
 	kD *= 1.0 - metallic;
 
 	vec3 numerator = NDF * G * F;
-	float denom = 4.0 * NdotV * NdotL + 0.000001;
+	float denom = max(4.0 * NdotV * NdotL, 0.000001);
 	vec3 specular = numerator / denom;
 
 	//add to outgoing radiance Lo
