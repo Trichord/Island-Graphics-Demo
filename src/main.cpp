@@ -175,12 +175,12 @@ int main() {
     glm::mat4 model = glm::mat4(1.0f);
     glm::mat4 spaceModelMatrix = glm::translate(model, glm::vec3(-4.0f, 0.0f, 0.0f));
     spaceModelMatrix = glm::scale(spaceModelMatrix, glm::vec3(0.75f));
-    model = glm::scale(model, glm::vec3(300.0f));
+    model = glm::scale(model, glm::vec3(2.0f));
     glm::mat3 spaceNormal = glm::transpose(glm::inverse(glm::mat3(spaceModelMatrix)));
     glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 viewNoTrans = glm::mat4(glm::mat3(view));
-    glm::mat3 normal = glm::transpose(glm::inverse(glm::mat3(model)));
+    glm::mat3 normalMV = glm::transpose(glm::inverse(glm::mat3(view * model)));
     glm::vec3 lightPosition = glm::vec3(-2.0f, 2.0f, 0.0f);
 
     //Matrices Uniform Buffer Object
@@ -206,8 +206,8 @@ int main() {
     //Final shader uniform setup before loop
     pbrShader.use();
     pbrShader.setUniformBlock("matrices", 0);
-    pbrShader.setMat4("modelMatrix", glm::scale(model, glm::vec3(.01f)));
-    pbrShader.setMat3("normalMatrix", normal);
+    pbrShader.setMat4("modelMatrix", model);
+    pbrShader.setMat3("normalMV", normalMV);
     pbrShader.setVec3("lightPosition", lightPosition);
     pbrShader.setInt("albedoMap", 0);
     pbrShader.setInt("occlusionRoughMetalMap", 1);
@@ -252,13 +252,14 @@ int main() {
 
         pbrShader.use();
         pbrShader.setVec3("lightPosition", lightPosition);
-
+        
         if (camera.hasUpdated()) {
             view = camera.GetViewMatrix();
             viewNoTrans = glm::mat4(glm::mat3(view));
             packedMatrices[0] = view;
             packedMatrices[1] = projection * view;
             glBufferSubData(GL_UNIFORM_BUFFER, 0, 2 * sizeof(glm::mat4), packedMatrices);
+            pbrShader.setMat3("normalMV", glm::transpose(glm::inverse(glm::mat3(view * model))));
         }
  
         gltfTestModel.draw(pbrShader);

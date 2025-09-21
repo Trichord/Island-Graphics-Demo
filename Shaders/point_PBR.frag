@@ -51,6 +51,17 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0){
 	return F0 + (1.0 - F0) * x5;
 }
 
+//ACES film tone mapping (Krzysztof Narkowicz)
+vec3 ACESFilm(vec3 x) {
+float a = 2.51f;
+float b = 0.03f;
+float c = 2.43f;
+float d = 0.59f;
+float e = 0.14f;
+
+return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+}
+
 void main() {
 	vec3 albedo = texture(albedoMap, fs_in.texCoords).rgb;
 	vec3 normal = texture(normalMap, fs_in.texCoords).rgb * 2.0 - 1.0; //From [0, 1] to [-1, 1]
@@ -94,7 +105,8 @@ void main() {
 	kD *= 1.0 - metallic;
 
 	vec3 numerator = NDF * G * F;
-	float denom = max(4.0 * NdotV * NdotL, 0.000001);
+	//float denom = max(4.0 * NdotV * NdotL, 0.000001);
+	float denom = max(4.0 * NdotV * NdotL, 0.05 + 0.05 * roughness);
 	vec3 specular = numerator / denom;
 
 	//add to outgoing radiance Lo
@@ -103,8 +115,8 @@ void main() {
 	vec3 ambient = vec3(0.1) * albedo * ao;
 	vec3 color = ambient + Lo;
 
-	//Reinhard tone mapping
-	color = color / (color + vec3(1.0));
+	//ACES tone mapping
+	color = ACESFilm(color);
 
 	fragColor = vec4(color, 1.0);
 }
