@@ -166,7 +166,7 @@ int main() {
     };
     
     //Load all models and stop thread pool
-    Model gltfTestModel("./models/test/scene.gltf"); 
+    Model gltfTestModel("./models/materials/FlightHelmet.gltf"); 
     SpaceModel spaceModel("./models/dodecahedron/scene.gltf");
     Skybox skybox(skyBoxPaths);
     threadPool.stopAllThreads();
@@ -175,6 +175,7 @@ int main() {
     glm::mat4 model = glm::mat4(1.0f);
     glm::mat4 spaceModelMatrix = glm::translate(model, glm::vec3(-4.0f, 0.0f, 0.0f));
     spaceModelMatrix = glm::scale(spaceModelMatrix, glm::vec3(0.75f));
+    model = glm::scale(model, glm::vec3(300.0f));
     glm::mat3 spaceNormal = glm::transpose(glm::inverse(glm::mat3(spaceModelMatrix)));
     glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
     glm::mat4 view = camera.GetViewMatrix();
@@ -209,9 +210,8 @@ int main() {
     pbrShader.setMat3("normalMatrix", normal);
     pbrShader.setVec3("lightPosition", lightPosition);
     pbrShader.setInt("albedoMap", 0);
-    pbrShader.setInt("metallicRoughnessMap", 1);
+    pbrShader.setInt("occlusionRoughMetalMap", 1);
     pbrShader.setInt("normalMap", 2);
-    pbrShader.setInt("aoMap", 3);
 
     lightSource.use();
     lightSource.setUniformBlock("matrices", 0);
@@ -247,8 +247,8 @@ int main() {
         if (glfwWindowShouldClose(window))
             break;
 
-        lightPosition.x = sin((float)glfwGetTime() * 0.25f);
-        lightPosition.z = cos((float)glfwGetTime() * 0.25f);
+        lightPosition.x = (float)sin((float)glfwGetTime() * 0.25f);
+        lightPosition.z = (float)cos((float)glfwGetTime() * 0.25f);
 
         pbrShader.use();
         pbrShader.setVec3("lightPosition", lightPosition);
