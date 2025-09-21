@@ -11,4 +11,5 @@ struct Sampler {
 
 namespace texture_manager {
 GLuint generateTextureID(const ImageData& image, Sampler sampler, unsigned int index, bool sRGB);
+GLuint generateCubemapTextureID(const std::vector<ImageData>& imageData, bool sRGB);
 }
