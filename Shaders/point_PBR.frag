@@ -63,8 +63,9 @@ return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
 void main() {
+	//material properties, remap normal from [0, 1] to [-1, 1]
 	vec3 albedo = texture(albedoMap, fs_in.texCoords).rgb;
-	vec3 normal = texture(normalMap, fs_in.texCoords).rgb * 2.0 - 1.0; //From [0, 1] to [-1, 1]
+	vec3 normal = texture(normalMap, fs_in.texCoords).rgb * 2.0 - 1.0; 
 	vec3 occlusionRoughMetalMap = texture(occlusionRoughMetalMap, fs_in.texCoords).rgb;
 	float ao = occlusionRoughMetalMap.r;
 	float roughness = occlusionRoughMetalMap.g;
@@ -104,9 +105,9 @@ void main() {
 	vec3 kD = vec3(1.0) - kS;
 	kD *= 1.0 - metallic;
 
+	//Avoid division by 0 using a small amount of the roughness
 	vec3 numerator = NDF * G * F;
-	//float denom = max(4.0 * NdotV * NdotL, 0.000001);
-	float denom = max(4.0 * NdotV * NdotL, 0.05 + 0.05 * roughness);
+	float denom = max(4.0 * NdotV * NdotL, 0.01 + 0.01 * roughness); 
 	vec3 specular = numerator / denom;
 
 	//add to outgoing radiance Lo
