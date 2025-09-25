@@ -1,5 +1,5 @@
 #include "../headers/model.h"
-#include "../headers/texture_manager.h"
+#include "../headers/texture_utilities.h"
 #include "../headers/image_loader.h"
 #include "../headers/fastgltf_loader.h"
 #include "../headers/primitive.h"
@@ -118,7 +118,7 @@ void Model::loadMaterials(const std::vector<ImageData>& imageData) {
 
 		//Generate new texture id if the index is not already in the set image indices already processed
 		if (processedImageIndices.insert(index).second) {
-			GLuint texID = texture_manager::generateTextureID(imageData[index], sampler, index, sRGB);
+			GLuint texID = texture_utilities::generateTextureID(imageData[index], sampler, index, sRGB);
 			assetImages[index] = texID;
 		}
 
