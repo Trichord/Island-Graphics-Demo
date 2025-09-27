@@ -19,10 +19,11 @@ fastgltf::Asset fastgltf_loader::loadAsset(std::filesystem::path path) {
 	auto assetResult = parser.loadGltfJson(data.get(), path.parent_path(), fastgltf::Options::GenerateMeshIndices | fastgltf::Options::LoadExternalBuffers);
 
 	if (auto error = assetResult.error(); error != fastgltf::Error::None)
-		std::cerr << "FastGLTF buffer/parsing/validation error from " << path << std::endl;
+		std::cerr << "fastgltf error while loading: " << path << std::endl;
 
-	fastgltf::Asset asset = std::move(assetResult.get());
+	fastgltf::Asset asset = std::move(assetResult.get()); 
 	return asset;
+
 }
 
 std::vector<Primitive::Mesh> fastgltf_loader::loadMeshes(const fastgltf::Asset& asset) {

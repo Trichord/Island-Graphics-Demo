@@ -1,7 +1,7 @@
 #pragma once
 
 #include "primitive.h"
-#include "texture_manager.h"
+#include "texture_utilities.h"
 #include <vector>
 #include <fastgltf/types.hpp>
 

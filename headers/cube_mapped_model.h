@@ -1,5 +1,6 @@
 #pragma once
 
+#include "shader.h"
 #include <vector>
 #include <filesystem>
 #include <string>
@@ -17,7 +18,7 @@ public:
 	CubeMappedModel& operator=(CubeMappedModel&& other) noexcept;
 	virtual ~CubeMappedModel();
 
-	virtual void draw() = 0;
+	virtual void draw(Shader &shader) = 0;
 
 protected:
 	GLuint cubemapTextureID = 0;
