@@ -1,5 +1,6 @@
 #include "../headers/texture_utilities.h"
 #include <glad/glad.h>
+#include <iostream>
 
 GLuint texture_utilities::generateTextureID(const ImageData& image, Sampler sampler, unsigned int index, bool sRGB, bool anisotropic) {
 	GLuint textureID;

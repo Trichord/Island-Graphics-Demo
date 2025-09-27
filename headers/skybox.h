@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../headers/cube_mapped_model.h"
+#include "../headers/shader.h"
 #include <vector>
 #include <string>
 #include "glad/glad.h"
@@ -10,7 +11,7 @@ public:
 	Skybox(const std::vector<std::string>& skyboxPaths);
 	~Skybox();
 
-	void draw() override;
+	void draw(Shader &shader) override;
 
 protected:
 	GLuint modelVAO = 0, modelVBO = 0, modelEBO = 0;
