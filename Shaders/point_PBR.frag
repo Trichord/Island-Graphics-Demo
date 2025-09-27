@@ -113,7 +113,7 @@ void main() {
 	//add to outgoing radiance Lo
 	Lo += (kD * albedo / PI + specular) * radiance * NdotL;
 
-	vec3 ambient = vec3(0.8) * albedo * ao;
+	vec3 ambient = vec3(0.1) * albedo * ao;
 	vec3 color = ambient + Lo;
 
 	//ACES tone mapping
