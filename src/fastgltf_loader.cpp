@@ -9,7 +9,7 @@
 
 fastgltf::Asset fastgltf_loader::loadAsset(std::filesystem::path path) {
 
-	fastgltf::Parser parser;
+	static fastgltf::Parser parser;
 	auto data = fastgltf::GltfDataBuffer::FromPath(path);
 
 	if (data.error() != fastgltf::Error::None)
