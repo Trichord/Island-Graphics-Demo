@@ -36,7 +36,7 @@ float currentFrame = 0.0f;
 float lastX = SCREEN_WIDTH / 2;
 float lastY = SCREEN_HEIGHT / 2;
 
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 3.0f, 30.0f));
 
 bool firstMouseMovement = true;
 bool spotLightOn = false;
@@ -44,6 +44,8 @@ bool directionalLightOn = true;
 bool pointLightsOn = false;
 
 ThreadPool threadPool;
+
+static const glm::vec3 startingLightPos = glm::vec3(0.0f, 3.0f, 23.0f);
 
 float cubeVertices[] = {
     // back face
@@ -166,17 +168,21 @@ int main() {
     };
     
     //Load all models and stop thread pool
-    Model gltfTestModel("./models/island/FloatingIsland_AddTextureblend.gltf"); 
+    Model islandModel("./models/island/island.gltf");
+    SpaceModel spaceModel("./models/dodecahedron/scene.gltf");
     Skybox skybox(skyBoxPaths);
     threadPool.stopAllThreads();
  
     //Setup matrices
-    glm::mat4 model = glm::mat4(1.0f);
-    glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 600.0f);
-    glm::mat4 view = camera.GetViewMatrix();
-    glm::mat4 viewNoTrans = glm::mat4(glm::mat3(view));
-    glm::mat3 normalMV = glm::transpose(glm::inverse(glm::mat3(view * model)));
-    glm::vec3 lightPosition = glm::vec3(-2.0f, 2.0f, 0.0f);
+    glm::mat4 modelMatrix = glm::mat4(1.0f);
+    glm::mat4 projectionMatrix = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 600.0f);
+    glm::mat4 viewMatrix = camera.GetViewMatrix();
+    glm::mat4 viewNoTransMatrix = glm::mat4(glm::mat3(viewMatrix)); //For skybox
+    glm::mat3 normalMVMatrix = glm::transpose(glm::inverse(glm::mat3(viewMatrix * modelMatrix)));
+    glm::vec3 lightPosition = startingLightPos;
+    glm::mat4 spaceModelMatrix = glm::mat4(1.0f);
+    spaceModelMatrix = glm::translate(spaceModelMatrix, glm::vec3(3.0f, 3.0f, 30.0f));
+    glm::mat4 spaceNormalMatrix = glm::transpose(glm::inverse(glm::mat3(spaceModelMatrix)));
 
     //Matrices Uniform Buffer Object
     unsigned int uboMatrices;
@@ -184,7 +190,7 @@ int main() {
     glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
     glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, uboMatrices);
-    glm::mat4 packedMatrices[] = { view, projection * view };
+    glm::mat4 packedMatrices[] = { viewMatrix, projectionMatrix * viewMatrix };
     glBufferSubData(GL_UNIFORM_BUFFER, 0, 2 * sizeof(glm::mat4), packedMatrices);
 
     //light source VAO
@@ -201,12 +207,19 @@ int main() {
     //Final shader uniform setup before loop
     pbrShader.use();
     pbrShader.setUniformBlock("matrices", 0);
-    pbrShader.setMat4("modelMatrix", model);
-    pbrShader.setMat3("normalMV", normalMV);
+    pbrShader.setMat4("modelMatrix", modelMatrix);
+    pbrShader.setMat3("normalMV", normalMVMatrix);
     pbrShader.setVec3("lightPosition", lightPosition);
     pbrShader.setInt("albedoMap", 0);
     pbrShader.setInt("occlusionRoughMetalMap", 1);
     pbrShader.setInt("normalMap", 2);
+
+    reflectiveSpaceShader.use();
+    reflectiveSpaceShader.setUniformBlock("matrices", 0);
+    reflectiveSpaceShader.setMat4("modelMatrix", spaceModelMatrix);
+    reflectiveSpaceShader.setMat3("normalMatrix", spaceNormalMatrix);
+    reflectiveSpaceShader.setVec3("cameraPos", camera.position);
+    reflectiveSpaceShader.setInt("cubemap", 0);
 
     lightSource.use();
     lightSource.setUniformBlock("matrices", 0);
@@ -236,22 +249,33 @@ int main() {
         if (glfwWindowShouldClose(window))
             break;
 
-        lightPosition.x = (float)sin((float)glfwGetTime() * 0.25f);
-        lightPosition.z = (float)cos((float)glfwGetTime() * 0.25f);
+        lightPosition.x = startingLightPos.x + (float)sin((float)glfwGetTime() * 0.25f);
+        lightPosition.z = startingLightPos.z + (float)cos((float)glfwGetTime() * 0.25f);
 
         pbrShader.use();
         pbrShader.setVec3("lightPosition", lightPosition);
         
         if (camera.hasUpdated()) {
-            view = camera.GetViewMatrix();
-            viewNoTrans = glm::mat4(glm::mat3(view));
-            packedMatrices[0] = view;
-            packedMatrices[1] = projection * view;
+            viewMatrix = camera.GetViewMatrix();
+            viewNoTransMatrix = glm::mat4(glm::mat3(viewMatrix));
+            packedMatrices[0] = viewMatrix;
+            packedMatrices[1] = projectionMatrix * viewMatrix;
             glBufferSubData(GL_UNIFORM_BUFFER, 0, 2 * sizeof(glm::mat4), packedMatrices);
-            pbrShader.setMat3("normalMV", glm::transpose(glm::inverse(glm::mat3(view * model))));
+
+            reflectiveSpaceShader.use();
+            reflectiveSpaceShader.setVec3("cameraPos", camera.position);
+
+            pbrShader.use();
+            pbrShader.setMat3("normalMV", glm::transpose(glm::inverse(glm::mat3(viewMatrix * modelMatrix))));
         }
  
-        gltfTestModel.draw(pbrShader);
+        islandModel.draw(pbrShader);
+
+        reflectiveSpaceShader.use();
+        spaceModelMatrix = glm::rotate(spaceModelMatrix, glm::radians(10.0f) * deltaTime, glm::vec3(0.3f, 0.7f, 0.5f));
+        reflectiveSpaceShader.setMat4("modelMatrix", spaceModelMatrix);
+        reflectiveSpaceShader.setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(spaceModelMatrix))));
+        spaceModel.draw(reflectiveSpaceShader);
 
         lightSource.use();
         lightSourceModel = glm::mat4(1.0f);
@@ -263,8 +287,8 @@ int main() {
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         skyboxShader.use();
-        skyboxShader.setMat4("projectionViewNoTranslation", projection * viewNoTrans);
-        skybox.draw();
+        skyboxShader.setMat4("projectionViewNoTranslation", projectionMatrix * viewNoTransMatrix);
+        skybox.draw(skyboxShader);
 
         glfwSwapBuffers(window);
     }

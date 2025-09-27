@@ -9,7 +9,7 @@
 
 fastgltf::Asset fastgltf_loader::loadAsset(std::filesystem::path path) {
 
-	static fastgltf::Parser parser;
+	fastgltf::Parser parser;
 	auto data = fastgltf::GltfDataBuffer::FromPath(path);
 
 	if (data.error() != fastgltf::Error::None)
@@ -21,8 +21,9 @@ fastgltf::Asset fastgltf_loader::loadAsset(std::filesystem::path path) {
 	if (auto error = assetResult.error(); error != fastgltf::Error::None)
 		std::cerr << "fastgltf error while loading: " << path << std::endl;
 
-	fastgltf::Asset asset = std::move(assetResult.get());
+	fastgltf::Asset asset = std::move(assetResult.get()); 
 	return asset;
+
 }
 
 std::vector<Primitive::Mesh> fastgltf_loader::loadMeshes(const fastgltf::Asset& asset) {

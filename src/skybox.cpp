@@ -1,4 +1,5 @@
 #include "../headers/skybox.h"
+#include "../headers/shader.h"
 #include <vector>
 #include "glad/glad.h"
 
@@ -16,7 +17,8 @@ Skybox::~Skybox() {
 	glDeleteVertexArrays(1, &modelVAO);
 }
 
-void Skybox::draw() {
+void Skybox::draw(Shader &shader) {
+	shader.use();
 	glBindVertexArray(modelVAO);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTextureID);

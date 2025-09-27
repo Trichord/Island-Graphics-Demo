@@ -8,8 +8,8 @@ layout (std140) uniform matrices {
 	mat4 projectionViewMatrix;
 };
 
-uniform mat3 normalMatrix;
 uniform mat4 modelMatrix;
+uniform mat3 normalMatrix;
 
 out vec3 normal;
 out vec3 fragPos;

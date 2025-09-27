@@ -27,9 +27,9 @@ public:
 
 private:
 	struct Material {
-		unsigned int albedoImageIndex, metallicRoughnessImageIndex, normalImageIndex, aoImageIndex;
+		unsigned int albedoImageIndex, aoMetallicRoughnessImageIndex, normalImageIndex;
 
-		Material(unsigned int alb = 0, unsigned int metRough = 0, unsigned int norm = 0, unsigned int ao = 0) : albedoImageIndex(alb), metallicRoughnessImageIndex(metRough), normalImageIndex(norm), aoImageIndex(ao) {};
+		Material(unsigned int alb = 0, unsigned int metRough = 0, unsigned int norm = 0, unsigned int ao = 0) : albedoImageIndex(alb), aoMetallicRoughnessImageIndex(metRough), normalImageIndex(norm) {};
 	};
 
 	fastgltf::Asset asset;
