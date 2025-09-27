@@ -25,9 +25,7 @@ Model::Model(Model&& other) noexcept :
 	meshes(std::move(other.meshes)),
 	materials(std::move(other.materials)),
 	assetImages(std::move(other.assetImages)) {
-
-	for (unsigned int i = 0; i < other.assetImages.size(); ++i)
-		other.assetImages[i] = 0;
+	other.assetImages.clear();
 }
 
 Model& Model::operator=(Model&& other) noexcept {
@@ -44,11 +42,7 @@ Model& Model::operator=(Model&& other) noexcept {
 
 		assetImages.resize(other.assetImages.size(), 0);
 		other.asset = fastgltf::Asset{};
-
-		for (unsigned int i = 0; i < other.assetImages.size(); ++i) {
-			assetImages[i] = other.assetImages[i];
-			other.assetImages[i] = 0;
-		}
+		other.assetImages.clear();
 	}
 
 	return *this;
@@ -70,13 +64,10 @@ void Model::draw(Shader& shader) {
 			glBindTexture(GL_TEXTURE_2D, assetImages[material.albedoImageIndex]);
 
 			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, assetImages[material.metallicRoughnessImageIndex]);
+			glBindTexture(GL_TEXTURE_2D, assetImages[material.aoMetallicRoughnessImageIndex]);
 
 			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, assetImages[material.normalImageIndex]);
-
-			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_2D, assetImages[material.aoImageIndex]);
 
 			primitive.draw();
 		}
@@ -136,17 +127,12 @@ void Model::loadMaterials(const std::vector<ImageData>& imageData) {
 
 		if (material.pbrData.metallicRoughnessTexture.has_value()) {
 			auto& metallicRoughnessTexture = material.pbrData.metallicRoughnessTexture.value();
-			materials[i].metallicRoughnessImageIndex = processMaterialTexture(metallicRoughnessTexture, false);
+			materials[i].aoMetallicRoughnessImageIndex = processMaterialTexture(metallicRoughnessTexture, false);
 		}
 
 		if (material.normalTexture.has_value()) {
 			auto& normalTexture = material.normalTexture.value();
 			materials[i].normalImageIndex = processMaterialTexture(normalTexture, false);
-		}
-
-		if (material.occlusionTexture.has_value()) {
-			auto& occlusionTexture = material.occlusionTexture.value();
-			materials[i].aoImageIndex = processMaterialTexture(occlusionTexture, false);
 		}
 	}
 }

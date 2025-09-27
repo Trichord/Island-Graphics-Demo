@@ -1,6 +1,7 @@
 #include "../headers/space_model.h"
 #include "../headers/fastgltf_loader.h"
 #include "../headers/primitive.h"
+#include "../headers/shader.h"
 #include <vector>
 #include <filesystem>
 #include "glad/glad.h"
@@ -20,7 +21,9 @@ SpaceModel::SpaceModel(std::filesystem::path path) {
 	loadModel(path);
 }
 
-void SpaceModel::draw() {
+void SpaceModel::draw(Shader &shader) {
+	shader.use();
+
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTextureID);
 
