@@ -1,6 +1,7 @@
-#include "../headers/texture_manager.h"
+#include "../headers/texture_utilities.h"
+#include <glad/glad.h>
 
-GLuint texture_manager::generateTextureID(const ImageData& image, Sampler sampler, unsigned int index, bool sRGB) {
+GLuint texture_utilities::generateTextureID(const ImageData& image, Sampler sampler, unsigned int index, bool sRGB, bool anisotropic) {
 	GLuint textureID;
 
 	if (image.data) {
@@ -36,6 +37,7 @@ GLuint texture_manager::generateTextureID(const ImageData& image, Sampler sample
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, sampler.minFilter);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, sampler.magFilter);
 	}
+
 	else
 		textureID = 0;
 
@@ -44,7 +46,7 @@ GLuint texture_manager::generateTextureID(const ImageData& image, Sampler sample
 	return textureID;
 }
 
-GLuint texture_manager::generateCubemapTextureID(const std::vector<ImageData>& imageData, bool sRGB) {
+GLuint texture_utilities::generateCubemapTextureID(const std::vector<ImageData>& imageData, bool sRGB, bool anisotropic) {
 	GLuint cubemapTextureID;
 	glGenTextures(1, &cubemapTextureID);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTextureID);

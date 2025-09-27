@@ -1,6 +1,6 @@
 #include "../headers/cube_mapped_model.h"
 #include "../headers/image_loader.h"
-#include "../headers/texture_manager.h"
+#include "../headers/texture_utilities.h"
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -28,5 +28,5 @@ CubeMappedModel::~CubeMappedModel() { glDeleteTextures(1, &cubemapTextureID); }
 void CubeMappedModel::loadTextures() {
 	ImageLoader imageLoader(texturePaths);
 	std::vector<ImageData> loadedImages = imageLoader.getImageData();
-	cubemapTextureID = texture_manager::generateCubemapTextureID(loadedImages, true);
+	cubemapTextureID = texture_utilities::generateCubemapTextureID(loadedImages, true);
 }
