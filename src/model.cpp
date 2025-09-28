@@ -31,16 +31,13 @@ Model::Model(Model&& other) noexcept :
 Model& Model::operator=(Model&& other) noexcept {
 
 	if (this != &other) {
-
-		for (const GLuint& textureID : assetImages)
-			glDeleteTextures(1, &textureID);
+		deleteTextureIDs();
 
 		asset = std::move(other.asset);
 		meshes = std::move(other.meshes);
 		materials = std::move(other.materials);
 		assetImages = std::move(other.assetImages);
 
-		assetImages.resize(other.assetImages.size(), 0);
 		other.asset = fastgltf::Asset{};
 		other.assetImages.clear();
 	}
@@ -49,8 +46,7 @@ Model& Model::operator=(Model&& other) noexcept {
 }
 
 Model::~Model() {
-	for (const GLuint& textureID : assetImages)
-		glDeleteTextures(1, &textureID);
+	deleteTextureIDs();
 }
 
 void Model::draw(Shader& shader) {
@@ -135,4 +131,9 @@ void Model::loadMaterials(const std::vector<ImageData>& imageData) {
 			materials[i].normalImageIndex = processMaterialTexture(normalTexture, false);
 		}
 	}
+}
+
+void Model::deleteTextureIDs() {
+	for (const GLuint& textureID : assetImages)
+		glDeleteTextures(1, &textureID);
 }

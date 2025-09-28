@@ -41,5 +41,6 @@ private:
 	void loadModel(std::filesystem::path path);
 	void loadTextures(const std::filesystem::path parentPath);
 	void loadMaterials(const std::vector<ImageData>& imagedata);
+	void deleteTextureIDs();
 };
 
