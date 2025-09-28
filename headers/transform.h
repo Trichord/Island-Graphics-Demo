@@ -2,14 +2,31 @@
 
 #include <glm/glm.hpp>
 
+//Set absolute will reset that object property then adjust.  Set relative will adjust the current state by the amount in the parameter.
+//Rotation is given in degrees, for an x, y, and z.
 class Transform {
 public:
-
+	Transform(glm::vec3 position = glm::vec3(0.0f), glm::vec3 rotation = glm::vec3(0.0f), glm::vec3 scale = glm::vec3(1.0f));
+	void setAbsolutePosition(glm::vec3 absolutePosition);
+	void setAbsoluteRotation(glm::vec3 absoluteRotation);
+	void setAbsoluteScale(glm::vec3 absoluteScale);
+	void setRelativePosition(glm::vec3 relativePosition);
+	void setRelativeRotation(glm::vec3 relativeRotation);
+	void setRelativeScale(glm::vec3 relativeScale);
+	const glm::vec3& getPosition() const;
+	const glm::vec3& getRotation() const;
+	const glm::vec3& getScale() const;
+	const glm::mat4& getModelMatrix();
+	const glm::mat4& getNormalMatrix();
 
 private:
-	glm::vec3 scale;
 	glm::vec3 position;
+	glm::vec3 rotation;
+	glm::vec3 scale;
+	glm::mat4 modelMatrix;
+	glm::mat4 rotationMatrix;
 	glm::mat3 normalMatrix;
-	glm::mat3 normalMVMatrix;
-	glm::mat4 modelMatrix = glm::mat4(1.0f);
+
+	void rebuildModelMatrix();
+	bool isDirty = true;
 };
