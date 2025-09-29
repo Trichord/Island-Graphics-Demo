@@ -3,7 +3,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp> 
 
-Transform::Transform(glm::vec3 pos, glm::vec3 rot, glm::vec3 sc) : position(pos), rotation(rot), scale(sc) {
+Transform::Transform(glm::vec3 pos, float degrees, glm::vec3 axis, glm::vec3 sc) : position(pos), scale(sc) {
+	glm::vec3 normalizedAxis = glm::normalize(axis);
+	quaternion = glm::angleAxis(glm::radians(degrees), normalizedAxis);
 	rebuildModelMatrix();
 	isDirty = false;
 };
@@ -14,7 +16,7 @@ void Transform::setAbsolutePosition(glm::vec3 absolutePosition) {
 }
 
 void Transform::setAbsoluteRotation(glm::vec3 absoluteRotation) {
-	rotation = absoluteRotation;
+	quaternion = glm::quat(glm::radians(absoluteRotation));
 	isDirty = true;
 }
 
@@ -29,21 +31,25 @@ void Transform::setRelativePosition(glm::vec3 relativePosition) {
 }
 
 void Transform::setRelativeRotation(glm::vec3 relativeRotation) {
-	rotation += relativeRotation;
+	glm::quat updatedRotation = quaternion * glm::quat(glm::radians(relativeRotation));
+	quaternion = glm::normalize(updatedRotation);
 	isDirty = true;
 }
 
 void Transform::setRelativeScale(glm::vec3 relativeScale) {
-	scale += relativeScale;
+	scale *= relativeScale;
+	isDirty = true;
+}
+
+void Transform::rotateAroundAxis(float degrees, glm::vec3 axis) {
+	glm::vec3 normalizedAxis = glm::normalize(axis);
+	glm::quat updatedRotation = quaternion * glm::angleAxis(glm::radians(degrees), normalizedAxis);
+	quaternion = glm::normalize(updatedRotation);
 	isDirty = true;
 }
 
 const glm::vec3& Transform::getPosition() const {
 	return position;
-}
-
-const glm::vec3& Transform::getRotation() const {
-	return rotation;
 }
 
 const glm::vec3& Transform::getScale() const {
@@ -68,11 +74,14 @@ const glm::mat4& Transform::getNormalMatrix() {
 	return normalMatrix;
 }
 
+glm::vec3 Transform::getRotation() const {
+	return glm::degrees(glm::eulerAngles(quaternion));
+}
+
 void Transform::rebuildModelMatrix() {
 	modelMatrix = glm::mat4(1.0f);
 	modelMatrix = glm::translate(modelMatrix, position);
-	rotationMatrix = glm::mat4_cast(glm::quat(glm::radians(rotation)));
-	modelMatrix *= rotationMatrix;
+	modelMatrix *= glm::mat4_cast(quaternion);
 	modelMatrix = glm::scale(modelMatrix, scale);
 	normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
 }
