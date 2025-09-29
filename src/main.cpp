@@ -4,6 +4,7 @@
 #include "../headers/thread_pool.h"
 #include "../headers/skybox.h"
 #include "../headers/space_model.h"
+#include "../headers/transform.h"
 #include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -175,24 +176,15 @@ int main() {
     Skybox skybox(skyBoxPaths);
     threadPool.stopAllThreads();
  
-    //Model independent matricies
+    //Matricies
     glm::mat4 projectionMatrix = glm::perspective(glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 600.0f);
     glm::mat4 viewMatrix = camera.GetViewMatrix();
     glm::mat4 viewNoTransMatrix = glm::mat4(glm::mat3(viewMatrix)); //For skybox
 
-    //Model dependant matrices
-    glm::mat4 islandModelMatrix = glm::mat4(1.0f);
-    glm::mat3 islandNormalMVMatrix = glm::transpose(glm::inverse(glm::mat3(viewMatrix * islandModelMatrix)));
-
-    glm::mat4 helmetModelMatrix = glm::mat4(1.0f);
-    helmetModelMatrix = glm::translate(helmetModelMatrix, glm::vec3(0.0f, -2.3f, 50.0f));
-    helmetModelMatrix = glm::rotate(helmetModelMatrix, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    helmetModelMatrix = glm::scale(helmetModelMatrix, glm::vec3(3.0f));
-    glm::mat3 helmetNormalMVMatrix = glm::transpose(glm::inverse(glm::mat3(viewMatrix * helmetModelMatrix)));
-
-    glm::mat4 spaceModelMatrix = glm::mat4(1.0f);
-    spaceModelMatrix = glm::translate(spaceModelMatrix, glm::vec3(-23.0f, 17.0f, -26.0f));
-    glm::mat4 spaceNormalMatrix = glm::transpose(glm::inverse(glm::mat3(spaceModelMatrix)));
+    //Transforms
+    Transform islandModelTransform;
+    Transform helmetModelTransform = Transform(glm::vec3(0.0f, -2.3f, 50.0f), 180.0f, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(3.0f));
+    Transform spaceModelTransform = Transform(glm::vec3(-21.0f, 16.0f, -25.0f));
 
     //Important vectors
     glm::vec3 sunDirection = glm::vec3(-0.363647, -0.739629, -0.566312); //Normalized approximation of sun direction in skybox
@@ -221,8 +213,8 @@ int main() {
     //Final shader uniform setup before loop
     pointPBRShader.use();
     pointPBRShader.setUniformBlock("matrices", 0);
-    pointPBRShader.setMat4("modelMatrix", helmetModelMatrix);
-    pointPBRShader.setMat3("normalMV", helmetNormalMVMatrix);
+    pointPBRShader.setMat4("modelMatrix", helmetModelTransform.getModelMatrix());
+    pointPBRShader.setMat3("normalMV", glm::mat3(viewMatrix * helmetModelTransform.getModelMatrix()));
     pointPBRShader.setVec3("lightPosition", lightPosition);
     pointPBRShader.setInt("albedoMap", 0);
     pointPBRShader.setInt("occlusionRoughMetalMap", 1);
@@ -230,8 +222,8 @@ int main() {
 
     directionalPBRShader.use();
     directionalPBRShader.setUniformBlock("matrices", 0);
-    directionalPBRShader.setMat4("modelMatrix", islandModelMatrix);
-    directionalPBRShader.setMat3("normalMV", islandNormalMVMatrix);
+    directionalPBRShader.setMat4("modelMatrix", islandModelTransform.getModelMatrix());
+    directionalPBRShader.setMat3("normalMV", viewMatrix * islandModelTransform.getModelMatrix());
     directionalPBRShader.setVec3("lightDir", sunDirection);
     directionalPBRShader.setInt("albedoMap", 0);
     directionalPBRShader.setInt("occlusionRoughMetalMap", 1);
@@ -239,8 +231,8 @@ int main() {
 
     reflectiveSpaceShader.use();
     reflectiveSpaceShader.setUniformBlock("matrices", 0);
-    reflectiveSpaceShader.setMat4("modelMatrix", spaceModelMatrix);
-    reflectiveSpaceShader.setMat3("normalMatrix", spaceNormalMatrix);
+    reflectiveSpaceShader.setMat4("modelMatrix", spaceModelTransform.getModelMatrix());
+    reflectiveSpaceShader.setMat3("normalMatrix", spaceModelTransform.getNormalMatrix());
     reflectiveSpaceShader.setVec3("cameraPos", camera.position);
     reflectiveSpaceShader.setInt("cubemap", 0);
 
@@ -289,19 +281,19 @@ int main() {
             reflectiveSpaceShader.setVec3("cameraPos", camera.position);
 
             pointPBRShader.use();
-            pointPBRShader.setMat3("normalMV", glm::transpose(glm::inverse(glm::mat3(viewMatrix * helmetModelMatrix))));
+            pointPBRShader.setMat3("normalMV", glm::transpose(glm::inverse(glm::mat3(viewMatrix * helmetModelTransform.getModelMatrix()))));
 
             directionalPBRShader.use();
-            directionalPBRShader.setMat3("normalMV", glm::transpose(glm::inverse(glm::mat3(viewMatrix * islandModelMatrix))));
+            directionalPBRShader.setMat3("normalMV", glm::transpose(glm::inverse(glm::mat3(viewMatrix * islandModelTransform.getModelMatrix()))));
         }
 
         islandModel.draw(directionalPBRShader);
         flightHelmetModel.draw(pointPBRShader);
 
         reflectiveSpaceShader.use();
-        spaceModelMatrix = glm::rotate(spaceModelMatrix, glm::radians(10.0f) * deltaTime, glm::vec3(0.3f, 0.7f, 0.5f));
-        reflectiveSpaceShader.setMat4("modelMatrix", spaceModelMatrix);
-        reflectiveSpaceShader.setMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(spaceModelMatrix))));
+        spaceModelTransform.rotateAroundAxis(5.0f * deltaTime, glm::vec3(0.3f, 0.7f, 0.5f));
+        reflectiveSpaceShader.setMat4("modelMatrix", spaceModelTransform.getModelMatrix());
+        reflectiveSpaceShader.setMat3("normalMatrix", spaceModelTransform.getNormalMatrix());
         spaceModel.draw(reflectiveSpaceShader);
 
         lightSource.use();

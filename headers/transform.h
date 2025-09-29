@@ -1,31 +1,32 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp> 
 
 //Set absolute will reset that object property then adjust.  Set relative will adjust the current state by the amount in the parameter.
 //Rotation is given in degrees, for an x, y, and z.
 class Transform {
 public:
-	Transform(glm::vec3 position = glm::vec3(0.0f), glm::vec3 rotation = glm::vec3(0.0f), glm::vec3 scale = glm::vec3(1.0f));
+	Transform(glm::vec3 position = glm::vec3(0.0f), float degrees = 0.0f, glm::vec3 axis = glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3 scale = glm::vec3(1.0f));
 	void setAbsolutePosition(glm::vec3 absolutePosition);
 	void setAbsoluteRotation(glm::vec3 absoluteRotation);
 	void setAbsoluteScale(glm::vec3 absoluteScale);
 	void setRelativePosition(glm::vec3 relativePosition);
 	void setRelativeRotation(glm::vec3 relativeRotation);
 	void setRelativeScale(glm::vec3 relativeScale);
+	void rotateAroundAxis(float degrees, glm::vec3 axis);
 	const glm::vec3& getPosition() const;
-	const glm::vec3& getRotation() const;
 	const glm::vec3& getScale() const;
 	const glm::mat4& getModelMatrix();
 	const glm::mat4& getNormalMatrix();
+	glm::vec3 getRotation() const;
 
 private:
 	glm::vec3 position;
-	glm::vec3 rotation;
 	glm::vec3 scale;
 	glm::mat4 modelMatrix;
-	glm::mat4 rotationMatrix;
 	glm::mat3 normalMatrix;
+	glm::quat quaternion;
 
 	void rebuildModelMatrix();
 	bool isDirty = true;
