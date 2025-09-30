@@ -287,14 +287,14 @@ int main() {
             directionalPBRShader.setMat3("normalMV", glm::transpose(glm::inverse(glm::mat3(viewMatrix * islandModelTransform.getModelMatrix()))));
         }
 
-        islandModel.draw(directionalPBRShader);
-        flightHelmetModel.draw(pointPBRShader);
+        islandModel.render(directionalPBRShader);
+        flightHelmetModel.render(pointPBRShader);
 
         reflectiveSpaceShader.use();
         spaceModelTransform.rotateAroundAxis(5.0f * deltaTime, glm::vec3(0.3f, 0.7f, 0.5f));
         reflectiveSpaceShader.setMat4("modelMatrix", spaceModelTransform.getModelMatrix());
         reflectiveSpaceShader.setMat3("normalMatrix", spaceModelTransform.getNormalMatrix());
-        spaceModel.draw(reflectiveSpaceShader);
+        spaceModel.render(reflectiveSpaceShader);
 
         lightSource.use();
         lightSourceModel = glm::mat4(1.0f);
@@ -307,7 +307,7 @@ int main() {
 
         skyboxShader.use();
         skyboxShader.setMat4("projectionViewNoTranslation", projectionMatrix * viewNoTransMatrix);
-        skybox.draw(skyboxShader);
+        skybox.render(skyboxShader);
 
         glfwSwapBuffers(window);
     }

@@ -3,6 +3,7 @@
 #include "shader.h"
 #include "primitive.h"
 #include "image_loader.h"
+#include "renderable.h"
 #include <fastgltf/types.hpp>
 #include <unordered_set>
 #include <vector>
@@ -14,7 +15,7 @@ Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees.
 assetImages is a 1:1 mapping of gltf's images array, but with OpenGL texture IDs instead of URIs.  Order of fastgltf's images is preserved
 */
 
-class Model {
+class Model : public Renderable{
 public:
 	Model(std::string path);
 	Model(Model&& other) noexcept;
@@ -23,7 +24,7 @@ public:
 	Model& operator=(Model const&) = delete;
 	~Model();
 
-	void draw(Shader& shader);
+	void render(Shader& shader);
 
 private:
 	struct Material {

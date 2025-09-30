@@ -11,7 +11,7 @@ public:
 	Skybox(const std::vector<std::string>& skyboxPaths);
 	~Skybox();
 
-	void draw(Shader &shader) override;
+	void render(Shader &shader) override;
 
 protected:
 	GLuint modelVAO = 0, modelVBO = 0, modelEBO = 0;

@@ -21,7 +21,7 @@ SpaceModel::SpaceModel(std::filesystem::path path) {
 	loadModel(path);
 }
 
-void SpaceModel::draw(Shader &shader) {
+void SpaceModel::render(Shader &shader) {
 	shader.use();
 
 	glActiveTexture(GL_TEXTURE0);
