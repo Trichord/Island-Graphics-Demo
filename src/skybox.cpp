@@ -17,7 +17,7 @@ Skybox::~Skybox() {
 	glDeleteVertexArrays(1, &modelVAO);
 }
 
-void Skybox::draw(Shader &shader) {
+void Skybox::render(Shader &shader) {
 	shader.use();
 	glBindVertexArray(modelVAO);
 	glActiveTexture(GL_TEXTURE0);
