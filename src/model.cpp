@@ -49,7 +49,7 @@ Model::~Model() {
 	deleteTextureIDs();
 }
 
-void Model::draw(Shader& shader) {
+void Model::render(Shader& shader) {
 	shader.use();
 
 	for (const Primitive::Mesh& mesh : meshes) {

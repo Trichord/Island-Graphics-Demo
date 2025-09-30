@@ -17,6 +17,7 @@ CubeMappedModel::CubeMappedModel(CubeMappedModel&& other) noexcept
 
 CubeMappedModel& CubeMappedModel::operator=(CubeMappedModel&& other) noexcept {
 	if (this != &other) {
+		glDeleteTextures(1, &cubemapTextureID);
 		cubemapTextureID = other.cubemapTextureID;
 		other.cubemapTextureID = 0;
 	}

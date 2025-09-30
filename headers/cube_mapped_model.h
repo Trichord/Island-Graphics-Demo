@@ -12,15 +12,17 @@
 class CubeMappedModel : public Renderable {
 
 public:
+	CubeMappedModel() = default;
 	CubeMappedModel(const CubeMappedModel&) = delete;
 	CubeMappedModel& operator=(CubeMappedModel const&) = delete;
 	CubeMappedModel(CubeMappedModel&& other) noexcept;
 	CubeMappedModel& operator=(CubeMappedModel&& other) noexcept;
 	virtual ~CubeMappedModel();
 
+	void render(Shader& shader) override = 0;
+
 protected:
 	GLuint cubemapTextureID = 0;
 	std::vector<std::filesystem::path> texturePaths;
-
 	void loadTextures();
 };
