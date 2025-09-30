@@ -11,6 +11,7 @@
 
 CubeMappedModel::CubeMappedModel(CubeMappedModel&& other) noexcept
 	: cubemapTextureID(other.cubemapTextureID) {
+
 	other.cubemapTextureID = 0;
 }
 
