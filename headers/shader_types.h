@@ -1,0 +1,10 @@
+#pragma once
+
+enum ShaderType
+{
+	DIRECTIONAL_PBR,
+	POINT_PBR,
+	REFLECTIVE,
+	LIGHT_SOURCE,
+	SKYBOX
+};
