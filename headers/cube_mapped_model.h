@@ -14,7 +14,7 @@ class CubeMappedModel : public Renderable {
 public:
 	CubeMappedModel() = default;
 	CubeMappedModel(const CubeMappedModel&) = delete;
-	CubeMappedModel& operator=(CubeMappedModel const&) = delete;
+	CubeMappedModel& operator=(const CubeMappedModel&) = delete;
 	CubeMappedModel(CubeMappedModel&& other) noexcept;
 	CubeMappedModel& operator=(CubeMappedModel&& other) noexcept;
 	virtual ~CubeMappedModel();
