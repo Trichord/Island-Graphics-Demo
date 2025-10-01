@@ -21,7 +21,7 @@ public:
 	Model(Model&& other) noexcept;
 	Model& operator=(Model&& other) noexcept;
 	Model(const Model&) = delete;
-	Model& operator=(Model const&) = delete;
+	Model& operator=(const Model&) = delete;
 	~Model();
 
 	void render(Shader& shader);
