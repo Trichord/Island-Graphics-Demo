@@ -8,6 +8,7 @@
 class Transform {
 public:
 	Transform(glm::vec3 position = glm::vec3(0.0f), float degrees = 0.0f, glm::vec3 axis = glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3 scale = glm::vec3(1.0f));
+
 	void setAbsolutePosition(glm::vec3 absolutePosition);
 	void setAbsoluteRotation(glm::vec3 absoluteRotation);
 	void setAbsoluteScale(glm::vec3 absoluteScale);
@@ -18,7 +19,7 @@ public:
 	const glm::vec3& getPosition() const;
 	const glm::vec3& getScale() const;
 	const glm::mat4& getModelMatrix();
-	const glm::mat4& getNormalMatrix();
+	const glm::mat3& getNormalMatrix();
 	glm::vec3 getRotation() const;
 
 private:

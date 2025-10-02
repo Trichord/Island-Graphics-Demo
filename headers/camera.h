@@ -15,6 +15,10 @@ enum Camera_Movement {
 
 class Camera {
 public:
+    Camera();
+    Camera(glm::vec3 pos, glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f), float y = YAW, float p = PITCH);
+    Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch);
+
     glm::vec3 position;
     glm::vec3 front;
     glm::vec3 up;
@@ -25,9 +29,6 @@ public:
     float movementSpeed;
     float mouseSensitivity;
     float zoom;
-
-    Camera(glm::vec3 pos, glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f), float y = YAW, float p = PITCH);
-    Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch);
 
     glm::mat4 GetViewMatrix();
     void processKeyboard(Camera_Movement direction, float deltaTime);

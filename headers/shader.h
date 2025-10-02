@@ -12,6 +12,7 @@ public:
 	//Shader program ID
 	GLuint ID = 0;
 
+	Shader() = default;
 	Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = NULL);
 	Shader(const Shader&) = delete;
 	Shader& operator=(const Shader&) = delete;
