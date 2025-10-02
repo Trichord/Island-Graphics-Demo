@@ -17,11 +17,12 @@ assetImages is a 1:1 mapping of gltf's images array, but with OpenGL texture IDs
 
 class Model : public Renderable{
 public:
+	Model() = default;
 	Model(std::string path);
-	Model(Model&& other) noexcept;
-	Model& operator=(Model&& other) noexcept;
 	Model(const Model&) = delete;
 	Model& operator=(const Model&) = delete;
+	Model(Model&& other) noexcept;
+	Model& operator=(Model&& other) noexcept;
 	~Model();
 
 	void render(Shader& shader);

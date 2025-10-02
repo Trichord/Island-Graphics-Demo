@@ -65,7 +65,7 @@ const glm::mat4& Transform::getModelMatrix() {
 	return modelMatrix;
 }
 
-const glm::mat4& Transform::getNormalMatrix() {
+const glm::mat3& Transform::getNormalMatrix() {
 	if (isDirty) {
 		rebuildModelMatrix();
 		isDirty = false;
