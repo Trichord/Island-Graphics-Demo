@@ -8,7 +8,12 @@
 
 class Skybox : public CubeMappedModel {
 public:
+	Skybox() = delete;
 	Skybox(const std::vector<std::string>& skyboxPaths);
+	Skybox(const Skybox&) = delete;
+	Skybox& operator=(const Skybox&) = delete;
+	Skybox(Skybox&& other) noexcept;
+	Skybox& operator=(Skybox&& other) noexcept;
 	~Skybox();
 
 	void render(Shader &shader) override;
@@ -28,4 +33,5 @@ protected:
 	4, 5, 1, 1, 0, 4, 3, 2, 6, 6, 7, 3 };
 
 	void setupBuffers();
+	void deleteBuffers();
 };

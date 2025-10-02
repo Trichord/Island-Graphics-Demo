@@ -30,11 +30,12 @@ public:
 	
 	unsigned int materialIndex = 0;
 
+	Primitive() = default;
 	Primitive(std::vector<Vertex>&& verts, std::vector<std::uint32_t>&& inds, unsigned int matIndex);
+	Primitive(const Primitive&) = delete;
+	Primitive& operator=(const Primitive&) = delete;
 	Primitive(Primitive&& other) noexcept;
 	Primitive& operator=(Primitive&& other) noexcept;
-	Primitive(const Primitive&) = delete;
-	Primitive& operator=(Primitive const&) = delete;
 	~Primitive();
 
 	std::vector<Vertex> vertices;

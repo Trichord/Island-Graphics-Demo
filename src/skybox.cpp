@@ -11,10 +11,34 @@ Skybox::Skybox(const std::vector<std::string>& skyboxPaths) {
 	setupBuffers();
 }
 
+Skybox::Skybox(Skybox&& other) noexcept {
+	modelVAO = other.modelVAO;
+	modelVBO = other.modelVBO;
+	modelEBO = other.modelEBO;
+
+	other.modelVAO = 0;
+	other.modelVBO = 0;
+	other.modelEBO = 0;
+}
+
+Skybox& Skybox::operator=(Skybox&& other) noexcept {
+	if (this != &other) {
+		deleteBuffers();
+
+		modelVAO = other.modelVAO;
+		modelVBO = other.modelVBO;
+		modelEBO = other.modelEBO;
+
+		other.modelVAO = 0;
+		other.modelVBO = 0;
+		other.modelEBO = 0;
+	}
+	
+	return *this;
+}
+
 Skybox::~Skybox() {
-	glDeleteBuffers(1, &modelVBO);
-	glDeleteBuffers(1, &modelEBO);
-	glDeleteVertexArrays(1, &modelVAO);
+	deleteBuffers();
 }
 
 void Skybox::render(Shader &shader) {
@@ -45,4 +69,10 @@ void Skybox::setupBuffers() {
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
 	glBindVertexArray(0);
+}
+
+void Skybox::deleteBuffers() {
+	glDeleteBuffers(1, &modelVBO);
+	glDeleteBuffers(1, &modelEBO);
+	glDeleteVertexArrays(1, &modelVAO);
 }
