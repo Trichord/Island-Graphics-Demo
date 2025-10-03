@@ -1,5 +1,5 @@
-#include <GLFW/glfw3.h>
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -183,7 +183,7 @@ int main() {
   glm::mat4 projectionMatrix = glm::perspective(
       glm::radians(camera.zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT,
       0.1f, 600.0f);
-  glm::mat4 viewMatrix = camera.GetViewMatrix();
+  glm::mat4 viewMatrix = camera.getViewMatrix();
   glm::mat4 viewNoTransMatrix = glm::mat4(glm::mat3(viewMatrix));  // For skybox
 
   // Transforms
@@ -288,7 +288,7 @@ int main() {
     pointPBRShader.setVec3("lightPosition", lightPosition);
 
     if (camera.hasUpdated()) {
-      viewMatrix = camera.GetViewMatrix();
+      viewMatrix = camera.getViewMatrix();
       viewNoTransMatrix = glm::mat4(glm::mat3(viewMatrix));
       packedMatrices[0] = viewMatrix;
       packedMatrices[1] = projectionMatrix * viewMatrix;
@@ -334,7 +334,7 @@ int main() {
 
     skyboxShader.use();
     skyboxShader.setMat4("projectionViewNoTranslation",
-                         projectionMatrix * viewNoTransMatrix);
+                         projectionMatrix * camera.getViewNoTranslationMatrix());
     skybox.render(skyboxShader);
 
     glfwSwapBuffers(window);
