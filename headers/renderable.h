@@ -1,18 +1,20 @@
 #pragma once
 
-#include "transform.h"
-#include "shader.h"
 #include <utility>
 
+#include "shader.h"
+#include "transform.h"
+
 class Renderable {
-public:
-	virtual void render(Shader& shader) = 0;
-	virtual ~Renderable() = default;
+ public:
+  virtual void render(Shader& shader) = 0;
+  virtual ~Renderable() = default;
 };
 
 struct RenderableObject {
-	std::reference_wrapper<Renderable> renderable;
-	Transform transform;
+  std::reference_wrapper<Renderable> renderable;
+  Transform transform;
 
-	//RenderableObject(std::reference_wrapper<Renderable> object, Transform t) : renderable(object), transform(t) {};
+  // RenderableObject(std::reference_wrapper<Renderable> object, Transform t) :
+  // renderable(object), transform(t) {};
 };
