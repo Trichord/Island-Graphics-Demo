@@ -15,6 +15,7 @@ Camera::Camera()
       mouseSensitivity(SENSITIVITY),
       zoom(ZOOM) {
   updateCameraVectors();
+  dirtyMatrices = true;
 };
 
 Camera::Camera(glm::vec3 pos, glm::vec3 u, float y, float p)
@@ -27,6 +28,7 @@ Camera::Camera(glm::vec3 pos, glm::vec3 u, float y, float p)
   yaw = y;
   pitch = p;
   updateCameraVectors();
+  dirtyMatrices = true;
 }
 
 Camera::Camera(float posX, float posY, float posZ, float upX, float upY,
@@ -40,10 +42,25 @@ Camera::Camera(float posX, float posY, float posZ, float upX, float upY,
   yaw = y;
   pitch = p;
   updateCameraVectors();
+  dirtyMatrices = true;
 }
 
-glm::mat4 Camera::GetViewMatrix() {
-  return glm::lookAt(position, position + front, up);
+const glm::mat4& Camera::getViewMatrix() {
+  if (dirtyMatrices) {
+    updateCameraMatrices();
+    dirtyMatrices = false;
+  }
+
+  return viewMatrix;
+}
+
+const glm::mat4& Camera::getViewNoTranslationMatrix(){
+  if (dirtyMatrices) {
+    updateCameraMatrices();
+    dirtyMatrices = false;
+  }
+
+  return viewNoTranslationMatrix;
 }
 
 void Camera::processKeyboard(Camera_Movement direction, float deltaTime) {
@@ -56,6 +73,7 @@ void Camera::processKeyboard(Camera_Movement direction, float deltaTime) {
   if (direction == DOWN) position -= up * velocity;
 
   hasChanged = true;
+  dirtyMatrices = true;
 }
 
 // processes input received from a mouse input system. Expects the offset value
@@ -77,6 +95,7 @@ void Camera::processMouseMovement(float xoffset, float yoffset,
   // update Front, Right and Up Vectors using the updated Euler angles
   updateCameraVectors();
   hasChanged = true;
+  dirtyMatrices = true;
 }
 
 // processes input received from a mouse scroll-wheel event. Only requires input
@@ -87,6 +106,7 @@ void Camera::processMouseScroll(float yoffset) {
   if (zoom > 45.0f) zoom = 45.0f;
 
   hasChanged = true;
+  dirtyMatrices = true;
 }
 
 bool Camera::hasUpdated() {
@@ -107,4 +127,9 @@ void Camera::updateCameraVectors() {
   front = glm::normalize(newFront);
   right = glm::normalize(glm::cross(front, worldUp));
   up = glm::normalize(glm::cross(right, front));
+}
+
+void Camera::updateCameraMatrices(){
+  viewMatrix = glm::lookAt(position, position + front, up);
+  viewNoTranslationMatrix = glm::mat4(glm::mat3(viewMatrix));
 }

@@ -27,7 +27,9 @@ class Camera {
   float mouseSensitivity;
   float zoom;
 
-  glm::mat4 GetViewMatrix();
+  const glm::mat4& getViewMatrix();
+  const glm::mat4& getViewNoTranslationMatrix();
+
   void processKeyboard(Camera_Movement direction, float deltaTime);
   void processMouseMovement(float xoffset, float yoffset,
                             GLboolean constrainPitch = true);
@@ -41,5 +43,9 @@ class Camera {
   inline static const float SENSITIVITY = 0.1f;
   inline static const float ZOOM = 45.0f;
   bool hasChanged = false;
+  bool dirtyMatrices = true;
+  glm::mat4 viewMatrix;
+  glm::mat4 viewNoTranslationMatrix;
   void updateCameraVectors();
+  void updateCameraMatrices();
 };
