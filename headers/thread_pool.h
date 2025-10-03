@@ -6,17 +6,17 @@
 #include <queue>
 
 class ThreadPool {
-public:
-    ThreadPool();
-    ~ThreadPool();
+ public:
+  ThreadPool();
+  ~ThreadPool();
 
-    void enqueue(std::function<void()> task);
-    void stopAllThreads();
+  void enqueue(std::function<void()> task);
+  void stopAllThreads();
 
-private:
-    std::atomic<bool> stop;
-    std::vector<std::thread> threads;
-    std::queue<std::function<void()>> tasks;
-    std::mutex queueMutex;
-    std::condition_variable workCondition;
+ private:
+  std::atomic<bool> stop;
+  std::vector<std::thread> threads;
+  std::queue<std::function<void()>> tasks;
+  std::mutex queueMutex;
+  std::condition_variable workCondition;
 };
