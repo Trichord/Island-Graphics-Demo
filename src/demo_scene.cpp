@@ -15,6 +15,11 @@ DemoScene::DemoScene() {
 }
 
 void DemoScene::loadModels() {
+  // CRITCIAL: Reserve space for total number of models in each vector
+  models.reserve(2);
+  cubeMappedModels.reserve(1);
+  skyboxes.reserve(1);
+
   // Main island
   models.emplace_back("./models/island/island.gltf");
   sceneObjects[ShaderType::DIRECTIONAL_PBR].emplace_back(
