@@ -39,7 +39,7 @@ class Camera {
  private:
   inline static const float YAW = -90.0f;
   inline static const float PITCH = 0.0f;
-  inline static const float SPEED = 2.5f;
+  inline static const float SPEED = 5.0f;
   inline static const float SENSITIVITY = 0.1f;
   inline static const float ZOOM = 45.0f;
   bool hasChanged = false;
