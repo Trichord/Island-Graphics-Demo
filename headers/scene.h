@@ -9,20 +9,23 @@
 #include "renderable.h"
 #include "shader_types.h"
 
-//-------------------------
-// It is important to store the models in a class member variable.
-// RenderableObject holds a reference to the model and it's critical to keep the
-// reference alive after any loading functions finish.  Any concrete
-// implementations should declare their own class member variables to hold
-// RenderableObjects.
+//-----------------------------------------------------
+// It is important for any concrete subclass to store the models in a class
+// member variable. RenderableObject holds a non-owning reference to the model
+// and it's critical to keep the reference alive after any loading functions
+// finish.
 //
-// e.g.:
+// Any container storing Model instances must guarantee that their
+// addresses remain valid for the lifetime of all RenderableObjects.
 //
-// private:
-// std::vector<Model> models;
+// In concrete subclasses, store models in a class member container with stable
+// element addresses. If using std::vector<Model>, you MUST call reserve()
+// before inserting and NEVER modify the vector afterward — any reallocation
+// will invalidate references and cause undefined behavior.
 //
-// Then references to those models can be passed to sceneObjects
-//-------------------------
+// Scene is for fast access of static objects - dynamic model loading
+// requires safer ownership model.
+//-----------------------------------------------------
 
 class Scene {
  public:
