@@ -1,5 +1,6 @@
 #include "../headers/demo_scene.h"
 
+#include <assert.h>
 #include <functional>
 
 #include "../headers/model.h"
@@ -16,9 +17,12 @@ DemoScene::DemoScene() {
 
 void DemoScene::loadModels() {
   // CRITCIAL: Reserve space for total number of models in each vector
-  models.reserve(2);
-  cubeMappedModels.reserve(1);
-  skyboxes.reserve(1);
+  const int numModels = 2;
+  const int numCubeMappedModels = 1;
+  const int numSkyboxes = 1;
+  models.reserve(numModels);
+  cubeMappedModels.reserve(numCubeMappedModels);
+  skyboxes.reserve(numSkyboxes);
 
   // Main island
   models.emplace_back("./models/island/island.gltf");
@@ -48,4 +52,8 @@ void DemoScene::loadModels() {
 
   sceneObjects[ShaderType::SKYBOX].emplace_back(
       RenderableObject{std::ref(skyboxes.back()), Transform()});
+
+  assert(models.size() == numModels);
+  assert(cubeMappedModels.size() == numCubeMappedModels);
+  assert(skyboxes.size() == numSkyboxes);
 }
