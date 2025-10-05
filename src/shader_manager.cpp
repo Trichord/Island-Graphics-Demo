@@ -30,7 +30,7 @@ ShaderManager& ShaderManager::operator=(ShaderManager&& other) noexcept {
 
 ShaderManager::~ShaderManager() { shaders.clear(); }
 
-std::unordered_map<ShaderType, Shader>& ShaderManager::getShaders() const {
+std::unordered_map<ShaderType, Shader>& ShaderManager::getShaders(){
   return shaders;
 }
 

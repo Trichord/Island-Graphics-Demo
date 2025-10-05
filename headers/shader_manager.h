@@ -13,7 +13,7 @@ class ShaderManager {
   ShaderManager& operator=(ShaderManager&& other) = delete;
   ~ShaderManager();
 
- std::unordered_map<ShaderType, Shader>& getShaders() const;
+ std::unordered_map<ShaderType, Shader>& getShaders();
 
  private:
   std::unordered_map<ShaderType, Shader> shaders;
