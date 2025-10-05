@@ -25,7 +25,6 @@ class Camera {
   float pitch;
   float movementSpeed;
   float mouseSensitivity;
-  float zoom;
 
   const glm::mat4& getViewMatrix();
   const glm::mat4& getViewNoTranslationMatrix();
@@ -33,7 +32,6 @@ class Camera {
   void processKeyboard(Camera_Movement direction, float deltaTime);
   void processMouseMovement(float xoffset, float yoffset,
                             GLboolean constrainPitch = true);
-  void processMouseScroll(float yoffset);
   bool hasUpdated();
 
  private:
@@ -41,7 +39,6 @@ class Camera {
   inline static const float PITCH = 0.0f;
   inline static const float SPEED = 5.0f;
   inline static const float SENSITIVITY = 0.1f;
-  inline static const float ZOOM = 45.0f;
   bool hasChanged = false;
   bool dirtyMatrices = true;
   glm::mat4 viewMatrix;
