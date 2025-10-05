@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <functional>
+#include <iostream>
 
 #include "../headers/model.h"
 #include "../headers/skybox.h"
@@ -15,7 +16,9 @@ DemoScene::DemoScene() {
   lightSources.pointLightPosition = glm::vec3(0.0f, 0.5f, 50.0f);
 
   camera = glm::vec3(0.0f, 3.0f, 30.0f);
+  std::cout << "Loading Models...";
   loadModels();
+  std::cout << " Done." << std::endl;
 }
 
 void DemoScene::loadModels() {

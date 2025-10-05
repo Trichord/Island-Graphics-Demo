@@ -19,7 +19,7 @@ class Renderer {
   Renderer(Renderer&& other) noexcept;
   Renderer& operator=(Renderer&& other) noexcept;
 
-  void renderScene(Scene& scene, Camera& camera);
+  void renderScene(Scene& scene);
   void updateUBO(Camera& camera);
 
  private:
