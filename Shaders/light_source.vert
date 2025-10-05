@@ -1,10 +1,11 @@
-#version 430 core
+#version 440 core
 
 layout (location = 0) in vec3 aPos;
 
 layout (std140) uniform matrices {
-	mat4 viewMatrix;
-	mat4 projectionViewMatrix;
+	layout (offset = 0) mat4 viewMatrix;
+	layout (offset = 64) mat4 projectionViewMatrix;
+	layout (offset = 128) vec4 cameraPosition;
 };
 
 uniform mat4 modelMatrix;

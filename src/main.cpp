@@ -48,7 +48,7 @@ int main() {
   // Creating the window
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_SAMPLES, 8);
 
@@ -95,10 +95,13 @@ int main() {
   glfwSetKeyCallback(window, keyCallback);
 
   // stbi_set_flip_vertically_on_load(true);
-
+  
+  
   DemoScene demoScene;
   threadPool.stopAllThreads();
-  Renderer renderer(demoScene.camera, SCREEN_WIDTH, SCREEN_HEIGHT);
+  
+  Renderer renderer(SCREEN_WIDTH, SCREEN_HEIGHT);
+  renderer.updateUBO(demoScene);
 
   glfwSetWindowUserPointer(window, &demoScene);
 
@@ -130,7 +133,7 @@ int main() {
     */
 
     if (demoScene.camera.hasUpdated()) {
-      renderer.updateUBO(demoScene.camera);
+      renderer.updateUBO(demoScene);
     }
 
     renderer.renderScene(demoScene);
