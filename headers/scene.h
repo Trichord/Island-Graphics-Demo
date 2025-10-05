@@ -18,8 +18,7 @@
 // Any container storing Model instances must guarantee that their
 // addresses remain valid for the lifetime of all RenderableObjects.
 //
-// In concrete subclasses, store models in a class member container with stable
-// element addresses. If using std::vector<Model>, you MUST call reserve()
+// If using std::vector<Model>, you MUST call reserve()
 // before inserting and NEVER modify the vector afterward — any reallocation
 // will invalidate references and cause undefined behavior.
 //
@@ -41,9 +40,9 @@ class Scene {
   } lightSources;
 
   std::map<ShaderType, std::vector<RenderableObject>>& getSceneObjects();
+  Camera camera;
 
  protected:
-  Camera camera;
   std::map<ShaderType, std::vector<RenderableObject>> sceneObjects;
   virtual void loadModels() = 0;
 };
