@@ -12,8 +12,7 @@ Camera::Camera()
       yaw(YAW),
       pitch(PITCH),
       movementSpeed(SPEED),
-      mouseSensitivity(SENSITIVITY),
-      zoom(ZOOM) {
+      mouseSensitivity(SENSITIVITY) {
   updateCameraVectors();
   dirtyMatrices = true;
 };
@@ -21,8 +20,7 @@ Camera::Camera()
 Camera::Camera(glm::vec3 pos, glm::vec3 u, float y, float p)
     : front(glm::vec3(0.0f, 0.0f, -1.0f)),
       movementSpeed(SPEED),
-      mouseSensitivity(SENSITIVITY),
-      zoom(ZOOM) {
+      mouseSensitivity(SENSITIVITY) {
   position = pos;
   worldUp = u;
   yaw = y;
@@ -35,8 +33,7 @@ Camera::Camera(float posX, float posY, float posZ, float upX, float upY,
                float upZ, float y, float p)
     : front(glm::vec3(0.0f, 0.0f, -1.0f)),
       movementSpeed(SPEED),
-      mouseSensitivity(SENSITIVITY),
-      zoom(ZOOM) {
+      mouseSensitivity(SENSITIVITY) {
   position = glm::vec3(posX, posY, posZ);
   worldUp = glm::vec3(upX, upY, upZ);
   yaw = y;
@@ -54,7 +51,7 @@ const glm::mat4& Camera::getViewMatrix() {
   return viewMatrix;
 }
 
-const glm::mat4& Camera::getViewNoTranslationMatrix(){
+const glm::mat4& Camera::getViewNoTranslationMatrix() {
   if (dirtyMatrices) {
     updateCameraMatrices();
     dirtyMatrices = false;
@@ -98,17 +95,6 @@ void Camera::processMouseMovement(float xoffset, float yoffset,
   dirtyMatrices = true;
 }
 
-// processes input received from a mouse scroll-wheel event. Only requires input
-// on the vertical wheel-axis
-void Camera::processMouseScroll(float yoffset) {
-  zoom -= (float)yoffset;
-  if (zoom < 1.0f) zoom = 1.0f;
-  if (zoom > 45.0f) zoom = 45.0f;
-
-  hasChanged = true;
-  dirtyMatrices = true;
-}
-
 bool Camera::hasUpdated() {
   if (hasChanged) {
     hasChanged = false;
@@ -129,7 +115,7 @@ void Camera::updateCameraVectors() {
   up = glm::normalize(glm::cross(right, front));
 }
 
-void Camera::updateCameraMatrices(){
+void Camera::updateCameraMatrices() {
   viewMatrix = glm::lookAt(position, position + front, up);
   viewNoTranslationMatrix = glm::mat4(glm::mat3(viewMatrix));
 }
