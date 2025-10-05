@@ -35,11 +35,15 @@ class Scene {
   Scene(Scene&& other) noexcept;
   Scene& operator=(Scene&& other) noexcept;
 
+  struct LightSources {
+    glm::vec3 globalLightDirection;
+    glm::vec3 pointLightPosition;
+  } lightSources;
+
   std::map<ShaderType, std::vector<RenderableObject>>& getSceneObjects();
 
  protected:
   Camera camera;
-  glm::vec3 globalLightDirection;
   std::map<ShaderType, std::vector<RenderableObject>> sceneObjects;
   virtual void loadModels() = 0;
 };
