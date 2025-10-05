@@ -100,6 +100,8 @@ int main() {
   threadPool.stopAllThreads();
   Renderer renderer(demoScene.camera, SCREEN_WIDTH, SCREEN_HEIGHT);
 
+  glfwSetWindowUserPointer(window, &demoScene);
+
   while (true) {
     // Clear background
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -160,7 +162,8 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
   lastX = (float)xPos;
   lastY = (float)yPos;
 
-  // camera.processMouseMovement(xOffset, yOffset, GL_TRUE);
+  auto scenePointer = static_cast<DemoScene*>(glfwGetWindowUserPointer(window));
+  scenePointer->camera.processMouseMovement(xOffset, yOffset, GL_TRUE);
 }
 
 void processInput(GLFWwindow* window) {
@@ -168,7 +171,10 @@ void processInput(GLFWwindow* window) {
     glfwSetWindowShouldClose(window, GLFW_TRUE);
     return;
   }
-  /*
+  
+  auto scenePointer = static_cast<DemoScene*>(glfwGetWindowUserPointer(window));
+  Camera& camera = scenePointer->camera;
+
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     camera.processKeyboard(FORWARD, deltaTime);
 
@@ -186,7 +192,7 @@ void processInput(GLFWwindow* window) {
 
   if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
     camera.processKeyboard(DOWN, deltaTime);
-    */
+    
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action,
