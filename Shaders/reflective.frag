@@ -1,15 +1,22 @@
-#version 430 core
+#version 440 core
 
-out vec4 fragColor;
+
+
+layout (std140) uniform matrices {
+	layout (offset = 0) mat4 viewMatrix;
+	layout (offset = 64) mat4 projectionViewMatrix;
+	layout (offset = 128) vec4 cameraPosition;
+};
 
 in vec3 normal;
 in vec3 position;
 
 uniform samplerCube cubemap;
-uniform vec3 cameraPos;
+
+out vec4 fragColor;
 
 void main() {
-	vec3 viewDir = normalize(position - cameraPos);
+	vec3 viewDir = normalize(position - cameraPosition.xyz);
 	vec3 reflectDir = reflect(viewDir, normalize(normal));
 	fragColor = vec4(texture(cubemap, reflectDir).rgb, 1.0f);
 }
