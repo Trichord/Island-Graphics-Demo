@@ -16,7 +16,7 @@
 #define NEAR_PLANE 0.1f
 #define FAR_PLANE 600.0f
 
-Renderer::Renderer(Camera& camera, int screenWidth, int screenHeight)
+Renderer::Renderer(int screenWidth, int screenHeight)
     : projectionMatrix(glm::perspective(
           glm::radians(CAMERA_ZOOM), (float)screenWidth / (float)screenHeight,
           NEAR_PLANE, FAR_PLANE)) {
@@ -33,7 +33,7 @@ Renderer::Renderer(Camera& camera, int screenWidth, int screenHeight)
   setupSkyboxShader(shaders.at(ShaderType::SKYBOX));
 
   // Uniform Buffer Object
-  setupUBO(camera);
+  setupUBO();
 }
 
 Renderer::Renderer(Renderer&& other) noexcept {
@@ -90,7 +90,6 @@ void Renderer::renderScene(Scene& scene) {
         // Reflective shader
         case ShaderType::REFLECTIVE:
           shader.setMat3("normalMatrix", object.transform.getNormalMatrix());
-          shader.setVec3("cameraPos", scene.camera.position);
           break;
 
           // Skyboxes
@@ -107,18 +106,18 @@ void Renderer::renderScene(Scene& scene) {
   }
 }
 
-void Renderer::updateUBO(Camera& camera) {
-  uboData.viewMatrix = camera.getViewMatrix();
-  uboData.projectionViewMatrix = projectionMatrix * camera.getViewMatrix();
+void Renderer::updateUBO(Scene& scene) {
+  uboData.viewMatrix = scene.camera.getViewMatrix();
+  uboData.projectionViewMatrix = projectionMatrix * scene.camera.getViewMatrix();
+  uboData.cameraPosition = glm::vec4(scene.camera.position, 0.0f);
   glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(PackedUBOData), &uboData);
 }
 
-void Renderer::setupUBO(Camera& camera) {
+void Renderer::setupUBO() {
   glGenBuffers(1, &UBO);
   glBindBuffer(GL_UNIFORM_BUFFER, UBO);
   glBufferData(GL_UNIFORM_BUFFER, sizeof(PackedUBOData), NULL, GL_STATIC_DRAW);
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, UBO);
-  updateUBO(camera);
 }
 
 void Renderer::loadShaders() {
