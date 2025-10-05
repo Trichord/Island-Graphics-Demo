@@ -1,32 +1,37 @@
 #include "../headers/cube_mapped_model.h"
-#include "../headers/image_loader.h"
-#include "../headers/texture_utilities.h"
+
+#include <glad/glad.h>
+
 #include <filesystem>
+#include <glm/glm.hpp>
 #include <iostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <glm/glm.hpp>
-#include <glad/glad.h>
+
+#include "../headers/image_loader.h"
+#include "../headers/texture_utilities.h"
 
 CubeMappedModel::CubeMappedModel(CubeMappedModel&& other) noexcept
-	: cubemapTextureID(other.cubemapTextureID) {
-	other.cubemapTextureID = 0;
+    : cubemapTextureID(other.cubemapTextureID) {
+  other.cubemapTextureID = 0;
 }
 
 CubeMappedModel& CubeMappedModel::operator=(CubeMappedModel&& other) noexcept {
-	if (this != &other) {
-		cubemapTextureID = other.cubemapTextureID;
-		other.cubemapTextureID = 0;
-	}
+  if (this != &other) {
+    glDeleteTextures(1, &cubemapTextureID);
+    cubemapTextureID = other.cubemapTextureID;
+    other.cubemapTextureID = 0;
+  }
 
-	return *this;
+  return *this;
 }
 
 CubeMappedModel::~CubeMappedModel() { glDeleteTextures(1, &cubemapTextureID); }
 
 void CubeMappedModel::loadTextures() {
-	ImageLoader imageLoader(texturePaths);
-	std::vector<ImageData> loadedImages = imageLoader.getImageData();
-	cubemapTextureID = texture_utilities::generateCubemapTextureID(loadedImages, true);
+  ImageLoader imageLoader(texturePaths);
+  std::vector<ImageData> loadedImages = imageLoader.getImageData();
+  cubemapTextureID =
+      texture_utilities::generateCubemapTextureID(loadedImages, true);
 }
