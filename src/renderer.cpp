@@ -23,7 +23,7 @@ Renderer::Renderer(Camera& camera, int screenWidth, int screenHeight)
   // Load shaders
   std::cout << "Loading Shaders...";
   loadShaders();
-  std::cout << " Done" << std::endl;
+  std::cout << " Done." << std::endl;
 
   // Setup shaders
   setupPBRShader(shaders.at(ShaderType::POINT_PBR));
@@ -58,7 +58,7 @@ Renderer& Renderer::operator=(Renderer&& other) noexcept {
   return *this;
 }
 
-void Renderer::renderScene(Scene& scene, Camera& camera) {
+void Renderer::renderScene(Scene& scene) {
   // For each shader type in the scene
   for (auto& [shaderType, objectList] : scene.getSceneObjects()) {
     Shader& shader = shaders.at(shaderType);
@@ -74,15 +74,15 @@ void Renderer::renderScene(Scene& scene, Camera& camera) {
         case ShaderType::DIRECTIONAL_PBR:
           shader.setMat3("normalMV",
                          glm::transpose(glm::inverse(
-                             glm::mat3(camera.getViewMatrix() * modelMatrix))));
+                             glm::mat3(scene.camera.getViewMatrix() * modelMatrix))));
           shader.setVec3("lightDir", scene.lightSources.globalLightDirection);
           break;
 
         // Point light source
         case ShaderType::POINT_PBR:
           shader.setMat3("normalMV",
-                         glm::transpose(glm::inverse(
-                             glm::mat3(camera.getViewMatrix() * modelMatrix))));
+                         glm::transpose(glm::inverse(glm::mat3(
+                             scene.camera.getViewMatrix() * modelMatrix))));
           shader.setVec3("lightPosition",
                          scene.lightSources.pointLightPosition);
           break;
@@ -90,13 +90,14 @@ void Renderer::renderScene(Scene& scene, Camera& camera) {
         // Reflective shader
         case ShaderType::REFLECTIVE:
           shader.setMat3("normalMatrix", object.transform.getNormalMatrix());
+          shader.setVec3("cameraPos", scene.camera.position);
           break;
 
           // Skyboxes
         case ShaderType::SKYBOX:
           shader.setMat4(
               "projectionViewNoTranslation",
-              projectionMatrix * camera.getViewNoTranslationMatrix());
+              projectionMatrix * scene.camera.getViewNoTranslationMatrix());
           break;
       }
 
@@ -109,7 +110,7 @@ void Renderer::renderScene(Scene& scene, Camera& camera) {
 void Renderer::updateUBO(Camera& camera) {
   uboData.viewMatrix = camera.getViewMatrix();
   uboData.projectionViewMatrix = projectionMatrix * camera.getViewMatrix();
-  glBufferSubData(GL_UNIFORM_BUFFER, 0, 2 * sizeof(PackedUBOData), &uboData);
+  glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(PackedUBOData), &uboData);
 }
 
 void Renderer::setupUBO(Camera& camera) {
@@ -121,16 +122,16 @@ void Renderer::setupUBO(Camera& camera) {
 }
 
 void Renderer::loadShaders() {
-  shaders.emplace(ShaderType::POINT_PBR, "./shaders/point_PBR.vert",
-                  "./shaders/point_PBR.frag");
-  shaders.emplace(ShaderType::DIRECTIONAL_PBR, "./shaders/directional_PBR.vert",
-                  "./shaders/directional_PBR.frag");
-  shaders.emplace(ShaderType::REFLECTIVE, "./shaders/reflective.vert",
-                  "./shaders/reflective.frag");
-  shaders.emplace(ShaderType::LIGHT_SOURCE, "./shaders/light_source.vert",
-                  "./shaders/light_source.frag");
-  shaders.emplace(ShaderType::SKYBOX, "./shaders/skybox.vert",
-                  "./shaders/skybox.frag");
+  shaders.emplace(ShaderType::POINT_PBR, Shader("./shaders/point_PBR.vert",
+                  "./shaders/point_PBR.frag"));
+  shaders.emplace(ShaderType::DIRECTIONAL_PBR, Shader("./shaders/directional_PBR.vert",
+                  "./shaders/directional_PBR.frag"));
+  shaders.emplace(ShaderType::REFLECTIVE, Shader("./shaders/reflective.vert",
+                  "./shaders/reflective.frag"));
+  shaders.emplace(ShaderType::LIGHT_SOURCE, Shader("./shaders/light_source.vert",
+                  "./shaders/light_source.frag"));
+  shaders.emplace(ShaderType::SKYBOX, Shader("./shaders/skybox.vert",
+                  "./shaders/skybox.frag"));
 }
 
 void Renderer::setupPBRShader(Shader& shader) {
