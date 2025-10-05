@@ -10,46 +10,97 @@
 #include <map>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
 
 #define CAMERA_ZOOM 45.0f
 #define NEAR_PLANE 0.1f
 #define FAR_PLANE 600.0f
 
-Renderer::Renderer(ShaderManager& manager, Camera& camera, int screenWidth,
-                   int screenHeight)
-    : shaderManager(manager) {
-  projectionMatrix = glm::perspective(glm::radians(CAMERA_ZOOM),
-                                      (float)screenWidth / (float)screenHeight,
-                                      NEAR_PLANE, FAR_PLANE);
+Renderer::Renderer(Camera& camera, int screenWidth, int screenHeight)
+    : projectionMatrix(glm::perspective(
+          glm::radians(CAMERA_ZOOM), (float)screenWidth / (float)screenHeight,
+          NEAR_PLANE, FAR_PLANE)) {
+  // Load shaders
+  std::cout << "Loading Shaders...";
+  loadShaders();
+  std::cout << " Done" << std::endl;
+
+  // Setup shaders
+  setupPBRShader(shaders.at(ShaderType::POINT_PBR));
+  setupPBRShader(shaders.at(ShaderType::DIRECTIONAL_PBR));
+  setupReflectiveShader(shaders.at(ShaderType::REFLECTIVE));
+  setupLightSourceShader(shaders.at(ShaderType::LIGHT_SOURCE));
+  setupSkyboxShader(shaders.at(ShaderType::SKYBOX));
+
+  // Uniform Buffer Object
   setupUBO(camera);
 }
 
+Renderer::Renderer(Renderer&& other) noexcept {
+  shaders = std::move(other.shaders);
+  uboData = std::move(other.uboData);
+  projectionMatrix = std::move(other.projectionMatrix);
+  UBO = other.UBO;
+  other.UBO = 0;
+}
+
+Renderer& Renderer::operator=(Renderer&& other) noexcept {
+  if (this != &other) {
+    glDeleteBuffers(1, &UBO);
+    UBO = other.UBO;
+    other.UBO = 0;
+
+    shaders.clear();
+    shaders = std::move(other.shaders);
+    uboData = std::move(other.uboData);
+    projectionMatrix = std::move(other.projectionMatrix);
+  }
+  return *this;
+}
+
 void Renderer::renderScene(Scene& scene, Camera& camera) {
-  //For each shader type in the scene
+  // For each shader type in the scene
   for (auto& [shaderType, objectList] : scene.getSceneObjects()) {
-    Shader& shader = shaderManager.getShaders().at(shaderType);
+    Shader& shader = shaders.at(shaderType);
     shader.use();
 
     for (auto& object : objectList) {
-      //Set model matrix
+      // Set model matrix
       glm::mat4 modelMatrix = object.transform.getModelMatrix();
       shader.setMat4("modelMatrix", modelMatrix);
 
-      //Set normal matrix based off shader type
-      if (shaderType == ShaderType::DIRECTIONAL_PBR ||
-          shaderType == ShaderType::POINT_PBR)
-        shader.setMat3("normalMV", glm::transpose(glm::inverse(glm::mat3(
-                                       camera.getViewMatrix() * modelMatrix))));
+      switch (shaderType) {
+        // Directional light source
+        case ShaderType::DIRECTIONAL_PBR:
+          shader.setMat3("normalMV",
+                         glm::transpose(glm::inverse(
+                             glm::mat3(camera.getViewMatrix() * modelMatrix))));
+          shader.setVec3("lightDir", scene.lightSources.globalLightDirection);
+          break;
 
-      else if (shaderType == ShaderType::REFLECTIVE)
-        shader.setMat3("normalMatrix", object.transform.getNormalMatrix());
+        // Point light source
+        case ShaderType::POINT_PBR:
+          shader.setMat3("normalMV",
+                         glm::transpose(glm::inverse(
+                             glm::mat3(camera.getViewMatrix() * modelMatrix))));
+          shader.setVec3("lightPosition",
+                         scene.lightSources.pointLightPosition);
+          break;
 
-      //Special case for skyboxes
-      else if (shaderType == ShaderType::SKYBOX)
-        shader.setMat4("projectionViewNoTranslation",
-                        projectionMatrix * camera.getViewNoTranslationMatrix());
+        // Reflective shader
+        case ShaderType::REFLECTIVE:
+          shader.setMat3("normalMatrix", object.transform.getNormalMatrix());
+          break;
 
-      //Draw it
+          // Skyboxes
+        case ShaderType::SKYBOX:
+          shader.setMat4(
+              "projectionViewNoTranslation",
+              projectionMatrix * camera.getViewNoTranslationMatrix());
+          break;
+      }
+
+      // Draw it
       object.renderable.get().render(shader);
     }
   }
@@ -67,4 +118,40 @@ void Renderer::setupUBO(Camera& camera) {
   glBufferData(GL_UNIFORM_BUFFER, sizeof(PackedUBOData), NULL, GL_STATIC_DRAW);
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, UBO);
   updateUBO(camera);
+}
+
+void Renderer::loadShaders() {
+  shaders.emplace(ShaderType::POINT_PBR, "./shaders/point_PBR.vert",
+                  "./shaders/point_PBR.frag");
+  shaders.emplace(ShaderType::DIRECTIONAL_PBR, "./shaders/directional_PBR.vert",
+                  "./shaders/directional_PBR.frag");
+  shaders.emplace(ShaderType::REFLECTIVE, "./shaders/reflective.vert",
+                  "./shaders/reflective.frag");
+  shaders.emplace(ShaderType::LIGHT_SOURCE, "./shaders/light_source.vert",
+                  "./shaders/light_source.frag");
+  shaders.emplace(ShaderType::SKYBOX, "./shaders/skybox.vert",
+                  "./shaders/skybox.frag");
+}
+
+void Renderer::setupPBRShader(Shader& shader) {
+  shader.use();
+  shader.setUniformBlock("matrices", 0);
+  shader.setInt("albedoMap", 0);
+  shader.setInt("occlusionRoughMetalMap", 1);
+  shader.setInt("normalMap", 2);
+}
+
+void Renderer::setupReflectiveShader(Shader& shader) {
+  shader.use();
+  shader.setUniformBlock("matrices", 0);
+  shader.setInt("cubemap", 0);
+}
+
+void Renderer::setupLightSourceShader(Shader& shader) {
+  shader.use();
+  shader.setUniformBlock("matrices", 0);
+}
+void Renderer::setupSkyboxShader(Shader& shader) {
+  shader.use();
+  shader.setInt("skybox", 0);
 }

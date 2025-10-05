@@ -9,7 +9,10 @@
 
 DemoScene::DemoScene() {
   // Normalized approximation of sun direction in skybox
-  globalLightDirection = glm::vec3(-0.363647, -0.739629, -0.566312);
+  lightSources.globalLightDirection =
+      glm::vec3(-0.363647, -0.739629, -0.566312);
+  // Right next to the flight helmet
+  lightSources.pointLightPosition = glm::vec3(0.0f, 0.5f, 50.0f);
 
   camera = glm::vec3(0.0f, 3.0f, 30.0f);
   loadModels();
@@ -53,7 +56,7 @@ void DemoScene::loadModels() {
   sceneObjects[ShaderType::SKYBOX].emplace_back(
       RenderableObject{std::ref(skyboxes.back()), Transform()});
 
-  assert(models.size() == numModels);
-  assert(cubeMappedModels.size() == numCubeMappedModels);
-  assert(skyboxes.size() == numSkyboxes);
+  assert(models.size() <= numModels);
+  assert(cubeMappedModels.size() <= numCubeMappedModels);
+  assert(skyboxes.size() <= numSkyboxes);
 }

@@ -149,7 +149,6 @@ int main() {
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, mouse_callback);
-  glfwSetScrollCallback(window, scrollCallback);
   glfwSetKeyCallback(window, keyCallback);
 
   // stbi_set_flip_vertically_on_load(true);
