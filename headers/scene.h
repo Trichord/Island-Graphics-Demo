@@ -35,8 +35,7 @@ class Scene {
   Scene(Scene&& other) noexcept;
   Scene& operator=(Scene&& other) noexcept;
 
-  const std::map<ShaderType, std::vector<RenderableObject>>& getSceneObjects()
-      const;
+  std::map<ShaderType, std::vector<RenderableObject>>& getSceneObjects();
 
  protected:
   Camera camera;

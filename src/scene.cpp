@@ -16,7 +16,6 @@ Scene& Scene::operator=(Scene&& other) noexcept {
   return *this;
 }
 
-const std::map<ShaderType, std::vector<RenderableObject>>&
-Scene::getSceneObjects() const {
+std::map<ShaderType, std::vector<RenderableObject>>& Scene::getSceneObjects() {
   return sceneObjects;
 }

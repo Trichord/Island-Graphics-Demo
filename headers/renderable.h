@@ -14,7 +14,4 @@ class Renderable {
 struct RenderableObject {
   std::reference_wrapper<Renderable> renderable;
   Transform transform;
-
-  // RenderableObject(std::reference_wrapper<Renderable> object, Transform t) :
-  // renderable(object), transform(t) {};
 };
