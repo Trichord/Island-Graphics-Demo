@@ -9,18 +9,17 @@ class ShaderManager {
   ShaderManager();
   ShaderManager(const ShaderManager&) = delete;
   ShaderManager& operator=(const ShaderManager&) = delete;
-  ShaderManager(ShaderManager&& other) noexcept;
-  ShaderManager& operator=(ShaderManager&& other) noexcept;
+  ShaderManager(ShaderManager&& other) = delete;
+  ShaderManager& operator=(ShaderManager&& other) = delete;
   ~ShaderManager();
 
-  const std::unordered_map<ShaderType, Shader>& getShaders();
+ std::unordered_map<ShaderType, Shader>& getShaders() const;
 
  private:
   std::unordered_map<ShaderType, Shader> shaders;
   void loadShaders();
-  void setupPBRShader();
-  void setupDirectionalPBRShader();
-  void setupReflectiveShader();
-  void setupLightSourceShader();
-  void setupSkyboxShader();
+  void setupPBRShader(Shader& shader);
+  void setupReflectiveShader(Shader& shader);
+  void setupLightSourceShader(Shader& shader);
+  void setupSkyboxShader(Shader& shader);
 };
