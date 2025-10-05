@@ -56,7 +56,7 @@ const glm::vec3& Transform::getPosition() const { return position; }
 
 const glm::vec3& Transform::getScale() const { return scale; }
 
-const glm::mat4& Transform::getModelMatrix() {
+glm::mat4& Transform::getModelMatrix() {
   if (isDirty) {
     rebuildModelMatrix();
     isDirty = false;
@@ -65,7 +65,7 @@ const glm::mat4& Transform::getModelMatrix() {
   return modelMatrix;
 }
 
-const glm::mat3& Transform::getNormalMatrix() {
+glm::mat3& Transform::getNormalMatrix() {
   if (isDirty) {
     rebuildModelMatrix();
     isDirty = false;

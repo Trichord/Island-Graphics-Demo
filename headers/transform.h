@@ -21,8 +21,8 @@ class Transform {
   void rotateAroundAxis(float degrees, glm::vec3 axis);
   const glm::vec3& getPosition() const;
   const glm::vec3& getScale() const;
-  const glm::mat4& getModelMatrix();
-  const glm::mat3& getNormalMatrix();
+  glm::mat4& getModelMatrix();
+  glm::mat3& getNormalMatrix();
   glm::vec3 getRotation() const;
 
  private:

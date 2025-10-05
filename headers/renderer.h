@@ -14,14 +14,14 @@
 class Renderer {
  public:
   Renderer() = delete;
-  Renderer(const ShaderManager& shaderManager, Camera& camera, int screenWidth,
+  Renderer(ShaderManager& shaderManager, Camera& camera, int screenWidth,
            int screenHeight);
   Renderer(const Renderer&) = delete;
   Renderer& operator=(const Renderer&) = delete;
   Renderer(Renderer&& other) noexcept;
   Renderer& operator=(Renderer&& other) = delete;
 
-  void renderScene(Scene& scene);
+  void renderScene(Scene& scene, Camera& camera);
   void updateUBO(Camera& camera);
 
  private:
@@ -32,7 +32,7 @@ class Renderer {
   };
 
   PackedUBOData uboData;
-  const ShaderManager& shaderManager;
+  ShaderManager& shaderManager;
   glm::mat4 projectionMatrix;
   unsigned int UBO;
 
