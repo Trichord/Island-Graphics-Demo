@@ -23,7 +23,7 @@ enum LightType { POINT_LIGHT, DIRECTIONAL_LIGHT, SPOT_LIGHT };
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xPos, double yPos);
-void processInput(GLFWwindow* window);
+void processInput(GLFWwindow* window, Scene& scene);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action,
                  int mods);
 
@@ -47,7 +47,7 @@ int main() {
 
   // Creating the window
   glfwInit();
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_SAMPLES, 8);
@@ -114,7 +114,7 @@ int main() {
     totalTime += deltaTime;
     framesRendered++;
 
-    processInput(window);
+    processInput(window, demoScene);
     glfwPollEvents();
 
     if (glfwWindowShouldClose(window)) break;
@@ -163,36 +163,34 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
   lastY = (float)yPos;
 
   auto scenePointer = static_cast<DemoScene*>(glfwGetWindowUserPointer(window));
-  scenePointer->camera.processMouseMovement(xOffset, yOffset, GL_TRUE);
+
+  if (scenePointer)
+    scenePointer->camera.processMouseMovement(xOffset, yOffset, GL_TRUE);
 }
 
-void processInput(GLFWwindow* window) {
+void processInput(GLFWwindow* window, Scene& scene) {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, GLFW_TRUE);
     return;
   }
-  
-  auto scenePointer = static_cast<DemoScene*>(glfwGetWindowUserPointer(window));
-  Camera& camera = scenePointer->camera;
 
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    camera.processKeyboard(FORWARD, deltaTime);
+    scene.camera.processKeyboard(FORWARD, deltaTime);
 
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    camera.processKeyboard(BACKWARD, deltaTime);
+    scene.camera.processKeyboard(BACKWARD, deltaTime);
 
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    camera.processKeyboard(LEFT, deltaTime);
+    scene.camera.processKeyboard(LEFT, deltaTime);
 
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    camera.processKeyboard(RIGHT, deltaTime);
+    scene.camera.processKeyboard(RIGHT, deltaTime);
 
   if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-    camera.processKeyboard(UP, deltaTime);
+    scene.camera.processKeyboard(UP, deltaTime);
 
   if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-    camera.processKeyboard(DOWN, deltaTime);
-    
+    scene.camera.processKeyboard(DOWN, deltaTime);
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action,
