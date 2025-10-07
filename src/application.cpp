@@ -1,10 +1,10 @@
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include "../headers/application.h"
 #include "../headers/scene.h"
 #include "../headers/demo_scene.h"
 #include "../headers/renderer.h"
 #include "../headers/thread_pool.h"
-#include <GLFW/glfw3.h>
 #include <iostream>
 
 void Application::run() {
