@@ -33,6 +33,7 @@ void Application::run() {
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
+    //Final FPS count
     totalTime += deltaTime;
     framesRendered++;
 

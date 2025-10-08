@@ -60,15 +60,17 @@ class Scene {
   Model& loadModel(const std::string& filepath);
   SpaceModel& loadSpaceModel(const std::string& filepath);
   Skybox& loadSkybox(const std::vector<std::string>& filepaths);
-  
-  //Give a model a name if you want to reference its transform in Application's onUpdate() loop
+
+  // Give a model a name if you want to reference its transform in Application's
+  // onUpdate() loop
   template <typename T, typename U>
-  void addObjectToScene(T& modelRef, ShaderType type,
-                        U&& transform, const std::optional<std::string> name = std::nullopt){
+  void addObjectToScene(T& modelRef, ShaderType type, U&& transform,
+                        const std::optional<std::string> name = std::nullopt) {
     sceneObjects[type].emplace_back(
         RenderableObject{std::ref(modelRef), std::forward<U>(transform)});
 
     if (name.has_value())
-      objectTransforms.emplace(name.value(), std::ref(sceneObjects[type].back().transform)); 
+      objectTransforms.emplace(name.value(),
+                               std::ref(sceneObjects[type].back().transform));
   }
 };
