@@ -4,16 +4,22 @@
 #include <glm/glm.hpp>
 #include <map>
 #include <vector>
+#include <string>
+#include <optional>
+#include <utility>
 
+#include "model.h"
+#include "space_model.h"
+#include "skybox.h"
 #include "camera.h"
 #include "renderable.h"
 #include "shader_types.h"
+#include "transform.h"
 
 //-----------------------------------------------------
-// It is important for any concrete subclass to store the models in a class
-// member variable. RenderableObject holds a non-owning reference to the model
-// and it's critical to keep the reference alive after any loading functions
-// finish.
+// It is important for concrete subclasses to store the models in a class member
+// variable. RenderableObject holds a non-owning reference to the model and it's
+// critical to keep the reference alive after any loading functions finish
 //
 // Any container storing Model instances must guarantee that their
 // addresses remain valid for the lifetime of all RenderableObjects.
@@ -44,5 +50,25 @@ class Scene {
 
  protected:
   std::map<ShaderType, std::vector<RenderableObject>> sceneObjects;
-  virtual void loadModels() = 0;
+  std::map<std::string, std::reference_wrapper<Transform>> objectTransforms;
+
+  std::vector<Model> models;
+  std::vector<SpaceModel> spaceModels;
+  std::vector<Skybox> skyboxes;
+
+  virtual void buildScene() = 0;
+  Model& loadModel(const std::string& filepath);
+  SpaceModel& loadSpaceModel(const std::string& filepath);
+  Skybox& loadSkybox(const std::vector<std::string>& filepaths);
+  
+  //Give a model a name if you want to reference its transform in Application's onUpdate() loop
+  template <typename T, typename U>
+  void addObjectToScene(T& modelRef, ShaderType type,
+                        U&& transform, const std::optional<std::string> name = std::nullopt){
+    sceneObjects[type].emplace_back(
+        RenderableObject{std::ref(modelRef), std::forward<U>(transform)});
+
+    if (name.has_value())
+      objectTransforms.emplace(name.value(), std::ref(sceneObjects[type].back().transform)); 
+  }
 };
