@@ -46,6 +46,7 @@ class Scene {
   } lightSources;
 
   std::map<ShaderType, std::vector<RenderableObject>>& getSceneObjects();
+  Transform& getObjectTransform(const std::string& key);
   Camera camera;
 
  protected:

@@ -26,6 +26,7 @@ void Application::run() {
   double framesRendered = 0;
 
   while (true) {
+    //Clear screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Delta Time
@@ -37,32 +38,27 @@ void Application::run() {
     totalTime += deltaTime;
     framesRendered++;
 
+    //User input
     processInput(demoScene);
     glfwPollEvents();
 
+    //Exit condition
     if (glfwWindowShouldClose(window)) break;
 
-    /*
-    lightPosition.x =
-        startingLightPos.x + (float)sin((float)glfwGetTime() * 0.25f);
-    lightPosition.z =
-        startingLightPos.z + (float)cos((float)glfwGetTime() * 0.25f);
-
-    pointPBRShader.use();
-    pointPBRShader.setVec3("lightPosition", lightPosition);
-    */
-
+    //Update GPU shared buffer if camera has moved
     if (demoScene.camera.hasUpdated()) renderer.updateUBO(demoScene);
 
+    //Update scene objects
+    onUpdate(demoScene, deltaTime);
+
+    //Draw
     renderer.renderScene(demoScene);
 
     glfwSwapBuffers(window);
   }
 
-  std::cout << "Average FPS: " << framesRendered / totalTime << std::endl;
-
   glfwTerminate();
-
+  std::cout << "Average FPS: " << framesRendered / totalTime << std::endl;
   return;
 }
 
@@ -155,7 +151,11 @@ void Application::configureGLFW(Scene& scene) {
   glfwSetWindowUserPointer(window, &scene);
 }
 
-//Global callbacks for GLFW
+void Application::onUpdate(Scene& scene, float deltaTime) {
+  Transform& spaceDodeca = scene.getObjectTransform("spaceDodeca");
+  spaceDodeca.rotateAroundAxis(5.0f * deltaTime, glm::vec3(0.34f, 0.87f, 0.4f));
+}
+    //Global callbacks for GLFW
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
   glViewport(0, 0, width, height);
 }

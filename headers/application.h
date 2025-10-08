@@ -45,4 +45,5 @@ class Application {
   void createOpenGLViewport();
   void registerCallbacks();
   void configureGLFW(Scene& scene);
+  void onUpdate(Scene& scene, float deltaTime);
 };

@@ -31,3 +31,7 @@ SpaceModel& Scene::loadSpaceModel(const std::string& filepath) {
 Skybox& Scene::loadSkybox(const std::vector<std::string>& filepaths) {
   return skyboxes.emplace_back(filepaths);
 }
+
+ Transform& Scene::getObjectTransform(const std::string& key) {
+  return objectTransforms.at(key).get();
+ }
