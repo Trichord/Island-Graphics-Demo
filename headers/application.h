@@ -38,7 +38,7 @@ class Application {
   float lastFrame = 0.0f;
   float currentFrame = 0.0f;
 
-  GLFWwindow* window;
+  GLFWwindow* window = nullptr;
 
   GLFWwindow* createWindow();
   void processInput(Scene& scene);

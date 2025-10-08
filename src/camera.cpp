@@ -1,26 +1,17 @@
 #include "../headers/camera.h"
 
 #include <glad/glad.h>
-
+#include <math.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-Camera::Camera()
-    : position(glm::vec3(0.0f)),
-      front(glm::vec3(0.0f, 0.0f, -1.0f)),
-      worldUp(glm::vec3(0.0f, 1.0f, 0.0f)),
-      yaw(YAW),
-      pitch(PITCH),
-      movementSpeed(SPEED),
-      mouseSensitivity(SENSITIVITY) {
+Camera::Camera() {
   updateCameraVectors();
   dirtyMatrices = true;
 };
 
 Camera::Camera(glm::vec3 pos, glm::vec3 u, float y, float p)
-    : front(glm::vec3(0.0f, 0.0f, -1.0f)),
-      movementSpeed(SPEED),
-      mouseSensitivity(SENSITIVITY) {
+    : front(glm::vec3(0.0f, 0.0f, -1.0f)) {
   position = pos;
   worldUp = u;
   yaw = y;
@@ -31,9 +22,7 @@ Camera::Camera(glm::vec3 pos, glm::vec3 u, float y, float p)
 
 Camera::Camera(float posX, float posY, float posZ, float upX, float upY,
                float upZ, float y, float p)
-    : front(glm::vec3(0.0f, 0.0f, -1.0f)),
-      movementSpeed(SPEED),
-      mouseSensitivity(SENSITIVITY) {
+    : front(glm::vec3(0.0f, 0.0f, -1.0f)) {
   position = glm::vec3(posX, posY, posZ);
   worldUp = glm::vec3(upX, upY, upZ);
   yaw = y;
@@ -89,6 +78,9 @@ void Camera::processMouseMovement(float xoffset, float yoffset,
     if (pitch < -89.0f) pitch = -89.0f;
   }
 
+  // keep yaw from drifting
+  if (yaw < 0.0f || yaw > 360.0f) yaw = std::fmod(yaw, 360.0f);
+
   // update Front, Right and Up Vectors using the updated Euler angles
   updateCameraVectors();
   hasChanged = true;
@@ -102,6 +94,8 @@ bool Camera::hasUpdated() {
   } else
     return false;
 }
+
+const glm::vec3& Camera::getPosition() const { return position; }
 
 // calculates the front vector from the Camera's (updated) Euler angles
 void Camera::updateCameraVectors() {
