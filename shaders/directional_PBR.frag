@@ -103,7 +103,7 @@ void main() {
 
 	//Avoid division by 0 using a small amount of the roughness
 	vec3 numerator = NDF * G * F;
-	float denom = max(4.0 * NdotV * NdotL, 0.01 + 0.01 * roughness); 
+	float denom = max(4.0 * NdotL * NdotV, 1.0e-6);
 	vec3 specular = numerator / denom;
 
 	//add to outgoing radiance Lo
