@@ -64,31 +64,36 @@ void Renderer::renderScene(Scene& scene) {
     Shader& shader = shaders.at(shaderType);
     shader.use();
 
+    if (shaderType == ShaderType::DIRECTIONAL_PBR)
+      shader.setVec3("lightDir", scene.lightSources.globalLightDirection);
+
+    else if (shaderType == ShaderType::POINT_PBR)
+      shader.setVec3("lightPosition", scene.lightSources.pointLightPosition);
+
+
     for (auto& object : objectList) {
-      // Set model matrix
       glm::mat4 modelMatrix = object.transform.getModelMatrix();
-      shader.setMat4("modelMatrix", modelMatrix);
 
       switch (shaderType) {
         // Directional light source
         case ShaderType::DIRECTIONAL_PBR:
+          shader.setMat4("modelMatrix", modelMatrix);
           shader.setMat3("normalMV",
                          glm::transpose(glm::inverse(
-                             glm::mat3(scene.camera.getViewMatrix() * modelMatrix))));
-          shader.setVec3("lightDir", scene.lightSources.globalLightDirection);
+                             glm::mat3(scene.camera.getViewMatrix() * modelMatrix)))); 
           break;
 
         // Point light source
         case ShaderType::POINT_PBR:
+          shader.setMat4("modelMatrix", modelMatrix);
           shader.setMat3("normalMV",
                          glm::transpose(glm::inverse(glm::mat3(
-                             scene.camera.getViewMatrix() * modelMatrix))));
-          shader.setVec3("lightPosition",
-                         scene.lightSources.pointLightPosition);
+                             scene.camera.getViewMatrix() * modelMatrix)))); 
           break;
 
         // Reflective shader
         case ShaderType::REFLECTIVE:
+          shader.setMat4("modelMatrix", modelMatrix);
           shader.setMat3("normalMatrix", object.transform.getNormalMatrix());
           break;
 
@@ -109,7 +114,7 @@ void Renderer::renderScene(Scene& scene) {
 void Renderer::updateUBO(Scene& scene) {
   uboData.viewMatrix = scene.camera.getViewMatrix();
   uboData.projectionViewMatrix = projectionMatrix * scene.camera.getViewMatrix();
-  uboData.cameraPosition = glm::vec4(scene.camera.position, 0.0f);
+  uboData.cameraPosition = glm::vec4(scene.camera.getPosition(), 0.0f);
   glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(PackedUBOData), &uboData);
 }
 
