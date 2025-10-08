@@ -105,9 +105,9 @@ void main() {
 	vec3 kD = vec3(1.0) - kS;
 	kD *= 1.0 - metallic;
 
-	//Avoid division by 0 using a small amount of the roughness
+	//Avoid division by 0 with a small constant
 	vec3 numerator = NDF * G * F;
-	float denom = max(4.0 * NdotV * NdotL, 0.01 + 0.01 * roughness); 
+	float denom = max(4.0 * NdotL * NdotV, 1.0e-6); 
 	vec3 specular = numerator / denom;
 
 	//add to outgoing radiance Lo
