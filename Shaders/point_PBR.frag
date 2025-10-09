@@ -6,7 +6,7 @@ uniform sampler2D albedoMap;
 uniform sampler2D occlusionRoughMetalMap;
 uniform sampler2D normalMap;
 
-const float PI = 3.14159265359;
+const float INVERSE_PI = 0.31830988618;
 
 vec3 lightColor = vec3(2.5);
 
@@ -23,9 +23,9 @@ float distributionGGX(float NdotH, float roughness){
 	float a2 = a * a;
 	float NdotH2 = NdotH * NdotH;
 	float denom = NdotH2 * (a2 - 1.0) + 1.0;
-	denom = PI * denom * denom;
+	float denom2 = denom * denom;
 
-	return a2 / denom;
+	return a2 * INVERSE_PI / denom2;
 }
 
 //Smith's method with Schlick-GGX for geometric shadowing.  k = (a + 1)^2 / 8
@@ -49,6 +49,23 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0){
 	float x5 = x4 * x;
 
 	return F0 + (1.0 - F0) * x5;
+}
+
+//Burely diffuse (unrolled)
+float burleyDiffuseFactor(float FD90, float NdotL, float NdotV){
+	float L = 1.0 - NdotL;
+	float L2 = L * L;
+	float L4 = L2 * L2;
+	float L5 = L4 * L;
+
+	float V = 1.0 - NdotV;
+	float V2 = V * V;
+	float V4 = V2 * V2;
+	float V5 = V4 * V;
+
+	float FDminusOne = FD90 - 1.0;
+
+	return (1.0 + FDminusOne * L5) * (1.0 + FDminusOne * V5); 
 }
 
 //ACES film tone mapping (Krzysztof Narkowicz)
@@ -110,10 +127,15 @@ void main() {
 	float denom = max(4.0 * NdotL * NdotV, 1.0e-6); 
 	vec3 specular = numerator / denom;
 
-	//add to outgoing radiance Lo
-	Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+	//Burley diffuse
+	float FD90 = 0.5 + 2 * roughness * (HdotV * HdotV);
+	float burleyFactor = burleyDiffuseFactor(FD90, NdotL, NdotV);
+	vec3 diffuse = kD * albedo * INVERSE_PI * burleyFactor;
 
-	vec3 ambient = vec3(0.1) * albedo * ao;
+	//add to outgoing radiance Lo
+	Lo += (diffuse + specular) * radiance * NdotL;
+
+	vec3 ambient = vec3(0.15) * albedo * ao;
 	vec3 color = ambient + Lo;
 
 	//ACES tone mapping
