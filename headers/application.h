@@ -9,6 +9,7 @@
 #include <GLFW/glfw3.h>
 #include "thread_pool.h"
 #include "scene.h"
+#include "config_window.h"
 
 #define SCREEN_WIDTH 2560
 #define SCREEN_HEIGHT 1440
@@ -37,8 +38,8 @@ class Application {
   float deltaTime = 0.0f;
   float lastFrame = 0.0f;
   float currentFrame = 0.0f;
-
   GLFWwindow* window = nullptr;
+  ConfigWindow configWindow;
 
   GLFWwindow* createWindow();
   void processInput(Scene& scene);
