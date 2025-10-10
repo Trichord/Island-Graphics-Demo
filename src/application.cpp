@@ -5,9 +5,12 @@
 #include "../headers/demo_scene.h"
 #include "../headers/renderer.h"
 #include "../headers/thread_pool.h"
+#include "../headers/config_window.h"
 #include <iostream>
 
 void Application::run() {
+  if (!configWindow.createSettingsWindow()) return;
+
   window = createWindow();
   if (!window) return;
 
@@ -64,6 +67,8 @@ void Application::run() {
 
 GLFWwindow* Application::createWindow() {
   glfwInit();
+  
+  
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -155,10 +160,7 @@ void Application::onUpdate(Scene& scene, float deltaTime) {
   Transform& spaceDodeca = scene.getObjectTransform("spaceDodeca");
   spaceDodeca.rotateAroundAxis(5.0f * deltaTime, glm::vec3(0.34f, 0.87f, 0.4f));
 }
-    //Global callbacks for GLFW
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-  glViewport(0, 0, width, height);
-}
+
 
 void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
   float xOffset = (float)(xPos - lastMouseX);
@@ -173,7 +175,12 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
     scenePointer->camera.processMouseMovement(xOffset, yOffset, GL_TRUE);
 }
 
-void keyCallback(GLFWwindow* window, int key, int scancode, int action,
+    // Global callbacks for GLFW
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+  glViewport(0, 0, width, height);
+}
+
+static void keyCallback(GLFWwindow* window, int key, int scancode, int action,
                  int mods) {
   // Anything that needs to avoid key bouncing
 }
