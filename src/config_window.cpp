@@ -5,6 +5,9 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
+#define GUI_WIDTH 1024
+#define GUI_HEIGHT 768
+
 static void glfw_error_callback(int error, const char* description) {
   std::cerr << "GLFW Error " << error << description << std::endl;
 }
@@ -19,15 +22,22 @@ bool ConfigWindow::createSettingsWindow() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 
   // Create window with graphics context
   float main_scale =
       ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor());
-  GLFWwindow* window =
-      glfwCreateWindow((int)(1024 * main_scale), (int)(768 * main_scale),
+  GLFWwindow* window = glfwCreateWindow(
+      (int)(GUI_WIDTH * main_scale), (int)(GUI_HEIGHT * main_scale),
       "OpenGL 4.6 Tech Demo - Graphics Settings", nullptr, nullptr);
 
   if (window == nullptr) return false;
+
+  int workX, workY, workWidth, workHeight;
+  glfwGetMonitorWorkarea(glfwGetPrimaryMonitor(), &workX, &workY, &workWidth,
+                         &workHeight);
+
+  glfwSetWindowPos(window, workWidth / 2 - GUI_WIDTH / 2, workHeight / 2 - GUI_HEIGHT / 2);
 
   glfwMakeContextCurrent(window);
   glfwSwapInterval(1);
@@ -41,6 +51,8 @@ bool ConfigWindow::createSettingsWindow() {
       ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(glsl_version);
+  ImVec2 guiSize = {GUI_WIDTH, GUI_HEIGHT};
+  ImVec2 windowCenter = {GUI_WIDTH / 2, GUI_HEIGHT / 2};
 
   // Setup Dear ImGui style
   ImGui::StyleColorsDark();
@@ -61,8 +73,12 @@ bool ConfigWindow::createSettingsWindow() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
+    // Centered and sized to fit the glfw window
+    ImGui::SetNextWindowSize(guiSize);
+    ImGui::SetNextWindowPos(windowCenter, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+
     ImGui::Begin("OpenGL 4.6 Tech Demo - Graphics Settings", NULL,
-                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
     ImGui::Checkbox("Fullscreen", &graphicsSettings.fullscreen);
 
