@@ -2,11 +2,19 @@
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_impl_glfw.h"
 #include "../imgui/imgui_impl_opengl3.h"
+#include "../headers/texture_utilities.h"
+#include "../headers/image_loader.h"
+#include <filesystem>
+#include <vector>
 #include <GLFW/glfw3.h>
+#include "glad/glad.h"
 #include <iostream>
 
 #define GUI_WIDTH 1024
 #define GUI_HEIGHT 768
+#define ELEMENT_SIZE 0.95f
+
+ConfigWindow::~ConfigWindow() { if(textureID != 0) glDeleteTextures(1, &textureID); }
 
 static void glfw_error_callback(int error, const char* description) {
   std::cerr << "GLFW Error " << error << description << std::endl;
@@ -42,6 +50,9 @@ bool ConfigWindow::createSettingsWindow() {
 
   glfwMakeContextCurrent(window);
   glfwSwapInterval(1);
+
+  //Our image for the config window
+  loadConfigWindowImage();
 
   // Setup Dear ImGui context
   IMGUI_CHECKVERSION();
@@ -83,9 +94,16 @@ bool ConfigWindow::createSettingsWindow() {
     ImGui::Begin("OpenGL 4.6 Tech Demo - Graphics Settings", NULL,
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);  
 
-
+    //start of display settings, image, and advanced options group
+    ImGui::BeginGroup(); 
+    
+    //start of display settings group
+    ImGui::PushItemWidth(GUI_WIDTH / 2 * ELEMENT_SIZE);
+    ImGui::BeginGroup(); 
+    
     //Resolution
-    if (ImGui::BeginCombo("Resolution", resolution_preview_value,
+    ImGui::Text("Resolution");
+    if (ImGui::BeginCombo("##resolutionCombo", resolution_preview_value,
                           ImGuiComboFlags_HeightLargest)) {
       for (int i = 0; i < IM_ARRAYSIZE(resolutions); ++i) {
         const bool is_res_selected = (resolution_selected_idx == i);
@@ -100,20 +118,34 @@ bool ConfigWindow::createSettingsWindow() {
 
     ImGui::Checkbox("Fullscreen", &graphicsSettings.fullscreen);
     ImGui::Checkbox("VSync", &graphicsSettings.vsync);
-    ImGui::Separator();
-
     
     //Gamma
-    ImGui::SliderFloat("Gamma", &graphicsSettings.gamma, 0.5f, 3.0f, "%.3f",
+    ImGui::Text("Gamma");
+    ImGui::SliderFloat("##gammaSlider", &graphicsSettings.gamma, 0.5f, 3.0f, "%.3f",
                        ImGuiSliderFlags_ClampOnInput);
     ImGui::AlignTextToFramePadding();
     ImGui::Text("(Ctrl+Click to edit)");
+    
+    //end of display settings
+    ImGui::EndGroup(); 
 
-    //Advanced options
+    ImGui::SameLine();
+
+    //start of image and advanced settings
+    ImGui::BeginGroup();
+
+    //Image
+    ImGui::Image((ImTextureID)(intptr_t)textureID,
+                 ImVec2(GUI_WIDTH / 2,
+                        GUI_WIDTH / 2));
+
+    //start of advanced options group
+    ImGui::BeginGroup();
     ImGui::SeparatorText("Advanced Options");
 
     //MSAA
-    if (ImGui::BeginCombo("MSAA", msaa_preview_value,
+    ImGui::Text("MSAA");
+    if (ImGui::BeginCombo("##msaaCombo", msaa_preview_value,
                           ImGuiComboFlags_HeightLargest)) {
       for (int i = 0; i < IM_ARRAYSIZE(msaaLevel); ++i) {
         const bool is_msaa_selected = (msaa_selected_idx == i);
@@ -127,7 +159,8 @@ bool ConfigWindow::createSettingsWindow() {
     }
 
     //Anisotropic filtering
-    if (ImGui::BeginCombo("Anisotropic Filtering", aniso_preview_value,
+    ImGui::Text("Anisotropic Filtering");
+    if (ImGui::BeginCombo("##anisoCombo", aniso_preview_value,
                           ImGuiComboFlags_HeightLargest)) {
       for (int i = 0; i < IM_ARRAYSIZE(anisoLevel); ++i) {
         const bool is_aniso_selected = (aniso_selected_idx == i);
@@ -140,7 +173,19 @@ bool ConfigWindow::createSettingsWindow() {
       ImGui::EndCombo();
     }
 
-    //Confirm and close buttons
+    //end of advanced settigns
+    ImGui::EndGroup();
+
+    //end of image and advanced settings
+    ImGui::EndGroup();
+
+    //end of display settings, image, and advanced options group
+    ImGui::EndGroup();
+    ImGui::PopItemWidth();
+
+    ImGui::SetCursorPos(
+        ImVec2(GUI_WIDTH * (1.0 - ELEMENT_SIZE), GUI_HEIGHT * ELEMENT_SIZE));
+
     if (ImGui::Button("Cancel")) {
       ImGui_ImplOpenGL3_Shutdown();
       ImGui_ImplGlfw_Shutdown();
@@ -177,9 +222,25 @@ bool ConfigWindow::createSettingsWindow() {
   glfwDestroyWindow(window);
   glfwTerminate();
 
+  if (textureID != 0) glDeleteTextures(1, &textureID);
+
   return true;
 }
 
 const GraphicsSettings& ConfigWindow::getGraphicsSettings() const {
   return graphicsSettings;
+}
+
+void ConfigWindow::loadConfigWindowImage() {
+  std::vector<std::filesystem::path> sphereImage = {
+      "./res/wireframe_sphere.png"};
+      ImageLoader imageLoader(sphereImage);
+  std::vector<ImageData> imageData = imageLoader.getImageData();
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    std::cout << "Failed to initialize GLAD" << std::endl;
+      return;
+  }
+
+  textureID = texture_utilities::generateTextureID(imageData[0], false);
 }
