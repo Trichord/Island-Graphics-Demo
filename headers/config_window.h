@@ -7,6 +7,7 @@ struct GraphicsSettings {
   bool vsync;
   unsigned int msaa;
   float anisotropicFiltering;
+  float gamma;
 };
 
 class ConfigWindow {
@@ -16,5 +17,5 @@ class ConfigWindow {
   const GraphicsSettings& getGraphicsSettings() const;
 
  private:
-  GraphicsSettings graphicsSettings = {1920, 1080, true, false, 0, 0.0f};
+  GraphicsSettings graphicsSettings = {1920, 1080, true, false, 0, 0.0f, 1.0f};
 };
