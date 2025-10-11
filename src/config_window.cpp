@@ -37,7 +37,8 @@ bool ConfigWindow::createSettingsWindow() {
   glfwGetMonitorWorkarea(glfwGetPrimaryMonitor(), &workX, &workY, &workWidth,
                          &workHeight);
 
-  glfwSetWindowPos(window, workWidth / 2 - GUI_WIDTH / 2, workHeight / 2 - GUI_HEIGHT / 2);
+  glfwSetWindowPos(window, workWidth / 2 - GUI_WIDTH / 2,
+                   workHeight / 2 - GUI_HEIGHT / 2);
 
   glfwMakeContextCurrent(window);
   glfwSwapInterval(1);
@@ -57,6 +58,7 @@ bool ConfigWindow::createSettingsWindow() {
   // Setup Dear ImGui style
   ImGui::StyleColorsDark();
   ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+  io.Fonts->AddFontFromFileTTF("./imgui/Inter_18pt-Black.ttf");
 
   // Loop until settings are confirmed
   while (!glfwWindowShouldClose(window)) {
@@ -77,15 +79,68 @@ bool ConfigWindow::createSettingsWindow() {
     ImGui::SetNextWindowSize(guiSize);
     ImGui::SetNextWindowPos(windowCenter, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 
+    //Dear ImGUI window
     ImGui::Begin("OpenGL 4.6 Tech Demo - Graphics Settings", NULL,
-                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);  
+
+
+    //Resolution
+    if (ImGui::BeginCombo("Resolution", resolution_preview_value,
+                          ImGuiComboFlags_HeightLargest)) {
+      for (int i = 0; i < IM_ARRAYSIZE(resolutions); ++i) {
+        const bool is_res_selected = (resolution_selected_idx == i);
+        if (ImGui::Selectable(resolutions[i], is_res_selected)) {
+          resolution_selected_idx = i;
+          resolution_preview_value = resolutions[resolution_selected_idx];
+        }
+        if (is_res_selected) ImGui::SetItemDefaultFocus();
+      }
+      ImGui::EndCombo();
+    }
 
     ImGui::Checkbox("Fullscreen", &graphicsSettings.fullscreen);
-
     ImGui::Checkbox("VSync", &graphicsSettings.vsync);
+    ImGui::Separator();
 
-    ImGui::SliderFloat("Gamma", &graphicsSettings.gamma, 0.5f, 3.0f);
+    
+    //Gamma
+    ImGui::SliderFloat("Gamma", &graphicsSettings.gamma, 0.5f, 3.0f, "%.3f",
+                       ImGuiSliderFlags_ClampOnInput);
+    ImGui::AlignTextToFramePadding();
+    ImGui::Text("(Ctrl+Click to edit)");
 
+    //Advanced options
+    ImGui::SeparatorText("Advanced Options");
+
+    //MSAA
+    if (ImGui::BeginCombo("MSAA", msaa_preview_value,
+                          ImGuiComboFlags_HeightLargest)) {
+      for (int i = 0; i < IM_ARRAYSIZE(msaaLevel); ++i) {
+        const bool is_msaa_selected = (msaa_selected_idx == i);
+        if (ImGui::Selectable(msaaLevel[i], is_msaa_selected)) {
+          msaa_selected_idx = i;
+          msaa_preview_value = msaaLevel[msaa_selected_idx];
+        }
+        if (is_msaa_selected) ImGui::SetItemDefaultFocus();
+      }
+      ImGui::EndCombo();
+    }
+
+    //Anisotropic filtering
+    if (ImGui::BeginCombo("Anisotropic Filtering", aniso_preview_value,
+                          ImGuiComboFlags_HeightLargest)) {
+      for (int i = 0; i < IM_ARRAYSIZE(anisoLevel); ++i) {
+        const bool is_aniso_selected = (aniso_selected_idx == i);
+        if (ImGui::Selectable(anisoLevel[i], is_aniso_selected)) {
+          aniso_selected_idx = i;
+          aniso_preview_value = anisoLevel[aniso_selected_idx];
+        }
+        if (is_aniso_selected) ImGui::SetItemDefaultFocus();
+      }
+      ImGui::EndCombo();
+    }
+
+    //Confirm and close buttons
     if (ImGui::Button("Cancel")) {
       ImGui_ImplOpenGL3_Shutdown();
       ImGui_ImplGlfw_Shutdown();
@@ -95,9 +150,10 @@ bool ConfigWindow::createSettingsWindow() {
       glfwTerminate();
       return false;
     }
-
+    ImGui::SameLine();
     if (ImGui::Button("Confirm")) glfwSetWindowShouldClose(window, true);
 
+    //End
     ImGui::End();
 
     // Rendering
@@ -120,6 +176,7 @@ bool ConfigWindow::createSettingsWindow() {
 
   glfwDestroyWindow(window);
   glfwTerminate();
+
   return true;
 }
 
