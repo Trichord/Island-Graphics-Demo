@@ -1,4 +1,5 @@
 #pragma once
+#include "glad/glad.h"
 
 struct GraphicsSettings {
   unsigned int screenWidth;
@@ -13,6 +14,12 @@ struct GraphicsSettings {
 class ConfigWindow {
  public:
   ConfigWindow() = default;
+  ConfigWindow(const ConfigWindow&) = delete;
+  ConfigWindow& operator=(const ConfigWindow&) = delete;
+  ConfigWindow(ConfigWindow&& other) = delete;
+  ConfigWindow& operator=(ConfigWindow&& other) = delete;
+  ~ConfigWindow();
+
   bool createSettingsWindow();
   const GraphicsSettings& getGraphicsSettings() const;
 
@@ -34,4 +41,7 @@ class ConfigWindow {
   inline static const char* aniso_preview_value =
       anisoLevel[aniso_selected_idx];
 
+  GLuint textureID = 0;
+
+  void loadConfigWindowImage();
 };

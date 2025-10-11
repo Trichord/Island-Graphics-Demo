@@ -13,6 +13,7 @@ struct Sampler {
 };
 
 namespace texture_utilities {
+GLuint generateTextureID(const ImageData& image, bool sRGB);
 GLuint generateTextureID(const ImageData& image, Sampler sampler,
                          unsigned int index, bool sRGB = false,
                          bool anisotropic = false);
