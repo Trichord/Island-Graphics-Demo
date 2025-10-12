@@ -144,6 +144,7 @@ bool ConfigWindow::renderImGui() {
         if (ImGui::Selectable(resolutions[i], is_res_selected)) {
           resolution_selected_idx = i;
           resolution_preview_value = resolutions[resolution_selected_idx];
+          updateGlobalResolution(i);
         }
         if (is_res_selected) ImGui::SetItemDefaultFocus();
       }
@@ -151,22 +152,22 @@ bool ConfigWindow::renderImGui() {
     }
     ImGui::Spacing();
 
-    ImGui::Checkbox("Fullscreen", &graphicsSettings.fullscreen);
+    ImGui::Checkbox("Fullscreen", &globalGraphicsSettings.fullscreen);
     ImGui::Spacing();
 
-    ImGui::Checkbox("VSync", &graphicsSettings.vsync);
+    ImGui::Checkbox("VSync", &globalGraphicsSettings.vsync);
     ImGui::Spacing();
 
     // Gamma
     ImGui::Text("Gamma");
-    ImGui::SliderFloat("##gammaSlider", &graphicsSettings.gamma, 0.5f, 3.0f,
-                       "%.3f", ImGuiSliderFlags_ClampOnInput);
+    ImGui::SliderFloat("##gammaSlider", &globalGraphicsSettings.gamma, 0.5f,
+                       3.0f, "%.3f", ImGuiSliderFlags_ClampOnInput);
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort |
                              ImGuiHoveredFlags_NoSharedDelay))
       ImGui::SetTooltip("Ctrl + Click to edit",
                         ImGui::GetStyle().HoverDelayShort);
-    
-    //Advanced options
+
+    // Advanced options
     ImGui::NewLine();
     ImGui::SeparatorText("Advanced Options");
     ImGui::Spacing();
@@ -180,13 +181,14 @@ bool ConfigWindow::renderImGui() {
         if (ImGui::Selectable(msaaLevel[i], is_msaa_selected)) {
           msaa_selected_idx = i;
           msaa_preview_value = msaaLevel[msaa_selected_idx];
+          updateGlobalMSAA(i);
         }
         if (is_msaa_selected) ImGui::SetItemDefaultFocus();
       }
       ImGui::EndCombo();
     }
 
-    ImGui::NewLine();
+    ImGui::Spacing();
 
     // Anisotropic filtering
     ImGui::Text("Anisotropic Filtering");
@@ -197,6 +199,7 @@ bool ConfigWindow::renderImGui() {
         if (ImGui::Selectable(anisoLevel[i], is_aniso_selected)) {
           aniso_selected_idx = i;
           aniso_preview_value = anisoLevel[aniso_selected_idx];
+          updateGlobalAniso(i);
         }
         if (is_aniso_selected) ImGui::SetItemDefaultFocus();
       }
@@ -206,7 +209,7 @@ bool ConfigWindow::renderImGui() {
     // end of display settigns
     ImGui::PopItemWidth();
     ImGui::EndGroup();
- 
+
     // start of image group
     ImGui::SameLine();
     ImGui::BeginGroup();
@@ -215,7 +218,6 @@ bool ConfigWindow::renderImGui() {
     ImGui::Image((ImTextureID)(intptr_t)textureID,
                  ImVec2(ImGui::GetContentRegionAvail().x,
                         ImGui::GetContentRegionAvail().x));
-
 
     // end of image and display settings
     ImGui::EndGroup();
@@ -232,7 +234,6 @@ bool ConfigWindow::renderImGui() {
         windowPadding.x,
         windowPosition.y + windowSize.y - buttonHeight - windowPadding.y));
     if (ImGui::Button("Cancel")) return false;
- 
 
     ImGui::SameLine();
 
@@ -242,7 +243,8 @@ bool ConfigWindow::renderImGui() {
         windowPosition.x + windowSize.x - (windowPadding.x * 2.0f) -
             buttonWidth,
         windowPosition.y + windowSize.y - buttonHeight - windowPadding.y));
-    if (ImGui::Button("Confirm")) break;;
+    if (ImGui::Button("Confirm")) break;
+    ;
 
     // End
     ImGui::End();
@@ -263,14 +265,12 @@ bool ConfigWindow::renderImGui() {
   return true;
 }
 
-const GraphicsSettings& ConfigWindow::getGraphicsSettings() const {
-  return graphicsSettings;
+const GraphicsSettings& ConfigWindow::getGlobalGraphicsSettings() const {
+  return globalGraphicsSettings;
 }
 
 void ConfigWindow::loadConfigWindowImage() {
-  std::vector<std::filesystem::path> sphereImage = {
-      "./res/wireframe_sphere.png"};
-  ImageLoader imageLoader(sphereImage);
+  ImageLoader imageLoader("./res/wireframe_sphere.png");
   std::vector<ImageData> imageData = imageLoader.getImageData();
 
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -278,8 +278,54 @@ void ConfigWindow::loadConfigWindowImage() {
     return;
   }
 
-
   if (imageData.size() == 0) return;
 
   textureID = texture_utilities::generateTextureID(imageData[0], false);
+}
+
+void ConfigWindow::updateGlobalResolution(unsigned int index) {
+  globalGraphicsSettings.screenWidth = resolutionTable[index].first;
+  globalGraphicsSettings.screenHeight = resolutionTable[index].second;
+}
+
+void ConfigWindow::updateGlobalMSAA(unsigned int index) {
+  switch (index) {
+    case 0:
+      globalGraphicsSettings.msaa = 0;
+      break;
+    case 1:
+      globalGraphicsSettings.msaa = 2;
+      break;
+    case 2:
+      globalGraphicsSettings.msaa = 4;
+      break;
+    case 3:
+      globalGraphicsSettings.msaa = 8;
+      break;
+    default:
+      globalGraphicsSettings.msaa = 0;
+      break;
+  }
+}
+void ConfigWindow::updateGlobalAniso(unsigned int index) {
+  switch (index) {
+    case 0:
+      globalGraphicsSettings.anisotropicFiltering = 0.0f;
+      break;
+    case 1:
+      globalGraphicsSettings.anisotropicFiltering = 2.0f;
+      break;
+    case 2:
+      globalGraphicsSettings.anisotropicFiltering = 4.0f;
+      break;
+    case 3:
+      globalGraphicsSettings.anisotropicFiltering = 8.0f;
+      break;
+    case 4:
+      globalGraphicsSettings.anisotropicFiltering = 16.0f;
+      break;
+    default:
+      globalGraphicsSettings.anisotropicFiltering = 0.0f;
+      break;
+  }
 }

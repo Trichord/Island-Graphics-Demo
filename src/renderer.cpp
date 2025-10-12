@@ -6,6 +6,7 @@
 #include "../headers/shader_types.h"
 #include "../headers/shader.h"
 #include "../headers/camera.h"
+#include "../headers/config_window.h"
 #include <unordered_map>
 #include <map>
 #include <glm/glm.hpp>
@@ -141,6 +142,7 @@ void Renderer::loadShaders() {
 void Renderer::setupPBRShader(Shader& shader) {
   shader.use();
   shader.setUniformBlock("matrices", 0);
+  shader.setFloat("gamma", globalGraphicsSettings.gamma);
   shader.setInt("albedoMap", 0);
   shader.setInt("occlusionRoughMetalMap", 1);
   shader.setInt("normalMap", 2);
@@ -149,6 +151,7 @@ void Renderer::setupPBRShader(Shader& shader) {
 void Renderer::setupReflectiveShader(Shader& shader) {
   shader.use();
   shader.setUniformBlock("matrices", 0);
+  shader.setFloat("gamma", globalGraphicsSettings.gamma);
   shader.setInt("cubemap", 0);
 }
 

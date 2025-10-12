@@ -11,9 +11,6 @@
 #include "scene.h"
 #include "config_window.h"
 
-#define SCREEN_WIDTH 2560
-#define SCREEN_HEIGHT 1440
-
 // GLFW callbacks
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xPos, double yPos);
@@ -41,7 +38,7 @@ class Application {
   GLFWwindow* window = nullptr;
   ConfigWindow configWindow;
 
-  GLFWwindow* createWindow();
+  void createWindow();
   void processInput(Scene& scene);
   void createOpenGLViewport();
   void registerCallbacks();

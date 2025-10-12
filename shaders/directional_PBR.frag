@@ -5,6 +5,7 @@ out vec4 fragColor;
 uniform sampler2D albedoMap;
 uniform sampler2D occlusionRoughMetalMap;
 uniform sampler2D normalMap;
+uniform float gamma;
 
 const float INVERSE_PI = 0.31830988618;
 
@@ -136,6 +137,9 @@ void main() {
 
 	//ACES tone mapping
 	color = ACESFilm(color);
+
+	//Gamma correction
+	color = pow(color, vec3(1.0/gamma));
 
 	fragColor = vec4(color, 1.0);
 }
