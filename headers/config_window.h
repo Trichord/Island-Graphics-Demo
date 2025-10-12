@@ -1,5 +1,7 @@
 #pragma once
+
 #include "glad/glad.h"
+#include "GLFW/glfw3.h"
 
 struct GraphicsSettings {
   unsigned int screenWidth;
@@ -20,10 +22,11 @@ class ConfigWindow {
   ConfigWindow& operator=(ConfigWindow&& other) = delete;
   ~ConfigWindow();
 
-  bool createSettingsWindow();
+  bool launchSettingsWindow();
   const GraphicsSettings& getGraphicsSettings() const;
 
  private:
+  GLFWwindow* window = nullptr;
   GraphicsSettings graphicsSettings = {1920, 1080, true, false, 0, 0.0f, 1.0f};
   inline static const char* resolutions[] = {"3840 x 2160", "2560 x 1440",
                                       "1920 x 1080", "1600 x 900",
@@ -43,5 +46,8 @@ class ConfigWindow {
 
   GLuint textureID = 0;
 
+  bool createWindow();
+  void setupImGui();
   void loadConfigWindowImage();
+  bool renderImGui();
 };
