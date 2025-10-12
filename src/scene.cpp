@@ -19,3 +19,19 @@ Scene& Scene::operator=(Scene&& other) noexcept {
 std::map<ShaderType, std::vector<RenderableObject>>& Scene::getSceneObjects() {
   return sceneObjects;
 }
+
+Model& Scene::loadModel(const std::string& filepath) {
+  return models.emplace_back(filepath);
+}
+
+SpaceModel& Scene::loadSpaceModel(const std::string& filepath) {
+  return spaceModels.emplace_back(filepath);
+}
+
+Skybox& Scene::loadSkybox(const std::vector<std::string>& filepaths) {
+  return skyboxes.emplace_back(filepaths);
+}
+
+ Transform& Scene::getObjectTransform(const std::string& key) {
+  return objectTransforms.at(key).get();
+ }

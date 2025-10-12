@@ -1,12 +1,13 @@
-#version 430 core
+#version 460 core
 
 out vec4 fragColor;
 
 uniform sampler2D albedoMap;
 uniform sampler2D occlusionRoughMetalMap;
 uniform sampler2D normalMap;
+uniform float gamma;
 
-const float PI = 3.14159265359;
+const float INVERSE_PI = 0.31830988618;
 
 //Bright mid-day sun
 const vec3 lightColor = vec3(1.0, 0.95, 0.9);
@@ -24,9 +25,9 @@ float distributionGGX(float NdotH, float roughness){
 	float a2 = a * a;
 	float NdotH2 = NdotH * NdotH;
 	float denom = NdotH2 * (a2 - 1.0) + 1.0;
-	denom = PI * denom * denom;
+	float denom2 = denom * denom;
 
-	return a2 / denom;
+	return a2 * INVERSE_PI / denom2;
 }
 
 //Smith's method with Schlick-GGX for geometric shadowing.  k = (a + 1)^2 / 8
@@ -52,13 +53,30 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0){
 	return F0 + (1.0 - F0) * x5;
 }
 
+//Burely diffuse (unrolled)
+float burleyDiffuseFactor(float FD90, float NdotL, float NdotV){
+	float L = 1.0 - NdotL;
+	float L2 = L * L;
+	float L4 = L2 * L2;
+	float L5 = L4 * L;
+
+	float V = 1.0 - NdotV;
+	float V2 = V * V;
+	float V4 = V2 * V2;
+	float V5 = V4 * V;
+
+	float FDminusOne = FD90 - 1.0;
+
+	return (1.0 + FDminusOne * L5) * (1.0 + FDminusOne * V5); 
+}
+
 //ACES film tone mapping (Krzysztof Narkowicz)
 vec3 ACESFilm(vec3 x) {
-float a = 2.51f;
-float b = 0.03f;
-float c = 2.43f;
-float d = 0.59f;
-float e = 0.14f;
+float a = 2.51;
+float b = 0.03;
+float c = 2.43;
+float d = 0.59;
+float e = 0.14;
 
 return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
@@ -101,19 +119,27 @@ void main() {
 	vec3 kD = vec3(1.0) - kS;
 	kD *= 1.0 - metallic;
 
-	//Avoid division by 0 using a small amount of the roughness
+	//Avoid division by 0, using a small constant
 	vec3 numerator = NDF * G * F;
-	float denom = max(4.0 * NdotV * NdotL, 0.01 + 0.01 * roughness); 
+	float denom = max(4.0 * NdotL * NdotV, 1.0e-6);
 	vec3 specular = numerator / denom;
 
-	//add to outgoing radiance Lo
-	Lo += (kD * albedo / PI + specular) * lightColor * NdotL;
+	//Burley diffuse
+	float FD90 = 0.5 + 2 * roughness * (HdotV * HdotV);
+	float burleyFactor = burleyDiffuseFactor(FD90, NdotL, NdotV);
+	vec3 diffuse = kD * albedo * INVERSE_PI * burleyFactor;
 
-	vec3 ambient = vec3(0.1) * albedo * ao;
+	//add to outgoing radiance Lo
+	Lo += (diffuse + specular) * lightColor * NdotL;
+
+	vec3 ambient = vec3(0.15) * albedo * ao;
 	vec3 color = ambient + Lo;
 
 	//ACES tone mapping
 	color = ACESFilm(color);
+
+	//Gamma correction
+	color = pow(color, vec3(1.0/gamma));
 
 	fragColor = vec4(color, 1.0);
 }
