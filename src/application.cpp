@@ -9,7 +9,7 @@
 #include <iostream>
 
 void Application::run() {
-  if (!configWindow.createSettingsWindow()) return;
+  if (!configWindow.launchSettingsWindow()) return;
 
   window = createWindow();
   if (!window) return;
