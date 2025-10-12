@@ -12,6 +12,12 @@
 
 #include "../headers/thread_pool.h"
 #include "stb_image.h"
+ImageLoader::ImageLoader(const std::filesystem::path& filepath)
+    : numImages(1), numImagesLoaded(0) {
+  loadedImages.resize(numImages);
+
+  loadFromFile(filepath, 0);
+}
 
 ImageLoader::ImageLoader(const std::vector<std::filesystem::path>& filepaths)
     : numImages(filepaths.size()), numImagesLoaded(0) {
