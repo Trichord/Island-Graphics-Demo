@@ -11,11 +11,12 @@
 void Application::run() {
   if (!configWindow.launchSettingsWindow()) return;
 
-  window = createWindow();
+  createWindow();
   if (!window) return;
 
   DemoScene demoScene;
-  Renderer renderer(SCREEN_WIDTH, SCREEN_HEIGHT);
+  Renderer renderer(globalGraphicsSettings.screenWidth,
+                    globalGraphicsSettings.screenHeight);
   threadPool.stopAllThreads();
 
   createOpenGLViewport();
@@ -29,7 +30,7 @@ void Application::run() {
   double framesRendered = 0;
 
   while (true) {
-    //Clear screen
+    // Clear screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Delta Time
@@ -37,24 +38,24 @@ void Application::run() {
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
-    //Final FPS count
+    // Final FPS count
     totalTime += deltaTime;
     framesRendered++;
 
-    //User input
+    // User input
     processInput(demoScene);
     glfwPollEvents();
 
-    //Exit condition
+    // Exit condition
     if (glfwWindowShouldClose(window)) break;
 
-    //Update GPU shared buffer if camera has moved
+    // Update GPU shared buffer if camera has moved
     if (demoScene.camera.hasUpdated()) renderer.updateUBO(demoScene);
 
-    //Update scene objects
+    // Update scene objects
     onUpdate(demoScene, deltaTime);
 
-    //Draw
+    // Draw
     renderer.renderScene(demoScene);
 
     glfwSwapBuffers(window);
@@ -65,53 +66,55 @@ void Application::run() {
   return;
 }
 
-GLFWwindow* Application::createWindow() {
+void Application::createWindow() {
   glfwInit();
-  
-  
+
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_SAMPLES, 8);
 
-  // Windowed
-  // GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "OpenGL
-  // Demo", NULL, NULL);
+  if (globalGraphicsSettings.msaa != 0)
+    glfwWindowHint(GLFW_SAMPLES, globalGraphicsSettings.msaa);
 
-  // Fullscreen
-  GLFWwindow* windowPtr =
-      glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "OpenGL Demo",
-                       glfwGetPrimaryMonitor(), nullptr);
+  if (globalGraphicsSettings.fullscreen)
+    window = glfwCreateWindow(globalGraphicsSettings.screenWidth,
+                              globalGraphicsSettings.screenHeight,
+                              "OpenGL Demo", glfwGetPrimaryMonitor(), nullptr);
 
-  if (windowPtr == nullptr) {
+  else
+    window = glfwCreateWindow(globalGraphicsSettings.screenWidth,
+                              globalGraphicsSettings.screenHeight,
+                              "OpenGL Demo", NULL, NULL);
+
+  if (!window) {
     std::cout << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
-    return nullptr;
   }
 
-  glfwMakeContextCurrent(windowPtr);
+  glfwMakeContextCurrent(window);
 
-  // Vsync Off
-  glfwSwapInterval(0);
+  if (globalGraphicsSettings.vsync)
+    glfwSwapInterval(1);
 
-  // Vsync On
-  // glfwSwapInterval(1);
-
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-    std::cout << "Failed to initialize GLAD" << std::endl;
-    return nullptr;
-  }
-
-  return windowPtr;
+  else
+    glfwSwapInterval(0);
 }
 
 void Application::createOpenGLViewport() {
-  glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    std::cout << "Failed to initialize GLAD" << std::endl;
+    glfwTerminate();
+    return;
+  }
+
+  glViewport(0, 0, globalGraphicsSettings.screenWidth,
+             globalGraphicsSettings.screenHeight);
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
-  glEnable(GL_MULTISAMPLE);
   glEnable(GL_FRAMEBUFFER_SRGB);
+
+  if (globalGraphicsSettings.msaa != 0) glEnable(GL_MULTISAMPLE);
 }
 
 void Application::processInput(Scene& scene) {
@@ -143,13 +146,14 @@ void Application::registerCallbacks() {
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetKeyCallback(window, keyCallback);
 
-  //Set mouse position before registering callback, to avoid mouse jump on first load
+  // Set mouse position before registering callback, to avoid mouse jump on
+  // first load
   double x, y;
   glfwGetCursorPos(window, &x, &y);
   lastMouseX = (float)x;
   lastMouseY = (float)y;
   glfwSetCursorPosCallback(window, mouse_callback);
-}   
+}
 
 void Application::configureGLFW(Scene& scene) {
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -160,7 +164,6 @@ void Application::onUpdate(Scene& scene, float deltaTime) {
   Transform& spaceDodeca = scene.getObjectTransform("spaceDodeca");
   spaceDodeca.rotateAroundAxis(5.0f * deltaTime, glm::vec3(0.34f, 0.87f, 0.4f));
 }
-
 
 void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
   float xOffset = (float)(xPos - lastMouseX);
@@ -175,12 +178,12 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
     scenePointer->camera.processMouseMovement(xOffset, yOffset, GL_TRUE);
 }
 
-    // Global callbacks for GLFW
+// Global callbacks for GLFW
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
   glViewport(0, 0, width, height);
 }
 
 static void keyCallback(GLFWwindow* window, int key, int scancode, int action,
-                 int mods) {
+                        int mods) {
   // Anything that needs to avoid key bouncing
 }
