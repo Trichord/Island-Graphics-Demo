@@ -25,11 +25,13 @@ struct ImageData {
 
 /*
 ImageLoader takes in a vector of image filepaths, and returns a vector of
-ImageData from stb_image in the exact same order.
+ImageData from stb_image in the exact same order.  It's multi-threaded and
+always returns a vector as it was never intended for single-image loading
 */
 
 class ImageLoader {
  public:
+  ImageLoader(const std::filesystem::path& filepath);
   ImageLoader(const std::vector<std::filesystem::path>& filepaths);
   ~ImageLoader();
 
