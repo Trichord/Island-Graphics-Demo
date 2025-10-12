@@ -11,9 +11,8 @@
 #include <iostream>
 
 #define GUI_WIDTH 1024
-#define GUI_HEIGHT 768
+#define GUI_HEIGHT 576
 #define NUM_COLUMNS 2
-#define VERTICAL_SPACING 20.0f
 
 ConfigWindow::~ConfigWindow() {
   if (textureID != 0) glDeleteTextures(1, &textureID);
@@ -133,6 +132,8 @@ bool ConfigWindow::renderImGui() {
     // start of display settings group
     ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x / NUM_COLUMNS);
     ImGui::BeginGroup();
+    ImGui::SeparatorText("Display Settings");
+    ImGui::Spacing();
 
     // Resolution
     ImGui::Text("Resolution");
@@ -154,34 +155,21 @@ bool ConfigWindow::renderImGui() {
     ImGui::Spacing();
 
     ImGui::Checkbox("VSync", &graphicsSettings.vsync);
-    ImGui::Dummy(ImVec2(0.0f, VERTICAL_SPACING));
+    ImGui::Spacing();
 
     // Gamma
     ImGui::Text("Gamma");
     ImGui::SliderFloat("##gammaSlider", &graphicsSettings.gamma, 0.5f, 3.0f,
                        "%.3f", ImGuiSliderFlags_ClampOnInput);
-    ImGui::AlignTextToFramePadding();
-    ImGui::Text("(Ctrl+Click to edit)");
-    ImGui::Dummy(ImVec2(0.0f, VERTICAL_SPACING));
-
-    // end of display settings
-    ImGui::PopItemWidth();
-    ImGui::EndGroup();
-
-    ImGui::SameLine();
-
-    // start of image and advanced settings
-    ImGui::BeginGroup();
-
-    // Image
-    ImGui::Image((ImTextureID)(intptr_t)textureID,
-                 ImVec2(ImGui::GetContentRegionAvail().x,
-                        ImGui::GetContentRegionAvail().x));
-
-    // start of advanced options group
-    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
-    ImGui::BeginGroup();
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort |
+                             ImGuiHoveredFlags_NoSharedDelay))
+      ImGui::SetTooltip("Ctrl + Click to edit",
+                        ImGui::GetStyle().HoverDelayShort);
+    
+    //Advanced options
+    ImGui::NewLine();
     ImGui::SeparatorText("Advanced Options");
+    ImGui::Spacing();
 
     // MSAA
     ImGui::Text("MSAA");
@@ -198,6 +186,8 @@ bool ConfigWindow::renderImGui() {
       ImGui::EndCombo();
     }
 
+    ImGui::NewLine();
+
     // Anisotropic filtering
     ImGui::Text("Anisotropic Filtering");
     if (ImGui::BeginCombo("##anisoCombo", aniso_preview_value,
@@ -213,11 +203,21 @@ bool ConfigWindow::renderImGui() {
       ImGui::EndCombo();
     }
 
-    // end of advanced settigns
+    // end of display settigns
     ImGui::PopItemWidth();
     ImGui::EndGroup();
+ 
+    // start of image group
+    ImGui::SameLine();
+    ImGui::BeginGroup();
 
-    // end of image and advanced settings
+    // Image
+    ImGui::Image((ImTextureID)(intptr_t)textureID,
+                 ImVec2(ImGui::GetContentRegionAvail().x,
+                        ImGui::GetContentRegionAvail().x));
+
+
+    // end of image and display settings
     ImGui::EndGroup();
 
     // end of display settings, image, and advanced options group
