@@ -12,7 +12,8 @@
 
 #define GUI_WIDTH 1024
 #define GUI_HEIGHT 768
-#define ELEMENT_SIZE 0.95f
+#define NUM_COLUMNS 2
+#define VERTICAL_SPACING 20.0f
 
 ConfigWindow::~ConfigWindow() { if(textureID != 0) glDeleteTextures(1, &textureID); }
 
@@ -41,13 +42,15 @@ bool ConfigWindow::createSettingsWindow() {
 
   if (window == nullptr) return false;
 
+  //Center window
+  ImVec2 windowCenter = {GUI_WIDTH / 2, GUI_HEIGHT / 2};
   int workX, workY, workWidth, workHeight;
   glfwGetMonitorWorkarea(glfwGetPrimaryMonitor(), &workX, &workY, &workWidth,
-                         &workHeight);
+                         &workHeight); 
+  glfwSetWindowPos(window, (int)(workWidth / 2 - windowCenter.x),
+                   (int)(workHeight / 2 - windowCenter.y));
 
-  glfwSetWindowPos(window, workWidth / 2 - GUI_WIDTH / 2,
-                   workHeight / 2 - GUI_HEIGHT / 2);
-
+  //make current context
   glfwMakeContextCurrent(window);
   glfwSwapInterval(1);
 
@@ -64,7 +67,7 @@ bool ConfigWindow::createSettingsWindow() {
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(glsl_version);
   ImVec2 guiSize = {GUI_WIDTH, GUI_HEIGHT};
-  ImVec2 windowCenter = {GUI_WIDTH / 2, GUI_HEIGHT / 2};
+  
 
   // Setup Dear ImGui style
   ImGui::StyleColorsDark();
@@ -98,7 +101,7 @@ bool ConfigWindow::createSettingsWindow() {
     ImGui::BeginGroup(); 
     
     //start of display settings group
-    ImGui::PushItemWidth(GUI_WIDTH / 2 * ELEMENT_SIZE);
+    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x / NUM_COLUMNS);
     ImGui::BeginGroup(); 
     
     //Resolution
@@ -115,9 +118,13 @@ bool ConfigWindow::createSettingsWindow() {
       }
       ImGui::EndCombo();
     }
+    ImGui::Spacing();
 
     ImGui::Checkbox("Fullscreen", &graphicsSettings.fullscreen);
+    ImGui::Spacing();
+
     ImGui::Checkbox("VSync", &graphicsSettings.vsync);
+    ImGui::Dummy(ImVec2(0.0f, VERTICAL_SPACING));
     
     //Gamma
     ImGui::Text("Gamma");
@@ -125,8 +132,10 @@ bool ConfigWindow::createSettingsWindow() {
                        ImGuiSliderFlags_ClampOnInput);
     ImGui::AlignTextToFramePadding();
     ImGui::Text("(Ctrl+Click to edit)");
+    ImGui::Dummy(ImVec2(0.0f, VERTICAL_SPACING));
     
     //end of display settings
+    ImGui::PopItemWidth();
     ImGui::EndGroup(); 
 
     ImGui::SameLine();
@@ -136,13 +145,14 @@ bool ConfigWindow::createSettingsWindow() {
 
     //Image
     ImGui::Image((ImTextureID)(intptr_t)textureID,
-                 ImVec2(GUI_WIDTH / 2,
-                        GUI_WIDTH / 2));
+        ImVec2(ImGui::GetContentRegionAvail().x,
+                        ImGui::GetContentRegionAvail().x));
 
-    //start of advanced options group
+     // start of advanced options group
+    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x); 
     ImGui::BeginGroup();
     ImGui::SeparatorText("Advanced Options");
-
+    
     //MSAA
     ImGui::Text("MSAA");
     if (ImGui::BeginCombo("##msaaCombo", msaa_preview_value,
@@ -174,6 +184,7 @@ bool ConfigWindow::createSettingsWindow() {
     }
 
     //end of advanced settigns
+    ImGui::PopItemWidth();
     ImGui::EndGroup();
 
     //end of image and advanced settings
@@ -181,11 +192,14 @@ bool ConfigWindow::createSettingsWindow() {
 
     //end of display settings, image, and advanced options group
     ImGui::EndGroup();
-    ImGui::PopItemWidth();
 
-    ImGui::SetCursorPos(
-        ImVec2(GUI_WIDTH * (1.0 - ELEMENT_SIZE), GUI_HEIGHT * ELEMENT_SIZE));
+    ImVec2 windowPadding = ImGui::GetStyle().WindowPadding;
+    ImVec2 windowSize = ImGui::GetWindowSize();
+    ImVec2 windowPosition = ImGui::GetWindowPos();
+    float buttonHeight = ImGui::GetFrameHeight();
 
+    ImGui::SetCursorScreenPos(ImVec2(
+        windowPadding.x, windowPosition.y + windowSize.y - buttonHeight - windowPadding.y));
     if (ImGui::Button("Cancel")) {
       ImGui_ImplOpenGL3_Shutdown();
       ImGui_ImplGlfw_Shutdown();
@@ -195,7 +209,14 @@ bool ConfigWindow::createSettingsWindow() {
       glfwTerminate();
       return false;
     }
+
     ImGui::SameLine();
+
+    float buttonWidth = ImGui::CalcTextSize("Confirm").x;
+
+    ImGui::SetCursorScreenPos(ImVec2(
+        windowPosition.x + windowSize.x - (windowPadding.x * 2.0f) - buttonWidth,
+        windowPosition.y + windowSize.y - buttonHeight - windowPadding.y));
     if (ImGui::Button("Confirm")) glfwSetWindowShouldClose(window, true);
 
     //End
