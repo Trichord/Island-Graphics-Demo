@@ -1,4 +1,4 @@
-#version 430 core
+#version 460 core
 
 #define MAGNITUDE 0.4f
 

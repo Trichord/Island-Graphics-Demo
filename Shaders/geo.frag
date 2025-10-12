@@ -1,4 +1,4 @@
-#version 430 core
+#version 460 core
 
 struct MaterialProperties {
     sampler2D texture_diffuse1;

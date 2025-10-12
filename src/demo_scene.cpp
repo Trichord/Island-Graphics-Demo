@@ -17,48 +17,44 @@ DemoScene::DemoScene() {
 
   camera = glm::vec3(0.0f, 3.0f, 30.0f);
   std::cout << "Loading Models...";
-  loadModels();
+  buildScene();
   std::cout << " Done." << std::endl;
 }
 
-void DemoScene::loadModels() {
+void DemoScene::buildScene() {
   // CRITCIAL: Reserve space for total number of models in each vector
   const int numModels = 2;
   const int numCubeMappedModels = 1;
   const int numSkyboxes = 1;
   models.reserve(numModels);
-  cubeMappedModels.reserve(numCubeMappedModels);
+  spaceModels.reserve(numCubeMappedModels);
   skyboxes.reserve(numSkyboxes);
 
-  // Main island
-  models.emplace_back("./models/island/island.gltf");
-  sceneObjects[ShaderType::DIRECTIONAL_PBR].emplace_back(
-      RenderableObject{std::ref(models.back()), Transform()});
+  //Main island
+  auto& island = loadModel("./models/island/island.gltf");
+  addObjectToScene(island, ShaderType::DIRECTIONAL_PBR, Transform());
 
-  // Flight helmet
-  models.emplace_back("./models/flight_helmet/FlightHelmet.gltf");
-  sceneObjects[ShaderType::POINT_PBR].emplace_back(RenderableObject{
-      std::ref(models.back()),
-      Transform(glm::vec3(0.0f, -2.3f, 50.0f), 180.0f,
-                glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(3.0f))});
+  //Flight helmet
+  auto& helmet = loadModel("./models/flight_helmet/FlightHelmet.gltf");
+  addObjectToScene(helmet, ShaderType::POINT_PBR,
+                   Transform(glm::vec3(0.0f, -2.3f, 50.0f), 180.0f,
+                             glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(3.0f)));
 
-  // Fancy reflective space dodecahedron
-  cubeMappedModels.emplace_back("./models/dodecahedron/scene.gltf");
-  sceneObjects[ShaderType::REFLECTIVE].emplace_back(
-      RenderableObject{std::ref(cubeMappedModels.back()),
-                       Transform(glm::vec3(-21.0f, 16.0f, -25.0f))});
+  //Fancy spinning space dodecahedron
+  auto& spaceDodeca = loadSpaceModel("./models/dodecahedron/scene.gltf");
+  addObjectToScene(spaceDodeca, ShaderType::REFLECTIVE,
+                   Transform(glm::vec3(-21.0f, 16.0f, -25.0f)), "spaceDodeca");
 
-  // Skybox
+  //Skybox
   std::vector<std::string> skyBoxPaths = {
       "./textures/skybox/right.png", "./textures/skybox/left.png",
       "./textures/skybox/top.png",   "./textures/skybox/bottom.png",
       "./textures/skybox/front.png", "./textures/skybox/back.png"};
 
-  skyboxes.emplace_back(skyBoxPaths);
+  auto& skybox = loadSkybox(skyBoxPaths);
+  addObjectToScene(skybox, ShaderType::SKYBOX, Transform());
 
-  sceneObjects[ShaderType::SKYBOX].emplace_back(
-      RenderableObject{std::ref(skyboxes.back()), Transform()});
-
+  //For development only
   assert(models.size() <= numModels);
   assert(cubeMappedModels.size() <= numCubeMappedModels);
   assert(skyboxes.size() <= numSkyboxes);
