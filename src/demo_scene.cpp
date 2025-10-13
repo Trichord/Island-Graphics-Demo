@@ -9,19 +9,15 @@
 #include "../headers/space_model.h"
 
 DemoScene::DemoScene() {
-  // Normalized approximation of sun direction in skybox
-  lightSources.globalLightDirection =
-      glm::vec3(-0.363647, -0.739629, -0.566312);
-  // Right next to the flight helmet
-  lightSources.pointLightPosition = glm::vec3(0.0f, 0.5f, 50.0f);
 
   camera = glm::vec3(0.0f, 3.0f, 30.0f);
-  std::cout << "Loading Models...";
-  buildScene();
+  std::cout << "Loading Models";
+  loadAllModels();
   std::cout << " Done." << std::endl;
+  addLights();  
 }
 
-void DemoScene::buildScene() {
+void DemoScene::loadAllModels() {
   // CRITCIAL: Reserve space for total number of models in each vector
   const int numModels = 2;
   const int numCubeMappedModels = 1;
@@ -34,16 +30,22 @@ void DemoScene::buildScene() {
   auto& island = loadModel("./models/island/island.gltf");
   addObjectToScene(island, ShaderType::DIRECTIONAL_PBR, Transform());
 
+  std::cout << ".";
+
   //Flight helmet
   auto& helmet = loadModel("./models/flight_helmet/FlightHelmet.gltf");
   addObjectToScene(helmet, ShaderType::POINT_PBR,
                    Transform(glm::vec3(0.0f, -2.3f, 50.0f), 180.0f,
                              glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(3.0f)));
 
+  std::cout << ".";
+
   //Fancy spinning space dodecahedron
   auto& spaceDodeca = loadSpaceModel("./models/dodecahedron/scene.gltf");
   addObjectToScene(spaceDodeca, ShaderType::REFLECTIVE,
                    Transform(glm::vec3(-21.0f, 16.0f, -25.0f)), "spaceDodeca");
+  
+  std::cout << ".";
 
   //Skybox
   std::vector<std::string> skyBoxPaths = {
@@ -58,4 +60,12 @@ void DemoScene::buildScene() {
   assert(models.size() <= numModels);
   assert(cubeMappedModels.size() <= numCubeMappedModels);
   assert(skyboxes.size() <= numSkyboxes);
+}
+
+void DemoScene::addLights() {
+  // Normalized approximation of sun direction in skybox
+  directionalLights.emplace_back(glm::vec3(-0.363647, -0.739629, -0.566312));
+
+  // Right next to the flight helmet
+  pointLights.emplace_back(glm::vec3(0.0f, 0.5f, 50.0f));
 }
