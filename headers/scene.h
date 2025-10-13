@@ -7,6 +7,7 @@
 #include <string>
 #include <optional>
 #include <utility>
+#include <memory>
 
 #include "model.h"
 #include "space_model.h"
@@ -15,6 +16,8 @@
 #include "renderable.h"
 #include "shader_types.h"
 #include "transform.h"
+#include "point_light.h"
+#include "directional_light.h"
 
 //-----------------------------------------------------
 // It is important for concrete subclasses to store the models in a class member
@@ -40,14 +43,12 @@ class Scene {
   Scene(Scene&& other) noexcept;
   Scene& operator=(Scene&& other) noexcept;
 
-  struct LightSources {
-    glm::vec3 globalLightDirection;
-    glm::vec3 pointLightPosition;
-  } lightSources;
-
-  std::map<ShaderType, std::vector<RenderableObject>>& getSceneObjects();
-  Transform& getObjectTransform(const std::string& key);
   Camera camera;
+  std::map<ShaderType, std::vector<RenderableObject>>& getSceneObjects();
+  std::vector<DirectionalLight> directionalLights;
+  std::vector<PointLight> pointLights;
+
+  Transform& getObjectTransform(const std::string& key);
 
  protected:
   std::map<ShaderType, std::vector<RenderableObject>> sceneObjects;
@@ -57,7 +58,8 @@ class Scene {
   std::vector<SpaceModel> spaceModels;
   std::vector<Skybox> skyboxes;
 
-  virtual void buildScene() = 0;
+  virtual void loadAllModels() = 0;
+  virtual void addLights() = 0;
   Model& loadModel(const std::string& filepath);
   SpaceModel& loadSpaceModel(const std::string& filepath);
   Skybox& loadSkybox(const std::vector<std::string>& filepaths);

@@ -1,0 +1,21 @@
+#pragma once
+
+#include <glm/glm.hpp>
+
+//-------------------------
+// Abstract class light.  getColor was chosen as the abstract hook due to its
+// ease of implementation.
+//-------------------------
+class Light {
+ public:
+  Light() = default;
+  Light(const glm::vec3& newColor);
+  virtual ~Light() = default;
+  void setColor(const glm::vec3& newColor);
+  virtual const glm::vec3& getColor() const = 0;
+  bool colorHasUpdated();
+
+ protected:
+  glm::vec3 color = glm::vec3(1.0f);
+  bool colorUpdated = true;
+};
