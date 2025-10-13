@@ -62,10 +62,21 @@ void DemoScene::loadAllModels() {
   assert(skyboxes.size() <= numSkyboxes);
 }
 
+//Pre-allocate all space in vector before adding
 void DemoScene::addLights() {
+  const int numPointLights = 1;
+  const int numDirLights = 1;
+
+  directionalLights.reserve(numDirLights);
+  pointLights.reserve(numPointLights);
+
   // Normalized approximation of sun direction in skybox
-  directionalLights.emplace_back(glm::vec3(-0.363647, -0.739629, -0.566312));
+  addLightToScene(directionalLights,
+                  DirectionalLight{glm::vec3(-0.363647, -0.739629, -0.566312)});
 
   // Right next to the flight helmet
-  pointLights.emplace_back(glm::vec3(0.0f, 0.5f, 50.0f));
+  addLightToScene(pointLights, PointLight{glm::vec3(0.0f, 0.5f, 50.0f)}, "circling_light");
+
+  assert(directionalLights.size() <= numDirLights);
+  assert(pointLights.size() <= numPointLights);
 }

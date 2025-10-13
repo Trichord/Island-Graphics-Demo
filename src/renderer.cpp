@@ -61,11 +61,12 @@ Renderer& Renderer::operator=(Renderer&& other) noexcept {
 
 void Renderer::renderScene(Scene& scene) {
   // Get light info (only setup for 1 light at the moment)
-  glm::vec3 dirLight = scene.directionalLights[0].getDirection();
-  bool dirUpdated = scene.directionalLights[0].directionHasUpdated();
+  std::vector<DirectionalLight>& dirLights = scene.getDirectionalLights();
+  bool dirUpdated = dirLights[0].directionHasUpdated();
 
-  glm::vec3 pointLight = scene.pointLights[0].getPosition();
-  bool posUpdated = scene.pointLights[0].positionHasUpdated();
+  std::vector<PointLight>& pointLights = scene.getPointLights();
+  glm::vec3 pointPos = pointLights[0].getPosition();
+  bool posUpdated = pointLights[0].positionHasUpdated();
 
   // For each shader type in the scene
   for (auto& [shaderType, objectList] : scene.getSceneObjects()) {
@@ -74,10 +75,10 @@ void Renderer::renderScene(Scene& scene) {
 
     // Set uniforms
     if (shaderType == ShaderType::DIRECTIONAL_PBR && dirUpdated)
-      shader.setVec3("lightDir", dirLight);
+      shader.setVec3("lightDir", dirLights[0].getDirection());
 
     else if (shaderType == ShaderType::POINT_PBR && posUpdated)
-      shader.setVec3("lightPosition", pointLight);
+      shader.setVec3("lightPosition", pointPos);
 
     // For each object of that shader type
     for (auto& object : objectList) {

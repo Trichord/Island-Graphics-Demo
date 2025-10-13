@@ -20,14 +20,10 @@
 #include "directional_light.h"
 
 //-----------------------------------------------------
-// It is important for concrete subclasses to store the models in a class member
-// variable. RenderableObject holds a non-owning reference to the model and it's
-// critical to keep the reference alive after any loading functions finish
+// Any container storing Model or Light instances must guarantee that their
+// addresses remain valid for the lifetime of the scene
 //
-// Any container storing Model instances must guarantee that their
-// addresses remain valid for the lifetime of all RenderableObjects.
-//
-// If using std::vector<Model>, you MUST call reserve()
+// If using std::vector, you MUST call reserve()
 // before inserting and NEVER modify the vector afterward — any reallocation
 // will invalidate references and cause undefined behavior.
 //
@@ -45,18 +41,22 @@ class Scene {
 
   Camera camera;
   std::map<ShaderType, std::vector<RenderableObject>>& getSceneObjects();
-  std::vector<DirectionalLight> directionalLights;
-  std::vector<PointLight> pointLights;
 
   Transform& getObjectTransform(const std::string& key);
+  Light& getNamedLight(const std::string& key);
+  std::vector<DirectionalLight>& getDirectionalLights();
+  std::vector<PointLight>& getPointLights();
 
  protected:
   std::map<ShaderType, std::vector<RenderableObject>> sceneObjects;
   std::map<std::string, std::reference_wrapper<Transform>> objectTransforms;
+  std::map<std::string, std::reference_wrapper<Light>> namedLights;
 
   std::vector<Model> models;
   std::vector<SpaceModel> spaceModels;
   std::vector<Skybox> skyboxes;
+  std::vector<DirectionalLight> directionalLights;
+  std::vector<PointLight> pointLights;
 
   virtual void loadAllModels() = 0;
   virtual void addLights() = 0;
@@ -75,5 +75,15 @@ class Scene {
     if (name.has_value())
       objectTransforms.emplace(name.value(),
                                std::ref(sceneObjects[type].back().transform));
+  }
+
+  //Give a light a name, if you'd like to access it later
+  template <typename LightType>
+  void addLightToScene(std::vector<LightType>& lightVec, LightType&& light,
+                       const std::optional<std::string> name = std::nullopt) {
+    lightVec.emplace_back(std::forward<LightType>(light));
+
+    if (name.has_value()) 
+        namedLights.emplace(name.value(), std::ref(lightVec.back()));
   }
 };
