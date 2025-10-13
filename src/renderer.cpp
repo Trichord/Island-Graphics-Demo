@@ -142,7 +142,7 @@ void Renderer::loadShaders() {
 void Renderer::setupPBRShader(Shader& shader) {
   shader.use();
   shader.setUniformBlock("matrices", 0);
-  shader.setFloat("gamma", globalGraphicsSettings.gamma);
+  shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
   shader.setInt("albedoMap", 0);
   shader.setInt("occlusionRoughMetalMap", 1);
   shader.setInt("normalMap", 2);
@@ -151,7 +151,7 @@ void Renderer::setupPBRShader(Shader& shader) {
 void Renderer::setupReflectiveShader(Shader& shader) {
   shader.use();
   shader.setUniformBlock("matrices", 0);
-  shader.setFloat("gamma", globalGraphicsSettings.gamma);
+  shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
   shader.setInt("cubemap", 0);
 }
 

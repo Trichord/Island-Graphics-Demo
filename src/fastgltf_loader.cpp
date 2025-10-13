@@ -46,7 +46,9 @@ std::vector<Primitive::Mesh> fastgltf_loader::loadMeshes(
       auto* tangentIt = gltfPrimitive.findAttribute("TANGENT");
       auto* texCoordIt = gltfPrimitive.findAttribute("TEXCOORD_0");
 
-      if (positionIt) {
+      if (!positionIt)
+        throw "fastGLTF loading error: Model has no position accessor";
+
         auto& positionAccessor = asset.accessors[positionIt->accessorIndex];
         vertices.resize(positionAccessor.count);
 
@@ -55,7 +57,6 @@ std::vector<Primitive::Mesh> fastgltf_loader::loadMeshes(
             [&](glm::vec3 position, std::size_t index) {
               vertices[index].position = position;
             });
-      }
 
       if (normalIt) {
         auto& normalAccessor = asset.accessors[normalIt->accessorIndex];

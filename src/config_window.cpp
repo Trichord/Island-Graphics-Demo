@@ -139,7 +139,7 @@ bool ConfigWindow::renderImGui() {
     ImGui::Text("Resolution");
     if (ImGui::BeginCombo("##resolutionCombo", resolution_preview_value,
                           ImGuiComboFlags_HeightLargest)) {
-      for (int i = 0; i < IM_ARRAYSIZE(resolutions); ++i) {
+      for (int i = 0; i < resolutions.size(); ++i) {
         const bool is_res_selected = (resolution_selected_idx == i);
         if (ImGui::Selectable(resolutions[i], is_res_selected)) {
           resolution_selected_idx = i;
@@ -176,7 +176,7 @@ bool ConfigWindow::renderImGui() {
     ImGui::Text("MSAA");
     if (ImGui::BeginCombo("##msaaCombo", msaa_preview_value,
                           ImGuiComboFlags_HeightLargest)) {
-      for (int i = 0; i < IM_ARRAYSIZE(msaaLevel); ++i) {
+      for (int i = 0; i < msaaLevel.size(); ++i) {
         const bool is_msaa_selected = (msaa_selected_idx == i);
         if (ImGui::Selectable(msaaLevel[i], is_msaa_selected)) {
           msaa_selected_idx = i;
@@ -194,7 +194,7 @@ bool ConfigWindow::renderImGui() {
     ImGui::Text("Anisotropic Filtering");
     if (ImGui::BeginCombo("##anisoCombo", aniso_preview_value,
                           ImGuiComboFlags_HeightLargest)) {
-      for (int i = 0; i < IM_ARRAYSIZE(anisoLevel); ++i) {
+      for (int i = 0; i < anisoLevel.size(); ++i) {
         const bool is_aniso_selected = (aniso_selected_idx == i);
         if (ImGui::Selectable(anisoLevel[i], is_aniso_selected)) {
           aniso_selected_idx = i;
@@ -265,10 +265,6 @@ bool ConfigWindow::renderImGui() {
   return true;
 }
 
-const GraphicsSettings& ConfigWindow::getGlobalGraphicsSettings() const {
-  return globalGraphicsSettings;
-}
-
 void ConfigWindow::loadConfigWindowImage() {
   ImageLoader imageLoader("./res/wireframe_sphere.png");
   std::vector<ImageData> imageData = imageLoader.getImageData();
@@ -284,48 +280,16 @@ void ConfigWindow::loadConfigWindowImage() {
 }
 
 void ConfigWindow::updateGlobalResolution(unsigned int index) {
-  globalGraphicsSettings.screenWidth = resolutionTable[index].first;
-  globalGraphicsSettings.screenHeight = resolutionTable[index].second;
+  if (index < resolutionTable.size()) {
+    globalGraphicsSettings.screenWidth = resolutionTable[index].first;
+    globalGraphicsSettings.screenHeight = resolutionTable[index].second;
+  }
 }
 
 void ConfigWindow::updateGlobalMSAA(unsigned int index) {
-  switch (index) {
-    case 0:
-      globalGraphicsSettings.msaa = 0;
-      break;
-    case 1:
-      globalGraphicsSettings.msaa = 2;
-      break;
-    case 2:
-      globalGraphicsSettings.msaa = 4;
-      break;
-    case 3:
-      globalGraphicsSettings.msaa = 8;
-      break;
-    default:
-      globalGraphicsSettings.msaa = 0;
-      break;
-  }
+  if (index < msaaTable.size()) globalGraphicsSettings.msaa = msaaTable[index];
 }
 void ConfigWindow::updateGlobalAniso(unsigned int index) {
-  switch (index) {
-    case 0:
-      globalGraphicsSettings.anisotropicFiltering = 0.0f;
-      break;
-    case 1:
-      globalGraphicsSettings.anisotropicFiltering = 2.0f;
-      break;
-    case 2:
-      globalGraphicsSettings.anisotropicFiltering = 4.0f;
-      break;
-    case 3:
-      globalGraphicsSettings.anisotropicFiltering = 8.0f;
-      break;
-    case 4:
-      globalGraphicsSettings.anisotropicFiltering = 16.0f;
-      break;
-    default:
-      globalGraphicsSettings.anisotropicFiltering = 0.0f;
-      break;
-  }
+  if (index < anisoTable.size())
+    globalGraphicsSettings.anisotropicFiltering = anisoTable[index];
 }
