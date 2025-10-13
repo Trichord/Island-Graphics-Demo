@@ -15,8 +15,8 @@ void Application::run() {
   if (!window) return;
 
   DemoScene demoScene;
-  Renderer renderer(globalGraphicsSettings.screenWidth,
-                    globalGraphicsSettings.screenHeight);
+  Renderer renderer(ConfigWindow::globalGraphicsSettings.screenWidth,
+                    ConfigWindow::globalGraphicsSettings.screenHeight);
   threadPool.stopAllThreads();
 
   createOpenGLViewport();
@@ -73,18 +73,17 @@ void Application::createWindow() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  if (globalGraphicsSettings.msaa != 0)
-    glfwWindowHint(GLFW_SAMPLES, globalGraphicsSettings.msaa);
+  unsigned int msaa = ConfigWindow::globalGraphicsSettings.msaa;
+  if (msaa != 0) glfwWindowHint(GLFW_SAMPLES, msaa);
 
-  if (globalGraphicsSettings.fullscreen)
-    window = glfwCreateWindow(globalGraphicsSettings.screenWidth,
-                              globalGraphicsSettings.screenHeight,
-                              "OpenGL Demo", glfwGetPrimaryMonitor(), nullptr);
+  unsigned int width = ConfigWindow::globalGraphicsSettings.screenWidth;
+  unsigned int height = ConfigWindow::globalGraphicsSettings.screenHeight;
+  if (ConfigWindow::globalGraphicsSettings.fullscreen)
+    window = glfwCreateWindow(width, height, "OpenGL Demo",
+                              glfwGetPrimaryMonitor(), nullptr);
 
   else
-    window = glfwCreateWindow(globalGraphicsSettings.screenWidth,
-                              globalGraphicsSettings.screenHeight,
-                              "OpenGL Demo", NULL, NULL);
+    window = glfwCreateWindow(width, height, "OpenGL Demo", NULL, NULL);
 
   if (!window) {
     std::cout << "Failed to create GLFW window" << std::endl;
@@ -93,7 +92,7 @@ void Application::createWindow() {
 
   glfwMakeContextCurrent(window);
 
-  if (globalGraphicsSettings.vsync)
+  if (ConfigWindow::globalGraphicsSettings.vsync)
     glfwSwapInterval(1);
 
   else
@@ -107,14 +106,17 @@ void Application::createOpenGLViewport() {
     return;
   }
 
-  glViewport(0, 0, globalGraphicsSettings.screenWidth,
-             globalGraphicsSettings.screenHeight);
+  unsigned int width = ConfigWindow::globalGraphicsSettings.screenWidth;
+  unsigned int height = ConfigWindow::globalGraphicsSettings.screenHeight;
+  unsigned int msaa = ConfigWindow::globalGraphicsSettings.msaa;
+
+  glViewport(0, 0, width, height);
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glEnable(GL_FRAMEBUFFER_SRGB);
 
-  if (globalGraphicsSettings.msaa != 0) glEnable(GL_MULTISAMPLE);
+  if (msaa != 0) glEnable(GL_MULTISAMPLE);
 }
 
 void Application::processInput(Scene& scene) {
