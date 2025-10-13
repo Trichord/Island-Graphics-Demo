@@ -60,18 +60,26 @@ Renderer& Renderer::operator=(Renderer&& other) noexcept {
 }
 
 void Renderer::renderScene(Scene& scene) {
+  // Get light info (only setup for 1 light at the moment)
+  glm::vec3 dirLight = scene.directionalLights[0].getDirection();
+  bool dirUpdated = scene.directionalLights[0].directionHasUpdated();
+
+  glm::vec3 pointLight = scene.pointLights[0].getPosition();
+  bool posUpdated = scene.pointLights[0].positionHasUpdated();
+
   // For each shader type in the scene
   for (auto& [shaderType, objectList] : scene.getSceneObjects()) {
     Shader& shader = shaders.at(shaderType);
     shader.use();
 
-    if (shaderType == ShaderType::DIRECTIONAL_PBR)
-      shader.setVec3("lightDir", scene.lightSources.globalLightDirection);
+    // Set uniforms
+    if (shaderType == ShaderType::DIRECTIONAL_PBR && dirUpdated)
+      shader.setVec3("lightDir", dirLight);
 
-    else if (shaderType == ShaderType::POINT_PBR)
-      shader.setVec3("lightPosition", scene.lightSources.pointLightPosition);
+    else if (shaderType == ShaderType::POINT_PBR && posUpdated)
+      shader.setVec3("lightPosition", pointLight);
 
-
+    // For each object of that shader type
     for (auto& object : objectList) {
       glm::mat4 modelMatrix = object.transform.getModelMatrix();
 
@@ -80,8 +88,8 @@ void Renderer::renderScene(Scene& scene) {
         case ShaderType::DIRECTIONAL_PBR:
           shader.setMat4("modelMatrix", modelMatrix);
           shader.setMat3("normalMV",
-                         glm::transpose(glm::inverse(
-                             glm::mat3(scene.camera.getViewMatrix() * modelMatrix)))); 
+                         glm::transpose(glm::inverse(glm::mat3(
+                             scene.camera.getViewMatrix() * modelMatrix))));
           break;
 
         // Point light source
@@ -89,7 +97,7 @@ void Renderer::renderScene(Scene& scene) {
           shader.setMat4("modelMatrix", modelMatrix);
           shader.setMat3("normalMV",
                          glm::transpose(glm::inverse(glm::mat3(
-                             scene.camera.getViewMatrix() * modelMatrix)))); 
+                             scene.camera.getViewMatrix() * modelMatrix))));
           break;
 
         // Reflective shader
@@ -114,7 +122,8 @@ void Renderer::renderScene(Scene& scene) {
 
 void Renderer::updateUBO(Scene& scene) {
   uboData.viewMatrix = scene.camera.getViewMatrix();
-  uboData.projectionViewMatrix = projectionMatrix * scene.camera.getViewMatrix();
+  uboData.projectionViewMatrix =
+      projectionMatrix * scene.camera.getViewMatrix();
   uboData.cameraPosition = glm::vec4(scene.camera.getPosition(), 0.0f);
   glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(PackedUBOData), &uboData);
 }
@@ -128,15 +137,17 @@ void Renderer::setupUBO() {
 
 void Renderer::loadShaders() {
   shaders.emplace(ShaderType::POINT_PBR, Shader("./shaders/point_PBR.vert",
-                  "./shaders/point_PBR.frag"));
-  shaders.emplace(ShaderType::DIRECTIONAL_PBR, Shader("./shaders/directional_PBR.vert",
-                  "./shaders/directional_PBR.frag"));
+                                                "./shaders/point_PBR.frag"));
+  shaders.emplace(ShaderType::DIRECTIONAL_PBR,
+                  Shader("./shaders/directional_PBR.vert",
+                         "./shaders/directional_PBR.frag"));
   shaders.emplace(ShaderType::REFLECTIVE, Shader("./shaders/reflective.vert",
-                  "./shaders/reflective.frag"));
-  shaders.emplace(ShaderType::LIGHT_SOURCE, Shader("./shaders/light_source.vert",
-                  "./shaders/light_source.frag"));
-  shaders.emplace(ShaderType::SKYBOX, Shader("./shaders/skybox.vert",
-                  "./shaders/skybox.frag"));
+                                                 "./shaders/reflective.frag"));
+  shaders.emplace(
+      ShaderType::LIGHT_SOURCE,
+      Shader("./shaders/light_source.vert", "./shaders/light_source.frag"));
+  shaders.emplace(ShaderType::SKYBOX,
+                  Shader("./shaders/skybox.vert", "./shaders/skybox.frag"));
 }
 
 void Renderer::setupPBRShader(Shader& shader) {
