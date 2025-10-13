@@ -163,8 +163,26 @@ void Application::configureGLFW(Scene& scene) {
 }
 
 void Application::onUpdate(Scene& scene, float deltaTime) {
+  // Rotate the fancy space dodecahedron
   Transform& spaceDodeca = scene.getObjectTransform("spaceDodeca");
   spaceDodeca.rotateAroundAxis(5.0f * deltaTime, glm::vec3(0.34f, 0.87f, 0.4f));
+
+  // Move the light around the flight helmet
+  Light& base = scene.getNamedLight("circling_light");
+  PointLight* circling_light = dynamic_cast<PointLight*>(&base);
+
+  if (circling_light) {
+    glm::vec3 newPos;
+    const float radius = 0.25;
+    const glm::vec3& center = glm::vec3(0.0f, 0.5f, 50.0f);
+    float time = (float)glfwGetTime();
+
+    newPos.x = center.x + glm::sin(time) * radius;
+    newPos.z = center.z + glm::cos(time) * radius;
+    newPos.y = center.y;
+
+    circling_light->setPosition(newPos);
+  }
 }
 
 void mouse_callback(GLFWwindow* window, double xPos, double yPos) {

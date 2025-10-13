@@ -9,7 +9,7 @@ class PointLight : public Light {
   PointLight(const glm::vec3& newPosition);
   const glm::vec3& getColor() const override;
   const glm::vec3& getPosition() const;
-  void setDirection(glm::vec3& newPosition);
+  void setPosition(glm::vec3& newPosition);
   bool positionHasUpdated();
 
  private:
