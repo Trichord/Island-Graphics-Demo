@@ -39,7 +39,7 @@ GLuint texture_utilities::generateTextureID(const ImageData& image,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, sampler.minFilter);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, sampler.magFilter);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY,
-                    globalGraphicsSettings.anisotropicFiltering);
+                    ConfigWindow::globalGraphicsSettings.anisotropicFiltering);
   }
 
   else
@@ -135,7 +135,7 @@ GLuint texture_utilities::generateCubemapTextureID(
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY,
-                  globalGraphicsSettings.anisotropicFiltering);
+                  ConfigWindow::globalGraphicsSettings.anisotropicFiltering);
 
   glActiveTexture(GL_TEXTURE0);
 
