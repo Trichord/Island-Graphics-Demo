@@ -2,9 +2,16 @@
 
 in vec3 texCoords;
 uniform samplerCube skybox;
+uniform float gamma;
 
 out vec4 fragColor;
 
 void main() {
-	fragColor = texture(skybox, texCoords);
+
+	vec3 color = texture(skybox, texCoords).rgb;
+	
+	//Gamma correction
+	color = pow(color, vec3(1.0/gamma));
+	
+	fragColor = vec4(color, 1.0); 
 }
