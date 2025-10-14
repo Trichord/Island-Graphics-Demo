@@ -48,21 +48,27 @@ Model& Model::operator=(Model&& other) noexcept {
 Model::~Model() { deleteTextureIDs(); }
 
 void Model::render(Shader& shader) {
-  shader.use();
-
   for (const Primitive::Mesh& mesh : meshes) {
     for (const Primitive& primitive : mesh.primitives) {
+      if (!assetImages.size()) {
+        primitive.draw();
+        continue;
+      }
+
       Material material = materials[primitive.materialIndex];
 
+      unsigned int albedoIndex = material.albedoImageIndex;
+      unsigned int aoMetRoughIdx = material.aoMetallicRoughnessImageIndex;
+      unsigned int normIndex = material.normalImageIndex;
+
       glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, assetImages[material.albedoImageIndex]);
+      glBindTexture(GL_TEXTURE_2D, assetImages[albedoIndex]);
 
       glActiveTexture(GL_TEXTURE1);
-      glBindTexture(GL_TEXTURE_2D,
-                    assetImages[material.aoMetallicRoughnessImageIndex]);
+      glBindTexture(GL_TEXTURE_2D, assetImages[aoMetRoughIdx]);
 
       glActiveTexture(GL_TEXTURE2);
-      glBindTexture(GL_TEXTURE_2D, assetImages[material.normalImageIndex]);
+      glBindTexture(GL_TEXTURE_2D, assetImages[normIndex]);
 
       primitive.draw();
     }
