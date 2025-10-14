@@ -19,4 +19,5 @@ GLuint generateTextureID(const ImageData& image, Sampler sampler,
                          bool anisotropic = false);
 GLuint generateCubemapTextureID(const std::vector<ImageData>& imageData,
                                 bool sRGB = false, bool anisotropic = false);
+GLuint generateQuadTexID(const ImageData& image, bool sRGB, bool anisotropic);
 }  // namespace texture_utilities

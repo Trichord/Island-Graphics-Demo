@@ -32,6 +32,10 @@ Skybox& Scene::loadSkybox(const std::vector<std::string>& filepaths) {
   return skyboxes.emplace_back(filepaths);
 }
 
+Grass& Scene::loadGrass(const std::string& filepath) {
+  return grasses.emplace_back(filepath);
+}
+
 Transform& Scene::getObjectTransform(const std::string& key) {
   return objectTransforms.at(key).get();
 }
@@ -47,3 +51,4 @@ std::vector<DirectionalLight>& Scene::getDirectionalLights() {
 std::vector<PointLight>& Scene::getPointLights() {
   return pointLights;
 }
+

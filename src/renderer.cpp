@@ -27,6 +27,7 @@ Renderer::Renderer(int screenWidth, int screenHeight)
   std::cout << " Done." << std::endl;
 
   // Setup shaders
+  setupGrassShader(shaders.at(ShaderType::GRASS));
   setupPBRShader(shaders.at(ShaderType::POINT_PBR));
   setupPBRShader(shaders.at(ShaderType::DIRECTIONAL_PBR));
   setupReflectiveShader(shaders.at(ShaderType::REFLECTIVE));
@@ -141,6 +142,8 @@ void Renderer::setupUBO() {
 }
 
 void Renderer::loadShaders() {
+  shaders.emplace(ShaderType::GRASS,
+                  Shader("./shaders/grass.vert", "./shaders/grass.frag"));
   shaders.emplace(ShaderType::POINT_PBR, Shader("./shaders/point_PBR.vert",
                                                 "./shaders/point_PBR.frag"));
   shaders.emplace(ShaderType::DIRECTIONAL_PBR,
@@ -153,6 +156,13 @@ void Renderer::loadShaders() {
       Shader("./shaders/light_source.vert", "./shaders/light_source.frag"));
   shaders.emplace(ShaderType::SKYBOX,
                   Shader("./shaders/skybox.vert", "./shaders/skybox.frag"));
+}
+
+void Renderer::setupGrassShader(Shader& shader) {
+  shader.use();
+  shader.setUniformBlock("matrices", 0);
+  shader.setInt("grassTexture", 0);
+  shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
 }
 
 void Renderer::setupPBRShader(Shader& shader) {
