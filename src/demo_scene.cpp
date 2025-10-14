@@ -40,10 +40,10 @@ void DemoScene::loadAllModels() {
 
   std::cout << ".";
 
-  auto& lightbulb = loadModel("./models/lightbulb/scene.gltf");
+  auto& lightbulb = loadModel("./models/lightbulb/lightbulb.gltf");
   addObjectToScene(
       lightbulb, ShaderType::LIGHT_SOURCE,
-      Transform(LIGHTBULB_START), "lightbulb");
+      Transform(LIGHTBULB_START, glm::vec3(1.0f), 90.0f, glm::vec3(1.0f, 0.0f, 0.0f)), "lightbulb");
 
   // Fancy spinning space dodecahedron
   auto& spaceDodeca = loadSpaceModel("./models/dodecahedron/scene.gltf");
