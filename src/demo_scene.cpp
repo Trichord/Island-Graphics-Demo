@@ -22,6 +22,8 @@ void DemoScene::loadAllModels() {
   const int numModels = 3;
   const int numCubeMappedModels = 1;
   const int numSkyboxes = 1;
+  const int numGrassVariations = 1;
+  grasses.reserve(numGrassVariations);
   models.reserve(numModels);
   spaceModels.reserve(numCubeMappedModels);
   skyboxes.reserve(numSkyboxes);
@@ -61,10 +63,15 @@ void DemoScene::loadAllModels() {
   auto& skybox = loadSkybox(skyBoxPaths);
   addObjectToScene(skybox, ShaderType::SKYBOX, Transform());
 
+  //Grass
+  auto& grass = loadGrass("./textures/grass.png");
+  addObjectToScene(grass, ShaderType::GRASS, Transform());
+
   // For development only
   assert(models.size() <= numModels);
   assert(cubeMappedModels.size() <= numCubeMappedModels);
   assert(skyboxes.size() <= numSkyboxes);
+  assert(grasses.size() <= numGrassVariations);
 }
 
 // Pre-allocate all space in vector before adding
