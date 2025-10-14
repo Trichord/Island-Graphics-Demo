@@ -7,47 +7,52 @@
 #include "../headers/model.h"
 #include "../headers/skybox.h"
 #include "../headers/space_model.h"
+#include "../headers/object_positions.h"
 
 DemoScene::DemoScene() {
-
   camera = glm::vec3(0.0f, 3.0f, 30.0f);
   std::cout << "Loading Models";
   loadAllModels();
   std::cout << " Done." << std::endl;
-  addLights();  
+  addLights();
 }
 
 void DemoScene::loadAllModels() {
   // CRITCIAL: Reserve space for total number of models in each vector
-  const int numModels = 2;
+  const int numModels = 3;
   const int numCubeMappedModels = 1;
   const int numSkyboxes = 1;
   models.reserve(numModels);
   spaceModels.reserve(numCubeMappedModels);
   skyboxes.reserve(numSkyboxes);
 
-  //Main island
+  // Main island
   auto& island = loadModel("./models/island/island.gltf");
   addObjectToScene(island, ShaderType::DIRECTIONAL_PBR, Transform());
 
   std::cout << ".";
 
-  //Flight helmet
+  // Flight helmet
   auto& helmet = loadModel("./models/flight_helmet/FlightHelmet.gltf");
   addObjectToScene(helmet, ShaderType::POINT_PBR,
-                   Transform(glm::vec3(0.0f, -2.3f, 50.0f), 180.0f,
+                   Transform(FLIGHT_HELMET_START, 180.0f,
                              glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(3.0f)));
 
   std::cout << ".";
 
-  //Fancy spinning space dodecahedron
+  auto& lightbulb = loadModel("./models/lightbulb/scene.gltf");
+  addObjectToScene(
+      lightbulb, ShaderType::LIGHT_SOURCE,
+      Transform(LIGHTBULB_START + glm::vec3(5.0f, 0.0f, 0.0f)), "lightbulb");
+
+  // Fancy spinning space dodecahedron
   auto& spaceDodeca = loadSpaceModel("./models/dodecahedron/scene.gltf");
   addObjectToScene(spaceDodeca, ShaderType::REFLECTIVE,
                    Transform(glm::vec3(-21.0f, 16.0f, -25.0f)), "spaceDodeca");
-  
+
   std::cout << ".";
 
-  //Skybox
+  // Skybox
   std::vector<std::string> skyBoxPaths = {
       "./textures/skybox/right.png", "./textures/skybox/left.png",
       "./textures/skybox/top.png",   "./textures/skybox/bottom.png",
@@ -56,13 +61,13 @@ void DemoScene::loadAllModels() {
   auto& skybox = loadSkybox(skyBoxPaths);
   addObjectToScene(skybox, ShaderType::SKYBOX, Transform());
 
-  //For development only
+  // For development only
   assert(models.size() <= numModels);
   assert(cubeMappedModels.size() <= numCubeMappedModels);
   assert(skyboxes.size() <= numSkyboxes);
 }
 
-//Pre-allocate all space in vector before adding
+// Pre-allocate all space in vector before adding
 void DemoScene::addLights() {
   const int numPointLights = 1;
   const int numDirLights = 1;
@@ -75,7 +80,8 @@ void DemoScene::addLights() {
                   DirectionalLight{glm::vec3(-0.363647, -0.739629, -0.566312)});
 
   // Right next to the flight helmet
-  addLightToScene(pointLights, PointLight{glm::vec3(0.0f, 0.5f, 50.0f)}, "circling_light");
+  addLightToScene(pointLights, PointLight{glm::vec3(0.0f, 0.5f, 50.0f)},
+                  "circling_light");
 
   assert(directionalLights.size() <= numDirLights);
   assert(pointLights.size() <= numPointLights);

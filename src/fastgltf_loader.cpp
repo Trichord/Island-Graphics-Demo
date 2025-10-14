@@ -9,12 +9,53 @@
 
 #include "../headers/primitive.h"
 
+std::string fastgltfErrorToString(fastgltf::Error error) {
+  switch (error) {
+    case fastgltf::Error::None:
+      return "No error.";
+    case fastgltf::Error::InvalidPath:
+      return "Invalid glTF path.";
+    case fastgltf::Error::MissingExtensions:
+      return "Required extensions not enabled.";
+    case fastgltf::Error::UnknownRequiredExtension:
+      return "Unsupported required extension.";
+    case fastgltf::Error::InvalidJson:
+      return "JSON parsing error.";
+    case fastgltf::Error::InvalidGltf:
+      return "Invalid or incomplete glTF structure.";
+    case fastgltf::Error::InvalidOrMissingAssetField:
+      return "Missing or invalid asset field.";
+    case fastgltf::Error::InvalidGLB:
+      return "Invalid GLB container.";
+    case fastgltf::Error::MissingField:
+      return "Missing field in JSON (internal use).";
+    case fastgltf::Error::MissingExternalBuffer:
+      return "External buffer not found.";
+    case fastgltf::Error::UnsupportedVersion:
+      return "Unsupported glTF version.";
+    case fastgltf::Error::InvalidURI:
+      return "Failed to parse URI.";
+    case fastgltf::Error::InvalidFileData:
+      return "Invalid file data or unknown file type.";
+    case fastgltf::Error::FailedWritingFiles:
+      return "Failed to write buffers/images to disk.";
+    case fastgltf::Error::FileBufferAllocationFailed:
+      return "Failed to allocate buffer for file.";
+    default:
+      return "Unknown FastGLTF error.";
+  }
+}
+
+
 fastgltf::Asset fastgltf_loader::loadAsset(std::filesystem::path path) {
   static fastgltf::Parser parser;
   auto data = fastgltf::GltfDataBuffer::FromPath(path);
 
-  if (data.error() != fastgltf::Error::None)
+  if (data.error() != fastgltf::Error::None) {
     std::cerr << "FastGLTF error loading from " << path << std::endl;
+    std::cerr << fastgltfErrorToString(data.error()) << std::endl;
+    return fastgltf::Asset{};
+  }
 
   // JSON only for now
   auto assetResult =
