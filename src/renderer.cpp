@@ -113,6 +113,10 @@ void Renderer::renderScene(Scene& scene) {
               "projectionViewNoTranslation",
               projectionMatrix * scene.camera.getViewNoTranslationMatrix());
           break;
+
+        case ShaderType::LIGHT_SOURCE:
+          shader.setMat4("modelMatrix", modelMatrix);
+          break;
       }
 
       // Draw it

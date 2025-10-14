@@ -6,22 +6,24 @@
 #include "../headers/renderer.h"
 #include "../headers/thread_pool.h"
 #include "../headers/config_window.h"
+#include "../headers/object_positions.h"
 #include <iostream>
 
 void Application::run() {
-  if (!configWindow.launchSettingsWindow()) return;
+  //if (!configWindow.launchSettingsWindow()) return;
 
   createWindow();
   if (!window) return;
+
+  createOpenGLViewport();
+  registerCallbacks();
 
   DemoScene demoScene;
   Renderer renderer(ConfigWindow::globalGraphicsSettings.screenWidth,
                     ConfigWindow::globalGraphicsSettings.screenHeight);
   threadPool.stopAllThreads();
 
-  createOpenGLViewport();
-  registerCallbacks();
-  configureGLFW(demoScene);
+  addGlfwUserParam(demoScene);
 
   renderer.updateUBO(demoScene);
 
@@ -157,7 +159,7 @@ void Application::registerCallbacks() {
   glfwSetCursorPosCallback(window, mouse_callback);
 }
 
-void Application::configureGLFW(Scene& scene) {
+void Application::addGlfwUserParam(Scene& scene) {
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetWindowUserPointer(window, &scene);
 }
@@ -174,14 +176,16 @@ void Application::onUpdate(Scene& scene, float deltaTime) {
   if (circling_light) {
     glm::vec3 newPos;
     const float radius = 0.25;
-    const glm::vec3& center = glm::vec3(0.0f, 0.5f, 50.0f);
     float time = (float)glfwGetTime();
 
-    newPos.x = center.x + glm::sin(time) * radius;
-    newPos.z = center.z + glm::cos(time) * radius;
-    newPos.y = center.y;
+    newPos.x = LIGHTBULB_START.x + glm::sin(time) * radius;
+    newPos.z = LIGHTBULB_START.z + glm::cos(time) * radius;
+    newPos.y = LIGHTBULB_START.y;
 
     circling_light->setPosition(newPos);
+
+    Transform& lightTransform = scene.getObjectTransform("lightbulb");
+    lightTransform.setAbsolutePosition(newPos);
   }
 }
 
