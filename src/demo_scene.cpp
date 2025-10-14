@@ -35,15 +35,15 @@ void DemoScene::loadAllModels() {
   // Flight helmet
   auto& helmet = loadModel("./models/flight_helmet/FlightHelmet.gltf");
   addObjectToScene(helmet, ShaderType::POINT_PBR,
-                   Transform(FLIGHT_HELMET_START, 180.0f,
-                             glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(3.0f)));
+                   Transform(FLIGHT_HELMET_START, glm::vec3(3.0f), 180.0f,
+                             glm::vec3(0.0f, 1.0f, 0.0f)));
 
   std::cout << ".";
 
   auto& lightbulb = loadModel("./models/lightbulb/scene.gltf");
   addObjectToScene(
       lightbulb, ShaderType::LIGHT_SOURCE,
-      Transform(LIGHTBULB_START + glm::vec3(5.0f, 0.0f, 0.0f)), "lightbulb");
+      Transform(LIGHTBULB_START), "lightbulb");
 
   // Fancy spinning space dodecahedron
   auto& spaceDodeca = loadSpaceModel("./models/dodecahedron/scene.gltf");
@@ -80,7 +80,7 @@ void DemoScene::addLights() {
                   DirectionalLight{glm::vec3(-0.363647, -0.739629, -0.566312)});
 
   // Right next to the flight helmet
-  addLightToScene(pointLights, PointLight{glm::vec3(0.0f, 0.5f, 50.0f)},
+  addLightToScene(pointLights, PointLight{LIGHTBULB_START},
                   "circling_light");
 
   assert(directionalLights.size() <= numDirLights);
