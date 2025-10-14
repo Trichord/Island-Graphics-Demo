@@ -178,4 +178,5 @@ void Renderer::setupLightSourceShader(Shader& shader) {
 void Renderer::setupSkyboxShader(Shader& shader) {
   shader.use();
   shader.setInt("skybox", 0);
+  shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
 }
