@@ -4,7 +4,7 @@
 
 #include "../headers/transform.h"
 
-Transform::Transform(glm::vec3 pos, float degrees, glm::vec3 axis, glm::vec3 sc)
+Transform::Transform(glm::vec3 pos, glm::vec3 sc, float degrees, glm::vec3 axis)
     : position(pos), scale(sc) {
   glm::vec3 normalizedAxis = glm::normalize(axis);
   quaternion = glm::angleAxis(glm::radians(degrees), normalizedAxis);
