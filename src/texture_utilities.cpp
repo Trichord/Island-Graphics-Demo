@@ -38,8 +38,11 @@ GLuint texture_utilities::generateTextureID(const ImageData& image,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, sampler.wrapT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, sampler.minFilter);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, sampler.magFilter);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY,
-                    ConfigWindow::globalGraphicsSettings.anisotropicFiltering);
+
+    if (anisotropic)
+      glTexParameterf(
+          GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY,
+          ConfigWindow::globalGraphicsSettings.anisotropicFiltering);
   }
 
   else
@@ -77,7 +80,6 @@ GLuint texture_utilities::generateTextureID(const ImageData& image, bool sRGB) {
 
     glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, image.width, image.height, 0,
                  imageFormat, GL_UNSIGNED_BYTE, image.data);
-    glGenerateMipmap(GL_TEXTURE_2D);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -140,4 +142,51 @@ GLuint texture_utilities::generateCubemapTextureID(
   glActiveTexture(GL_TEXTURE0);
 
   return cubemapTextureID;
+}
+
+GLuint texture_utilities::generateQuadTexID(const ImageData& image, bool sRGB,
+                                            bool anisotropic) {
+  GLuint textureID;
+
+  if (image.data) {
+    GLenum imageFormat = 3, internalFormat = 3;
+    int nrChannels = image.nrChannels;
+
+    // stb_image only ever returns a 1, 2, 3, or 4 for a valid image
+    if (nrChannels == 1) {
+      imageFormat = GL_RED;
+      internalFormat = GL_RED;
+    } else if (nrChannels == 2) {
+      imageFormat = GL_RG;
+      internalFormat = GL_RG;
+    } else if (nrChannels == 3) {
+      imageFormat = GL_RGB;
+      internalFormat = sRGB ? GL_SRGB : GL_RGB;
+    } else if (nrChannels == 4) {
+      imageFormat = GL_RGBA;
+      internalFormat = sRGB ? GL_SRGB_ALPHA : GL_RGBA;
+    }
+
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, image.width, image.height, 0,
+                 imageFormat, GL_UNSIGNED_BYTE, image.data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY,
+                    ConfigWindow::globalGraphicsSettings.anisotropicFiltering);
+  }
+
+  else
+    textureID = 0;
+
+  glActiveTexture(GL_TEXTURE0);
+
+  return textureID;
 }

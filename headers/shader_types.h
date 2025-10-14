@@ -4,6 +4,7 @@
 // be rendered in order (skybox is usually last)
 
 enum ShaderType {
+  GRASS,
   DIRECTIONAL_PBR,
   POINT_PBR,
   REFLECTIVE,

@@ -18,6 +18,7 @@
 #include "transform.h"
 #include "point_light.h"
 #include "directional_light.h"
+#include "grass.h"
 
 //-----------------------------------------------------
 // Any container storing Model or Light instances must guarantee that their
@@ -55,6 +56,7 @@ class Scene {
   std::vector<Model> models;
   std::vector<SpaceModel> spaceModels;
   std::vector<Skybox> skyboxes;
+  std::vector<Grass> grasses;
   std::vector<DirectionalLight> directionalLights;
   std::vector<PointLight> pointLights;
 
@@ -63,6 +65,7 @@ class Scene {
   Model& loadModel(const std::string& filepath);
   SpaceModel& loadSpaceModel(const std::string& filepath);
   Skybox& loadSkybox(const std::vector<std::string>& filepaths);
+  Grass& loadGrass(const std::string& filepath);
 
   // Give a model a name if you want to reference its transform in Application's
   // onUpdate() loop

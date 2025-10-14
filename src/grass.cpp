@@ -4,9 +4,12 @@
 #include "../headers/image_loader.h"
 #include "../headers/object_positions.h"
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <vector>
+#include <random>
+#include <iostream>
 
-Grass::Grass(std::filesystem::path &texturePath) {
+Grass::Grass(const std::filesystem::path &texturePath) {
   loadTexture(texturePath);
   generateTransforms();
   setupBuffers();
@@ -44,14 +47,27 @@ Grass &Grass::operator=(Grass &&other) noexcept {
 
 Grass::~Grass() { deleteBuffers(); }
 
-void Grass::render(Shader &shader) {}
+void Grass::render(Shader &shader) {
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, textureID);
 
-void Grass::loadTexture(std::filesystem::path &texturePath) {
+  glDisable(GL_CULL_FACE);
+
+  glBindVertexArray(VAO);
+  glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0,
+                          static_cast<unsigned int>(transforms.size()));
+
+  glEnable(GL_CULL_FACE);
+
+  glBindVertexArray(0);
+}
+
+void Grass::loadTexture(const std::filesystem::path &texturePath) {
   ImageLoader imageLoader = ImageLoader(texturePath);
   std::vector<ImageData> imageData = imageLoader.getImageData();
 
   if (imageData.size())
-    textureID = texture_utilities::generateTextureID(imageData[0], false);
+    textureID = texture_utilities::generateQuadTexID(imageData[0], true, false);
 }
 
 void Grass::setupBuffers() {
@@ -84,32 +100,50 @@ void Grass::setupBuffers() {
                transforms.data(), GL_STATIC_DRAW);
 
   // glm::mat4 attribute
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)0);
   glEnableVertexAttribArray(3);
-  glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)0);
+  glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                        (void *)(sizeof(glm::vec4)));
   glEnableVertexAttribArray(4);
   glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                        (void *)(sizeof(glm::vec4)));
+                        (void *)(2 * sizeof(glm::vec4)));
   glEnableVertexAttribArray(5);
   glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                        (void *)(2 * sizeof(glm::vec4)));
-  glEnableVertexAttribArray(6);
-  glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
                         (void *)(3 * sizeof(glm::vec4)));
 
+  glVertexAttribDivisor(2, 1);
   glVertexAttribDivisor(3, 1);
   glVertexAttribDivisor(4, 1);
   glVertexAttribDivisor(5, 1);
-  glVertexAttribDivisor(6, 1);
 
   // reset VAO
   glBindVertexArray(0);
 }
 
 void Grass::generateTransforms() {
-  transforms.reserve(GRASS_POSITIONS.size());
-  
+  const unsigned int tuftDensity = 3;
+  const float minRotation = 30.0f;
+  const float scaleVariation = 0.1f;
+
+  std::random_device rd;
+  std::mt19937 mt(rd());
+  std::uniform_real_distribution<float> rndRotation(minRotation,
+                                                    180.0 - minRotation);
+  std::uniform_real_distribution<float> rndScale(1.0f - scaleVariation,
+                                                 1.0f + scaleVariation);
+
+  transforms.reserve(GRASS_POSITIONS.size() * tuftDensity);
+
   for (const auto &position : GRASS_POSITIONS) {
-    
+    for (unsigned int i = 0; i < tuftDensity; ++i) {
+      glm::mat4 transform = glm::mat4(1.0f);
+      transform = glm::translate(transform, position);
+      transform = glm::rotate(transform, glm::radians(rndRotation(mt)),
+                              glm::vec3(0.0f, 1.0f, 0.0f));
+      transform = glm::scale(transform, glm::vec3(1.0f, rndScale(mt), 1.0f));
+      transforms.emplace_back(std::move(transform));
+    }
   }
 }
 
