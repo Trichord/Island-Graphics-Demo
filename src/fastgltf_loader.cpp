@@ -46,7 +46,6 @@ std::string fastgltfErrorToString(fastgltf::Error error) {
   }
 }
 
-
 fastgltf::Asset fastgltf_loader::loadAsset(std::filesystem::path path) {
   static fastgltf::Parser parser;
   auto data = fastgltf::GltfDataBuffer::FromPath(path);
@@ -90,15 +89,15 @@ std::vector<Primitive::Mesh> fastgltf_loader::loadMeshes(
       if (!positionIt)
         throw "fastGLTF loading error: Model has no position accessor";
 
-        auto& positionAccessor = asset.accessors[positionIt->accessorIndex];
-        vertices.resize(positionAccessor.count);
+      auto& positionAccessor = asset.accessors[positionIt->accessorIndex];
+      vertices.resize(positionAccessor.count);
 
-        fastgltf::iterateAccessorWithIndex<glm::vec3>(
-            asset, positionAccessor,
-            [&](glm::vec3 position, std::size_t index) {
-              vertices[index].position = position;
-            });
+      fastgltf::iterateAccessorWithIndex<glm::vec3>(
+          asset, positionAccessor, [&](glm::vec3 position, std::size_t index) {
+            vertices[index].position = position;
+          });
 
+      // Normals
       if (normalIt) {
         auto& normalAccessor = asset.accessors[normalIt->accessorIndex];
 
@@ -108,6 +107,7 @@ std::vector<Primitive::Mesh> fastgltf_loader::loadMeshes(
             });
       }
 
+      // Tangents
       if (tangentIt) {
         auto& tangentAccessor = asset.accessors[tangentIt->accessorIndex];
 
@@ -116,6 +116,8 @@ std::vector<Primitive::Mesh> fastgltf_loader::loadMeshes(
               vertices[index].tangent = tangent;
             });
       }
+
+      // Texture coordinates
       if (texCoordIt) {
         auto& texCoordAccessor = asset.accessors[texCoordIt->accessorIndex];
 
@@ -125,6 +127,8 @@ std::vector<Primitive::Mesh> fastgltf_loader::loadMeshes(
               vertices[index].texCoords = texCoords;
             });
       }
+
+      // Indices
       if (gltfPrimitive.indicesAccessor.has_value()) {
         auto& indicesAccessor =
             asset.accessors[gltfPrimitive.indicesAccessor.value()];
@@ -136,13 +140,21 @@ std::vector<Primitive::Mesh> fastgltf_loader::loadMeshes(
             [&](std::uint32_t index) { indices[idx++] = index; });
       }
 
-      mesh.primitives.emplace_back(
-          std::move(vertices), std::move(indices),
-          static_cast<unsigned int>(gltfPrimitive.materialIndex.value()));
+      // Check if there are any materials at all
+      unsigned int materialIndex = 0;
+      if (gltfPrimitive.materialIndex.has_value())
+        materialIndex =
+            static_cast<unsigned int>(gltfPrimitive.materialIndex.value());
+
+      // Build the primitive
+      mesh.primitives.emplace_back(std::move(vertices), std::move(indices),
+                                   materialIndex);
     }
 
+    //Add the mesh
     meshes.push_back(std::move(mesh));
   }
+
   return meshes;
 }
 
