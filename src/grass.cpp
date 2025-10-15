@@ -123,13 +123,13 @@ void Grass::setupBuffers() {
 
 void Grass::generateTransforms() {
   const unsigned int tuftDensity = 3;
-  const float minRotation = 30.0f;
+  const float rotVariation = 30.0f;
   const float scaleVariation = 0.1f;
 
   std::random_device rd;
   std::mt19937 mt(rd());
-  std::uniform_real_distribution<float> rndRotation(minRotation,
-                                                    180.0 - minRotation);
+  std::uniform_real_distribution<float> rndRotation(-rotVariation,
+                                                    rotVariation);
   std::uniform_real_distribution<float> rndScale(1.0f - scaleVariation,
                                                  1.0f + scaleVariation);
 
@@ -137,9 +137,11 @@ void Grass::generateTransforms() {
 
   for (const auto &position : GRASS_POSITIONS) {
     for (unsigned int i = 0; i < tuftDensity; ++i) {
+      float baseAngle = (360.0f / tuftDensity) * i;
+
       glm::mat4 transform = glm::mat4(1.0f);
       transform = glm::translate(transform, position);
-      transform = glm::rotate(transform, glm::radians(rndRotation(mt)),
+      transform = glm::rotate(transform, glm::radians(baseAngle + rndRotation(mt)),
                               glm::vec3(0.0f, 1.0f, 0.0f));
       transform = glm::scale(transform, glm::vec3(1.0f, rndScale(mt), 1.0f));
       transforms.emplace_back(std::move(transform));
