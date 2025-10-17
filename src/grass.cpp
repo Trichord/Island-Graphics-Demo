@@ -10,8 +10,8 @@
 #include <iostream>
 
 #define tuftDensity 3
-#define rotationVariation 30.0f
-#define scaleVariation 0.3f
+#define rotationVariation 10.0f
+#define scaleVariation 0.2f
 
 Grass::Grass(const std::filesystem::path &texturePath) {
   loadTexture(texturePath);
@@ -137,7 +137,7 @@ void Grass::generateTransforms() {
 
   for (const auto &position : GRASS_POSITIONS) {
     for (unsigned int i = 0; i < tuftDensity; ++i) {
-      float baseAngle = (360.0f / tuftDensity) * i;
+      float baseAngle = (180.0f / tuftDensity) * i;
 
       glm::mat4 transform = glm::mat4(1.0f);
       transform = glm::translate(transform, position);
