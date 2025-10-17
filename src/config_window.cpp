@@ -96,7 +96,7 @@ void ConfigWindow::setupImGui() {
 
   // Setup Dear ImGui style and custom font
   ImGui::StyleColorsDark();
-  io.Fonts->AddFontFromFileTTF("./imgui/Inter_18pt-Black.ttf");
+  io.Fonts->AddFontFromFileTTF("./res/Inter_18pt-Black.ttf");
 }
 
 bool ConfigWindow::renderImGui() {
@@ -266,7 +266,7 @@ bool ConfigWindow::renderImGui() {
 }
 
 void ConfigWindow::loadConfigWindowImage() {
-  ImageLoader imageLoader("./res/wireframe_sphere.png");
+  ImageLoader imageLoader("./textures/wireframe_sphere.png");
   std::vector<ImageData> imageData = imageLoader.getImageData();
 
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {

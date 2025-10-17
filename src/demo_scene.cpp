@@ -1,13 +1,11 @@
 #include "../headers/demo_scene.h"
-
-#include <assert.h>
-#include <functional>
-#include <iostream>
-
 #include "../headers/model.h"
 #include "../headers/skybox.h"
 #include "../headers/space_model.h"
 #include "../headers/object_positions.h"
+
+#include <functional>
+#include <iostream>
 
 DemoScene::DemoScene() {
   camera = glm::vec3(0.0f, 3.0f, 30.0f);
@@ -18,16 +16,6 @@ DemoScene::DemoScene() {
 }
 
 void DemoScene::loadAllModels() {
-  // CRITCIAL: Reserve space for total number of models in each vector
-  const int numModels = 3;
-  const int numCubeMappedModels = 1;
-  const int numSkyboxes = 1;
-  const int numGrassVariations = 1;
-  grasses.reserve(numGrassVariations);
-  models.reserve(numModels);
-  spaceModels.reserve(numCubeMappedModels);
-  skyboxes.reserve(numSkyboxes);
-
   // Main island
   auto& island = loadModel("./models/island/island.gltf");
   addObjectToScene(island, ShaderType::DIRECTIONAL_PBR, Transform());
@@ -66,12 +54,6 @@ void DemoScene::loadAllModels() {
   //Grass
   auto& grass = loadGrass("./textures/grass.png");
   addObjectToScene(grass, ShaderType::GRASS, Transform());
-
-  // For development only
-  assert(models.size() <= numModels);
-  assert(cubeMappedModels.size() <= numCubeMappedModels);
-  assert(skyboxes.size() <= numSkyboxes);
-  assert(grasses.size() <= numGrassVariations);
 }
 
 // Pre-allocate all space in vector before adding
@@ -89,7 +71,4 @@ void DemoScene::addLights() {
   // Right next to the flight helmet
   addLightToScene(pointLights, PointLight{LIGHTBULB_START},
                   "circling_light");
-
-  assert(directionalLights.size() <= numDirLights);
-  assert(pointLights.size() <= numPointLights);
 }

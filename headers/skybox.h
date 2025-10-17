@@ -10,7 +10,7 @@
 class Skybox : public CubeMappedModel {
  public:
   Skybox() = delete;
-  Skybox(const std::vector<std::string>& skyboxPaths);
+  explicit Skybox(const std::vector<std::string>& skyboxPaths);
   Skybox(const Skybox&) = delete;
   Skybox& operator=(const Skybox&) = delete;
   Skybox(Skybox&& other) noexcept;

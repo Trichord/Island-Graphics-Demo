@@ -6,7 +6,7 @@
 class DirectionalLight : public Light {
  public:
   DirectionalLight() = default;
-  DirectionalLight(const glm::vec3& newDirection);
+  explicit DirectionalLight(const glm::vec3& newDirection);
   const glm::vec3& getColor() const override;
   const glm::vec3& getDirection() const;
   void setDirection(glm::vec3& newDirection);
