@@ -10,7 +10,7 @@
 #include <iostream>
 
 void Application::run() {
-  //if (!configWindow.launchSettingsWindow()) return;
+  // if (!configWindow.launchSettingsWindow()) return;
 
   createWindow();
   if (!window) return;
@@ -157,36 +157,33 @@ void Application::registerCallbacks() {
   lastMouseX = (float)x;
   lastMouseY = (float)y;
   glfwSetCursorPosCallback(window, mouse_callback);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 void Application::addGlfwUserParam(Scene& scene) {
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetWindowUserPointer(window, &scene);
 }
 
 void Application::onUpdate(Scene& scene, float deltaTime) {
   // Rotate the fancy space dodecahedron
-  Transform& spaceDodeca = scene.getObjectTransform("spaceDodeca");
+  auto& spaceDodeca = scene.getObjectTransform("spaceDodeca");
   spaceDodeca.rotateAroundAxis(5.0f * deltaTime, glm::vec3(0.34f, 0.87f, 0.4f));
 
   // Move the light around the flight helmet
-  Light& base = scene.getNamedLight("circling_light");
-  PointLight* circling_light = dynamic_cast<PointLight*>(&base);
+  auto& circling_light = static_cast<PointLight&>(scene.getNamedLight("circling_light"));
 
-  if (circling_light) {
-    glm::vec3 newPos;
-    const float radius = 1.25f;
-    float time = (float)glfwGetTime();
+  glm::vec3 newPos;
+  const float radius = 1.25f;
+  float time = (float)glfwGetTime();
 
-    newPos.x = LIGHTBULB_START.x + glm::sin(time * 0.5f) * radius;
-    newPos.z = LIGHTBULB_START.z + glm::cos(time * 0.5f) * radius;
-    newPos.y = LIGHTBULB_START.y;
+  newPos.x = LIGHTBULB_START.x + glm::sin(time * 0.5f) * radius;
+  newPos.z = LIGHTBULB_START.z + glm::cos(time * 0.5f) * radius;
+  newPos.y = LIGHTBULB_START.y;
 
-    circling_light->setPosition(newPos);
+  circling_light.setPosition(newPos);
 
-    Transform& lightTransform = scene.getObjectTransform("lightbulb");
-    lightTransform.setAbsolutePosition(newPos);
-  }
+  Transform& lightTransform = scene.getObjectTransform("lightbulb");
+  lightTransform.setAbsolutePosition(newPos);
 }
 
 void mouse_callback(GLFWwindow* window, double xPos, double yPos) {

@@ -22,7 +22,7 @@ fastgltf's images is preserved
 class Model : public Renderable {
  public:
   Model() = default;
-  Model(std::string path);
+  explicit Model(const std::string& path);
   Model(const Model&) = delete;
   Model& operator=(const Model&) = delete;
   Model(Model&& other) noexcept;
@@ -49,8 +49,8 @@ class Model : public Renderable {
   std::vector<GLuint> assetImages;
   std::unordered_set<unsigned int> processedImageIndices;
 
-  void loadModel(std::filesystem::path path);
-  void loadTextures(const std::filesystem::path parentPath);
+  void loadModel(const std::filesystem::path& path);
+  void loadTextures(const std::filesystem::path& parentPath);
   void loadMaterials(const std::vector<ImageData>& imagedata);
   void deleteTextureIDs();
 };

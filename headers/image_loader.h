@@ -31,8 +31,8 @@ always returns a vector as it was never intended for single-image loading
 
 class ImageLoader {
  public:
-  ImageLoader(const std::filesystem::path& filepath);
-  ImageLoader(const std::vector<std::filesystem::path>& filepaths);
+  explicit ImageLoader(const std::filesystem::path& filepath);
+  explicit ImageLoader(const std::vector<std::filesystem::path>& filepaths);
   ~ImageLoader();
 
   const std::vector<ImageData>& getImageData() const;

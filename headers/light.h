@@ -9,7 +9,7 @@
 class Light {
  public:
   Light() = default;
-  Light(const glm::vec3& newColor);
+  explicit Light(const glm::vec3& newColor);
   virtual ~Light() = default;
   void setColor(const glm::vec3& newColor);
   virtual const glm::vec3& getColor() const = 0;

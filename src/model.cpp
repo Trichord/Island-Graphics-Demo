@@ -19,7 +19,7 @@
 #include "../headers/texture_utilities.h"
 #include "../headers/thread_pool.h"
 
-Model::Model(std::string path) { loadModel(path); }
+Model::Model(const std::string& path) { loadModel(path); }
 
 Model::Model(Model&& other) noexcept
     : asset(std::move(other.asset)),
@@ -78,7 +78,7 @@ void Model::render(Shader& shader) {
   glActiveTexture(GL_TEXTURE0);
 }
 
-void Model::loadModel(std::filesystem::path path) {
+void Model::loadModel(const std::filesystem::path& path) {
   asset = fastgltf_loader::loadAsset(path);
 
   meshes.resize(asset.meshes.size());
@@ -90,7 +90,7 @@ void Model::loadModel(std::filesystem::path path) {
   asset = fastgltf::Asset{};
 }
 
-void Model::loadTextures(const std::filesystem::path parentPath) {
+void Model::loadTextures(const std::filesystem::path& parentPath) {
   // Get all local Uniform Resource Identifiers from gltf, so we can pass the
   // file paths to the image loader
   std::vector<std::filesystem::path> texturePaths =
