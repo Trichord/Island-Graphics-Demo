@@ -6,6 +6,7 @@
 #include <fastgltf/types.hpp>
 #include <iostream>
 #include <vector>
+#include <stdexcept>
 
 #include "../headers/primitive.h"
 
@@ -87,7 +88,7 @@ std::vector<Primitive::Mesh> fastgltf_loader::loadMeshes(
       auto* texCoordIt = gltfPrimitive.findAttribute("TEXCOORD_0");
 
       if (!positionIt)
-        throw "fastGLTF loading error: Model has no position accessor";
+        throw std::runtime_error("fastGLTF loading error: Model has no position accessor");
 
       auto& positionAccessor = asset.accessors[positionIt->accessorIndex];
       vertices.resize(positionAccessor.count);

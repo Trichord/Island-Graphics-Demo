@@ -10,7 +10,7 @@
 class Grass : public Renderable {
  public:
   Grass() = delete;
-  Grass(const std::filesystem::path &texturePath);
+  explicit Grass(const std::filesystem::path &texturePath);
   Grass(const Grass &) = delete;
   Grass &operator=(const Grass &) = delete;
   Grass(Grass &&other) noexcept;

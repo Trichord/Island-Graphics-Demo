@@ -6,10 +6,10 @@
 class PointLight : public Light {
  public:
   PointLight() = default;
-  PointLight(const glm::vec3& newPosition);
+  explicit PointLight(const glm::vec3& newPosition);
   const glm::vec3& getColor() const override;
   const glm::vec3& getPosition() const;
-  void setPosition(glm::vec3& newPosition);
+  void setPosition(const glm::vec3& newPosition);
   bool positionHasUpdated();
 
  private:

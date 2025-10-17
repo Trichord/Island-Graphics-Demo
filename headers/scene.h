@@ -8,6 +8,7 @@
 #include <optional>
 #include <utility>
 #include <memory>
+#include <stdexcept>
 
 #include "model.h"
 #include "space_model.h"
@@ -20,13 +21,16 @@
 #include "directional_light.h"
 #include "grass.h"
 
+#define MAX_MODELS 100
+#define MAX_SPACE_MODELS 10
+#define MAX_SKYBOXES 5
+#define MAX_GRASSES 10
+#define MAX_DIRECTIONAL_LIGHTS 10
+#define MAX_POINT_LIGHTS 10
+
 //-----------------------------------------------------
-// Any container storing Model or Light instances must guarantee that their
+// Any storage container (Models, lights, etc.) must guarantee that their
 // addresses remain valid for the lifetime of the scene
-//
-// If using std::vector, you MUST call reserve()
-// before inserting and NEVER modify the vector afterward — any reallocation
-// will invalidate references and cause undefined behavior.
 //
 // Scene is for fast access of static objects - dynamic model loading
 // requires safer ownership model.
@@ -34,7 +38,7 @@
 
 class Scene {
  public:
-  Scene() = default;
+  Scene();
   Scene(const Scene&) = delete;
   Scene& operator=(const Scene&) = delete;
   Scene(Scene&& other) noexcept;
@@ -50,7 +54,7 @@ class Scene {
 
  protected:
   std::map<ShaderType, std::vector<RenderableObject>> sceneObjects;
-  std::map<std::string, std::reference_wrapper<Transform>> objectTransforms;
+  std::map<std::string, std::reference_wrapper<Transform>> namedTransforms;
   std::map<std::string, std::reference_wrapper<Light>> namedLights;
 
   std::vector<Model> models;
@@ -76,17 +80,26 @@ class Scene {
         RenderableObject{std::ref(modelRef), std::forward<U>(transform)});
 
     if (name.has_value())
-      objectTransforms.emplace(name.value(),
-                               std::ref(sceneObjects[type].back().transform));
+      namedTransforms.emplace(name.value(),
+                              std::ref(sceneObjects[type].back().transform));
   }
 
-  //Give a light a name, if you'd like to access it later
+  /**
+   * Adds a light to the scene.  Optional: name the light to reference it
+   * in application's onUpdate()
+   * @param lightVec The vector to add the light to.
+   * @param light The light object to insert.
+   * @param name Optional name for later lookup.
+   */
   template <typename LightType>
   void addLightToScene(std::vector<LightType>& lightVec, LightType&& light,
                        const std::optional<std::string> name = std::nullopt) {
+    if (lightVec.size() == lightVec.capacity())
+      throw std::runtime_error("Max number of lights reached");
+
     lightVec.emplace_back(std::forward<LightType>(light));
 
-    if (name.has_value()) 
-        namedLights.emplace(name.value(), std::ref(lightVec.back()));
+    if (name.has_value())
+      namedLights.emplace(name.value(), std::ref(lightVec.back()));
   }
 };

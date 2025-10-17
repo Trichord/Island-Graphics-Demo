@@ -9,7 +9,7 @@
 #include "../headers/shader.h"
 #include "glad/glad.h"
 
-SpaceModel::SpaceModel(std::filesystem::path path) {
+SpaceModel::SpaceModel(const std::filesystem::path& path) {
   texturePaths = {"./Textures/nebula/right.png", "./Textures/nebula/left.png",
                   "./Textures/nebula/top.png",   "./Textures/nebula/bottom.png",
                   "./Textures/nebula/front.png", "./Textures/nebula/back.png"};
@@ -31,7 +31,7 @@ void SpaceModel::render(Shader& shader) {
   glActiveTexture(GL_TEXTURE0);
 }
 
-void SpaceModel::loadModel(std::filesystem::path& path) {
+void SpaceModel::loadModel(const std::filesystem::path& path) {
   fastgltf::Asset asset = fastgltf_loader::loadAsset(path);
   meshes.resize(asset.meshes.size());
   meshes = fastgltf_loader::loadMeshes(asset);
