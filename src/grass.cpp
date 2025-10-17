@@ -9,6 +9,10 @@
 #include <random>
 #include <iostream>
 
+#define tuftDensity 3
+#define rotationVariation 30.0f
+#define scaleVariation 0.3f
+
 Grass::Grass(const std::filesystem::path &texturePath) {
   loadTexture(texturePath);
   generateTransforms();
@@ -67,7 +71,7 @@ void Grass::loadTexture(const std::filesystem::path &texturePath) {
   std::vector<ImageData> imageData = imageLoader.getImageData();
 
   if (imageData.size())
-    textureID = texture_utilities::generateQuadTexID(imageData[0], true, false);
+    textureID = texture_utilities::generateTextureID(imageData[0], true);
 }
 
 void Grass::setupBuffers() {
@@ -122,14 +126,10 @@ void Grass::setupBuffers() {
 }
 
 void Grass::generateTransforms() {
-  const unsigned int tuftDensity = 3;
-  const float rotVariation = 30.0f;
-  const float scaleVariation = 0.1f;
-
   std::random_device rd;
   std::mt19937 mt(rd());
-  std::uniform_real_distribution<float> rndRotation(-rotVariation,
-                                                    rotVariation);
+  std::uniform_real_distribution<float> rndRotation(-rotationVariation,
+                                                    rotationVariation);
   std::uniform_real_distribution<float> rndScale(1.0f - scaleVariation,
                                                  1.0f + scaleVariation);
 
