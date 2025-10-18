@@ -10,9 +10,10 @@
 #include <iostream>
 #include <fstream>
 
-#define tuftDensity 3
+#define tuftDensity 2
 #define rotationVariation 10.0f
-#define scaleVariation 0.2f
+#define scaleVariation 0.1f
+#define baseScale 0.5f
 
 Grass::Grass(const std::filesystem::path &texturePath) {
   loadTexture(texturePath);
@@ -145,7 +146,9 @@ void Grass::generateTransforms() {
       transform = glm::translate(transform, position);
       transform = glm::rotate(transform, glm::radians(baseAngle + rndRotation(mt)),
                               glm::vec3(0.0f, 1.0f, 0.0f));
-      transform = glm::scale(transform, glm::vec3(1.0f, rndScale(mt), 1.0f));
+      transform = glm::scale(
+          transform,
+          glm::vec3(baseScale, baseScale + scaleVariation, baseScale));
       transforms.emplace_back(std::move(transform));
     }
   }
