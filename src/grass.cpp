@@ -8,6 +8,7 @@
 #include <vector>
 #include <random>
 #include <iostream>
+#include <fstream>
 
 #define tuftDensity 3
 #define rotationVariation 10.0f
@@ -15,6 +16,7 @@
 
 Grass::Grass(const std::filesystem::path &texturePath) {
   loadTexture(texturePath);
+  loadGrassPositions();
   generateTransforms();
   setupBuffers();
 }
@@ -133,9 +135,9 @@ void Grass::generateTransforms() {
   std::uniform_real_distribution<float> rndScale(1.0f - scaleVariation,
                                                  1.0f + scaleVariation);
 
-  transforms.reserve(GRASS_POSITIONS.size() * tuftDensity);
+  transforms.reserve(grassPositions.size() * tuftDensity);
 
-  for (const auto &position : GRASS_POSITIONS) {
+  for (const auto &position : grassPositions) {
     for (unsigned int i = 0; i < tuftDensity; ++i) {
       float baseAngle = (180.0f / tuftDensity) * i;
 
@@ -154,4 +156,14 @@ void Grass::deleteBuffers() {
   glDeleteBuffers(1, &VBO);
   glDeleteBuffers(1, &EBO);
   glDeleteVertexArrays(1, &VAO);
+}
+
+void Grass::loadGrassPositions() {
+  grassPositions.reserve(7500);
+    
+  std::fstream grassFile("./res/grass_positions.txt");
+  float x = 0.0f, y = 0.0f, z = 0.0f;
+
+  while (grassFile >> x >> y >> z)
+    grassPositions.emplace_back(x, y, z);
 }
