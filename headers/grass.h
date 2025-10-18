@@ -23,6 +23,7 @@ class Grass : public Renderable {
   GLuint textureID = 0;
   GLuint VAO = 0, VBO = 0, EBO = 0, transformsVBO = 0;
   std::vector<glm::mat4> transforms;
+  std::vector<glm::vec3> grassPositions;
 
   // Simple centered quad: vertex positions and UV's
   inline static const float vertices[] = {
@@ -37,4 +38,5 @@ class Grass : public Renderable {
   void setupBuffers();
   void generateTransforms();
   void deleteBuffers();
+  void loadGrassPositions();
 };

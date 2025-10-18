@@ -25,8 +25,7 @@
 #define MAX_SPACE_MODELS 10
 #define MAX_SKYBOXES 5
 #define MAX_GRASSES 10
-#define MAX_DIRECTIONAL_LIGHTS 10
-#define MAX_POINT_LIGHTS 10
+#define MAX_PER_LIGHT_TYPE 5
 
 //-----------------------------------------------------
 // Any storage container (Models, lights, etc.) must guarantee that their
@@ -94,7 +93,7 @@ class Scene {
   template <typename LightType>
   void addLightToScene(std::vector<LightType>& lightVec, LightType&& light,
                        const std::optional<std::string> name = std::nullopt) {
-    if (lightVec.size() == lightVec.capacity())
+    if (lightVec.size() >= MAX_PER_LIGHT_TYPE)
       throw std::runtime_error("Max number of lights reached");
 
     lightVec.emplace_back(std::forward<LightType>(light));
