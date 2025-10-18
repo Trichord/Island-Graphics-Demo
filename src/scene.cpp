@@ -18,8 +18,8 @@ Scene::Scene() {
   spaceModels.reserve(MAX_SPACE_MODELS);
   skyboxes.reserve(MAX_SKYBOXES);
   grasses.reserve(MAX_GRASSES);
-  directionalLights.reserve(MAX_DIRECTIONAL_LIGHTS);
-  pointLights.reserve(MAX_POINT_LIGHTS);
+  directionalLights.reserve(MAX_PER_LIGHT_TYPE);
+  pointLights.reserve(MAX_PER_LIGHT_TYPE);
 }
 
 Scene::Scene(Scene&& other) noexcept {
@@ -43,27 +43,27 @@ std::map<ShaderType, std::vector<RenderableObject>>& Scene::getSceneObjects() {
 }
 
 Model& Scene::loadModel(const std::string& filepath) {
-  if (models.size() == MAX_MODELS) throw std::runtime_error("Max number of models reached");
+  if (models.size() >= MAX_MODELS) throw std::runtime_error("Max number of models reached");
 
   return models.emplace_back(filepath);
 }
 
 SpaceModel& Scene::loadSpaceModel(const std::string& filepath) {
-  if (spaceModels.size() == MAX_SPACE_MODELS)
+  if (spaceModels.size() >= MAX_SPACE_MODELS)
     throw std::runtime_error("Max number of space models reached");
 
   return spaceModels.emplace_back(filepath);
 }
 
 Skybox& Scene::loadSkybox(const std::vector<std::string>& filepaths) {
-  if (skyboxes.size() == MAX_SKYBOXES)
+  if (skyboxes.size() >= MAX_SKYBOXES)
     throw std::runtime_error("Max number of skyboxes reached");
 
   return skyboxes.emplace_back(filepaths);
 }
 
 Grass& Scene::loadGrass(const std::string& filepath) {
-  if (grasses.size() == MAX_GRASSES)
+  if (grasses.size() >= MAX_GRASSES)
     throw std::runtime_error("Max number of grasses reached");
 
   return grasses.emplace_back(filepath);
