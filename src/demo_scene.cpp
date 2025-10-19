@@ -52,7 +52,7 @@ void DemoScene::loadAllModels() {
   addObjectToScene(skybox, ShaderType::SKYBOX, Transform());
 
   //Grass
-  auto& grass = loadGrass("./textures/grass.png");
+  auto& grass = loadGrass("./res/grass1.txt", "./textures/grass.png", 8109);
   addObjectToScene(grass, ShaderType::GRASS, Transform());
 }
 

@@ -19,7 +19,7 @@
 #include "../headers/texture_utilities.h"
 #include "../headers/thread_pool.h"
 
-Model::Model(const std::string& path) { loadModel(path); }
+Model::Model(const std::filesystem::path& path) { loadModel(path); }
 
 Model::Model(Model&& other) noexcept
     : asset(std::move(other.asset)),
