@@ -22,8 +22,9 @@ class Grass : public Renderable {
 
  private:
   GLuint textureID = 0;
-  GLuint VAO = 0, VBO = 0, EBO = 0, transformsVBO = 0;
+  GLuint VAO = 0, VBO = 0, EBO = 0, transformsVBO = 0, normalsVBO = 0;
   std::vector<glm::mat4> transforms;
+  std::vector<glm::mat3> normalMatrices;
   std::vector<glm::vec3> grassPositions;
 
   // Simple centered quad

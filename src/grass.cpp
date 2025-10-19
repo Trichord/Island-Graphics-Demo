@@ -30,11 +30,15 @@ Grass::Grass(Grass &&other) noexcept {
   VBO = other.VBO;
   EBO = other.EBO;
   transformsVBO = other.transformsVBO;
+  normalsVBO = other.normalsVBO;
+  transforms = std::move(other.transforms);
+  normalMatrices = std::move(other.normalMatrices);
 
   other.VAO = 0;
   other.VBO = 0;
   other.EBO = 0;
   other.transformsVBO = 0;
+  other.normalsVBO = 0;
 }
 
 Grass &Grass::operator=(Grass &&other) noexcept {
@@ -44,12 +48,16 @@ Grass &Grass::operator=(Grass &&other) noexcept {
     VAO = other.VAO;
     VBO = other.VBO;
     EBO = other.EBO;
+    normalsVBO = other.normalsVBO;
     transformsVBO = other.transformsVBO;
+    transforms = std::move(other.transforms);
+    normalMatrices = std::move(other.normalMatrices);
 
     other.VAO = 0;
     other.VBO = 0;
     other.EBO = 0;
     other.transformsVBO = 0;
+    other.normalsVBO = 0;
   }
 
   return *this;
@@ -98,14 +106,9 @@ void Grass::setupBuffers() {
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
 
-  // normals
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                        (void *)(3 * sizeof(float)));
-
   // textures
-  glEnableVertexAttribArray(2);
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
                         (void *)(6 * sizeof(float)));
 
   // Transform VBO
@@ -114,23 +117,44 @@ void Grass::setupBuffers() {
   glBufferData(GL_ARRAY_BUFFER, transforms.size() * sizeof(glm::mat4),
                transforms.data(), GL_STATIC_DRAW);
 
-  // glm::mat4 attribute
+  // glm::mat4 instance model matrix
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)0);
   glEnableVertexAttribArray(3);
-  glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)0);
+  glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                        (void *)(sizeof(glm::vec4)));
   glEnableVertexAttribArray(4);
   glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                        (void *)(sizeof(glm::vec4)));
+                        (void *)(2 * sizeof(glm::vec4)));
   glEnableVertexAttribArray(5);
   glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                        (void *)(2 * sizeof(glm::vec4)));
-  glEnableVertexAttribArray(6);
-  glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
                         (void *)(3 * sizeof(glm::vec4)));
 
+  glVertexAttribDivisor(2, 1);
   glVertexAttribDivisor(3, 1);
   glVertexAttribDivisor(4, 1);
   glVertexAttribDivisor(5, 1);
+
+  // Normals VBO
+  glGenBuffers(1, &normalsVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, normalsVBO);
+  glBufferData(GL_ARRAY_BUFFER, normalMatrices.size() * sizeof(glm::mat3),
+               normalMatrices.data(), GL_STATIC_DRAW);
+
+  // glm::mat3 instance normal matrix
+
+  glEnableVertexAttribArray(6);
+  glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, sizeof(glm::mat3), (void *)0);
+  glEnableVertexAttribArray(7);
+  glVertexAttribPointer(7, 3, GL_FLOAT, GL_FALSE, sizeof(glm::mat3),
+                        (void *)(sizeof(glm::vec3)));
+  glEnableVertexAttribArray(8);
+  glVertexAttribPointer(8, 3, GL_FLOAT, GL_FALSE, sizeof(glm::mat3),
+                        (void *)(2 * sizeof(glm::vec3)));
+
   glVertexAttribDivisor(6, 1);
+  glVertexAttribDivisor(7, 1);
+  glVertexAttribDivisor(8, 1);
 
   // reset VAO
   glBindVertexArray(0);
@@ -148,6 +172,7 @@ void Grass::generateTransforms() {
                                                      BASE_SCALE_MAX);
 
   transforms.reserve(grassPositions.size() * TUFT_DENSITY);
+  normalMatrices.reserve(grassPositions.size() * TUFT_DENSITY);
 
   for (const auto &position : grassPositions) {
     float instanceBaseRotation = baseRotation(mt);
@@ -166,13 +191,19 @@ void Grass::generateTransforms() {
           glm::scale(transform, glm::vec3(instanceScale,
                                           instanceScale + rndScaleJitter(mt),
                                           instanceScale));
+
+      glm::mat3 normalMatrix =
+          glm::transpose(glm::inverse(glm::mat3(transform)));
+
       transforms.emplace_back(std::move(transform));
+      normalMatrices.emplace_back(std::move(normalMatrix));
     }
   }
 }
 
 void Grass::deleteBuffers() {
   glDeleteBuffers(1, &transformsVBO);
+  glDeleteBuffers(1, &normalsVBO);
   glDeleteBuffers(1, &VBO);
   glDeleteBuffers(1, &EBO);
   glDeleteVertexArrays(1, &VAO);
