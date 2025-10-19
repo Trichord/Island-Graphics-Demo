@@ -14,9 +14,29 @@ layout (std140) uniform matrices {
 out vec2 texCoords;
 out vec3 normal;
 
+uniform float time;
+uniform float windStrength;
+uniform vec3 windDirection;
+
+float random(vec2 st)
+{
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
+vec3 calcWindTranslation(vec3 position, float timeStamp, vec3 windDir, float windStr){
+	float time1 = sin(timeStamp + random(gl_InstanceID * position.xz));
+	float time2 = cos(timeStamp + random(gl_InstanceID * windStr * position.zy));
+	return vec3(windDir.x * time1 * windStr, windDir.y * time2 * windStr, windDir.z * cos(time1) * windStr);
+}
+
 void main() {
 	texCoords = aTexCoords; 
+
+	vec3 windTranslation = calcWindTranslation(aTransform[3].xyz, time, windDirection, windStrength);
+	float mask = step(texCoords.y, 0.1);;
+	windTranslation *= mask;
+
 	normal = aNormalMat * vec3(0.0, 1.0, 0.0);
 
-    gl_Position = projectionViewMatrix * aTransform * vec4(aPos, 1.0);
+    gl_Position = projectionViewMatrix * aTransform * vec4(aPos + windTranslation, 1.0);
 }
