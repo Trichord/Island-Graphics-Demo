@@ -9,8 +9,7 @@
 
 class Grass : public Renderable {
  public:
-  Grass() = delete;
-  explicit Grass(const std::filesystem::path &texturePath);
+  Grass(const std::filesystem::path &positionsPath, const std::filesystem::path &texturePath, unsigned int numPositions = 0);
   Grass(const Grass &) = delete;
   Grass &operator=(const Grass &) = delete;
   Grass(Grass &&other) noexcept;
@@ -38,5 +37,5 @@ class Grass : public Renderable {
   void setupBuffers();
   void generateTransforms();
   void deleteBuffers();
-  void loadGrassPositions();
+  void loadGrassPositions(const std::filesystem::path &positionsPath, unsigned int numPositions);
 };
