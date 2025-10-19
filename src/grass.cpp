@@ -13,8 +13,8 @@
 #define TUFT_DENSITY 3
 #define ROTATION_VARIATION 10.0f
 #define SCALE_VARIATION 0.05f
-#define BASE_SCALE_MIN 0.4f
-#define BASE_SCALE_MAX 0.7f
+#define BASE_SCALE_MIN 0.3f
+#define BASE_SCALE_MAX 0.5f
 
 Grass::Grass(const std::filesystem::path &positionsPath,
              const std::filesystem::path &texturePath,
@@ -96,12 +96,17 @@ void Grass::setupBuffers() {
 
   // vertices
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+
+  // normals
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                        (void *)(3 * sizeof(float)));
 
   // textures
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                        (void *)(3 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                        (void *)(6 * sizeof(float)));
 
   // Transform VBO
   glGenBuffers(1, &transformsVBO);
@@ -110,22 +115,22 @@ void Grass::setupBuffers() {
                transforms.data(), GL_STATIC_DRAW);
 
   // glm::mat4 attribute
-  glEnableVertexAttribArray(2);
-  glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)0);
   glEnableVertexAttribArray(3);
-  glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                        (void *)(sizeof(glm::vec4)));
+  glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)0);
   glEnableVertexAttribArray(4);
   glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                        (void *)(2 * sizeof(glm::vec4)));
+                        (void *)(sizeof(glm::vec4)));
   glEnableVertexAttribArray(5);
   glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                        (void *)(2 * sizeof(glm::vec4)));
+  glEnableVertexAttribArray(6);
+  glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
                         (void *)(3 * sizeof(glm::vec4)));
 
-  glVertexAttribDivisor(2, 1);
   glVertexAttribDivisor(3, 1);
   glVertexAttribDivisor(4, 1);
   glVertexAttribDivisor(5, 1);
+  glVertexAttribDivisor(6, 1);
 
   // reset VAO
   glBindVertexArray(0);

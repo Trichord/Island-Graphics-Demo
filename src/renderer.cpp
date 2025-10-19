@@ -81,6 +81,9 @@ void Renderer::renderScene(Scene& scene) {
     else if (shaderType == ShaderType::POINT_PBR && posUpdated)
       shader.setVec3("lightPosition", pointPos);
 
+    else if (shaderType == ShaderType::GRASS && dirUpdated)
+      shader.setVec3("lightDir", dirLights[0].getDirection());
+
     // For each object of that shader type
     for (auto& object : objectList) {
       glm::mat4 modelMatrix = object.transform.getModelMatrix();
