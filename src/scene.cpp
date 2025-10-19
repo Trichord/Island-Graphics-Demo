@@ -42,13 +42,13 @@ std::map<ShaderType, std::vector<RenderableObject>>& Scene::getSceneObjects() {
   return sceneObjects;
 }
 
-Model& Scene::loadModel(const std::string& filepath) {
+Model& Scene::loadModel(const std::filesystem::path& filepath) {
   if (models.size() >= MAX_MODELS) throw std::runtime_error("Max number of models reached");
 
   return models.emplace_back(filepath);
 }
 
-SpaceModel& Scene::loadSpaceModel(const std::string& filepath) {
+SpaceModel& Scene::loadSpaceModel(const std::filesystem::path& filepath) {
   if (spaceModels.size() >= MAX_SPACE_MODELS)
     throw std::runtime_error("Max number of space models reached");
 
@@ -62,11 +62,12 @@ Skybox& Scene::loadSkybox(const std::vector<std::string>& filepaths) {
   return skyboxes.emplace_back(filepaths);
 }
 
-Grass& Scene::loadGrass(const std::string& filepath) {
+Grass& Scene::loadGrass(const std::filesystem::path& positionsPath,
+                        const std::filesystem::path& texturePath, unsigned int numPositions) {
   if (grasses.size() >= MAX_GRASSES)
     throw std::runtime_error("Max number of grasses reached");
 
-  return grasses.emplace_back(filepath);
+  return grasses.emplace_back(positionsPath, texturePath, numPositions);
 }
 
 Transform& Scene::getObjectTransform(const std::string& key) {

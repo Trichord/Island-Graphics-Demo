@@ -22,7 +22,7 @@ fastgltf's images is preserved
 class Model : public Renderable {
  public:
   Model() = default;
-  explicit Model(const std::string& path);
+  explicit Model(const std::filesystem::path& path);
   Model(const Model&) = delete;
   Model& operator=(const Model&) = delete;
   Model(Model&& other) noexcept;

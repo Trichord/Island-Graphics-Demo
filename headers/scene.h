@@ -9,6 +9,7 @@
 #include <utility>
 #include <memory>
 #include <stdexcept>
+#include <filesystem>
 
 #include "model.h"
 #include "space_model.h"
@@ -65,10 +66,11 @@ class Scene {
 
   virtual void loadAllModels() = 0;
   virtual void addLights() = 0;
-  Model& loadModel(const std::string& filepath);
-  SpaceModel& loadSpaceModel(const std::string& filepath);
+  Model& loadModel(const std::filesystem::path& filepath);
+  SpaceModel& loadSpaceModel(const std::filesystem::path& filepath);
   Skybox& loadSkybox(const std::vector<std::string>& filepaths);
-  Grass& loadGrass(const std::string& filepath);
+  Grass& loadGrass(const std::filesystem::path& positionsPath,
+                   const std::filesystem::path& texturePath, unsigned int numPositions = 0);
 
   // Give a model a name if you want to reference its transform in Application's
   // onUpdate() loop
