@@ -9,7 +9,9 @@
 
 class Grass : public Renderable {
  public:
-  Grass(const std::filesystem::path &positionsPath, const std::filesystem::path &texturePath, unsigned int numPositions = 0);
+  Grass(const std::filesystem::path &positionsPath,
+        const std::filesystem::path &texturePath,
+        unsigned int numPositions = 0);
   Grass(const Grass &) = delete;
   Grass &operator=(const Grass &) = delete;
   Grass(Grass &&other) noexcept;
@@ -24,12 +26,13 @@ class Grass : public Renderable {
   std::vector<glm::mat4> transforms;
   std::vector<glm::vec3> grassPositions;
 
-  // Simple centered quad: vertex positions and UV's
+  // Simple centered quad
   inline static const float vertices[] = {
-      -0.5f, 1.0f, 0.0f, 0.0f, 0.0f,  // Top Left
-      0.5f,  1.0f, 0.0f, 1.0f, 0.0f,  // Top Right
-      -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,  // Bottom Left
-      0.5f,  0.0f, 0.0f, 1.0f, 1.0f}; //Bottom Right
+      // vertex           //normal          //uv
+      -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,   // Top Left
+      0.5f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,   // Top Right
+      -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,   // Bottom Left
+      0.5f,  0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f};  // Bottom Right
 
   inline static const unsigned int indices[] = {0, 2, 3, 0, 3, 1};
 
@@ -37,5 +40,6 @@ class Grass : public Renderable {
   void setupBuffers();
   void generateTransforms();
   void deleteBuffers();
-  void loadGrassPositions(const std::filesystem::path &positionsPath, unsigned int numPositions);
+  void loadGrassPositions(const std::filesystem::path &positionsPath,
+                          unsigned int numPositions);
 };
