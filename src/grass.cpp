@@ -10,10 +10,10 @@
 #include <iostream>
 #include <fstream>
 
-#define tuftDensity 2
+#define tuftDensity 3
 #define rotationVariation 10.0f
 #define scaleVariation 0.1f
-#define baseScale 0.5f
+#define baseScale 0.6f
 
 Grass::Grass(const std::filesystem::path &texturePath) {
   loadTexture(texturePath);
