@@ -29,7 +29,7 @@ class Model : public Renderable {
   Model& operator=(Model&& other) noexcept;
   ~Model();
 
-  void render(Shader& shader) override;
+  void render() override;
 
  private:
   struct Material {

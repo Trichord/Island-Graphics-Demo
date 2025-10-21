@@ -22,7 +22,7 @@ class CubeMappedModel : public Renderable {
   CubeMappedModel &operator=(CubeMappedModel &&other) noexcept;
   virtual ~CubeMappedModel();
 
-  void render(Shader &shader) override = 0;
+  void render() override = 0;
 
  protected:
   GLuint cubemapTextureID = 0;
