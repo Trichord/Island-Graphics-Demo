@@ -3,7 +3,6 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec2 aTexCoords;
 layout (location = 2) in mat4 aTransform;
-layout (location = 6) in mat3 aNormalMat;
 
 layout (std140) uniform matrices {
 	layout (offset = 0) mat4 viewMatrix;
@@ -12,7 +11,6 @@ layout (std140) uniform matrices {
 };
 
 out vec2 texCoords;
-out vec3 normal;
 
 uniform float time;
 uniform float windStrength;
@@ -35,8 +33,6 @@ void main() {
 	vec3 windTranslation = calcWindTranslation(aTransform[3].xyz, time, windDirection, windStrength);
 	float mask = smoothstep(0.0, 0.3, 1.0 - texCoords.y);
 	windTranslation *= mask;
-
-	normal = aNormalMat * vec3(0.0, 1.0, 0.0);
 
     gl_Position = projectionViewMatrix * aTransform * vec4(aPos + windTranslation, 1.0);
 }
