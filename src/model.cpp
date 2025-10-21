@@ -47,7 +47,7 @@ Model& Model::operator=(Model&& other) noexcept {
 
 Model::~Model() { deleteTextureIDs(); }
 
-void Model::render(Shader& shader) {
+void Model::render() {
   for (const Primitive::Mesh& mesh : meshes) {
     for (const Primitive& primitive : mesh.primitives) {
       if (!assetImages.size()) {

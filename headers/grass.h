@@ -18,7 +18,7 @@ class Grass : public Renderable {
   Grass &operator=(Grass &&other) noexcept;
   ~Grass();
 
-  void render(Shader &shader) override;
+  void render() override;
 
  private:
   GLuint textureID = 0;

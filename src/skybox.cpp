@@ -41,8 +41,7 @@ Skybox& Skybox::operator=(Skybox&& other) noexcept {
 
 Skybox::~Skybox() { deleteBuffers(); }
 
-void Skybox::render(Shader& shader) {
-  shader.use();
+void Skybox::render() {
   glBindVertexArray(modelVAO);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTextureID);

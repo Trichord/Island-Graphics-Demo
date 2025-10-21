@@ -75,76 +75,76 @@ void Shader::use() { glUseProgram(ID); }
 void Shader::setBool(const std::string& name, bool value) {
   GLint location = getCachedLocation(name);
 
-  if (location != -1) glUniform1i(location, value);
+  if (location != -1) glProgramUniform1i(ID, location, value);
 }
 
 void Shader::setIntU(const std::string& name, unsigned int value) {
   GLint location = getCachedLocation(name);
 
-  if (location != -1) glUniform1ui(location, value);
+  if (location != -1) glProgramUniform1ui(ID, location, value);
 }
 
 void Shader::setInt(const std::string& name, int value) {
   GLint location = getCachedLocation(name);
 
-  if (location != -1) glUniform1i(location, value);
+  if (location != -1) glProgramUniform1i(ID, location, value);
 }
 
 void Shader::setFloat(const std::string& name, float value) {
   GLint location = getCachedLocation(name);
 
-  if (location != -1) glUniform1f(location, value);
+  if (location != -1) glProgramUniform1f(ID, location, value);
 }
 
 void Shader::setMat3(const std::string& name, const glm::mat3& value) {
   GLint location = getCachedLocation(name);
 
   if (location != -1)
-    glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(value));
+    glProgramUniformMatrix3fv(ID, location, 1, GL_FALSE, glm::value_ptr(value));
 }
 
 void Shader::setMat4(const std::string& name, const glm::mat4& value) {
   GLint location = getCachedLocation(name);
 
   if (location != -1)
-    glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
+    glProgramUniformMatrix4fv(ID, location, 1, GL_FALSE, glm::value_ptr(value));
 }
 
 void Shader::setVec2(const std::string& name, glm::vec2 value) {
   GLint location = getCachedLocation(name);
 
-  if (location != -1) glUniform2fv(location, 1, glm::value_ptr(value));
+  if (location != -1) glProgramUniform2fv(ID, location, 1, glm::value_ptr(value));
 }
 
 void Shader::setVec2(const std::string& name, float x, float y) {
   GLint location = getCachedLocation(name);
 
-  if (location != -1) glUniform2f(location, x, y);
+  if (location != -1) glProgramUniform2f(ID, location, x, y);
 }
 
 void Shader::setVec3(const std::string& name, glm::vec3 value) {
   GLint location = getCachedLocation(name);
 
-  if (location != -1) glUniform3fv(location, 1, glm::value_ptr(value));
+  if (location != -1) glProgramUniform3fv(ID, location, 1, glm::value_ptr(value));
 }
 
 void Shader::setVec3(const std::string& name, float x, float y, float z) {
   GLint location = getCachedLocation(name);
 
-  if (location != -1) glUniform3f(location, x, y, z);
+  if (location != -1) glProgramUniform3f(ID, location, x, y, z);
 }
 
 void Shader::setVec4(const std::string& name, glm::vec4 value) {
   GLint location = getCachedLocation(name);
 
-  if (location != -1) glUniform4fv(location, 1, glm::value_ptr(value));
+  if (location != -1) glProgramUniform4fv(ID, location, 1, glm::value_ptr(value));
 }
 
 void Shader::setVec4(const std::string& name, float x, float y, float z,
                      float w) {
   GLint location = getCachedLocation(name);
 
-  if (location != -1) glUniform4f(location, x, y, z, w);
+  if (location != -1) glProgramUniform4f(ID, location, x, y, z, w);
 }
 
 void Shader::setUniformBlock(const std::string& name, unsigned int index) {

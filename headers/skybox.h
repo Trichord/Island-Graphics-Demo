@@ -17,7 +17,7 @@ class Skybox : public CubeMappedModel {
   Skybox& operator=(Skybox&& other) noexcept;
   ~Skybox();
 
-  void render(Shader& shader) override;
+  void render() override;
 
  protected:
   GLuint modelVAO = 0, modelVBO = 0, modelEBO = 0;

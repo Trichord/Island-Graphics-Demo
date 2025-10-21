@@ -42,4 +42,5 @@ class Renderer {
   void setupReflectiveShader(Shader& shader);
   void setupLightSourceShader(Shader& shader);
   void setupSkyboxShader(Shader& shader);
+  void updateShaderUniforms(Scene& scene);
 };
