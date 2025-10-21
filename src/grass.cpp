@@ -10,18 +10,15 @@
 #include <iostream>
 #include <fstream>
 
-#define TUFT_DENSITY 3
 #define ROTATION_VARIATION 10.0f
-#define SCALE_VARIATION 0.05f
-#define BASE_SCALE_MIN 0.3f
-#define BASE_SCALE_MAX 0.5f
 
 Grass::Grass(const std::filesystem::path &positionsPath,
-             const std::filesystem::path &texturePath,
+             const std::filesystem::path &texturePath, float minSize,
+             float maxSize, unsigned int tuftDensity,
              unsigned int numPositions) {
   loadTexture(texturePath);
   loadGrassPositions(positionsPath, numPositions);
-  generateTransforms();
+  generateTransforms(minSize, maxSize, tuftDensity);
   setupBuffers();
 }
 
@@ -30,15 +27,12 @@ Grass::Grass(Grass &&other) noexcept {
   VBO = other.VBO;
   EBO = other.EBO;
   transformsVBO = other.transformsVBO;
-  normalsVBO = other.normalsVBO;
   transforms = std::move(other.transforms);
-  normalMatrices = std::move(other.normalMatrices);
 
   other.VAO = 0;
   other.VBO = 0;
   other.EBO = 0;
   other.transformsVBO = 0;
-  other.normalsVBO = 0;
 }
 
 Grass &Grass::operator=(Grass &&other) noexcept {
@@ -48,16 +42,13 @@ Grass &Grass::operator=(Grass &&other) noexcept {
     VAO = other.VAO;
     VBO = other.VBO;
     EBO = other.EBO;
-    normalsVBO = other.normalsVBO;
     transformsVBO = other.transformsVBO;
     transforms = std::move(other.transforms);
-    normalMatrices = std::move(other.normalMatrices);
 
     other.VAO = 0;
     other.VBO = 0;
     other.EBO = 0;
     other.transformsVBO = 0;
-    other.normalsVBO = 0;
   }
 
   return *this;
@@ -135,50 +126,30 @@ void Grass::setupBuffers() {
   glVertexAttribDivisor(4, 1);
   glVertexAttribDivisor(5, 1);
 
-  // Normals VBO
-  glGenBuffers(1, &normalsVBO);
-  glBindBuffer(GL_ARRAY_BUFFER, normalsVBO);
-  glBufferData(GL_ARRAY_BUFFER, normalMatrices.size() * sizeof(glm::mat3),
-               normalMatrices.data(), GL_STATIC_DRAW);
-
-  // glm::mat3 instance normal matrix
-
-  glEnableVertexAttribArray(6);
-  glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, sizeof(glm::mat3), (void *)0);
-  glEnableVertexAttribArray(7);
-  glVertexAttribPointer(7, 3, GL_FLOAT, GL_FALSE, sizeof(glm::mat3),
-                        (void *)(sizeof(glm::vec3)));
-  glEnableVertexAttribArray(8);
-  glVertexAttribPointer(8, 3, GL_FLOAT, GL_FALSE, sizeof(glm::mat3),
-                        (void *)(2 * sizeof(glm::vec3)));
-
-  glVertexAttribDivisor(6, 1);
-  glVertexAttribDivisor(7, 1);
-  glVertexAttribDivisor(8, 1);
-
   // reset VAO
   glBindVertexArray(0);
 }
 
-void Grass::generateTransforms() {
+void Grass::generateTransforms(float minSize, float maxSize,
+                               unsigned int tuftDensity) {
   std::random_device rd;
   std::mt19937 mt(rd());
+  float scaleVariation = (maxSize - minSize) * 0.25f;
+
   std::uniform_real_distribution<float> baseRotation(0.0f, 180.0f);
   std::uniform_real_distribution<float> rndRotJitter(-ROTATION_VARIATION,
                                                      ROTATION_VARIATION);
-  std::uniform_real_distribution<float> rndScaleJitter(-SCALE_VARIATION,
-                                                       SCALE_VARIATION);
-  std::uniform_real_distribution<float> rndBaseScale(BASE_SCALE_MIN,
-                                                     BASE_SCALE_MAX);
+  std::uniform_real_distribution<float> rndScaleJitter(-scaleVariation,
+                                                       scaleVariation);
+  std::uniform_real_distribution<float> rndBaseScale(minSize, maxSize);
 
-  transforms.reserve(grassPositions.size() * TUFT_DENSITY);
-  normalMatrices.reserve(grassPositions.size() * TUFT_DENSITY);
+  transforms.reserve(grassPositions.size() * tuftDensity);
 
   for (const auto &position : grassPositions) {
     float instanceBaseRotation = baseRotation(mt);
     float instanceScale = rndBaseScale(mt);
-    for (unsigned int i = 0; i < TUFT_DENSITY; ++i) {
-      float quadAngle = (180.0f / TUFT_DENSITY) * i;
+    for (unsigned int i = 0; i < tuftDensity; ++i) {
+      float quadAngle = (180.0f / tuftDensity) * i;
 
       glm::mat4 transform = glm::mat4(1.0f);
       transform = glm::translate(transform, position);
@@ -192,18 +163,13 @@ void Grass::generateTransforms() {
                                           instanceScale + rndScaleJitter(mt),
                                           instanceScale));
 
-      glm::mat3 normalMatrix =
-          glm::transpose(glm::inverse(glm::mat3(transform)));
-
       transforms.emplace_back(std::move(transform));
-      normalMatrices.emplace_back(std::move(normalMatrix));
     }
   }
 }
 
 void Grass::deleteBuffers() {
   glDeleteBuffers(1, &transformsVBO);
-  glDeleteBuffers(1, &normalsVBO);
   glDeleteBuffers(1, &VBO);
   glDeleteBuffers(1, &EBO);
   glDeleteVertexArrays(1, &VAO);
@@ -212,9 +178,13 @@ void Grass::deleteBuffers() {
 void Grass::loadGrassPositions(const std::filesystem::path &positionsPath,
                                unsigned int numPositions) {
   grassPositions.reserve(numPositions);
-
-  std::fstream grassFile(positionsPath);
   float x = 0.0f, y = 0.0f, z = 0.0f;
 
-  while (grassFile >> x >> y >> z) grassPositions.emplace_back(x, y, z);
+  std::fstream grassFile(positionsPath);
+
+  if (grassFile.is_open())
+    while (grassFile >> x >> y >> z) grassPositions.emplace_back(x, y, z);
+
+  else
+    std::cerr << "Unable to open " << positionsPath << std::endl;
 }
