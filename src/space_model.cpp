@@ -18,9 +18,7 @@ SpaceModel::SpaceModel(const std::filesystem::path& path) {
   loadModel(path);
 }
 
-void SpaceModel::render(Shader& shader) {
-  shader.use();
-
+void SpaceModel::render() {
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTextureID);
 

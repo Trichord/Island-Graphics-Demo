@@ -10,7 +10,7 @@
 class SpaceModel : public CubeMappedModel {
  public:
   SpaceModel(const std::filesystem::path& path);
-  void render(Shader& shader) override;
+  void render() override;
 
  protected:
   std::vector<Primitive::Mesh> meshes;

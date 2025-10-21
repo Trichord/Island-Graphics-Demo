@@ -61,28 +61,11 @@ Renderer& Renderer::operator=(Renderer&& other) noexcept {
 }
 
 void Renderer::renderScene(Scene& scene) {
-  // Get light info (only setup for 1 light at the moment)
-  std::vector<DirectionalLight>& dirLights = scene.getDirectionalLights();
-  bool dirUpdated = dirLights[0].directionHasUpdated();
-
-  std::vector<PointLight>& pointLights = scene.getPointLights();
-  glm::vec3 pointPos = pointLights[0].getPosition();
-  bool posUpdated = pointLights[0].positionHasUpdated();
+  updateShaderUniforms(scene);
 
   // For each shader type in the scene
   for (auto& [shaderType, objectList] : scene.getSceneObjects()) {
     Shader& shader = shaders.at(shaderType);
-    shader.use();
-
-    // Set uniforms
-    if (shaderType == ShaderType::DIRECTIONAL_PBR && dirUpdated)
-      shader.setVec3("lightDir", dirLights[0].getDirection());
-
-    else if (shaderType == ShaderType::POINT_PBR && posUpdated)
-      shader.setVec3("lightPosition", pointPos);
-
-    else if (shaderType == ShaderType::GRASS && dirUpdated)
-      shader.setVec3("lightDir", dirLights[0].getDirection());
 
     // For each object of that shader type
     for (auto& object : objectList) {
@@ -121,14 +104,11 @@ void Renderer::renderScene(Scene& scene) {
         case ShaderType::LIGHT_SOURCE:
           shader.setMat4("modelMatrix", modelMatrix);
           break;
-
-        case ShaderType::GRASS:
-          shader.setFloat("time", (float)glfwGetTime());
-          break;
       }
 
       // Draw it
-      object.renderable.get().render(shader);
+      shader.use();
+      object.renderable.get().render();
     }
   }
 }
@@ -166,16 +146,15 @@ void Renderer::loadShaders() {
 }
 
 void Renderer::setupGrassShader(Shader& shader) {
-  shader.use();
   shader.setUniformBlock("matrices", 0);
   shader.setInt("grassTexture", 0);
   shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
-  shader.setFloat("windStrength", 0.2f);
-  shader.setVec3("windDirection", glm::normalize(glm::vec3(0.88f, -0.1f, 0.4344f)));
+  shader.setFloat("windStrength", 0.1f);
+  shader.setVec3("windDirection",
+                 glm::normalize(glm::vec3(0.88f, -0.1f, 0.4344f)));
 }
 
 void Renderer::setupPBRShader(Shader& shader) {
-  shader.use();
   shader.setUniformBlock("matrices", 0);
   shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
   shader.setInt("albedoMap", 0);
@@ -184,18 +163,43 @@ void Renderer::setupPBRShader(Shader& shader) {
 }
 
 void Renderer::setupReflectiveShader(Shader& shader) {
-  shader.use();
   shader.setUniformBlock("matrices", 0);
   shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
   shader.setInt("cubemap", 0);
 }
 
 void Renderer::setupLightSourceShader(Shader& shader) {
-  shader.use();
   shader.setUniformBlock("matrices", 0);
 }
 void Renderer::setupSkyboxShader(Shader& shader) {
-  shader.use();
   shader.setInt("skybox", 0);
   shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
+}
+
+void Renderer::updateShaderUniforms(Scene& scene) {
+  // Get light info (only setup for 1 light at the moment)
+  std::vector<DirectionalLight>& dirLights = scene.getDirectionalLights();
+  bool dirUpdated = dirLights[0].directionHasUpdated();
+
+  std::vector<PointLight>& pointLights = scene.getPointLights();
+  glm::vec3 pointPos = pointLights[0].getPosition();
+  bool posUpdated = pointLights[0].positionHasUpdated();
+
+  // Set uniforms
+  for (auto& [shaderType, shader] : shaders) {
+    switch (shaderType) {
+      case ShaderType::DIRECTIONAL_PBR:
+        if (dirUpdated) shader.setVec3("lightDir", dirLights[0].getDirection());
+        break;
+
+      case ShaderType::POINT_PBR:
+        if (posUpdated) shader.setVec3("lightPosition", pointPos);
+        break;
+
+      case ShaderType::GRASS:
+        shader.setFloat("time", (float)glfwGetTime() * 0.5f);
+        if (dirUpdated) shader.setVec3("lightDir", dirLights[0].getDirection());
+        break;
+    }
+  }
 }

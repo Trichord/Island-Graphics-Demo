@@ -56,7 +56,7 @@ Grass &Grass::operator=(Grass &&other) noexcept {
 
 Grass::~Grass() { deleteBuffers(); }
 
-void Grass::render(Shader &shader) {
+void Grass::render() {
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, textureID);
 
