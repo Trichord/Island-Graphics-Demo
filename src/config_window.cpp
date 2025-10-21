@@ -54,6 +54,7 @@ bool ConfigWindow::createWindow() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+  glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
 
   // Create window with graphics context
   float main_scale =
@@ -276,7 +277,7 @@ void ConfigWindow::loadConfigWindowImage() {
 
   if (imageData.size() == 0) return;
 
-  textureID = texture_utilities::generateTextureID(imageData[0], false);
+  textureID = texture_utilities::generateTextureID(imageData[0], false, false);
 }
 
 void ConfigWindow::updateGlobalResolution(unsigned int index) {

@@ -7,15 +7,11 @@
 #include <functional>
 #include <iostream>
 
-DemoScene::DemoScene() {
-  camera = glm::vec3(0.0f, 3.0f, 30.0f);
-  std::cout << "Loading Models";
-  loadAllModels();
-  std::cout << " Done." << std::endl;
-  addLights();
-}
+DemoScene::DemoScene() { initializeScene(); }
 
-void DemoScene::loadAllModels() {
+void DemoScene::addAllModelsToScene() {
+  std::cout << "Loading models";
+
   // Main island
   auto& island = loadModel("./models/island/island.gltf");
   addObjectToScene(island, ShaderType::DIRECTIONAL_PBR, Transform());
@@ -55,9 +51,11 @@ void DemoScene::loadAllModels() {
   //Grass
   auto& grass = loadGrass("./res/grass1.txt", "./textures/grass.png", 0.3f, 0.5f, 3, 8109);
   addObjectToScene(grass, ShaderType::GRASS, Transform());
+
+  std::cout << std::endl;
 }
 
-void DemoScene::addLights() {
+void DemoScene::addAllLightsToScene() {
   // Normalized approximation of sun direction in skybox
   addLightToScene(directionalLights,
                   DirectionalLight{glm::vec3(-0.363647, -0.739629, -0.566312)});
@@ -66,3 +64,5 @@ void DemoScene::addLights() {
   addLightToScene(pointLights, PointLight{LIGHTBULB_START},
                   "circling_light");
 }
+
+void DemoScene::setupCamera() { camera = glm::vec3(0.0f, 3.0f, 30.0f); }

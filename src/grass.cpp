@@ -76,7 +76,7 @@ void Grass::loadTexture(const std::filesystem::path &texturePath) {
   std::vector<ImageData> imageData = imageLoader.getImageData();
 
   if (imageData.size())
-    textureID = texture_utilities::generateTextureID(imageData[0], true);
+    textureID = texture_utilities::generateTextureID(imageData[0], Sampler(GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE));
 }
 
 void Grass::setupBuffers() {
