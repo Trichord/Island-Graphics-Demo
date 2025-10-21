@@ -3,6 +3,7 @@
 #include <functional>
 #include <glm/glm.hpp>
 #include <map>
+#include <unordered_map>
 #include <vector>
 #include <string>
 #include <optional>
@@ -54,8 +55,8 @@ class Scene {
 
  protected:
   std::map<ShaderType, std::vector<RenderableObject>> sceneObjects;
-  std::map<std::string, std::reference_wrapper<Transform>> namedTransforms;
-  std::map<std::string, std::reference_wrapper<Light>> namedLights;
+  std::unordered_map<std::string, std::reference_wrapper<Transform>> namedTransforms;
+  std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights;
 
   std::vector<Model> models;
   std::vector<SpaceModel> spaceModels;
@@ -64,8 +65,11 @@ class Scene {
   std::vector<DirectionalLight> directionalLights;
   std::vector<PointLight> pointLights;
 
-  virtual void loadAllModels() = 0;
-  virtual void addLights() = 0;
+  virtual void addAllModelsToScene() = 0;
+  virtual void addAllLightsToScene() = 0;
+  virtual void setupCamera() = 0;
+  
+  void initializeScene();
   Model& loadModel(const std::filesystem::path& filepath);
   SpaceModel& loadSpaceModel(const std::filesystem::path& filepath);
   Skybox& loadSkybox(const std::vector<std::string>& filepaths);

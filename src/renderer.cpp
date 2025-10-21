@@ -66,6 +66,7 @@ void Renderer::renderScene(Scene& scene) {
   // For each shader type in the scene
   for (auto& [shaderType, objectList] : scene.getSceneObjects()) {
     Shader& shader = shaders.at(shaderType);
+    shader.use();
 
     // For each object of that shader type
     for (auto& object : objectList) {
@@ -107,7 +108,6 @@ void Renderer::renderScene(Scene& scene) {
       }
 
       // Draw it
-      shader.use();
       object.renderable.get().render();
     }
   }
@@ -149,7 +149,7 @@ void Renderer::setupGrassShader(Shader& shader) {
   shader.setUniformBlock("matrices", 0);
   shader.setInt("grassTexture", 0);
   shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
-  shader.setFloat("windStrength", 0.1f);
+  shader.setFloat("windStrength", 0.15f);
   shader.setVec3("windDirection",
                  glm::normalize(glm::vec3(0.88f, -0.1f, 0.4344f)));
 }

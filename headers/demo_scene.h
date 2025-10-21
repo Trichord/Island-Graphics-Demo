@@ -9,6 +9,7 @@
 class DemoScene : public Scene {
  public:
   DemoScene();
-  void loadAllModels() override;
-  void addLights() override;
+  void addAllModelsToScene() override;
+  void addAllLightsToScene() override;
+  void setupCamera() override;
 };

@@ -87,3 +87,9 @@ std::vector<DirectionalLight>& Scene::getDirectionalLights() {
 }
 
 std::vector<PointLight>& Scene::getPointLights() { return pointLights; }
+
+void Scene::initializeScene(){
+  setupCamera();
+  addAllModelsToScene();
+  addAllLightsToScene();
+}

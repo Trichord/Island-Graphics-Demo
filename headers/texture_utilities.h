@@ -13,10 +13,8 @@ struct Sampler {
 };
 
 namespace texture_utilities {
-GLuint generateTextureID(const ImageData& image, bool sRGB = false,
-                         bool anisotropic = false);
 GLuint generateTextureID(const ImageData& image, Sampler sampler,
-                         bool sRGB = false, bool anisotropic = false);
+                         bool sRGB = true, bool anisotropic = true);
 GLuint generateCubemapTextureID(const std::vector<ImageData>& imageData,
-                                bool sRGB = false, bool anisotropic = false);
+                                bool sRGB = true, bool anisotropic = true);
 }  // namespace texture_utilities
