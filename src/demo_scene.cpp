@@ -30,6 +30,7 @@ void DemoScene::loadAllModels() {
 
   std::cout << ".";
 
+  //Lightbulb
   auto& lightbulb = loadModel("./models/lightbulb/lightbulb.gltf");
   addObjectToScene(
       lightbulb, ShaderType::LIGHT_SOURCE,
@@ -52,18 +53,11 @@ void DemoScene::loadAllModels() {
   addObjectToScene(skybox, ShaderType::SKYBOX, Transform());
 
   //Grass
-  auto& grass = loadGrass("./res/grass1.txt", "./textures/grass.png", 8109);
+  auto& grass = loadGrass("./res/grass1.txt", "./textures/grass.png", 0.3f, 0.5f, 3, 8109);
   addObjectToScene(grass, ShaderType::GRASS, Transform());
 }
 
-// Pre-allocate all space in vector before adding
 void DemoScene::addLights() {
-  const int numPointLights = 1;
-  const int numDirLights = 1;
-
-  directionalLights.reserve(numDirLights);
-  pointLights.reserve(numPointLights);
-
   // Normalized approximation of sun direction in skybox
   addLightToScene(directionalLights,
                   DirectionalLight{glm::vec3(-0.363647, -0.739629, -0.566312)});

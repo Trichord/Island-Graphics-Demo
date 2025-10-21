@@ -3,6 +3,7 @@
 #define AMBIENT_STRENGTH 0.8
 
 const vec3 lightColor = vec3(1.0, 0.95, 0.9);
+const vec3 defaultMormal = vec3(0.0, 1.0, 0.0);
 
 out vec4 fragColor;
 
@@ -10,7 +11,6 @@ uniform sampler2D grassTexture;
 uniform vec3 lightDir;
 uniform float gamma;
 
-in vec3 normal;
 in vec2 texCoords;
 
 void main() {
@@ -20,15 +20,14 @@ void main() {
         discard;
 
     //Flip normal if 2D quad is facing away
-    vec3 normalizedNormal = gl_FrontFacing ? normal : -normal;
-    normalizedNormal = normalize(normalizedNormal);
+    vec3 normal = gl_FrontFacing ? defaultMormal : -defaultMormal;
     
     //Ambient
     vec3 ambient = AMBIENT_STRENGTH * lightColor;
 
     //Diffuse
     vec3 lightDirection = normalize(-lightDir);
-    float diffuseStrength = max(dot(normalizedNormal, lightDirection), 0.0f);
+    float diffuseStrength = dot(normal, lightDirection) * 0.5 + 0.5; //remap to [0,1] range so perpendicular blades get some light
     vec3 diffuse = diffuseStrength * lightColor;
 
     //Final color before gamma correction

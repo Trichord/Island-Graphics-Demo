@@ -70,7 +70,9 @@ class Scene {
   SpaceModel& loadSpaceModel(const std::filesystem::path& filepath);
   Skybox& loadSkybox(const std::vector<std::string>& filepaths);
   Grass& loadGrass(const std::filesystem::path& positionsPath,
-                   const std::filesystem::path& texturePath, unsigned int numPositions = 0);
+                   const std::filesystem::path& texturePath, float minSize,
+                   float maxSize, unsigned int tuftDensity = 3,
+                   unsigned int numPositions = 0);
 
   // Give a model a name if you want to reference its transform in Application's
   // onUpdate() loop
