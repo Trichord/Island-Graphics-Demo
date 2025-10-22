@@ -11,7 +11,7 @@
 #include <fstream>
 
 #define ROTATION_VARIATION 5.0f
-#define OUTWARD_PUSH 0.05f
+#define OUTWARD_PUSH 0.04f
 
 Grass::Grass(const std::filesystem::path &positionsPath,
              const std::filesystem::path &texturePath, TuftPattern tuftPattern,
@@ -25,7 +25,7 @@ Grass::Grass(const std::filesystem::path &positionsPath,
   else
     generateStarPatternTransforms(minSize, maxSize, tuftDensity);
 
-  setupBuffers();
+  setupBuffers(tuftDensity);
 }
 
 Grass::Grass(Grass &&other) noexcept {
@@ -93,7 +93,7 @@ void Grass::loadTexture(const std::filesystem::path &texturePath) {
                               GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE));
 }
 
-void Grass::setupBuffers() {
+void Grass::setupBuffers(unsigned int tuftDensity) {
   // Quad VAO, EBO
   glGenVertexArrays(1, &VAO);
   glBindVertexArray(VAO);
@@ -145,7 +145,9 @@ void Grass::setupBuffers() {
   glBindBuffer(GL_ARRAY_BUFFER, positionsVBO);
   glBufferData(GL_ARRAY_BUFFER, grassPositions.size() * sizeof(glm::vec3),
                grassPositions.data(), GL_STATIC_DRAW);
+  glEnableVertexAttribArray(6);
   glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
+  glVertexAttribDivisor(6, tuftDensity);
 
   // reset VAO
   glBindVertexArray(0);
