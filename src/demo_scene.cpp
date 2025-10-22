@@ -49,7 +49,7 @@ void DemoScene::addAllModelsToScene() {
   addObjectToScene(skybox, ShaderType::SKYBOX, Transform());
 
   //Grass
-  auto& grass = loadGrass("./res/grass1.txt", "./textures/grass.png", 0.3f, 0.5f, 3, 8109);
+  auto& grass = loadGrass("./res/grass1.txt", "./textures/grass.png", Grass::RADIAL_PATTERN, 0.3f, 0.5f, 3, 8109);
   addObjectToScene(grass, ShaderType::GRASS, Transform());
 
   std::cout << std::endl;

@@ -64,13 +64,14 @@ Skybox& Scene::loadSkybox(const std::vector<std::string>& filepaths) {
 }
 
 Grass& Scene::loadGrass(const std::filesystem::path& positionsPath,
-                        const std::filesystem::path& texturePath, float minSize,
+                        const std::filesystem::path& texturePath,
+                        Grass::TuftPattern tuftPattern, float minSize,
                         float maxSize, unsigned int tuftDensity,
                         unsigned int numPositions) {
   if (grasses.size() >= MAX_GRASSES)
     throw std::runtime_error("Max number of grasses reached");
 
-  return grasses.emplace_back(positionsPath, texturePath, minSize, maxSize,
+  return grasses.emplace_back(positionsPath, texturePath, tuftPattern, minSize, maxSize,
                               tuftDensity, numPositions);
 }
 
@@ -88,7 +89,7 @@ std::vector<DirectionalLight>& Scene::getDirectionalLights() {
 
 std::vector<PointLight>& Scene::getPointLights() { return pointLights; }
 
-void Scene::initializeScene(){
+void Scene::initializeScene() {
   setupCamera();
   addAllModelsToScene();
   addAllLightsToScene();
