@@ -9,9 +9,12 @@
 
 class Grass : public Renderable {
  public:
+  enum TuftPattern { STAR_PATTERN, RADIAL_PATTERN };
+
   Grass(const std::filesystem::path &positionsPath,
-        const std::filesystem::path &texturePath, float minSize, float maxSize,
-        unsigned int tuftDensity = 3, unsigned int numPositions = 0);
+        const std::filesystem::path &texturePath, TuftPattern tuftPattern,
+        float minSize, float maxSize, unsigned int tuftDensity = 3,
+        unsigned int numPositions = 0);
   Grass(const Grass &) = delete;
   Grass &operator=(const Grass &) = delete;
   Grass(Grass &&other) noexcept;
@@ -22,7 +25,7 @@ class Grass : public Renderable {
 
  private:
   GLuint textureID = 0;
-  GLuint VAO = 0, VBO = 0, EBO = 0, transformsVBO = 0;
+  GLuint VAO = 0, VBO = 0, EBO = 0, transformsVBO = 0, positionsVBO = 0;
   std::vector<glm::mat4> transforms;
   std::vector<glm::vec3> grassPositions;
 
@@ -38,8 +41,10 @@ class Grass : public Renderable {
 
   void loadTexture(const std::filesystem::path &texturePath);
   void setupBuffers();
-  void generateTransforms(float minSize, float maxSize,
-                          unsigned int tuftDensity);
+  void generateRadialPatternTransforms(float minSize, float maxSize,
+                                       unsigned int tuftDensity);
+  void generateStarPatternTransforms(float minSize, float maxSize,
+                                     unsigned int tuftDensity);
   void deleteBuffers();
   void loadGrassPositions(const std::filesystem::path &positionsPath,
                           unsigned int numPositions);

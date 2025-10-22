@@ -10,15 +10,21 @@
 #include <iostream>
 #include <fstream>
 
-#define ROTATION_VARIATION 10.0f
+#define ROTATION_VARIATION 5.0f
+#define OUTWARD_PUSH 0.05f
 
 Grass::Grass(const std::filesystem::path &positionsPath,
-             const std::filesystem::path &texturePath, float minSize,
-             float maxSize, unsigned int tuftDensity,
+             const std::filesystem::path &texturePath, TuftPattern tuftPattern,
+             float minSize, float maxSize, unsigned int tuftDensity,
              unsigned int numPositions) {
   loadTexture(texturePath);
   loadGrassPositions(positionsPath, numPositions);
-  generateTransforms(minSize, maxSize, tuftDensity);
+
+  if (tuftPattern == Grass::RADIAL_PATTERN)
+    generateRadialPatternTransforms(minSize, maxSize, tuftDensity);
+  else
+    generateStarPatternTransforms(minSize, maxSize, tuftDensity);
+
   setupBuffers();
 }
 
@@ -28,11 +34,14 @@ Grass::Grass(Grass &&other) noexcept {
   EBO = other.EBO;
   transformsVBO = other.transformsVBO;
   transforms = std::move(other.transforms);
+  positionsVBO = other.positionsVBO;
+  grassPositions = std::move(other.grassPositions);
 
   other.VAO = 0;
   other.VBO = 0;
   other.EBO = 0;
   other.transformsVBO = 0;
+  other.positionsVBO = 0;
 }
 
 Grass &Grass::operator=(Grass &&other) noexcept {
@@ -44,11 +53,14 @@ Grass &Grass::operator=(Grass &&other) noexcept {
     EBO = other.EBO;
     transformsVBO = other.transformsVBO;
     transforms = std::move(other.transforms);
+    positionsVBO = other.positionsVBO;
+    grassPositions = std::move(other.grassPositions);
 
     other.VAO = 0;
     other.VBO = 0;
     other.EBO = 0;
     other.transformsVBO = 0;
+    other.positionsVBO = 0;
   }
 
   return *this;
@@ -76,7 +88,9 @@ void Grass::loadTexture(const std::filesystem::path &texturePath) {
   std::vector<ImageData> imageData = imageLoader.getImageData();
 
   if (imageData.size())
-    textureID = texture_utilities::generateTextureID(imageData[0], Sampler(GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE));
+    textureID = texture_utilities::generateTextureID(
+        imageData[0], Sampler(GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR,
+                              GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE));
 }
 
 void Grass::setupBuffers() {
@@ -126,38 +140,61 @@ void Grass::setupBuffers() {
   glVertexAttribDivisor(4, 1);
   glVertexAttribDivisor(5, 1);
 
+  //Center positions of each tuft
+  glGenBuffers(1, &positionsVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, positionsVBO);
+  glBufferData(GL_ARRAY_BUFFER, grassPositions.size() * sizeof(glm::vec3),
+               grassPositions.data(), GL_STATIC_DRAW);
+  glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
+
   // reset VAO
   glBindVertexArray(0);
 }
 
-void Grass::generateTransforms(float minSize, float maxSize,
-                               unsigned int tuftDensity) {
+void Grass::generateRadialPatternTransforms(float minSize, float maxSize,
+                                            unsigned int tuftDensity) {
   std::random_device rd;
   std::mt19937 mt(rd());
+
+  // Max range of jitter for scale
   float scaleVariation = (maxSize - minSize) * 0.25f;
 
-  std::uniform_real_distribution<float> baseRotation(0.0f, 180.0f);
+  // Rotate the entire tuft somewhere in the [0-360) degree range
+  std::uniform_real_distribution<float> baseRotation(0.0f, 360.0f);
+
+  // Add a tiny bit of rotation jitter for each quad
   std::uniform_real_distribution<float> rndRotJitter(-ROTATION_VARIATION,
                                                      ROTATION_VARIATION);
+
+  // Random amount of scale jitter to be applied for each quad
   std::uniform_real_distribution<float> rndScaleJitter(-scaleVariation,
                                                        scaleVariation);
+
+  // Pick a base quad size somewhere between (min, max)
   std::uniform_real_distribution<float> rndBaseScale(minSize, maxSize);
 
   transforms.reserve(grassPositions.size() * tuftDensity);
 
   for (const auto &position : grassPositions) {
+    // Generate our base rotation and scale
     float instanceBaseRotation = baseRotation(mt);
     float instanceScale = rndBaseScale(mt);
     for (unsigned int i = 0; i < tuftDensity; ++i) {
-      float quadAngle = (180.0f / tuftDensity) * i;
+      // Final quad angle
+      float quadAngle =
+          (360.0f / tuftDensity) * i + instanceBaseRotation + rndRotJitter(mt);
 
+      // Push it out from the center
+      float quadAngleInRad = glm::radians(quadAngle);
+      glm::vec3 outwardTranslation =
+          glm::vec3(glm::sin(quadAngleInRad), 0.0f, glm::cos(quadAngleInRad)) *
+          OUTWARD_PUSH;
+
+      // Scale first, rotate around world origin, then move into position
       glm::mat4 transform = glm::mat4(1.0f);
-      transform = glm::translate(transform, position);
-      transform = glm::rotate(transform, instanceBaseRotation,
+      transform = glm::translate(transform, position + outwardTranslation);
+      transform = glm::rotate(transform, glm::radians(quadAngle),
                               glm::vec3(0.0f, 1.0f, 0.0f));
-      transform =
-          glm::rotate(transform, glm::radians(quadAngle + rndRotJitter(mt)),
-                      glm::vec3(0.0f, 1.0f, 0.0f));
       transform =
           glm::scale(transform, glm::vec3(instanceScale,
                                           instanceScale + rndScaleJitter(mt),
@@ -170,6 +207,7 @@ void Grass::generateTransforms(float minSize, float maxSize,
 
 void Grass::deleteBuffers() {
   glDeleteBuffers(1, &transformsVBO);
+  glDeleteBuffers(1, &positionsVBO);
   glDeleteBuffers(1, &VBO);
   glDeleteBuffers(1, &EBO);
   glDeleteVertexArrays(1, &VAO);
@@ -187,4 +225,50 @@ void Grass::loadGrassPositions(const std::filesystem::path &positionsPath,
 
   else
     std::cerr << "Unable to open " << positionsPath << std::endl;
+}
+
+void Grass::generateStarPatternTransforms(float minSize, float maxSize,
+                                          unsigned int tuftDensity) {
+  std::random_device rd;
+  std::mt19937 mt(rd());
+
+  // Max variation on base scale
+  float scaleVariation = (maxSize - minSize) * 0.25f;
+
+  // Base rotation of the entire tuft
+  std::uniform_real_distribution<float> baseRotation(0.0f, 360.0f);
+
+  // Random amount of rotational jitter
+  std::uniform_real_distribution<float> rndRotJitter(-ROTATION_VARIATION,
+                                                     ROTATION_VARIATION);
+
+  // Random scale jitter based off max variation
+  std::uniform_real_distribution<float> rndScaleJitter(-scaleVariation,
+                                                       scaleVariation);
+
+  // Random base size between (min, max)
+  std::uniform_real_distribution<float> rndBaseScale(minSize, maxSize);
+
+  transforms.reserve(grassPositions.size() * tuftDensity);
+
+  for (const auto &position : grassPositions) {
+    // Per-tuft size and scale
+    float instanceBaseRotation = baseRotation(mt);
+    float instanceScale = rndBaseScale(mt);
+    for (unsigned int i = 0; i < tuftDensity; ++i) {
+      float quadAngle =
+          (360.0f / tuftDensity) * i + instanceBaseRotation + rndRotJitter(mt);
+
+      glm::mat4 transform = glm::mat4(1.0f);
+      transform = glm::translate(transform, position);
+      transform = glm::rotate(transform, glm::radians(quadAngle),
+                              glm::vec3(0.0f, 1.0f, 0.0f));
+      transform =
+          glm::scale(transform, glm::vec3(instanceScale,
+                                          instanceScale + rndScaleJitter(mt),
+                                          instanceScale));
+
+      transforms.emplace_back(std::move(transform));
+    }
+  }
 }
