@@ -40,7 +40,7 @@ class Grass : public Renderable {
   inline static const unsigned int indices[] = {0, 2, 3, 0, 3, 1};
 
   void loadTexture(const std::filesystem::path &texturePath);
-  void setupBuffers();
+  void setupBuffers(unsigned int tuftDensity);
   void generateRadialPatternTransforms(float minSize, float maxSize,
                                        unsigned int tuftDensity);
   void generateStarPatternTransforms(float minSize, float maxSize,
