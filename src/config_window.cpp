@@ -138,13 +138,13 @@ bool ConfigWindow::renderImGui() {
 
     // Resolution
     ImGui::Text("Resolution");
-    if (ImGui::BeginCombo("##resolutionCombo", resolution_preview_value,
+    if (ImGui::BeginCombo("##resolutionCombo", resolutionPreviewValue,
                           ImGuiComboFlags_HeightLargest)) {
       for (int i = 0; i < resolutions.size(); ++i) {
-        const bool is_res_selected = (resolution_selected_idx == i);
+        const bool is_res_selected = (resolutionSelectedIndex == i);
         if (ImGui::Selectable(resolutions[i], is_res_selected)) {
-          resolution_selected_idx = i;
-          resolution_preview_value = resolutions[resolution_selected_idx];
+          resolutionSelectedIndex = i;
+          resolutionPreviewValue = resolutions[resolutionSelectedIndex];
           updateGlobalResolution(i);
         }
         if (is_res_selected) ImGui::SetItemDefaultFocus();
@@ -175,13 +175,13 @@ bool ConfigWindow::renderImGui() {
 
     // MSAA
     ImGui::Text("MSAA");
-    if (ImGui::BeginCombo("##msaaCombo", msaa_preview_value,
+    if (ImGui::BeginCombo("##msaaCombo", msaaPreviewValue,
                           ImGuiComboFlags_HeightLargest)) {
       for (int i = 0; i < msaaLevel.size(); ++i) {
-        const bool is_msaa_selected = (msaa_selected_idx == i);
+        const bool is_msaa_selected = (msaaSelectedIndex == i);
         if (ImGui::Selectable(msaaLevel[i], is_msaa_selected)) {
-          msaa_selected_idx = i;
-          msaa_preview_value = msaaLevel[msaa_selected_idx];
+          msaaSelectedIndex = i;
+          msaaPreviewValue = msaaLevel[msaaSelectedIndex];
           updateGlobalMSAA(i);
         }
         if (is_msaa_selected) ImGui::SetItemDefaultFocus();
@@ -193,13 +193,13 @@ bool ConfigWindow::renderImGui() {
 
     // Anisotropic filtering
     ImGui::Text("Anisotropic Filtering");
-    if (ImGui::BeginCombo("##anisoCombo", aniso_preview_value,
+    if (ImGui::BeginCombo("##anisoCombo", anisoPreviewValue,
                           ImGuiComboFlags_HeightLargest)) {
       for (int i = 0; i < anisoLevel.size(); ++i) {
-        const bool is_aniso_selected = (aniso_selected_idx == i);
+        const bool is_aniso_selected = (anisoSelectedIndex == i);
         if (ImGui::Selectable(anisoLevel[i], is_aniso_selected)) {
-          aniso_selected_idx = i;
-          aniso_preview_value = anisoLevel[aniso_selected_idx];
+          anisoSelectedIndex = i;
+          anisoPreviewValue = anisoLevel[anisoSelectedIndex];
           updateGlobalAniso(i);
         }
         if (is_aniso_selected) ImGui::SetItemDefaultFocus();

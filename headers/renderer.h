@@ -3,6 +3,7 @@
 #include <map>
 #include <unordered_map>
 #include <glm/glm.hpp>
+#include <glad/glad.h>
 
 #include "scene.h"
 #include "shader.h"
@@ -30,10 +31,9 @@ class Renderer {
     glm::vec4 cameraPosition;
   };
 
+  GLuint UBO{0};
   PackedUBOData uboData;
   std::unordered_map<ShaderType, Shader> shaders;
-  glm::mat4 projectionMatrix;
-  unsigned int UBO;
 
   void setupUBO();
   void loadShaders();

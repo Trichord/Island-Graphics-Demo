@@ -18,7 +18,6 @@ Scene::Scene() {
   spaceModels.reserve(MAX_SPACE_MODELS);
   skyboxes.reserve(MAX_SKYBOXES);
   grasses.reserve(MAX_GRASSES);
-  directionalLights.reserve(MAX_PER_LIGHT_TYPE);
   pointLights.reserve(MAX_PER_LIGHT_TYPE);
 }
 
@@ -83,9 +82,7 @@ Light& Scene::getNamedLight(const std::string& key) {
   return namedLights.at(key).get();
 }
 
-std::vector<DirectionalLight>& Scene::getDirectionalLights() {
-  return directionalLights;
-}
+DirectionalLight& Scene::getGlobalLightSource() { return globalLightSource; }
 
 std::vector<PointLight>& Scene::getPointLights() { return pointLights; }
 

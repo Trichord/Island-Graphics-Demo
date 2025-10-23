@@ -7,20 +7,16 @@
 #include "../headers/shader.h"
 #include "../headers/camera.h"
 #include "../headers/config_window.h"
+#include "../headers/directional_light.h"
 #include <unordered_map>
 #include <map>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
-#define CAMERA_ZOOM 45.0f
-#define NEAR_PLANE 0.1f
-#define FAR_PLANE 600.0f
 
-Renderer::Renderer(int screenWidth, int screenHeight)
-    : projectionMatrix(glm::perspective(
-          glm::radians(CAMERA_ZOOM), (float)screenWidth / (float)screenHeight,
-          NEAR_PLANE, FAR_PLANE)) {
+
+Renderer::Renderer(int screenWidth, int screenHeight){
   // Load shaders
   std::cout << "Loading Shaders...";
   loadShaders();
@@ -41,7 +37,6 @@ Renderer::Renderer(int screenWidth, int screenHeight)
 Renderer::Renderer(Renderer&& other) noexcept {
   shaders = std::move(other.shaders);
   uboData = std::move(other.uboData);
-  projectionMatrix = std::move(other.projectionMatrix);
   UBO = other.UBO;
   other.UBO = 0;
 }
@@ -55,7 +50,6 @@ Renderer& Renderer::operator=(Renderer&& other) noexcept {
     shaders.clear();
     shaders = std::move(other.shaders);
     uboData = std::move(other.uboData);
-    projectionMatrix = std::move(other.projectionMatrix);
   }
   return *this;
 }
@@ -99,7 +93,7 @@ void Renderer::renderScene(Scene& scene) {
         case ShaderType::SKYBOX:
           shader.setMat4(
               "projectionViewNoTranslation",
-              projectionMatrix * scene.camera.getViewNoTranslationMatrix());
+              scene.camera.getProjectionMatrix() * scene.camera.getViewNoTranslationMatrix());
           break;
 
         case ShaderType::LIGHT_SOURCE:
@@ -116,7 +110,7 @@ void Renderer::renderScene(Scene& scene) {
 void Renderer::updateUBO(Scene& scene) {
   uboData.viewMatrix = scene.camera.getViewMatrix();
   uboData.projectionViewMatrix =
-      projectionMatrix * scene.camera.getViewMatrix();
+      scene.camera.getProjectionMatrix() * scene.camera.getViewMatrix();
   uboData.cameraPosition = glm::vec4(scene.camera.getPosition(), 0.0f);
   glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(PackedUBOData), &uboData);
 }
@@ -177,9 +171,8 @@ void Renderer::setupSkyboxShader(Shader& shader) {
 }
 
 void Renderer::updateShaderUniforms(Scene& scene) {
-  // Get light info (only setup for 1 light at the moment)
-  std::vector<DirectionalLight>& dirLights = scene.getDirectionalLights();
-  bool dirUpdated = dirLights[0].directionHasUpdated();
+  DirectionalLight& globalLight{scene.getGlobalLightSource()};
+  bool dirUpdated = globalLight.directionHasUpdated();
 
   std::vector<PointLight>& pointLights = scene.getPointLights();
   glm::vec3 pointPos = pointLights[0].getPosition();
@@ -189,7 +182,7 @@ void Renderer::updateShaderUniforms(Scene& scene) {
   for (auto& [shaderType, shader] : shaders) {
     switch (shaderType) {
       case ShaderType::DIRECTIONAL_PBR:
-        if (dirUpdated) shader.setVec3("lightDir", dirLights[0].getDirection());
+        if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
         break;
 
       case ShaderType::POINT_PBR:
@@ -198,7 +191,7 @@ void Renderer::updateShaderUniforms(Scene& scene) {
 
       case ShaderType::GRASS:
         shader.setFloat("time", (float)glfwGetTime() * 0.5f);
-        if (dirUpdated) shader.setVec3("lightDir", dirLights[0].getDirection());
+        if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
         break;
     }
   }

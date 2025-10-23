@@ -13,10 +13,10 @@
 extern ThreadPool threadPool;
 
 struct ImageData {
-  unsigned char* data;
-  int width;
-  int height;
-  int nrChannels;
+  unsigned char* data{nullptr};
+  int width{0};
+  int height{0};
+  int nrChannels{1};
 
   ImageData() = default;
   ImageData(unsigned char* d, int w, int h, int nr)
@@ -39,8 +39,8 @@ class ImageLoader {
   void freeImages();
 
  private:
-  size_t numImages;
-  std::atomic<unsigned int> numImagesLoaded;
+  size_t numImages{0};
+  std::atomic<unsigned int> numImagesLoaded{0};
   std::vector<ImageData> loadedImages;
   std::mutex imagesMutex;
   std::condition_variable condition;
