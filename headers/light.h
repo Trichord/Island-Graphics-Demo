@@ -15,6 +15,6 @@ class Light {
   bool colorHasUpdated();
 
  protected:
-  glm::vec3 color = glm::vec3(1.0f);
-  bool colorUpdated = true;
+  glm::vec3 color{1.0f};
+  bool colorUpdated{true};
 };

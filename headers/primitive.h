@@ -34,7 +34,7 @@ class Primitive {
     std::vector<Primitive> primitives;
   };
 
-  unsigned int materialIndex = 0;
+  unsigned int materialIndex{0};
 
   Primitive() = default;
   Primitive(std::vector<Vertex>&& verts, std::vector<std::uint32_t>&& inds,
@@ -51,7 +51,9 @@ class Primitive {
   void draw() const;
 
  private:
-  unsigned int VAO = 0, VBO = 0, EBO = 0;
+  GLuint VAO{0};
+  GLuint VBO{0};
+  GLuint EBO{0};
 
   void setupPrimitiveBuffers();
 };

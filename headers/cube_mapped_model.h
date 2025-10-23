@@ -25,7 +25,7 @@ class CubeMappedModel : public Renderable {
   void render() override = 0;
 
  protected:
-  GLuint cubemapTextureID = 0;
+  GLuint cubemapTextureID{0};
   std::vector<std::filesystem::path> texturePaths;
   void loadTextures();
 };

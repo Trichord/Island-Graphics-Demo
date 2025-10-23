@@ -50,7 +50,7 @@ class Scene {
 
   Transform& getObjectTransform(const std::string& key);
   Light& getNamedLight(const std::string& key);
-  std::vector<DirectionalLight>& getDirectionalLights();
+  DirectionalLight& getGlobalLightSource();
   std::vector<PointLight>& getPointLights();
 
  protected:
@@ -62,7 +62,7 @@ class Scene {
   std::vector<SpaceModel> spaceModels;
   std::vector<Skybox> skyboxes;
   std::vector<Grass> grasses;
-  std::vector<DirectionalLight> directionalLights;
+  DirectionalLight globalLightSource;
   std::vector<PointLight> pointLights;
 
   virtual void addAllModelsToScene() = 0;

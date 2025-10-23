@@ -79,10 +79,10 @@ void Model::render() {
 }
 
 void Model::loadModel(const std::filesystem::path& path) {
-  asset = fastgltf_loader::loadAsset(path);
+  asset = fastgltfLoader::loadAsset(path);
 
   meshes.resize(asset.meshes.size());
-  meshes = fastgltf_loader::loadMeshes(asset);
+  meshes = fastgltfLoader::loadMeshes(asset);
 
   assetImages.resize(asset.images.size());
   loadTextures(path.parent_path());
@@ -94,7 +94,7 @@ void Model::loadTextures(const std::filesystem::path& parentPath) {
   // Get all local Uniform Resource Identifiers from gltf, so we can pass the
   // file paths to the image loader
   std::vector<std::filesystem::path> texturePaths =
-      fastgltf_loader::getURIs(asset, parentPath);
+      fastgltfLoader::getURIs(asset, parentPath);
 
   // Load images
   ImageLoader imageLoader(texturePaths);
@@ -110,7 +110,7 @@ void Model::loadMaterials(const std::vector<ImageData>& imageData) {
 
   auto processMaterialTexture = [&](const fastgltf::TextureInfo& textureInfo,
                                     bool sRGB) {
-    auto [index, sampler] = fastgltf_loader::getTextureInfo(asset, textureInfo);
+    auto [index, sampler] = fastgltfLoader::getTextureInfo(asset, textureInfo);
 
     // Generate new texture id if the index is not already in the set image
     // indices already processed

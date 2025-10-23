@@ -24,20 +24,24 @@ class Grass : public Renderable {
   void render() override;
 
  private:
-  GLuint textureID = 0;
-  GLuint VAO = 0, VBO = 0, EBO = 0, transformsVBO = 0, positionsVBO = 0;
+  GLuint textureID{0};
+  GLuint VAO{0};
+  GLuint VBO{0}; 
+  GLuint EBO{0};
+  GLuint transformsVBO{0};
+  GLuint positionsVBO{0};
   std::vector<glm::mat4> transforms;
   std::vector<glm::vec3> grassPositions;
 
   // Simple centered quad
-  inline static const float vertices[] = {
+  inline static const float vertices[] {
       // vertex           //normal          //uv
       -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,   // Top Left
       0.5f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,   // Top Right
       -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,   // Bottom Left
       0.5f,  0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f};  // Bottom Right
 
-  inline static const unsigned int indices[] = {0, 2, 3, 0, 3, 1};
+  inline static const unsigned int indices[] {0, 2, 3, 0, 3, 1};
 
   void loadTexture(const std::filesystem::path &texturePath);
   void setupBuffers(unsigned int tuftDensity);
