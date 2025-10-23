@@ -47,7 +47,7 @@ std::string fastgltfErrorToString(fastgltf::Error error) {
   }
 }
 
-fastgltf::Asset fastgltf_loader::loadAsset(std::filesystem::path path) {
+fastgltf::Asset fastgltfLoader::loadAsset(std::filesystem::path path) {
   static fastgltf::Parser parser;
   auto data = fastgltf::GltfDataBuffer::FromPath(path);
 
@@ -70,7 +70,7 @@ fastgltf::Asset fastgltf_loader::loadAsset(std::filesystem::path path) {
   return asset;
 }
 
-std::vector<Primitive::Mesh> fastgltf_loader::loadMeshes(
+std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(
     const fastgltf::Asset& asset) {
   std::vector<Primitive::Mesh> meshes;
 
@@ -159,7 +159,7 @@ std::vector<Primitive::Mesh> fastgltf_loader::loadMeshes(
   return meshes;
 }
 
-std::vector<std::filesystem::path> fastgltf_loader::getURIs(
+std::vector<std::filesystem::path> fastgltfLoader::getURIs(
     const fastgltf::Asset& asset, const std::filesystem::path parentPath) {
   std::vector<std::filesystem::path> URIpaths;
   URIpaths.reserve(asset.images.size());
@@ -182,7 +182,7 @@ std::vector<std::filesystem::path> fastgltf_loader::getURIs(
   return URIpaths;
 }
 
-std::pair<unsigned int, Sampler> fastgltf_loader::getTextureInfo(
+std::pair<unsigned int, Sampler> fastgltfLoader::getTextureInfo(
     const fastgltf::Asset& asset, const fastgltf::TextureInfo& texInfo) {
   const auto& texture = asset.textures[texInfo.textureIndex];
 

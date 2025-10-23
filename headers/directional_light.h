@@ -14,6 +14,6 @@ class DirectionalLight : public Light {
   bool directionHasUpdated();
 
  private:
-  bool directionUpdated = true;
-  glm::vec3 direction = glm::vec3(0.0f);
+  bool directionUpdated{true};
+  glm::vec3 direction{0.0f};
 };

@@ -1,17 +1,18 @@
 #include "../headers/camera.h"
+#include "../headers/config_window.h"
 
 #include <glad/glad.h>
 #include <math.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-Camera::Camera() {
+Camera::Camera() : projectionMatrix{createProjectionMatrix()} {
   updateCameraVectors();
   dirtyMatrices = true;
-};
+}
 
 Camera::Camera(glm::vec3 pos, glm::vec3 u, float y, float p)
-    : front(glm::vec3(0.0f, 0.0f, -1.0f)) {
+    : front{0.0f, 0.0f, -1.0f}, projectionMatrix{createProjectionMatrix()} {
   position = pos;
   worldUp = u;
   yaw = y;
@@ -22,7 +23,7 @@ Camera::Camera(glm::vec3 pos, glm::vec3 u, float y, float p)
 
 Camera::Camera(float posX, float posY, float posZ, float upX, float upY,
                float upZ, float y, float p)
-    : front(glm::vec3(0.0f, 0.0f, -1.0f)) {
+    : front{0.0f, 0.0f, -1.0f}, projectionMatrix{createProjectionMatrix()} {
   position = glm::vec3(posX, posY, posZ);
   worldUp = glm::vec3(upX, upY, upZ);
   yaw = y;
@@ -112,4 +113,14 @@ void Camera::updateCameraVectors() {
 void Camera::updateCameraMatrices() {
   viewMatrix = glm::lookAt(position, position + front, up);
   viewNoTranslationMatrix = glm::mat4(glm::mat3(viewMatrix));
+}
+
+const glm::mat4& Camera::getProjectionMatrix() { return projectionMatrix; }
+
+glm::mat4 Camera::createProjectionMatrix() {
+  return glm::perspective(
+      glm::radians(defaultCameraZoom),
+      (float)ConfigWindow::globalGraphicsSettings.screenWidth /
+          (float)ConfigWindow::globalGraphicsSettings.screenHeight,
+      defaultCameraNearPlane, defaultCameraFarPlane);
 }

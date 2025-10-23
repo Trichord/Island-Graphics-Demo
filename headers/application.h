@@ -18,8 +18,8 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action,
                  int mods);
 
 inline ThreadPool threadPool;
-inline float lastMouseX = 0.0f;
-inline float lastMouseY = 0.0f;
+inline float lastMouseX{0.0f};
+inline float lastMouseY{0.0f};
 
 class Application {
  public:
@@ -31,10 +31,10 @@ class Application {
   void run();
 
  private:
-  float deltaTime = 0.0f;
-  float lastFrame = 0.0f;
-  float currentFrame = 0.0f;
-  GLFWwindow* window = nullptr;
+  float deltaTime{0.0f};
+  float lastFrame{0.0f};
+  float currentFrame{0.0f};
+  GLFWwindow* window{nullptr};
   ConfigWindow configWindow;
 
   /**
@@ -56,20 +56,20 @@ class Application {
   void createOpenGLViewport();
 
   /**
-  * Registers GLFW callbacks.
-  */
+   * Registers GLFW callbacks.
+   */
   void registerCallbacks();
 
   /**
-  * Registers a scene with GLFW to be used with GLFW's built in call-backs.
-  * @param scene The target scene to be processed by GLFW.
-  */
+   * Registers a scene with GLFW to be used with GLFW's built in call-backs.
+   * @param scene The target scene to be processed by GLFW.
+   */
   void addGlfwUserParam(Scene& scene);
 
   /**
-  * Per-frame update logic.
-  * @param scene The target scene to be updated.
-  * @param deltaTime The time elapsed since the last frame.
-  */
+   * Per-frame update logic.
+   * @param scene The target scene to be updated.
+   * @param deltaTime The time elapsed since the last frame.
+   */
   void onUpdate(Scene& scene, float deltaTime);
 };
