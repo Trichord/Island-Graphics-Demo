@@ -12,7 +12,7 @@ inline constexpr float defaultCameraFarPlane{600.0f};
 
 // Defines several possible options for camera movement. Used as abstraction to
 // stay away from window-system specific input methods
-enum Camera_Movement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
+enum class CameraMovement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
 
 class Camera {
  public:
@@ -26,7 +26,7 @@ class Camera {
   const glm::mat4& getViewNoTranslationMatrix();
   const glm::mat4& getProjectionMatrix();
 
-  void processKeyboard(Camera_Movement direction, float deltaTime);
+  void processKeyboard(CameraMovement direction, float deltaTime);
   void processMouseMovement(float xoffset, float yoffset,
                             bool constrainPitch = true);
   bool hasUpdated();

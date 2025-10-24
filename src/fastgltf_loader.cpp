@@ -57,7 +57,6 @@ fastgltf::Asset fastgltfLoader::loadAsset(std::filesystem::path path) {
     return fastgltf::Asset{};
   }
 
-  // JSON only for now
   auto assetResult =
       parser.loadGltfJson(data.get(), path.parent_path(),
                           fastgltf::Options::GenerateMeshIndices |
@@ -88,7 +87,8 @@ std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(
       auto* texCoordIt = gltfPrimitive.findAttribute("TEXCOORD_0");
 
       if (!positionIt)
-        throw std::runtime_error("fastGLTF loading error: Model has no position accessor");
+        throw std::runtime_error{
+            "fastGLTF loading error: Model has no position accessor"};
 
       auto& positionAccessor = asset.accessors[positionIt->accessorIndex];
       vertices.resize(positionAccessor.count);
@@ -135,7 +135,7 @@ std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(
             asset.accessors[gltfPrimitive.indicesAccessor.value()];
         indices.resize(indicesAccessor.count);
 
-        std::size_t idx = 0;
+        std::size_t idx{0};
         fastgltf::iterateAccessor<std::uint32_t>(
             asset, indicesAccessor,
             [&](std::uint32_t index) { indices[idx++] = index; });
@@ -164,7 +164,7 @@ std::vector<std::filesystem::path> fastgltfLoader::getURIs(
   std::vector<std::filesystem::path> URIpaths;
   URIpaths.reserve(asset.images.size());
 
-  for (unsigned int i = 0; i < asset.images.size(); ++i) {
+  for (int i = 0; i < asset.images.size(); ++i) {
     fastgltf::Image image = asset.images[i];
 
     if (auto* uri = std::get_if<fastgltf::sources::URI>(&image.data)) {
@@ -173,7 +173,7 @@ std::vector<std::filesystem::path> fastgltfLoader::getURIs(
       std::filesystem::path fullImagePath = parentPath / relativeImagePath;
 
       if (!uri->uri.isLocalPath())
-        throw std::runtime_error("URI not local: " + fullImagePath.string());
+        throw std::runtime_error{"URI not local: " + fullImagePath.string()};
 
       URIpaths.emplace_back(fullImagePath);
     }
@@ -205,7 +205,7 @@ std::pair<unsigned int, Sampler> fastgltfLoader::getTextureInfo(
 
   const unsigned int assetImageIndex =
       static_cast<unsigned int>(texture.imageIndex.value());
-  Sampler sampler = {
+  Sampler sampler{
       static_cast<uint16_t>(magFilter), static_cast<uint16_t>(minFilter),
       static_cast<uint16_t>(wrapS), static_cast<uint16_t>(wrapT)};
 
