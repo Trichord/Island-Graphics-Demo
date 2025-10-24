@@ -28,8 +28,8 @@ void Application::run() {
   renderer.updateUBO(demoScene);
 
   // Average FPS
-  double totalTime = 0;
-  double framesRendered = 0;
+  double totalTime{0};
+  double framesRendered{0};
 
   while (true) {
     // Clear screen
@@ -76,11 +76,12 @@ void Application::createWindow() {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
 
-  unsigned int msaa = ConfigWindow::globalGraphicsSettings.msaa;
+  unsigned int msaa{ConfigWindow::globalGraphicsSettings.msaa};
   if (msaa != 0) glfwWindowHint(GLFW_SAMPLES, msaa);
 
-  unsigned int width = ConfigWindow::globalGraphicsSettings.screenWidth;
-  unsigned int height = ConfigWindow::globalGraphicsSettings.screenHeight;
+  unsigned int width{ConfigWindow::globalGraphicsSettings.screenWidth};
+  unsigned int height{ConfigWindow::globalGraphicsSettings.screenHeight};
+
   if (ConfigWindow::globalGraphicsSettings.fullscreen)
     window = glfwCreateWindow(width, height, "OpenGL Demo",
                               glfwGetPrimaryMonitor(), nullptr);
@@ -109,9 +110,9 @@ void Application::createOpenGLViewport() {
     return;
   }
 
-  unsigned int width = ConfigWindow::globalGraphicsSettings.screenWidth;
-  unsigned int height = ConfigWindow::globalGraphicsSettings.screenHeight;
-  unsigned int msaa = ConfigWindow::globalGraphicsSettings.msaa;
+  unsigned int width{ConfigWindow::globalGraphicsSettings.screenWidth};
+  unsigned int height{ConfigWindow::globalGraphicsSettings.screenHeight};
+  unsigned int msaa{ConfigWindow::globalGraphicsSettings.msaa};
 
   glViewport(0, 0, width, height);
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -151,9 +152,9 @@ void Application::registerCallbacks() {
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetKeyCallback(window, keyCallback);
 
-  // Set mouse position before registering callback, to avoid mouse jump on
-  // first load
-  double x, y;
+  // Set mouse position before registering callback
+  double x{0.0f};
+  double y{0.0f};
   glfwGetCursorPos(window, &x, &y);
   lastMouseX = (float)x;
   lastMouseY = (float)y;
@@ -167,34 +168,35 @@ void Application::addGlfwUserParam(Scene& scene) {
 
 void Application::onUpdate(Scene& scene, float deltaTime) {
   // Rotate the fancy space dodecahedron
-  auto& spaceDodeca = scene.getObjectTransform("spaceDodeca");
-  spaceDodeca.rotateAroundAxis(5.0f * deltaTime, glm::vec3(0.34f, 0.87f, 0.4f));
+  auto& spaceDodeca{scene.getObjectTransform("spaceDodeca")};
+  spaceDodeca.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});
 
   // Move the light around the flight helmet
-  auto& circling_light = static_cast<PointLight&>(scene.getNamedLight("circling_light"));
+  auto& circlingLight{
+      static_cast<PointLight&>(scene.getNamedLight("circlingLight"))};
 
   glm::vec3 newPos;
-  const float radius = 1.25f;
-  float time = (float)glfwGetTime();
+  const float radius{1.25f};
+  float time{(float)glfwGetTime()};
 
   newPos.x = LIGHTBULB_START.x + glm::sin(time * 0.5f) * radius;
   newPos.z = LIGHTBULB_START.z + glm::cos(time * 0.5f) * radius;
   newPos.y = LIGHTBULB_START.y;
 
-  circling_light.setPosition(newPos);
+  circlingLight.setPosition(newPos);
 
-  Transform& lightTransform = scene.getObjectTransform("lightbulb");
+  Transform& lightTransform{scene.getObjectTransform("lightbulb")};
   lightTransform.setAbsolutePosition(newPos);
 }
 
 void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
-  float xOffset = (float)(xPos - lastMouseX);
-  float yOffset = (float)(lastMouseY - yPos);
+  float xOffset{(float)(xPos - lastMouseX)};
+  float yOffset{(float)(lastMouseY - yPos)};
 
   lastMouseX = (float)xPos;
   lastMouseY = (float)yPos;
 
-  auto scenePointer = static_cast<DemoScene*>(glfwGetWindowUserPointer(window));
+  auto scenePointer{static_cast<DemoScene*>(glfwGetWindowUserPointer(window))};
 
   if (scenePointer)
     scenePointer->camera.processMouseMovement(xOffset, yOffset, GL_TRUE);

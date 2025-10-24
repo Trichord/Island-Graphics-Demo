@@ -12,7 +12,7 @@ struct Sampler {
       : magFilter(mag), minFilter(min), wrapS(ws), wrapT(wt) {};
 };
 
-namespace texture_utilities {
+namespace textureUtilities {
 GLuint generateTextureID(const ImageData& image, Sampler sampler,
                          bool sRGB = true, bool anisotropic = true);
 GLuint generateCubemapTextureID(const std::vector<ImageData>& imageData,

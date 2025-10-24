@@ -54,7 +54,7 @@ void DemoScene::addAllModelsToScene() {
                           Grass::RADIAL_PATTERN, 0.3f, 0.5f, 3, 8109);
   addObjectToScene(grass, ShaderType::GRASS, Transform());
 
-  std::cout << std::endl;
+  std::cout << " Done." << std::endl;
 }
 
 void DemoScene::addAllLightsToScene() {
@@ -62,7 +62,7 @@ void DemoScene::addAllLightsToScene() {
   globalLightSource = {glm::vec3{-0.363647, -0.739629, -0.566312}};
 
   // Right next to the flight helmet
-  addLightToScene(pointLights, PointLight{LIGHTBULB_START}, "circling_light");
+  addLightToScene(pointLights, PointLight{LIGHTBULB_START}, "circlingLight");
 }
 
 void DemoScene::setupCamera() { camera = glm::vec3(0.0f, 3.0f, 30.0f); }

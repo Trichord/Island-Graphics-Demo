@@ -1,6 +1,5 @@
 #pragma once
 
-#include <glad/glad.h>
 #include <glm/glm.hpp>
 
 inline constexpr float defaultCameraYaw{90.0f};
@@ -29,7 +28,7 @@ class Camera {
 
   void processKeyboard(Camera_Movement direction, float deltaTime);
   void processMouseMovement(float xoffset, float yoffset,
-                            GLboolean constrainPitch = true);
+                            bool constrainPitch = true);
   bool hasUpdated();
   const glm::vec3& getPosition() const;
 

@@ -33,5 +33,5 @@ class Transform {
   glm::quat quaternion;
 
   void rebuildModelMatrix();
-  bool isDirty = true;
+  bool isDirty{true};
 };

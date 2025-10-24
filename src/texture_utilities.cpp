@@ -3,7 +3,7 @@
 #include <glad/glad.h>
 #include "../headers/config_window.h"
 
-GLuint texture_utilities::generateTextureID(const ImageData& image,
+GLuint textureUtilities::generateTextureID(const ImageData& image,
                                             Sampler sampler,
                                             bool sRGB, bool anisotropic) {
   GLuint textureID;
@@ -53,7 +53,7 @@ GLuint texture_utilities::generateTextureID(const ImageData& image,
   return textureID;
 }
 
-GLuint texture_utilities::generateCubemapTextureID(
+GLuint textureUtilities::generateCubemapTextureID(
     const std::vector<ImageData>& imageData, bool sRGB, bool anisotropic) {
   GLuint cubemapTextureID;
   glGenTextures(1, &cubemapTextureID);

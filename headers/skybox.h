@@ -20,14 +20,16 @@ class Skybox : public CubeMappedModel {
   void render() override;
 
  protected:
-  GLuint modelVAO = 0, modelVBO = 0, modelEBO = 0;
+  GLuint modelVAO{0};
+  GLuint modelVBO{0};
+  GLuint modelEBO{0};
 
-  inline static const float vertices[] = {
-      -1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f, 1.0f, 1.0f,
-      -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f, -1.0f, 1.0f, 1.0f,
-      -1.0f, 1.0f,  1.0f,  1.0f,  1.0f,  -1.0f, 1.0f, 1.0f};
+  inline static const float vertices[]{-1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f,
+                                       1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f,
+                                       -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f,
+                                       1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  1.0f};
 
-  inline static const unsigned int indices[] = {
+  inline static const unsigned int indices[]{
       0, 1, 2, 2, 3, 0, 5, 4, 7, 7, 6, 5, 4, 0, 3, 3, 7, 4,
       1, 5, 6, 6, 2, 1, 4, 5, 1, 1, 0, 4, 3, 2, 6, 6, 7, 3};
 
