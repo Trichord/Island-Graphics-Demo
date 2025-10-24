@@ -33,5 +33,5 @@ void CubeMappedModel::loadTextures() {
   ImageLoader imageLoader(texturePaths);
   std::vector<ImageData> loadedImages = imageLoader.getImageData();
   cubemapTextureID =
-      texture_utilities::generateCubemapTextureID(loadedImages, true, false);
+      textureUtilities::generateCubemapTextureID(loadedImages, true, false);
 }

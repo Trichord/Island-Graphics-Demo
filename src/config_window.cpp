@@ -277,7 +277,7 @@ void ConfigWindow::loadConfigWindowImage() {
 
   if (imageData.size() == 0) return;
 
-  textureID = texture_utilities::generateTextureID(imageData[0], false, false);
+  textureID = textureUtilities::generateTextureID(imageData[0], false, false);
 }
 
 void ConfigWindow::updateGlobalResolution(unsigned int index) {

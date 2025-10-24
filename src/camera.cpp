@@ -1,8 +1,7 @@
 #include "../headers/camera.h"
 #include "../headers/config_window.h"
 
-#include <glad/glad.h>
-#include <math.h>
+#include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -23,11 +22,12 @@ Camera::Camera(glm::vec3 pos, glm::vec3 u, float y, float p)
 
 Camera::Camera(float posX, float posY, float posZ, float upX, float upY,
                float upZ, float y, float p)
-    : front{0.0f, 0.0f, -1.0f}, projectionMatrix{createProjectionMatrix()} {
-  position = glm::vec3(posX, posY, posZ);
-  worldUp = glm::vec3(upX, upY, upZ);
-  yaw = y;
-  pitch = p;
+    : front{0.0f, 0.0f, -1.0f},
+      projectionMatrix{createProjectionMatrix()},
+      position{posX, posY, posZ},
+      worldUp{upX, upY, upZ},
+      yaw{y},
+      pitch{p} {
   updateCameraVectors();
   dirtyMatrices = true;
 }
@@ -51,7 +51,7 @@ const glm::mat4& Camera::getViewNoTranslationMatrix() {
 }
 
 void Camera::processKeyboard(Camera_Movement direction, float deltaTime) {
-  float velocity = movementSpeed * deltaTime;
+  float velocity{movementSpeed * deltaTime};
   if (direction == FORWARD) position += front * velocity;
   if (direction == BACKWARD) position -= front * velocity;
   if (direction == LEFT) position -= right * velocity;
@@ -66,7 +66,7 @@ void Camera::processKeyboard(Camera_Movement direction, float deltaTime) {
 // processes input received from a mouse input system. Expects the offset value
 // in both the x and y direction.
 void Camera::processMouseMovement(float xoffset, float yoffset,
-                                  GLboolean constrainPitch) {
+                                  bool constrainPitch) {
   xoffset *= mouseSensitivity;
   yoffset *= mouseSensitivity;
 
@@ -100,11 +100,10 @@ const glm::vec3& Camera::getPosition() const { return position; }
 
 // calculates the front vector from the Camera's (updated) Euler angles
 void Camera::updateCameraVectors() {
-  glm::vec3 newFront;
-  float cosPitch = cos(glm::radians(pitch));
-  newFront.x = cos(glm::radians(yaw)) * cosPitch;
-  newFront.y = sin(glm::radians(pitch));
-  newFront.z = sin(glm::radians(yaw)) * cosPitch;
+  float cosPitch{glm::cos(glm::radians(pitch))};
+  glm::vec3 newFront{glm::cos(glm::radians(yaw)) * cosPitch,
+                     glm::sin(glm::radians(pitch)),
+                     glm::sin(glm::radians(yaw)) * cosPitch};
   front = glm::normalize(newFront);
   right = glm::normalize(glm::cross(front, worldUp));
   up = glm::normalize(glm::cross(right, front));
@@ -112,7 +111,7 @@ void Camera::updateCameraVectors() {
 
 void Camera::updateCameraMatrices() {
   viewMatrix = glm::lookAt(position, position + front, up);
-  viewNoTranslationMatrix = glm::mat4(glm::mat3(viewMatrix));
+  viewNoTranslationMatrix = glm::mat4{glm::mat3{viewMatrix}};
 }
 
 const glm::mat4& Camera::getProjectionMatrix() { return projectionMatrix; }
