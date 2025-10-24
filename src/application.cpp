@@ -124,6 +124,7 @@ void Application::createOpenGLViewport() {
 }
 
 void Application::processInput(Scene& scene) {
+  using enum CameraMovement;
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, GLFW_TRUE);
     return;
@@ -168,12 +169,12 @@ void Application::addGlfwUserParam(Scene& scene) {
 
 void Application::onUpdate(Scene& scene, float deltaTime) {
   // Rotate the fancy space dodecahedron
-  auto& spaceDodeca{scene.getObjectTransform("spaceDodeca")};
+  auto& spaceDodeca = scene.getObjectTransform("spaceDodeca");
   spaceDodeca.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});
 
   // Move the light around the flight helmet
-  auto& circlingLight{
-      static_cast<PointLight&>(scene.getNamedLight("circlingLight"))};
+  auto& circlingLight =
+      static_cast<PointLight&>(scene.getNamedLight("circlingLight"));
 
   glm::vec3 newPos;
   const float radius{1.25f};
@@ -196,7 +197,7 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
   lastMouseX = (float)xPos;
   lastMouseY = (float)yPos;
 
-  auto scenePointer{static_cast<DemoScene*>(glfwGetWindowUserPointer(window))};
+  auto scenePointer = static_cast<DemoScene*>(glfwGetWindowUserPointer(window));
 
   if (scenePointer)
     scenePointer->camera.processMouseMovement(xOffset, yOffset, GL_TRUE);

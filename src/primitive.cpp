@@ -15,14 +15,14 @@
 // copies
 Primitive::Primitive(std::vector<Vertex>&& verts,
                      std::vector<std::uint32_t>&& inds, unsigned int matIndex)
-    : materialIndex(matIndex),
-      vertices(std::move(verts)),
-      indices(std::move(inds)) {
+    : materialIndex{matIndex},
+      vertices{std::move(verts)},
+      indices{std::move(inds)} {
   setupPrimitiveBuffers();
 }
 
 Primitive::Primitive(Primitive&& other) noexcept
-    : vertices(std::move(other.vertices)), indices(std::move(other.indices)) {
+    : vertices{std::move(other.vertices)}, indices{std::move(other.indices)} {
   VAO = other.VAO;
   VBO = other.VBO;
   EBO = other.EBO;
@@ -60,15 +60,16 @@ Primitive::~Primitive() {
 
 // Reset to default VAO & active texture handled by model.h
 void Primitive::draw() const {
-  if (VAO == 0) return;
+  if (!VAO) return;
 
   glBindVertexArray(VAO);
   glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
 }
 
 void Primitive::setupPrimitiveBuffers() {
-  if (vertices.size() == 0 || indices.size() == 0) {
-    std::cout << "Error: no vertices or indices in mesh" << std::endl;
+  if (!vertices.size() || !indices.size()) {
+    std::cout << "Error: missing either vertices or indices in mesh"
+              << std::endl;
     return;
   }
 

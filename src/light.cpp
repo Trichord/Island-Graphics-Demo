@@ -1,7 +1,7 @@
 #include "../headers/light.h"
 #include <glm/glm.hpp>
 
-Light::Light(const glm::vec3& newColor) : color(newColor) {}
+Light::Light(const glm::vec3& newColor) : color{newColor} {}
 
 void Light::setColor(const glm::vec3& newColor) {
   color = newColor;

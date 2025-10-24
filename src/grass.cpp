@@ -86,13 +86,13 @@ void Grass::render() {
 }
 
 void Grass::loadTexture(const std::filesystem::path &texturePath) {
-  ImageLoader imageLoader = ImageLoader(texturePath);
-  std::vector<ImageData> imageData = imageLoader.getImageData();
+  ImageLoader imageLoader{texturePath};
+  std::vector<ImageData> imageData{imageLoader.getImageData()};
 
   if (imageData.size())
     textureID = textureUtilities::generateTextureID(
-        imageData[0], Sampler(GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR,
-                              GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE));
+        imageData[0], Sampler{GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR,
+                              GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE});
 }
 
 void Grass::setupBuffers(unsigned int tuftDensity) {
@@ -162,44 +162,44 @@ void Grass::generateRadialPatternTransforms(float minSize, float maxSize,
   std::mt19937 mt(rd());
 
   // Max range of jitter for scale
-  float scaleVariation = (maxSize - minSize) * scaleVariationFactor;
+  float scaleVariation{(maxSize - minSize) * scaleVariationFactor};
 
   // Rotate the entire tuft somewhere in the [0-360) degree range
-  std::uniform_real_distribution<float> baseRotation(0.0f, 360.0f);
+  std::uniform_real_distribution<float> baseRotation{0.0f, 360.0f};
 
   // Add a tiny bit of rotation jitter for each quad
-  std::uniform_real_distribution<float> rndRotJitter(-rotationVariation,
-                                                     rotationVariation);
+  std::uniform_real_distribution<float> rndRotJitter{-rotationVariation,
+                                                     rotationVariation};
 
   // Random amount of scale jitter to be applied for each quad
-  std::uniform_real_distribution<float> rndScaleJitter(-scaleVariation,
-                                                       scaleVariation);
+  std::uniform_real_distribution<float> rndScaleJitter{-scaleVariation,
+                                                       scaleVariation};
 
   // Pick a base quad size somewhere between (min, max)
-  std::uniform_real_distribution<float> rndBaseScale(minSize, maxSize);
+  std::uniform_real_distribution<float> rndBaseScale{minSize, maxSize};
 
   transforms.reserve(grassPositions.size() * tuftDensity);
 
   for (const auto &position : grassPositions) {
     // Generate our base rotation and scale
-    float instanceBaseRotation = baseRotation(mt);
-    float instanceScale = rndBaseScale(mt);
+    float instanceBaseRotation{baseRotation(mt)};
+    float instanceScale{rndBaseScale(mt)};
     for (unsigned int i = 0; i < tuftDensity; ++i) {
       // Final quad angle
-      float quadAngle =
-          (360.0f / tuftDensity) * i + instanceBaseRotation + rndRotJitter(mt);
+      float quadAngle{(360.0f / tuftDensity) * i + instanceBaseRotation +
+                      rndRotJitter(mt)};
 
       // Push it out from the center
-      float quadAngleInRad = glm::radians(quadAngle);
-      glm::vec3 outwardTranslation =
-          glm::vec3(glm::sin(quadAngleInRad), 0.0f, glm::cos(quadAngleInRad)) *
-          outwardPush;
+      float quadAngleInRad{glm::radians(quadAngle)};
+      glm::vec3 outwardTranslation{
+          glm::vec3{glm::sin(quadAngleInRad), 0.0f, glm::cos(quadAngleInRad)} *
+          outwardPush};
 
       // Scale first, rotate around world origin, then move into position
-      glm::mat4 transform = glm::mat4(1.0f);
+      glm::mat4 transform{1.0f};
       transform = glm::translate(transform, position + outwardTranslation);
       transform = glm::rotate(transform, glm::radians(quadAngle),
-                              glm::vec3(0.0f, 1.0f, 0.0f));
+                              glm::vec3{0.0f, 1.0f, 0.0f});
       transform =
           glm::scale(transform, glm::vec3(instanceScale,
                                           instanceScale + rndScaleJitter(mt),
@@ -216,33 +216,35 @@ void Grass::generateStarPatternTransforms(float minSize, float maxSize,
   std::mt19937 mt(rd());
 
   // Max variation on base scale
-  float scaleVariation = (maxSize - minSize) * scaleVariationFactor;
+  float scaleVariation{(maxSize - minSize) * scaleVariationFactor};
 
   // Base rotation of the entire tuft
-  std::uniform_real_distribution<float> baseRotation(0.0f, 360.0f);
+  std::uniform_real_distribution<float> baseRotation{0.0f, 360.0f};
 
   // Random amount of rotational jitter
-  std::uniform_real_distribution<float> rndRotJitter(-rotationVariation,
-                                                     rotationVariation);
+  std::uniform_real_distribution<float> rndRotJitter{-rotationVariation,
+                                                     rotationVariation};
 
   // Random scale jitter based off max variation
-  std::uniform_real_distribution<float> rndScaleJitter(-scaleVariation,
-                                                       scaleVariation);
+  std::uniform_real_distribution<float> rndScaleJitter{-scaleVariation,
+                                                       scaleVariation};
 
   // Random base size between (min, max)
-  std::uniform_real_distribution<float> rndBaseScale(minSize, maxSize);
+  std::uniform_real_distribution<float> rndBaseScale{minSize, maxSize};
 
   transforms.reserve(grassPositions.size() * tuftDensity);
 
   for (const auto &position : grassPositions) {
     // Per-tuft size and scale
-    float instanceBaseRotation = baseRotation(mt);
-    float instanceScale = rndBaseScale(mt);
-    for (unsigned int i = 0; i < tuftDensity; ++i) {
-      float quadAngle =
-          (360.0f / tuftDensity) * i + instanceBaseRotation + rndRotJitter(mt);
+    float instanceBaseRotation{baseRotation(mt)};
+    float instanceScale{rndBaseScale(mt)};
 
-      glm::mat4 transform = glm::mat4(1.0f);
+    for (unsigned int i = 0; i < tuftDensity; ++i) {
+      // Final quad angle
+      float quadAngle{(360.0f / tuftDensity) * i + instanceBaseRotation +
+                      rndRotJitter(mt)};
+
+      glm::mat4 transform{1.0f};
       transform = glm::translate(transform, position);
       transform = glm::rotate(transform, glm::radians(quadAngle),
                               glm::vec3(0.0f, 1.0f, 0.0f));
@@ -267,9 +269,11 @@ void Grass::deleteBuffers() {
 void Grass::loadGrassPositions(const std::filesystem::path &positionsPath,
                                unsigned int numPositions) {
   grassPositions.reserve(numPositions);
-  float x = 0.0f, y = 0.0f, z = 0.0f;
+  float x{0.0f};
+  float y{0.0f};
+  float z{0.0f};
 
-  std::fstream grassFile(positionsPath);
+  std::fstream grassFile{positionsPath};
 
   if (grassFile.is_open())
     while (grassFile >> x >> y >> z) grassPositions.emplace_back(x, y, z);

@@ -23,7 +23,7 @@ float random(vec2 st)
 }
 
 vec3 calcWindTranslation(float timeStamp, vec3 windDir, float windStr){
-	float bladeOffset = random(aTransform[0].xy) * 0.6;
+	float bladeOffset = random(aTransform[0].xy) * 0.7;
 	
 	float time1 = sin(timeStamp + random(centerPos.xz) + bladeOffset);
 	float time2 = cos(timeStamp + random(centerPos.xz * 1.337));

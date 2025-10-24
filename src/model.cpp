@@ -22,10 +22,10 @@
 Model::Model(const std::filesystem::path& path) { loadModel(path); }
 
 Model::Model(Model&& other) noexcept
-    : asset(std::move(other.asset)),
-      meshes(std::move(other.meshes)),
-      materials(std::move(other.materials)),
-      assetImages(std::move(other.assetImages)) {
+    : asset{std::move(other.asset)},
+      meshes{std::move(other.meshes)},
+      materials{std::move(other.materials)},
+      assetImages{std::move(other.assetImages)} {
   other.assetImages.clear();
 }
 
@@ -55,11 +55,11 @@ void Model::render() {
         continue;
       }
 
-      Material material = materials[primitive.materialIndex];
+      Material material{materials[primitive.materialIndex]};
 
-      unsigned int albedoIndex = material.albedoImageIndex;
-      unsigned int aoMetRoughIdx = material.aoMetallicRoughnessImageIndex;
-      unsigned int normIndex = material.normalImageIndex;
+      unsigned int albedoIndex{material.albedoImageIndex};
+      unsigned int aoMetRoughIdx{material.aoMetallicRoughnessImageIndex};
+      unsigned int normIndex{material.normalImageIndex};
 
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, assetImages[albedoIndex]);
@@ -93,12 +93,12 @@ void Model::loadModel(const std::filesystem::path& path) {
 void Model::loadTextures(const std::filesystem::path& parentPath) {
   // Get all local Uniform Resource Identifiers from gltf, so we can pass the
   // file paths to the image loader
-  std::vector<std::filesystem::path> texturePaths =
-      fastgltfLoader::getURIs(asset, parentPath);
+  std::vector<std::filesystem::path> texturePaths{
+      fastgltfLoader::getURIs(asset, parentPath)};
 
   // Load images
-  ImageLoader imageLoader(texturePaths);
-  std::vector<ImageData> imageData = imageLoader.getImageData();
+  ImageLoader imageLoader{texturePaths};
+  std::vector<ImageData> imageData{imageLoader.getImageData()};
 
   // Pass the image data so that OpenGL texture IDs can be generated and
   // attached to the appropriate materials
@@ -115,9 +115,8 @@ void Model::loadMaterials(const std::vector<ImageData>& imageData) {
     // Generate new texture id if the index is not already in the set image
     // indices already processed
     if (processedImageIndices.insert(index).second) {
-      GLuint texID =
-          textureUtilities::generateTextureID(imageData[index],
-                                                          sampler, sRGB);
+      GLuint texID{
+          textureUtilities::generateTextureID(imageData[index], sampler, sRGB)};
       assetImages[index] = texID;
     }
 

@@ -50,7 +50,8 @@ const glm::mat4& Camera::getViewNoTranslationMatrix() {
   return viewNoTranslationMatrix;
 }
 
-void Camera::processKeyboard(Camera_Movement direction, float deltaTime) {
+void Camera::processKeyboard(CameraMovement direction, float deltaTime) {
+  using enum CameraMovement;
   float velocity{movementSpeed * deltaTime};
   if (direction == FORWARD) position += front * velocity;
   if (direction == BACKWARD) position -= front * velocity;
@@ -100,10 +101,13 @@ const glm::vec3& Camera::getPosition() const { return position; }
 
 // calculates the front vector from the Camera's (updated) Euler angles
 void Camera::updateCameraVectors() {
-  float cosPitch{glm::cos(glm::radians(pitch))};
-  glm::vec3 newFront{glm::cos(glm::radians(yaw)) * cosPitch,
-                     glm::sin(glm::radians(pitch)),
-                     glm::sin(glm::radians(yaw)) * cosPitch};
+  float cosPitchRad{glm::cos(glm::radians(pitch))};
+  float sinPitchRad{glm::sin(glm::radians(pitch))};
+  float yawRad{glm::radians(yaw)};
+
+  glm::vec3 newFront{glm::cos(yawRad) * cosPitchRad, sinPitchRad,
+                     glm::sin(yawRad) * cosPitchRad};
+
   front = glm::normalize(newFront);
   right = glm::normalize(glm::cross(front, worldUp));
   up = glm::normalize(glm::cross(right, front));

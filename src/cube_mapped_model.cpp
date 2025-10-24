@@ -13,7 +13,7 @@
 #include "../headers/texture_utilities.h"
 
 CubeMappedModel::CubeMappedModel(CubeMappedModel&& other) noexcept
-    : cubemapTextureID(other.cubemapTextureID) {
+    : cubemapTextureID{other.cubemapTextureID} {
   other.cubemapTextureID = 0;
 }
 
@@ -30,8 +30,8 @@ CubeMappedModel& CubeMappedModel::operator=(CubeMappedModel&& other) noexcept {
 CubeMappedModel::~CubeMappedModel() { glDeleteTextures(1, &cubemapTextureID); }
 
 void CubeMappedModel::loadTextures() {
-  ImageLoader imageLoader(texturePaths);
-  std::vector<ImageData> loadedImages = imageLoader.getImageData();
+  ImageLoader imageLoader{texturePaths};
+  std::vector<ImageData> loadedImages{imageLoader.getImageData()};
   cubemapTextureID =
       textureUtilities::generateCubemapTextureID(loadedImages, true, false);
 }
