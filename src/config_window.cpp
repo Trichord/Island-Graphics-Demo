@@ -10,12 +10,14 @@
 #include <vector>
 #include <iostream>
 
-#define GUI_WIDTH 1024
-#define GUI_HEIGHT 576
-#define NUM_COLUMNS 2
+namespace {
+constexpr unsigned int GUIWidth{1024u};
+constexpr unsigned int GUIHeight{576u};
+constexpr unsigned int numColumns{2u};
+};  // namespace
 
 ConfigWindow::~ConfigWindow() {
-  if (textureID != 0) glDeleteTextures(1, &textureID);
+  if (textureID) glDeleteTextures(1, &textureID);
 }
 
 static void glfw_error_callback(int error, const char* description) {
@@ -29,7 +31,7 @@ bool ConfigWindow::launchSettingsWindow() {
 
   setupImGui();
 
-  bool settingsConfirmed = renderImGui();
+  bool settingsConfirmed{renderImGui()};
 
   // Cleanup
   ImGui_ImplOpenGL3_Shutdown();
@@ -39,7 +41,7 @@ bool ConfigWindow::launchSettingsWindow() {
   glfwDestroyWindow(window);
   glfwTerminate();
 
-  if (textureID != 0) glDeleteTextures(1, &textureID);
+  if (textureID) glDeleteTextures(1, &textureID);
 
   return settingsConfirmed;
 }
@@ -57,21 +59,28 @@ bool ConfigWindow::createWindow() {
   glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
 
   // Create window with graphics context
-  float main_scale =
-      ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor());
+  float windowScale{
+      ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
   window = glfwCreateWindow(
-      (int)(GUI_WIDTH * main_scale), (int)(GUI_HEIGHT * main_scale),
-      "OpenGL 4.6 Tech Demo - Graphics Settings", nullptr, nullptr);
+      (int)(GUIWidth * windowScale), (int)(GUIHeight * windowScale),
+      "Island Tech Demo - Display Settings", nullptr, nullptr);
 
-  if (window == nullptr) return false;
+  if (!window) return false;
 
   // Center window
-  ImVec2 windowCenter = {GUI_WIDTH / 2, GUI_HEIGHT / 2};
-  int workX, workY, workWidth, workHeight;
-  glfwGetMonitorWorkarea(glfwGetPrimaryMonitor(), &workX, &workY, &workWidth,
-                         &workHeight);
-  glfwSetWindowPos(window, (int)(workWidth / 2 - windowCenter.x),
-                   (int)(workHeight / 2 - windowCenter.y));
+  ImVec2 windowCenter = {GUIWidth / 2, GUIHeight / 2};
+  int xPos{0};
+  int yPos{0};
+  int width{0};
+  int height{0};
+
+  glfwGetMonitorWorkarea(glfwGetPrimaryMonitor(), &xPos, &yPos, &width,
+                         &height);
+
+  int centerX{static_cast<int>(width / 2 - windowCenter.x)};
+  int centerY{static_cast<int>(height / 2 - windowCenter.y)};
+
+  glfwSetWindowPos(window, centerX, centerY);
 
   // Make current context
   glfwMakeContextCurrent(window);
@@ -95,20 +104,25 @@ void ConfigWindow::setupImGui() {
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(glsl_version);
 
-  // Setup Dear ImGui style and custom font
-  ImGui::StyleColorsDark();
+  // Custom font
   io.Fonts->AddFontFromFileTTF("./res/Inter_18pt-Black.ttf");
+
+  // Style
+  ImGui::StyleColorsDark();
 }
 
 bool ConfigWindow::renderImGui() {
-  ImVec2 guiSize = {GUI_WIDTH, GUI_HEIGHT};
+  float windowScale{
+      ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
+
+  ImVec2 guiSize{GUIWidth * windowScale, GUIHeight * windowScale};
 
   // Loop until settings are confirmed
   while (true) {
     glfwPollEvents();
 
-    // sleep if minimized
-    if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0) {
+    // Sleep if minimized
+    if (glfwGetWindowAttrib(window, GLFW_ICONIFIED)) {
       ImGui_ImplGlfw_Sleep(10);
       continue;
     }
@@ -119,19 +133,20 @@ bool ConfigWindow::renderImGui() {
     ImGui::NewFrame();
 
     // Centered and sized to fit the glfw window
-    ImVec2 windowCenter = {GUI_WIDTH / 2, GUI_HEIGHT / 2};
+    ImVec2 windowCenter{GUIWidth / 2, GUIHeight / 2};
+    ImVec2 centerPivot{0.5f, 0.5f};
     ImGui::SetNextWindowSize(guiSize);
-    ImGui::SetNextWindowPos(windowCenter, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowPos(windowCenter, ImGuiCond_Always, centerPivot);
 
     // Dear ImGUI window
-    ImGui::Begin("OpenGL 4.6 Tech Demo - Graphics Settings", NULL,
+    ImGui::Begin("Island Tech Demo - Display Settings", NULL,
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
     // start of display settings, image, and advanced options group
     ImGui::BeginGroup();
 
     // start of display settings group
-    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x / NUM_COLUMNS);
+    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x / numColumns);
     ImGui::BeginGroup();
     ImGui::SeparatorText("Display Settings");
     ImGui::Spacing();
@@ -141,13 +156,13 @@ bool ConfigWindow::renderImGui() {
     if (ImGui::BeginCombo("##resolutionCombo", resolutionPreviewValue,
                           ImGuiComboFlags_HeightLargest)) {
       for (int i = 0; i < resolutions.size(); ++i) {
-        const bool is_res_selected = (resolutionSelectedIndex == i);
-        if (ImGui::Selectable(resolutions[i], is_res_selected)) {
+        const bool isResolutionSelected{resolutionSelectedIndex == i};
+        if (ImGui::Selectable(resolutions[i], isResolutionSelected)) {
           resolutionSelectedIndex = i;
           resolutionPreviewValue = resolutions[resolutionSelectedIndex];
           updateGlobalResolution(i);
         }
-        if (is_res_selected) ImGui::SetItemDefaultFocus();
+        if (isResolutionSelected) ImGui::SetItemDefaultFocus();
       }
       ImGui::EndCombo();
     }
@@ -178,13 +193,13 @@ bool ConfigWindow::renderImGui() {
     if (ImGui::BeginCombo("##msaaCombo", msaaPreviewValue,
                           ImGuiComboFlags_HeightLargest)) {
       for (int i = 0; i < msaaLevel.size(); ++i) {
-        const bool is_msaa_selected = (msaaSelectedIndex == i);
-        if (ImGui::Selectable(msaaLevel[i], is_msaa_selected)) {
+        const bool isMSAASelected{msaaSelectedIndex == i};
+        if (ImGui::Selectable(msaaLevel[i], isMSAASelected)) {
           msaaSelectedIndex = i;
           msaaPreviewValue = msaaLevel[msaaSelectedIndex];
           updateGlobalMSAA(i);
         }
-        if (is_msaa_selected) ImGui::SetItemDefaultFocus();
+        if (isMSAASelected) ImGui::SetItemDefaultFocus();
       }
       ImGui::EndCombo();
     }
@@ -196,13 +211,13 @@ bool ConfigWindow::renderImGui() {
     if (ImGui::BeginCombo("##anisoCombo", anisoPreviewValue,
                           ImGuiComboFlags_HeightLargest)) {
       for (int i = 0; i < anisoLevel.size(); ++i) {
-        const bool is_aniso_selected = (anisoSelectedIndex == i);
-        if (ImGui::Selectable(anisoLevel[i], is_aniso_selected)) {
+        const bool isAnisoSelected{anisoSelectedIndex == i};
+        if (ImGui::Selectable(anisoLevel[i], isAnisoSelected)) {
           anisoSelectedIndex = i;
           anisoPreviewValue = anisoLevel[anisoSelectedIndex];
           updateGlobalAniso(i);
         }
-        if (is_aniso_selected) ImGui::SetItemDefaultFocus();
+        if (isAnisoSelected) ImGui::SetItemDefaultFocus();
       }
       ImGui::EndCombo();
     }
@@ -226,38 +241,43 @@ bool ConfigWindow::renderImGui() {
     // end of display settings, image, and advanced options group
     ImGui::EndGroup();
 
-    ImVec2 windowPadding = ImGui::GetStyle().WindowPadding;
-    ImVec2 windowSize = ImGui::GetWindowSize();
-    ImVec2 windowPosition = ImGui::GetWindowPos();
-    float buttonHeight = ImGui::GetFrameHeight();
+    // Buttons
+    const float buttonHeight{ImGui::GetFrameHeight()};
+    const ImVec2 windowPadding{ImGui::GetStyle().WindowPadding};
+    const ImVec2 windowSize{ImGui::GetWindowSize()};
+    const ImVec2 windowPosition{ImGui::GetWindowPos()};
+    
+    // Cancel button
+    float cancelX{windowPadding.x};
+    float cancelY{windowPosition.y + windowSize.y - buttonHeight -
+                  windowPadding.y};
 
-    ImGui::SetCursorScreenPos(ImVec2(
-        windowPadding.x,
-        windowPosition.y + windowSize.y - buttonHeight - windowPadding.y));
+    ImGui::SetCursorScreenPos(ImVec2{cancelX, cancelY});
     if (ImGui::Button("Cancel")) return false;
 
     ImGui::SameLine();
 
-    float buttonWidth = ImGui::CalcTextSize("Confirm").x;
+    // Confirm button
+    float confirmButtonWidth{ImGui::CalcTextSize("Confirm").x};
 
-    ImGui::SetCursorScreenPos(ImVec2(
-        windowPosition.x + windowSize.x - (windowPadding.x * 2.0f) -
-            buttonWidth,
-        windowPosition.y + windowSize.y - buttonHeight - windowPadding.y));
+    float confirmXPos{windowPosition.x + windowSize.x -
+                      (windowPadding.x * 2.0f) - confirmButtonWidth};
+
+    float confirmYPos{windowPosition.y + windowSize.y - buttonHeight -
+                      windowPadding.y};
+
+    ImGui::SetCursorScreenPos(ImVec2{confirmXPos, confirmYPos});
     if (ImGui::Button("Confirm")) break;
-    ;
 
     // End
     ImGui::End();
 
     // Rendering
     ImGui::Render();
-    int display_w, display_h;
-    glfwGetFramebufferSize(window, &display_w, &display_h);
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    glViewport(0, 0, display_w, display_h);
-    glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w,
-                 clear_color.z * clear_color.w, clear_color.w);
+    int displayWidth{0};
+    int displayHeight{0};
+    glfwGetFramebufferSize(window, &displayWidth, &displayHeight);
+    glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
     glClear(GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -267,15 +287,15 @@ bool ConfigWindow::renderImGui() {
 }
 
 void ConfigWindow::loadConfigWindowImage() {
-  ImageLoader imageLoader("./textures/wireframe_sphere.png");
-  std::vector<ImageData> imageData = imageLoader.getImageData();
+  ImageLoader imageLoader{"./textures/wireframe_sphere.png"};
+  std::vector<ImageData> imageData{imageLoader.getImageData()};
 
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     std::cout << "Failed to initialize GLAD" << std::endl;
     return;
   }
 
-  if (imageData.size() == 0) return;
+  if (!imageData.size()) return;
 
   textureID = textureUtilities::generateTextureID(imageData[0], false, false);
 }

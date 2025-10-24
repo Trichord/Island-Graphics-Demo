@@ -41,7 +41,7 @@ void DemoScene::addAllModelsToScene() {
   std::cout << ".";
 
   // Skybox
-  std::vector<std::string> skyBoxPaths = {
+  std::vector<std::string> skyBoxPaths {
       "./textures/skybox/right.png", "./textures/skybox/left.png",
       "./textures/skybox/top.png",   "./textures/skybox/bottom.png",
       "./textures/skybox/front.png", "./textures/skybox/back.png"};
@@ -59,10 +59,10 @@ void DemoScene::addAllModelsToScene() {
 
 void DemoScene::addAllLightsToScene() {
   // Normalized approximation of sun direction in skybox
-  globalLightSource = {glm::vec3{-0.363647, -0.739629, -0.566312}};
+  globalLightSource = glm::vec3{-0.363647, -0.739629, -0.566312};
 
   // Right next to the flight helmet
   addLightToScene(pointLights, PointLight{LIGHTBULB_START}, "circlingLight");
 }
 
-void DemoScene::setupCamera() { camera = glm::vec3(0.0f, 3.0f, 30.0f); }
+void DemoScene::setupCamera() { camera = glm::vec3{0.0f, 3.0f, 30.0f}; }
