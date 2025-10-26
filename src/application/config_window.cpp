@@ -105,7 +105,7 @@ void ConfigWindow::setupImGui() {
   ImGui_ImplOpenGL3_Init(glsl_version);
 
   // Custom font
-  io.Fonts->AddFontFromFileTTF("./extern/imgui/Inter_18pt-Black.ttf");
+  io.Fonts->AddFontFromFileTTF("./res/Inter_18pt-Black.ttf");
 
   // Style
   ImGui::StyleColorsDark();
@@ -287,7 +287,7 @@ bool ConfigWindow::renderImGui() {
 }
 
 void ConfigWindow::loadConfigWindowImage() {
-  ImageLoader imageLoader{".res/textures/wireframe_sphere.png"};
+  ImageLoader imageLoader{"./res/textures/wireframe_sphere.png"};
   std::vector<ImageData> imageData{imageLoader.getImageData()};
 
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
