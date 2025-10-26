@@ -11,6 +11,10 @@ class SpaceModel : public CubeMappedModel {
  public:
   SpaceModel(const std::filesystem::path& modelPath,
              const std::vector<std::filesystem::path>& imagePaths);
+  SpaceModel(SpaceModel&& other) noexcept;
+  SpaceModel& operator=(SpaceModel&& other) noexcept;
+  ~SpaceModel() = default;
+
   void render() override;
 
  protected:

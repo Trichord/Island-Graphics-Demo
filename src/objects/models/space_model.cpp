@@ -12,8 +12,20 @@
 SpaceModel::SpaceModel(const std::filesystem::path& modelPath,
                        const std::vector<std::filesystem::path>& imagePaths)
     : CubeMappedModel{imagePaths} {
- 
   loadModel(modelPath);
+}
+
+SpaceModel::SpaceModel(SpaceModel&& other) noexcept
+    : CubeMappedModel{std::move(other)} {
+  meshes = std::move(other.meshes);
+}
+
+SpaceModel& SpaceModel::operator=(SpaceModel&& other) noexcept {
+  if (this != &other) {
+    CubeMappedModel::operator=(std::move(other));
+    meshes = std::move(other.meshes);
+  }
+  return *this;
 }
 
 void SpaceModel::render() {
