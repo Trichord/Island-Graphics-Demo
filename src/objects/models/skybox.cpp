@@ -23,6 +23,7 @@ Skybox::Skybox(Skybox&& other) noexcept : CubeMappedModel{std::move(other)} {
 
 Skybox& Skybox::operator=(Skybox&& other) noexcept {
   if (this != &other) {
+    CubeMappedModel::operator=(std::move(other));
     deleteBuffers();
 
     modelVAO = other.modelVAO;
