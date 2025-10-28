@@ -22,6 +22,7 @@ Renderer::Renderer(int screenWidth, int screenHeight) {
 
   // Setup shaders
   setupGrassShader(shaders.at(ShaderType::GRASS));
+  setupFlowerShader(shaders.at(ShaderType::FLOWERS));
   setupPBRShader(shaders.at(ShaderType::POINT_PBR));
   setupPBRShader(shaders.at(ShaderType::DIRECTIONAL_PBR));
   setupReflectiveShader(shaders.at(ShaderType::REFLECTIVE));
@@ -124,6 +125,8 @@ void Renderer::loadShaders() {
   using enum ShaderType;
   shaders.emplace(GRASS,
                   Shader("./shaders/grass.vert", "./shaders/grass.frag"));
+  shaders.emplace(FLOWERS,
+                  Shader("./shaders/flowers.vert", "./shaders/flowers.frag"));
   shaders.emplace(POINT_PBR, Shader("./shaders/point_PBR.vert",
                                     "./shaders/point_PBR.frag"));
   shaders.emplace(DIRECTIONAL_PBR, Shader("./shaders/directional_PBR.vert",
@@ -140,7 +143,17 @@ void Renderer::setupGrassShader(Shader& shader) {
   glm::vec3 windDirection{0.88f, -0.1f, 0.4344f};
 
   shader.setUniformBlock("matrices", 0);
-  shader.setInt("grassTexture", 0);
+  shader.setInt("colorTexture", 0);
+  shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
+  shader.setFloat("windStrength", 0.07f);
+  shader.setVec3("windDirection", glm::normalize(windDirection));
+}
+
+void Renderer::setupFlowerShader(Shader& shader) {
+  glm::vec3 windDirection{0.88f, -0.1f, 0.4344f};
+
+  shader.setUniformBlock("matrices", 0);
+  shader.setInt("colorTexture", 0);
   shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
   shader.setFloat("windStrength", 0.07f);
   shader.setVec3("windDirection", glm::normalize(windDirection));
@@ -179,7 +192,7 @@ void Renderer::updateShaderUniforms(Scene& scene) {
   // Set uniforms
   for (auto& [shaderType, shader] : shaders) {
     switch (shaderType) {
-        using enum ShaderType;
+      using enum ShaderType;
       case DIRECTIONAL_PBR:
         if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
         break;
@@ -189,6 +202,11 @@ void Renderer::updateShaderUniforms(Scene& scene) {
         break;
 
       case GRASS:
+        shader.setFloat("time", (float)glfwGetTime() * 0.5f);
+        if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
+        break;
+
+      case FLOWERS:
         shader.setFloat("time", (float)glfwGetTime() * 0.5f);
         if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
         break;

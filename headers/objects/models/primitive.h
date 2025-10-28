@@ -34,8 +34,6 @@ class Primitive {
     std::vector<Primitive> primitives;
   };
 
-  int materialIndex{-1};
-
   Primitive() = default;
   Primitive(std::vector<Vertex>&& verts, std::vector<std::uint32_t>&& inds,
             int matIndex = -1);
@@ -45,15 +43,17 @@ class Primitive {
   Primitive& operator=(Primitive&& other) noexcept;
   ~Primitive();
 
-  std::vector<Vertex> vertices;
-  std::vector<std::uint32_t> indices;
-
-  void draw() const;
+  GLuint getVAO() const;
+  GLsizei getIndicesSize() const;
+  int getMaterialIndex() const;
 
  private:
   GLuint VAO{0};
   GLuint VBO{0};
   GLuint EBO{0};
+  int materialIndex{-1};
+  std::vector<Vertex> vertices;
+  std::vector<std::uint32_t> indices;
 
   void setupPrimitiveBuffers();
 };
