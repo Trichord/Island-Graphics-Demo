@@ -240,8 +240,8 @@ void Grass::generateStarPatternTransforms(float minSize, float maxSize,
     float instanceScale{rndBaseScale(mt)};
 
     for (unsigned int i = 0; i < tuftDensity; ++i) {
-      // Final quad angle
-      float quadAngle{(360.0f / tuftDensity) * i + instanceBaseRotation +
+      // Final quad angle.  Using 180 degrees to avoid overlap, as anything past 180 is a duplicate angle
+      float quadAngle{(180.0f / tuftDensity) * i + instanceBaseRotation +
                       rndRotJitter(mt)};
 
       glm::mat4 transform{1.0f};

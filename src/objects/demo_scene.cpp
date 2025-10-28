@@ -56,9 +56,14 @@ void DemoScene::addAllModelsToScene() {
   addObjectToScene(skybox, ShaderType::SKYBOX, Transform());
 
   // Grass
-  auto& grass = loadGrass("./res/grass1.txt", "./res/textures/grass.png",
+  auto& grass = loadGrass("./res/grass1.txt", "./res/textures/grass1.png",
                           Grass::RADIAL_PATTERN, 0.3f, 0.5f, 3, 8109);
   addObjectToScene(grass, ShaderType::GRASS, Transform());
+
+  //Flowers
+  auto& flowers = loadInstancedModel("./res/models/ranunculus/ranunculus.gltf",
+                                     "./res/flowers1.txt", 317);
+  addObjectToScene(flowers, ShaderType::FLOWERS, Transform());
 
   std::cout << " Done." << std::endl;
 }

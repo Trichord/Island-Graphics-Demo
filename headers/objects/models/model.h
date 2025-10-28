@@ -31,7 +31,7 @@ class Model : public Renderable {
 
   void render() override;
 
- private:
+ protected:
   struct Material {
     int albedoImageIndex, aoMetallicRoughnessImageIndex,
         normalImageIndex;

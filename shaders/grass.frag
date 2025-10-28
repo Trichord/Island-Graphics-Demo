@@ -7,14 +7,14 @@ const vec3 defaultMormal = vec3(0.0, 1.0, 0.0);
 
 out vec4 fragColor;
 
-uniform sampler2D grassTexture;
+uniform sampler2D colorTexture;
 uniform vec3 lightDir;
 uniform float gamma;
 
 in vec2 texCoords;
 
 void main() {
-    vec4 grassColor = texture(grassTexture, texCoords);
+    vec4 grassColor = texture(colorTexture, texCoords);
 
     if (grassColor.a < 0.1)
         discard;

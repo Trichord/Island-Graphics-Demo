@@ -33,7 +33,11 @@ void SpaceModel::render() {
   glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTextureID);
 
   for (const Primitive::Mesh& mesh : meshes)
-    for (const Primitive& primitive : mesh.primitives) primitive.draw();
+    for (const Primitive& primitive : mesh.primitives) {
+      glBindVertexArray(primitive.getVAO());
+      glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT,
+                     0);
+    }
 
   glBindVertexArray(0);
   glActiveTexture(GL_TEXTURE0);
