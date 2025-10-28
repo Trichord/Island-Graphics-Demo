@@ -50,16 +50,18 @@ Model::~Model() { deleteTextureIDs(); }
 void Model::render() {
   for (const Primitive::Mesh& mesh : meshes) {
     for (const Primitive& primitive : mesh.primitives) {
-      if (!assetImages.size()) {
-        primitive.draw();
-        continue;
+      int materialIndex{primitive.getMaterialIndex()};
+      int albedoIndex{-1};
+      int aoMetRoughIdx{-1};
+      int normIndex{-1};
+
+      if (materialIndex != -1 && materials.size()) {
+        Material material{materials[materialIndex]};
+
+        albedoIndex = material.albedoImageIndex;
+        aoMetRoughIdx = material.aoMetallicRoughnessImageIndex;
+        normIndex = material.normalImageIndex;    
       }
-
-      Material material{materials[primitive.materialIndex]};
-
-      int albedoIndex{material.albedoImageIndex};
-      int aoMetRoughIdx{material.aoMetallicRoughnessImageIndex};
-      int normIndex{material.normalImageIndex};
 
       if (albedoIndex != -1) {
         glActiveTexture(GL_TEXTURE0);
@@ -76,7 +78,9 @@ void Model::render() {
         glBindTexture(GL_TEXTURE_2D, assetImages[normIndex]);
       }
 
-      primitive.draw();
+      glBindVertexArray(primitive.getVAO());
+      glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT,
+                     0);
     }
   }
 

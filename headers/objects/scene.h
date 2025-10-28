@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <filesystem>
 
+#include "instanced_model.h"
 #include "model.h"
 #include "space_model.h"
 #include "skybox.h"
@@ -32,11 +33,12 @@
 //-----------------------------------------------------
 
 namespace sceneMaxObjects {
-inline constexpr int maxModels{100};
+inline constexpr int maxModels{50};
 inline constexpr int maxSpaceModels{10};
 inline constexpr int maxSkyboxes{10};
 inline constexpr int maxGrasses{10};
 inline constexpr int maxLights{5};
+inline constexpr int maxInstancedModels{25};
 }  // namespace sceneMaxObjects
 
 class Scene {
@@ -64,7 +66,9 @@ class Scene {
   std::vector<SpaceModel> spaceModels;
   std::vector<Skybox> skyboxes;
   std::vector<Grass> grasses;
+  std::vector<InstancedModel> instancedModels;
   std::vector<PointLight> pointLights;
+
   DirectionalLight globalLightSource;
 
   virtual void addAllModelsToScene() = 0;
@@ -81,6 +85,10 @@ class Scene {
                    const std::filesystem::path& texturePath,
                    Grass::TuftPattern tuftPattern, float minSize, float maxSize,
                    unsigned int tuftDensity = 3, unsigned int numPositions = 0);
+  InstancedModel& loadInstancedModel(const std::filesystem::path& modelPath,
+                                     const std::filesystem::path& positionsPath,
+                                     unsigned int numPositions = 0);
+
 
   /**
    * Adds an object to the scene.  Optional: give the object a name to reference

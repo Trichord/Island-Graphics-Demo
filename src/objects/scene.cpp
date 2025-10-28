@@ -76,6 +76,15 @@ Grass& Scene::loadGrass(const std::filesystem::path& positionsPath,
                               tuftDensity, numPositions);
 }
 
+InstancedModel& Scene::loadInstancedModel(
+    const std::filesystem::path& modelPath,
+    const std::filesystem::path& positionsPath, unsigned int numPositions) {
+  if (instancedModels.size() >= sceneMaxObjects::maxInstancedModels)
+    throw std::runtime_error{"Max number of instanced models reached"};
+
+  return instancedModels.emplace_back(modelPath, positionsPath, numPositions);
+}
+
 Transform& Scene::getObjectTransform(const std::string& key) {
   return namedTransforms.at(key).get();
 }

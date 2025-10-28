@@ -60,13 +60,13 @@ Primitive::~Primitive() {
   glDeleteVertexArrays(1, &VAO);
 }
 
-// Reset to default VAO & active texture handled by model.h
-void Primitive::draw() const {
-  if (!VAO) return;
+GLuint Primitive::getVAO() const { return VAO; }
 
-  glBindVertexArray(VAO);
-  glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
+GLsizei Primitive::getIndicesSize() const {
+  return static_cast < GLsizei>(indices.size());
 }
+
+int Primitive::getMaterialIndex() const { return materialIndex; }
 
 void Primitive::setupPrimitiveBuffers() {
   if (!vertices.size() || !indices.size()) {

@@ -21,7 +21,9 @@ class InstancedModel : public Model {
   std::vector<glm::mat4> transforms;
   std::vector<glm::vec3> positions;
 
+  void render() override;
   void loadPositions(const std::filesystem::path& positionsPath, unsigned int numPositions);
-  void setupBuffers();
+  void setupInstancedBuffers();
+  void generateTransforms();
   void deleteBuffers();
 };
