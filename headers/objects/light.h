@@ -2,10 +2,9 @@
 
 #include <glm/glm.hpp>
 
-//-------------------------
-// Abstract class light.  getColor was chosen as the abstract hook due to its
-// ease of implementation.
-//-------------------------
+/* Abstract class light.  getColor was chosen as the abstract hook due to its
+ * ease of implementation. */
+
 class Light {
  public:
   explicit Light(const glm::vec3& newColor = glm::vec3(1.0f));

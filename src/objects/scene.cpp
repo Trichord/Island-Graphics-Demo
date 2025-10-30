@@ -1,17 +1,19 @@
 #include "scene.h"
-#include "camera.h"
-#include "shader_types.h"
-#include "model.h"
-#include "space_model.h"
-#include "skybox.h"
-#include "transform.h"
-#include "quad.h"
-#include "light.h"
-#include "directional_light.h"
-#include "point_light.h"
-#include <vector>
+
 #include <map>
 #include <stdexcept>
+#include <vector>
+
+#include "camera.h"
+#include "directional_light.h"
+#include "light.h"
+#include "model.h"
+#include "point_light.h"
+#include "quad.h"
+#include "shader_types.h"
+#include "skybox.h"
+#include "space_model.h"
+#include "transform.h"
 
 Scene::Scene() {
   models.reserve(sceneMaxObjects::maxModels);

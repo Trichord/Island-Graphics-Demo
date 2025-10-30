@@ -3,9 +3,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-// Set absolute will reset that object property then adjust.  Set relative will
-// adjust the current state by the amount in the parameter. Rotation is given in
-// degrees, for an x, y, and z.
+/* The 'Set absolute' functions will reset that object property then adjust.
+ * 'Set relative' will adjust the current state by the amount in the parameter.
+ * Rotation is given in degrees, for an x, y, and z. */
+
 class Transform {
  public:
   Transform(glm::vec3 position = glm::vec3(0.0f),

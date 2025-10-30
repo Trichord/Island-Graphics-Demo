@@ -1,9 +1,8 @@
 #include "skybox.h"
-#include "cube_mapped_model.h"
 
 #include <vector>
 
-#include "shader.h"
+#include "cube_mapped_model.h"
 #include "glad/glad.h"
 
 Skybox::Skybox(const std::vector<std::filesystem::path>& imagePaths)

@@ -4,12 +4,8 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <glm/glm.hpp>
 #include <iostream>
-#include <string>
 #include <vector>
-
-#include "shader.h"
 
 // Don't forget to call std::move when calling Primitive constructor!  Avoid
 // copies
@@ -63,7 +59,7 @@ Primitive::~Primitive() {
 GLuint Primitive::getVAO() const { return VAO; }
 
 GLsizei Primitive::getIndicesSize() const {
-  return static_cast < GLsizei>(indices.size());
+  return static_cast<GLsizei>(indices.size());
 }
 
 int Primitive::getMaterialIndex() const { return materialIndex; }

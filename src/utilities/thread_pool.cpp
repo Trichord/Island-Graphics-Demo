@@ -2,10 +2,8 @@
 
 #include <condition_variable>
 #include <functional>
-#include <iostream>
 #include <mutex>
 #include <queue>
-#include <string>
 #include <thread>
 
 ThreadPool::ThreadPool() : stop(false) {

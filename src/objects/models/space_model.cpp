@@ -5,9 +5,8 @@
 #include <vector>
 
 #include "fastgltf_loader.h"
-#include "primitive.h"
-#include "shader.h"
 #include "glad/glad.h"
+#include "primitive.h"
 
 SpaceModel::SpaceModel(const std::filesystem::path& modelPath,
                        const std::vector<std::filesystem::path>& imagePaths)

@@ -5,7 +5,6 @@
 
 #include "cube_mapped_model.h"
 #include "primitive.h"
-#include "shader.h"
 
 class SpaceModel : public CubeMappedModel {
  public:

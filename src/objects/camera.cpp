@@ -1,9 +1,10 @@
 #include "camera.h"
-#include "config_window.h"
 
 #include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include "config_window.h"
 
 Camera::Camera() : projectionMatrix{createProjectionMatrix()} {
   updateCameraVectors();

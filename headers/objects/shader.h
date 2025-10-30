@@ -7,7 +7,8 @@
 #include <string>
 #include <unordered_map>
 
-// Owns program ID, no copying
+/* Owns program ID, no copying */
+
 class Shader {
  public:
   // Shader program ID

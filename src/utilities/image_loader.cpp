@@ -3,15 +3,15 @@
 #include "image_loader.h"
 
 #include <atomic>
-#include <condition_variable>
 #include <filesystem>
 #include <iostream>
 #include <mutex>
 #include <string>
 #include <vector>
 
-#include "thread_pool.h"
 #include "stb_image.h"
+#include "thread_pool.h"
+
 ImageLoader::ImageLoader(const std::filesystem::path& filepath)
     : numImages{1}, numImagesLoaded{0} {
   loadedImages.resize(numImages);

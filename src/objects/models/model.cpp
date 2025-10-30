@@ -2,22 +2,14 @@
 
 #include <glad/glad.h>
 
-#include <cstddef>
-#include <cstdint>
-#include <fastgltf/glm_element_traits.hpp>
 #include <fastgltf/types.hpp>
 #include <filesystem>
-#include <iostream>
-#include <stdexcept>
-#include <string>
 #include <vector>
 
 #include "fastgltf_loader.h"
 #include "image_loader.h"
 #include "primitive.h"
-#include "shader.h"
 #include "texture_utilities.h"
-#include "thread_pool.h"
 
 Model::Model(const std::filesystem::path& path) { loadModel(path); }
 
@@ -60,7 +52,7 @@ void Model::render() {
 
         albedoIndex = material.albedoImageIndex;
         aoMetRoughIdx = material.aoMetallicRoughnessImageIndex;
-        normIndex = material.normalImageIndex;    
+        normIndex = material.normalImageIndex;
       }
 
       if (albedoIndex != -1) {
