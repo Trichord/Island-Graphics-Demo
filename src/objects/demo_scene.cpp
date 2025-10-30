@@ -14,7 +14,7 @@ void DemoScene::addAllModelsToScene() {
 
   // Main island
   auto& island = loadModel("./res/models/island/island.gltf");
-  addObjectToScene(island, ShaderType::DIRECTIONAL_PBR, Transform());
+  addObjectToScene(island, ShaderType::DIRECTIONAL_PBR);
 
   std::cout << ".";
 
@@ -53,17 +53,17 @@ void DemoScene::addAllModelsToScene() {
       "./res/textures/skybox/front.png", "./res/textures/skybox/back.png"};
 
   auto& skybox = loadSkybox(skyBoxPaths);
-  addObjectToScene(skybox, ShaderType::SKYBOX, Transform());
+  addObjectToScene(skybox, ShaderType::SKYBOX);
 
   // Grass
-  auto& grass = loadGrass("./res/grass1.txt", "./res/textures/grass1.png",
-                          Grass::RADIAL_PATTERN, 0.3f, 0.5f, 3, 8109);
-  addObjectToScene(grass, ShaderType::GRASS, Transform());
+  auto& grass = loadQuad("./res/grass1.txt", "./res/textures/grass1.png",
+                          Quad::RADIAL_PATTERN, 0.3f, 0.5f, 3, 8109);
+  addObjectToScene(grass, ShaderType::GRASS);
 
   //Flowers
   auto& flowers = loadInstancedModel("./res/models/ranunculus/ranunculus.gltf",
                                      "./res/flowers1.txt", 317);
-  addObjectToScene(flowers, ShaderType::FLOWERS, Transform());
+  addObjectToScene(flowers, ShaderType::FLOWERS);
 
   std::cout << " Done." << std::endl;
 }
