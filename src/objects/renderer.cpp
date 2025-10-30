@@ -1,18 +1,19 @@
-#include <glad/glad.h>
 #include "renderer.h"
-#include "renderable.h"
-#include "transform.h"
-#include "scene.h"
-#include "shader_types.h"
-#include "shader.h"
+
+#include <glad/glad.h>
+
+#include <glm/glm.hpp>
+#include <iostream>
+#include <unordered_map>
+
 #include "camera.h"
 #include "config_window.h"
 #include "directional_light.h"
-#include <unordered_map>
-#include <map>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
+#include "renderable.h"
+#include "scene.h"
+#include "shader.h"
+#include "shader_types.h"
+#include "transform.h"
 
 Renderer::Renderer(int screenWidth, int screenHeight) {
   // Load shaders

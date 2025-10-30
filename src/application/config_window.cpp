@@ -1,14 +1,16 @@
 #include "config_window.h"
+
+#include "glad/glad.h"
+#include <GLFW/glfw3.h>
+
+#include <iostream>
+#include <vector>
+
+#include "image_loader.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "texture_utilities.h"
-#include "image_loader.h"
-#include "glad/glad.h"
-#include <GLFW/glfw3.h>
-#include <filesystem>
-#include <vector>
-#include <iostream>
 
 namespace {
 constexpr unsigned int GUIWidth{1024u};
@@ -104,7 +106,7 @@ void ConfigWindow::setupImGui() {
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(glsl_version);
 
-  //Get window scale for font size
+  // Get window scale for font size
   float windowScale{
       ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
 
@@ -117,7 +119,7 @@ void ConfigWindow::setupImGui() {
   // Set Style
   ImGui::StyleColorsDark();
 
-  //Scale all elements
+  // Scale all elements
   ImGuiStyle& style = ImGui::GetStyle();
   style.ScaleAllSizes(windowScale);
 }

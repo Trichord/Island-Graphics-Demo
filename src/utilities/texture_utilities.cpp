@@ -1,7 +1,9 @@
 #include "texture_utilities.h"
 
 #include <glad/glad.h>
+
 #include <iostream>
+
 #include "config_window.h"
 
 GLuint textureUtilities::generateTextureID(const ImageData& image,

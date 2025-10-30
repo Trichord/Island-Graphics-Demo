@@ -3,19 +3,18 @@
 #include <glad/glad.h>
 
 #include <filesystem>
-#include <string>
 #include <vector>
 
 #include "renderable.h"
-#include "shader.h"
 
-// Cube mapped models handle their VAO's and VBO's differently, so default
-// behavior is no copy. texturePaths should be filled in this order: right,
-// left, top, bottom, front, back
+/* Cube mapped models handle their VAO 's and VBO' s differently, so default
+ * behavior is no copy. texturePaths should be filled in this order: right,
+ * left, top, bottom, front, back */
 
 class CubeMappedModel : public Renderable {
  public:
-  explicit CubeMappedModel(const std::vector<std::filesystem::path>& imagePaths);
+  explicit CubeMappedModel(
+      const std::vector<std::filesystem::path> &imagePaths);
   CubeMappedModel(const CubeMappedModel &) = delete;
   CubeMappedModel &operator=(const CubeMappedModel &) = delete;
   CubeMappedModel(CubeMappedModel &&other) noexcept;

@@ -10,14 +10,11 @@
 #include "image_loader.h"
 #include "primitive.h"
 #include "renderable.h"
-#include "shader.h"
 
-/*
-Model owns the OpenGL Texture IDs and copying is disabled to avoid double frees.
-Texture IDs are released on Model destruction. assetImages is a 1:1 mapping of
-gltf's images array, but with OpenGL texture IDs instead of URIs.  Order of
-fastgltf's images is preserved
-*/
+/* Model owns the OpenGL Texture IDs and copying is disabled to avoid double
+ * frees. Texture IDs are released on Model destruction. assetImages is a 1:1
+ * mapping of gltf's images array, but with OpenGL texture IDs instead of URIs.
+ * Order of fastgltf's images is preserved */
 
 class Model : public Renderable {
  public:
@@ -33,11 +30,9 @@ class Model : public Renderable {
 
  protected:
   struct Material {
-    int albedoImageIndex, aoMetallicRoughnessImageIndex,
-        normalImageIndex;
+    int albedoImageIndex, aoMetallicRoughnessImageIndex, normalImageIndex;
 
-    Material(int alb = -1, int metRough = -1,
-             int norm = -1, int ao = -1)
+    Material(int alb = -1, int metRough = -1, int norm = -1, int ao = -1)
         : albedoImageIndex(alb),
           aoMetallicRoughnessImageIndex(metRough),
           normalImageIndex(norm) {};

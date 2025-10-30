@@ -1,9 +1,10 @@
 #pragma once
 
+#include <array>
+#include <utility>
+
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
-#include <utility>
-#include <array>
 
 class ConfigWindow {
  public:

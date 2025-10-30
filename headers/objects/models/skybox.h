@@ -1,10 +1,9 @@
 #pragma once
 
-#include <string>
+#include <filesystem>
 #include <vector>
 
 #include "cube_mapped_model.h"
-#include "shader.h"
 #include "glad/glad.h"
 
 class Skybox : public CubeMappedModel {
