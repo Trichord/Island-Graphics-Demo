@@ -22,7 +22,7 @@
 #include "transform.h"
 #include "point_light.h"
 #include "directional_light.h"
-#include "grass.h"
+#include "quad.h"
 
 //-----------------------------------------------------
 // Any storage container (Models, lights, etc.) must guarantee that their
@@ -36,7 +36,7 @@ namespace sceneMaxObjects {
 inline constexpr int maxModels{50};
 inline constexpr int maxSpaceModels{10};
 inline constexpr int maxSkyboxes{10};
-inline constexpr int maxGrasses{10};
+inline constexpr int maxQuadModels{10};
 inline constexpr int maxLights{5};
 inline constexpr int maxInstancedModels{25};
 }  // namespace sceneMaxObjects
@@ -65,7 +65,7 @@ class Scene {
   std::vector<Model> models;
   std::vector<SpaceModel> spaceModels;
   std::vector<Skybox> skyboxes;
-  std::vector<Grass> grasses;
+  std::vector<Quad> quads;
   std::vector<InstancedModel> instancedModels;
   std::vector<PointLight> pointLights;
 
@@ -81,14 +81,13 @@ class Scene {
       const std::filesystem::path& modelPath,
       const std::vector<std::filesystem::path>& imagePaths);
   Skybox& loadSkybox(const std::vector<std::filesystem::path>& filePaths);
-  Grass& loadGrass(const std::filesystem::path& positionsPath,
-                   const std::filesystem::path& texturePath,
-                   Grass::TuftPattern tuftPattern, float minSize, float maxSize,
-                   unsigned int tuftDensity = 3, unsigned int numPositions = 0);
+  Quad& loadQuad(const std::filesystem::path& positionsPath,
+                 const std::filesystem::path& texturePath,
+                 Quad::QuadPattern pattern, float minSize, float maxSize,
+                 unsigned int density = 1, unsigned int numPositions = 0);
   InstancedModel& loadInstancedModel(const std::filesystem::path& modelPath,
                                      const std::filesystem::path& positionsPath,
                                      unsigned int numPositions = 0);
-
 
   /**
    * Adds an object to the scene.  Optional: give the object a name to reference
@@ -99,14 +98,15 @@ class Scene {
    * @param transform The position / rotation / scale transform applied to the
    * object
    */
-  template <typename T, typename U>
-  void addObjectToScene(T& modelRef, ShaderType shaderType, U&& transform,
+  template <typename T>
+  void addObjectToScene(T& modelRef, ShaderType shaderType, Transform&& transform = Transform{},
                         const std::optional<std::string> name = std::nullopt) {
     sceneObjects[shaderType].emplace_back(
-        RenderableObject{std::ref(modelRef), std::forward<U>(transform)});
+        RenderableObject{std::ref(modelRef), transform});
 
     if (name.has_value())
-      namedTransforms.emplace(name.value(), std::ref(sceneObjects[shaderType].back().transform));
+      namedTransforms.emplace(
+          name.value(), std::ref(sceneObjects[shaderType].back().transform));
   }
 
   /**

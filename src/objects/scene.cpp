@@ -5,7 +5,7 @@
 #include "space_model.h"
 #include "skybox.h"
 #include "transform.h"
-#include "grass.h"
+#include "quad.h"
 #include "light.h"
 #include "directional_light.h"
 #include "point_light.h"
@@ -17,7 +17,7 @@ Scene::Scene() {
   models.reserve(sceneMaxObjects::maxModels);
   spaceModels.reserve(sceneMaxObjects::maxSpaceModels);
   skyboxes.reserve(sceneMaxObjects::maxSkyboxes);
-  grasses.reserve(sceneMaxObjects::maxGrasses);
+  quads.reserve(sceneMaxObjects::maxQuadModels);
   pointLights.reserve(sceneMaxObjects::maxLights);
 }
 
@@ -64,16 +64,15 @@ Skybox& Scene::loadSkybox(const std::vector<std::filesystem::path>& filePaths) {
   return skyboxes.emplace_back(filePaths);
 }
 
-Grass& Scene::loadGrass(const std::filesystem::path& positionsPath,
-                        const std::filesystem::path& texturePath,
-                        Grass::TuftPattern tuftPattern, float minSize,
-                        float maxSize, unsigned int tuftDensity,
-                        unsigned int numPositions) {
-  if (grasses.size() >= sceneMaxObjects::maxGrasses)
-    throw std::runtime_error("Max number of grasses reached");
+Quad& Scene::loadQuad(const std::filesystem::path& positionsPath,
+                      const std::filesystem::path& texturePath,
+                      Quad::QuadPattern pattern, float minSize, float maxSize,
+                      unsigned int density, unsigned int numPositions) {
+  if (quads.size() >= sceneMaxObjects::maxQuadModels)
+    throw std::runtime_error("Max number of quad models reached");
 
-  return grasses.emplace_back(positionsPath, texturePath, tuftPattern, minSize, maxSize,
-                              tuftDensity, numPositions);
+  return quads.emplace_back(positionsPath, texturePath, pattern, minSize,
+                            maxSize, density, numPositions);
 }
 
 InstancedModel& Scene::loadInstancedModel(

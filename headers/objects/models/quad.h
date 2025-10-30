@@ -7,19 +7,19 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-class Grass : public Renderable {
+class Quad : public Renderable {
  public:
-  enum TuftPattern { STAR_PATTERN, RADIAL_PATTERN };
+  enum QuadPattern { STAR_PATTERN, RADIAL_PATTERN };
 
-  Grass(const std::filesystem::path &positionsPath,
-        const std::filesystem::path &texturePath, TuftPattern tuftPattern,
-        float minSize, float maxSize, unsigned int tuftDensity = 3,
+  Quad(const std::filesystem::path &positionsPath,
+        const std::filesystem::path &texturePath, QuadPattern pattern,
+        float minSize, float maxSize, unsigned int density = 3,
         unsigned int numPositions = 0);
-  Grass(const Grass &) = delete;
-  Grass &operator=(const Grass &) = delete;
-  Grass(Grass &&other) noexcept;
-  Grass &operator=(Grass &&other) noexcept;
-  ~Grass();
+  Quad(const Quad &) = delete;
+  Quad &operator=(const Quad &) = delete;
+  Quad(Quad &&other) noexcept;
+  Quad &operator=(Quad &&other) noexcept;
+  ~Quad();
 
   void render() override;
 
@@ -31,7 +31,7 @@ class Grass : public Renderable {
   GLuint transformsVBO{0};
   GLuint positionsVBO{0};
   std::vector<glm::mat4> transforms;
-  std::vector<glm::vec3> grassPositions;
+  std::vector<glm::vec3> positions;
 
   // Simple centered quad
   inline static const float vertices[] {
@@ -44,12 +44,12 @@ class Grass : public Renderable {
   inline static const unsigned int indices[] {0, 2, 3, 0, 3, 1};
 
   void loadTexture(const std::filesystem::path &texturePath);
-  void setupBuffers(unsigned int tuftDensity);
+  void setupBuffers(unsigned int density);
   void generateRadialPatternTransforms(float minSize, float maxSize,
-                                       unsigned int tuftDensity);
+                                       unsigned int density);
   void generateStarPatternTransforms(float minSize, float maxSize,
-                                     unsigned int tuftDensity);
+                                     unsigned int density);
   void deleteBuffers();
-  void loadGrassPositions(const std::filesystem::path &positionsPath,
+  void loadPositions(const std::filesystem::path &positionsPath,
                           unsigned int numPositions);
 };

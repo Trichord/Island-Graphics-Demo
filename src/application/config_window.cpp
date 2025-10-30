@@ -104,18 +104,37 @@ void ConfigWindow::setupImGui() {
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(glsl_version);
 
-  // Custom font
-  io.Fonts->AddFontFromFileTTF("./res/Inter_18pt-Black.ttf");
-
-  // Style
-  ImGui::StyleColorsDark();
-}
-
-bool ConfigWindow::renderImGui() {
+  //Get window scale for font size
   float windowScale{
       ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
 
+  constexpr float baseFontSize = 20.0f;
+
+  // Custom font
+  io.Fonts->AddFontFromFileTTF("./res/Inter_18pt-Black.ttf",
+                               baseFontSize * windowScale);
+
+  // Set Style
+  ImGui::StyleColorsDark();
+
+  //Scale all elements
+  ImGuiStyle& style = ImGui::GetStyle();
+  style.ScaleAllSizes(windowScale);
+}
+
+bool ConfigWindow::renderImGui() {
+  // GLFW window scale
+  float windowScale{
+      ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
+
+  // GLFW window position
+  int xPos{0};
+  int yPos{0};
+  glfwGetWindowPos(window, &xPos, &yPos);
+
+  // Dear ImGUI window size
   ImVec2 guiSize{GUIWidth * windowScale, GUIHeight * windowScale};
+  ImVec2 windowUpperLeft{0.0f, 0.0f};
 
   // Loop until settings are confirmed
   while (true) {
@@ -132,11 +151,9 @@ bool ConfigWindow::renderImGui() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    // Centered and sized to fit the glfw window
-    ImVec2 windowCenter{GUIWidth / 2, GUIHeight / 2};
-    ImVec2 centerPivot{0.5f, 0.5f};
-    ImGui::SetNextWindowSize(guiSize);
-    ImGui::SetNextWindowPos(windowCenter, ImGuiCond_Always, centerPivot);
+    // Set position and size
+    ImGui::SetNextWindowSize(guiSize, ImGuiCond_Always);
+    ImGui::SetNextWindowPos(windowUpperLeft, ImGuiCond_Always);
 
     // Dear ImGUI window
     ImGui::Begin("Island Tech Demo - Display Settings", NULL,
@@ -246,7 +263,7 @@ bool ConfigWindow::renderImGui() {
     const ImVec2 windowPadding{ImGui::GetStyle().WindowPadding};
     const ImVec2 windowSize{ImGui::GetWindowSize()};
     const ImVec2 windowPosition{ImGui::GetWindowPos()};
-    
+
     // Cancel button
     float cancelX{windowPadding.x};
     float cancelY{windowPosition.y + windowSize.y - buttonHeight -

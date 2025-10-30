@@ -1,4 +1,4 @@
-#include "grass.h"
+#include "quad.h"
 #include "shader.h"
 #include "texture_utilities.h"
 #include "image_loader.h"
@@ -10,34 +10,32 @@
 #include <iostream>
 #include <fstream>
 
-namespace {
 constexpr float rotationVariation{5.0f};
 constexpr float scaleVariationFactor{0.25f};
-}  // namespace
 
-Grass::Grass(const std::filesystem::path &positionsPath,
-             const std::filesystem::path &texturePath, TuftPattern tuftPattern,
-             float minSize, float maxSize, unsigned int tuftDensity,
+Quad::Quad(const std::filesystem::path &positionsPath,
+             const std::filesystem::path &texturePath, QuadPattern pattern,
+             float minSize, float maxSize, unsigned int density,
              unsigned int numPositions) {
   loadTexture(texturePath);
-  loadGrassPositions(positionsPath, numPositions);
+  loadPositions(positionsPath, numPositions);
 
-  if (tuftPattern == Grass::RADIAL_PATTERN)
-    generateRadialPatternTransforms(minSize, maxSize, tuftDensity);
+  if (pattern == Quad::RADIAL_PATTERN)
+    generateRadialPatternTransforms(minSize, maxSize, density);
   else
-    generateStarPatternTransforms(minSize, maxSize, tuftDensity);
+    generateStarPatternTransforms(minSize, maxSize, density);
 
-  setupBuffers(tuftDensity);
+  setupBuffers(density);
 }
 
-Grass::Grass(Grass &&other) noexcept {
+Quad::Quad(Quad &&other) noexcept {
   VAO = other.VAO;
   VBO = other.VBO;
   EBO = other.EBO;
   transformsVBO = other.transformsVBO;
   transforms = std::move(other.transforms);
   positionsVBO = other.positionsVBO;
-  grassPositions = std::move(other.grassPositions);
+  positions = std::move(other.positions);
 
   other.VAO = 0;
   other.VBO = 0;
@@ -46,7 +44,7 @@ Grass::Grass(Grass &&other) noexcept {
   other.positionsVBO = 0;
 }
 
-Grass &Grass::operator=(Grass &&other) noexcept {
+Quad &Quad::operator=(Quad &&other) noexcept {
   if (this != &other) {
     deleteBuffers();
 
@@ -56,7 +54,7 @@ Grass &Grass::operator=(Grass &&other) noexcept {
     transformsVBO = other.transformsVBO;
     transforms = std::move(other.transforms);
     positionsVBO = other.positionsVBO;
-    grassPositions = std::move(other.grassPositions);
+    positions = std::move(other.positions);
 
     other.VAO = 0;
     other.VBO = 0;
@@ -68,9 +66,9 @@ Grass &Grass::operator=(Grass &&other) noexcept {
   return *this;
 }
 
-Grass::~Grass() { deleteBuffers(); }
+Quad::~Quad() { deleteBuffers(); }
 
-void Grass::render() {
+void Quad::render() {
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, textureID);
 
@@ -85,7 +83,7 @@ void Grass::render() {
   glBindVertexArray(0);
 }
 
-void Grass::loadTexture(const std::filesystem::path &texturePath) {
+void Quad::loadTexture(const std::filesystem::path &texturePath) {
   ImageLoader imageLoader{texturePath};
   std::vector<ImageData> imageData{imageLoader.getImageData()};
 
@@ -95,7 +93,7 @@ void Grass::loadTexture(const std::filesystem::path &texturePath) {
                               GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE});
 }
 
-void Grass::setupBuffers(unsigned int tuftDensity) {
+void Quad::setupBuffers(unsigned int density) {
   // Quad VAO, EBO
   glGenVertexArrays(1, &VAO);
   glBindVertexArray(VAO);
@@ -142,21 +140,21 @@ void Grass::setupBuffers(unsigned int tuftDensity) {
   glVertexAttribDivisor(4, 1);
   glVertexAttribDivisor(5, 1);
 
-  // Center positions of each tuft
+  // Center positions of each quad
   glGenBuffers(1, &positionsVBO);
   glBindBuffer(GL_ARRAY_BUFFER, positionsVBO);
-  glBufferData(GL_ARRAY_BUFFER, grassPositions.size() * sizeof(glm::vec3),
-               grassPositions.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec3),
+               positions.data(), GL_STATIC_DRAW);
   glEnableVertexAttribArray(6);
   glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
-  glVertexAttribDivisor(6, tuftDensity);
+  glVertexAttribDivisor(6, density);
 
   // reset VAO
   glBindVertexArray(0);
 }
 
-void Grass::generateRadialPatternTransforms(float minSize, float maxSize,
-                                            unsigned int tuftDensity) {
+void Quad::generateRadialPatternTransforms(float minSize, float maxSize,
+                                            unsigned int density) {
   constexpr float outwardPush{0.04f};
   std::random_device rd;
   std::mt19937 mt(rd());
@@ -164,7 +162,7 @@ void Grass::generateRadialPatternTransforms(float minSize, float maxSize,
   // Max range of jitter for scale
   float scaleVariation{(maxSize - minSize) * scaleVariationFactor};
 
-  // Rotate the entire tuft somewhere in the [0-360) degree range
+  // Rotate the entire group somewhere in the [0-360) degree range
   std::uniform_real_distribution<float> baseRotation{0.0f, 360.0f};
 
   // Add a tiny bit of rotation jitter for each quad
@@ -175,18 +173,18 @@ void Grass::generateRadialPatternTransforms(float minSize, float maxSize,
   std::uniform_real_distribution<float> rndScaleJitter{-scaleVariation,
                                                        scaleVariation};
 
-  // Pick a base quad size somewhere between (min, max)
+  // Random base quad size somewhere between (min, max)
   std::uniform_real_distribution<float> rndBaseScale{minSize, maxSize};
 
-  transforms.reserve(grassPositions.size() * tuftDensity);
+  transforms.reserve(positions.size() * density);
 
-  for (const auto &position : grassPositions) {
+  for (const auto &position : positions) {
     // Generate our base rotation and scale
     float instanceBaseRotation{baseRotation(mt)};
     float instanceScale{rndBaseScale(mt)};
-    for (unsigned int i = 0; i < tuftDensity; ++i) {
+    for (unsigned int i = 0; i < density; ++i) {
       // Final quad angle
-      float quadAngle{(360.0f / tuftDensity) * i + instanceBaseRotation +
+      float quadAngle{(360.0f / density) * i + instanceBaseRotation +
                       rndRotJitter(mt)};
 
       // Push it out from the center
@@ -210,15 +208,15 @@ void Grass::generateRadialPatternTransforms(float minSize, float maxSize,
   }
 }
 
-void Grass::generateStarPatternTransforms(float minSize, float maxSize,
-                                          unsigned int tuftDensity) {
+void Quad::generateStarPatternTransforms(float minSize, float maxSize,
+                                         unsigned int density) {
   std::random_device rd;
   std::mt19937 mt(rd());
 
   // Max variation on base scale
   float scaleVariation{(maxSize - minSize) * scaleVariationFactor};
 
-  // Base rotation of the entire tuft
+  // Base rotation of the entire group
   std::uniform_real_distribution<float> baseRotation{0.0f, 360.0f};
 
   // Random amount of rotational jitter
@@ -232,16 +230,16 @@ void Grass::generateStarPatternTransforms(float minSize, float maxSize,
   // Random base size between (min, max)
   std::uniform_real_distribution<float> rndBaseScale{minSize, maxSize};
 
-  transforms.reserve(grassPositions.size() * tuftDensity);
+  transforms.reserve(positions.size() * density);
 
-  for (const auto &position : grassPositions) {
-    // Per-tuft size and scale
+  for (const auto &position : positions) {
+    // Individual quad size and scale
     float instanceBaseRotation{baseRotation(mt)};
     float instanceScale{rndBaseScale(mt)};
 
-    for (unsigned int i = 0; i < tuftDensity; ++i) {
+    for (unsigned int i = 0; i < density; ++i) {
       // Final quad angle.  Using 180 degrees to avoid overlap, as anything past 180 is a duplicate angle
-      float quadAngle{(180.0f / tuftDensity) * i + instanceBaseRotation +
+      float quadAngle{(180.0f / density) * i + instanceBaseRotation +
                       rndRotJitter(mt)};
 
       glm::mat4 transform{1.0f};
@@ -258,7 +256,7 @@ void Grass::generateStarPatternTransforms(float minSize, float maxSize,
   }
 }
 
-void Grass::deleteBuffers() {
+void Quad::deleteBuffers() {
   glDeleteBuffers(1, &transformsVBO);
   glDeleteBuffers(1, &positionsVBO);
   glDeleteBuffers(1, &VBO);
@@ -266,9 +264,9 @@ void Grass::deleteBuffers() {
   glDeleteVertexArrays(1, &VAO);
 }
 
-void Grass::loadGrassPositions(const std::filesystem::path &positionsPath,
+void Quad::loadPositions(const std::filesystem::path &positionsPath,
                                unsigned int numPositions) {
-  grassPositions.reserve(numPositions);
+  positions.reserve(numPositions);
   float x{0.0f};
   float y{0.0f};
   float z{0.0f};
@@ -276,7 +274,7 @@ void Grass::loadGrassPositions(const std::filesystem::path &positionsPath,
   std::fstream grassFile{positionsPath};
 
   if (grassFile.is_open())
-    while (grassFile >> x >> y >> z) grassPositions.emplace_back(x, y, z);
+    while (grassFile >> x >> y >> z) positions.emplace_back(x, y, z);
 
   else
     std::cerr << "Unable to open " << positionsPath << std::endl;
