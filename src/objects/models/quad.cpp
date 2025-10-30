@@ -1,22 +1,22 @@
 #include "quad.h"
-#include "shader.h"
-#include "texture_utilities.h"
-#include "image_loader.h"
-#include "object_positions.h"
+
+#include <fstream>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <vector>
-#include <random>
 #include <iostream>
-#include <fstream>
+#include <random>
+#include <vector>
+
+#include "image_loader.h"
+#include "texture_utilities.h"
 
 constexpr float rotationVariation{5.0f};
 constexpr float scaleVariationFactor{0.25f};
 
 Quad::Quad(const std::filesystem::path &positionsPath,
-             const std::filesystem::path &texturePath, QuadPattern pattern,
-             float minSize, float maxSize, unsigned int density,
-             unsigned int numPositions) {
+           const std::filesystem::path &texturePath, QuadPattern pattern,
+           float minSize, float maxSize, unsigned int density,
+           unsigned int numPositions) {
   loadTexture(texturePath);
   loadPositions(positionsPath, numPositions);
 
@@ -154,7 +154,7 @@ void Quad::setupBuffers(unsigned int density) {
 }
 
 void Quad::generateRadialPatternTransforms(float minSize, float maxSize,
-                                            unsigned int density) {
+                                           unsigned int density) {
   constexpr float outwardPush{0.04f};
   std::random_device rd;
   std::mt19937 mt(rd());
@@ -238,7 +238,8 @@ void Quad::generateStarPatternTransforms(float minSize, float maxSize,
     float instanceScale{rndBaseScale(mt)};
 
     for (unsigned int i = 0; i < density; ++i) {
-      // Final quad angle.  Using 180 degrees to avoid overlap, as anything past 180 is a duplicate angle
+      // Final quad angle.  Using 180 degrees to avoid overlap, as anything past
+      // 180 is a duplicate angle
       float quadAngle{(180.0f / density) * i + instanceBaseRotation +
                       rndRotJitter(mt)};
 
@@ -265,7 +266,7 @@ void Quad::deleteBuffers() {
 }
 
 void Quad::loadPositions(const std::filesystem::path &positionsPath,
-                               unsigned int numPositions) {
+                         unsigned int numPositions) {
   positions.reserve(numPositions);
   float x{0.0f};
   float y{0.0f};

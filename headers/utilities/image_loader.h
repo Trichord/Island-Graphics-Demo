@@ -4,8 +4,6 @@
 #include <condition_variable>
 #include <filesystem>
 #include <mutex>
-#include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "thread_pool.h"

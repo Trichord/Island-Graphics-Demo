@@ -1,36 +1,33 @@
 #pragma once
 
+#include <filesystem>
 #include <functional>
-#include <glm/glm.hpp>
 #include <map>
+#include <optional>
+#include <stdexcept>
+#include <string>
 #include <unordered_map>
 #include <vector>
-#include <string>
-#include <optional>
-#include <utility>
-#include <memory>
-#include <stdexcept>
-#include <filesystem>
 
+#include "camera.h"
+#include "directional_light.h"
 #include "instanced_model.h"
 #include "model.h"
-#include "space_model.h"
-#include "skybox.h"
-#include "camera.h"
+#include "point_light.h"
+#include "quad.h"
 #include "renderable.h"
 #include "shader_types.h"
+#include "skybox.h"
+#include "space_model.h"
 #include "transform.h"
-#include "point_light.h"
-#include "directional_light.h"
-#include "quad.h"
 
-//-----------------------------------------------------
-// Any storage container (Models, lights, etc.) must guarantee that their
-// addresses remain valid for the lifetime of the scene
-//
-// Scene is for fast access of static objects - dynamic model loading
-// requires safer ownership model.
-//-----------------------------------------------------
+/*
+ * Any storage container (Models, lights, etc.) must guarantee that their
+ * addresses remain valid for the lifetime of the scene
+ *
+ * Scene is for fast access of static objects - dynamic model loading requires
+ * safer ownership model.
+ */
 
 namespace sceneMaxObjects {
 inline constexpr int maxModels{50};
@@ -99,7 +96,8 @@ class Scene {
    * object
    */
   template <typename T>
-  void addObjectToScene(T& modelRef, ShaderType shaderType, Transform&& transform = Transform{},
+  void addObjectToScene(T& modelRef, ShaderType shaderType,
+                        Transform&& transform = Transform{},
                         const std::optional<std::string> name = std::nullopt) {
     sceneObjects[shaderType].emplace_back(
         RenderableObject{std::ref(modelRef), transform});

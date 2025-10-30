@@ -1,15 +1,15 @@
 #pragma once
 
-//---------------------
-//	Included glad.h, as this is the very first header used by main.
-//  If it were not here, GLFW would trigger a glad.h include error.
-//---------------------
+/* Included glad.h, as this is the very first header used by main. If it were
+ * not here, GLFW would trigger a glad.h include error.
+ */
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "thread_pool.h"
-#include "scene.h"
+
 #include "config_window.h"
+#include "scene.h"
+#include "thread_pool.h"
 
 // GLFW callbacks
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);

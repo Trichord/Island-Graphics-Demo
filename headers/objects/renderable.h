@@ -1,8 +1,5 @@
 #pragma once
 
-#include <utility>
-
-#include "shader.h"
 #include "transform.h"
 
 class Renderable {

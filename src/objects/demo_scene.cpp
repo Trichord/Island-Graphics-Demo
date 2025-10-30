@@ -1,11 +1,10 @@
 #include "demo_scene.h"
-#include "model.h"
-#include "skybox.h"
-#include "space_model.h"
-#include "object_positions.h"
 
 #include <functional>
 #include <iostream>
+
+#include "model.h"
+#include "object_positions.h"
 
 DemoScene::DemoScene() { initializeScene(); }
 
@@ -47,7 +46,7 @@ void DemoScene::addAllModelsToScene() {
   std::cout << ".";
 
   // Skybox
-  std::vector<std::filesystem::path> skyBoxPaths {
+  std::vector<std::filesystem::path> skyBoxPaths{
       "./res/textures/skybox/right.png", "./res/textures/skybox/left.png",
       "./res/textures/skybox/top.png",   "./res/textures/skybox/bottom.png",
       "./res/textures/skybox/front.png", "./res/textures/skybox/back.png"};
@@ -57,10 +56,10 @@ void DemoScene::addAllModelsToScene() {
 
   // Grass
   auto& grass = loadQuad("./res/grass1.txt", "./res/textures/grass1.png",
-                          Quad::RADIAL_PATTERN, 0.3f, 0.5f, 3, 8109);
+                         Quad::RADIAL_PATTERN, 0.3f, 0.5f, 3, 8109);
   addObjectToScene(grass, ShaderType::GRASS);
 
-  //Flowers
+  // Flowers
   auto& flowers = loadInstancedModel("./res/models/ranunculus/ranunculus.gltf",
                                      "./res/flowers1.txt", 317);
   addObjectToScene(flowers, ShaderType::FLOWERS);

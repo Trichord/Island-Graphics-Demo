@@ -5,8 +5,8 @@
 #include <fastgltf/tools.hpp>
 #include <fastgltf/types.hpp>
 #include <iostream>
-#include <vector>
 #include <stdexcept>
+#include <vector>
 
 #include "primitive.h"
 
@@ -152,7 +152,7 @@ std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(
                                    materialIndex);
     }
 
-    //Add the mesh
+    // Add the mesh
     meshes.push_back(std::move(mesh));
   }
 
@@ -205,9 +205,9 @@ std::pair<unsigned int, Sampler> fastgltfLoader::getTextureInfo(
 
   const unsigned int assetImageIndex =
       static_cast<unsigned int>(texture.imageIndex.value());
-  Sampler sampler{
-      static_cast<uint16_t>(magFilter), static_cast<uint16_t>(minFilter),
-      static_cast<uint16_t>(wrapS), static_cast<uint16_t>(wrapT)};
+  Sampler sampler{static_cast<uint16_t>(magFilter),
+                  static_cast<uint16_t>(minFilter),
+                  static_cast<uint16_t>(wrapS), static_cast<uint16_t>(wrapT)};
 
   return {assetImageIndex, sampler};
 }

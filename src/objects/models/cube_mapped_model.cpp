@@ -3,10 +3,6 @@
 #include <glad/glad.h>
 
 #include <filesystem>
-#include <glm/glm.hpp>
-#include <iostream>
-#include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "image_loader.h"

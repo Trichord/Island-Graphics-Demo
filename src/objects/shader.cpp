@@ -5,7 +5,6 @@
 #include <array>
 #include <fstream>
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <sstream>
@@ -115,7 +114,8 @@ void Shader::setMat4(const std::string& name, const glm::mat4& value) {
 void Shader::setVec2(const std::string& name, glm::vec2 value) {
   GLint location{getCachedLocation(name)};
 
-  if (location != -1) glProgramUniform2fv(ID, location, 1, glm::value_ptr(value));
+  if (location != -1)
+    glProgramUniform2fv(ID, location, 1, glm::value_ptr(value));
 }
 
 void Shader::setVec2(const std::string& name, float x, float y) {
@@ -127,7 +127,8 @@ void Shader::setVec2(const std::string& name, float x, float y) {
 void Shader::setVec3(const std::string& name, glm::vec3 value) {
   GLint location{getCachedLocation(name)};
 
-  if (location != -1) glProgramUniform3fv(ID, location, 1, glm::value_ptr(value));
+  if (location != -1)
+    glProgramUniform3fv(ID, location, 1, glm::value_ptr(value));
 }
 
 void Shader::setVec3(const std::string& name, float x, float y, float z) {
@@ -139,7 +140,8 @@ void Shader::setVec3(const std::string& name, float x, float y, float z) {
 void Shader::setVec4(const std::string& name, glm::vec4 value) {
   GLint location{getCachedLocation(name)};
 
-  if (location != -1) glProgramUniform4fv(ID, location, 1, glm::value_ptr(value));
+  if (location != -1)
+    glProgramUniform4fv(ID, location, 1, glm::value_ptr(value));
 }
 
 void Shader::setVec4(const std::string& name, float x, float y, float z,
@@ -217,7 +219,7 @@ GLuint Shader::createShaderID(GLenum type, const char* path) {
   glShaderSource(shaderCodeID, 1, &shaderCode, NULL);
   glCompileShader(shaderCodeID);
   glGetShaderiv(shaderCodeID, GL_COMPILE_STATUS, &success);
-  
+
   if (!success) {
     glGetShaderInfoLog(shaderCodeID, 512, NULL, infoLog.data());
 

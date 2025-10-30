@@ -1,13 +1,16 @@
+#include "application.h"
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "application.h"
-#include "scene.h"
-#include "demo_scene.h"
-#include "renderer.h"
-#include "thread_pool.h"
-#include "config_window.h"
-#include "object_positions.h"
+
 #include <iostream>
+
+#include "config_window.h"
+#include "demo_scene.h"
+#include "object_positions.h"
+#include "renderer.h"
+#include "scene.h"
+#include "thread_pool.h"
 
 void Application::run() {
   if (!configWindow.launchSettingsWindow()) return;

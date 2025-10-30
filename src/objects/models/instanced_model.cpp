@@ -1,9 +1,11 @@
 #include "instanced_model.h"
+
 #include <glad/glad.h>
+
+#include <fstream>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
-#include <fstream>
 #include <random>
 
 InstancedModel::InstancedModel(const std::filesystem::path& modelPath,
@@ -140,7 +142,7 @@ void InstancedModel::setupInstancedBuffers() {
   for (const Primitive::Mesh& mesh : meshes) {
     for (const Primitive& primitive : mesh.primitives) {
       glBindVertexArray(primitive.getVAO());
-      
+
       // Transforms attributes
       glBindBuffer(GL_ARRAY_BUFFER, transformsVBO);
       glEnableVertexAttribArray(4);
