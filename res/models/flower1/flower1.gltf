@@ -15,19 +15,14 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"VioletFlower_2",
-			"translation":[
-				-0.6205393671989441,
-				8.83713728399016e-05,
-				1.3558640480041504
-			]
+			"name":"VioletFlower_2"
 		}
 	],
 	"materials":[
 		{
 			"alphaMode":"BLEND",
 			"doubleSided":true,
-			"name":"FLowerAtlas1",
+			"name":"FLowerAtlas1.003",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":0
@@ -39,7 +34,7 @@
 	],
 	"meshes":[
 		{
-			"name":"Plane.058",
+			"name":"Plane.003",
 			"primitives":[
 				{
 					"attributes":{
@@ -71,7 +66,7 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":1040,
+			"count":609,
 			"max":[
 				0.12297415733337402,
 				0.3078821897506714,
@@ -87,19 +82,19 @@
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":1040,
+			"count":609,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":1040,
+			"count":609,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":1040,
+			"count":609,
 			"type":"VEC4"
 		},
 		{
@@ -112,32 +107,32 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":12480,
+			"byteLength":7308,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":12480,
-			"byteOffset":12480,
+			"byteLength":7308,
+			"byteOffset":7308,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":8320,
-			"byteOffset":24960,
+			"byteLength":4872,
+			"byteOffset":14616,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":16640,
-			"byteOffset":33280,
+			"byteLength":9744,
+			"byteOffset":19488,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":3492,
-			"byteOffset":49920,
+			"byteOffset":29232,
 			"target":34963
 		}
 	],
@@ -149,8 +144,8 @@
 	],
 	"buffers":[
 		{
-			"byteLength":53412,
-			"uri":"flower2.bin"
+			"byteLength":32724,
+			"uri":"flower1.bin"
 		}
 	]
 }
