@@ -60,7 +60,7 @@ void DemoScene::addAllModelsToScene() {
   addObjectToScene(grass, ShaderType::GRASS);
 
   // Flowers
-  auto& flower1 = loadInstancedModel("./res/models/flower3/flower3.gltf",
+  auto& flower1 = loadInstancedModel("./res/models/flower2/flower2.gltf",
                                      "./res/flowers1.txt", 317);
   addObjectToScene(flower1, ShaderType::FLOWERS);
 

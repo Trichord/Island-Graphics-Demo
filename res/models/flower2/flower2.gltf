@@ -15,12 +15,11 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"WhiteFLower2_2.006",
-			"rotation":[
-				0,
-				0.6046702265739441,
-				0,
-				0.7964759469032288
+			"name":"VioletFlower_2",
+			"translation":[
+				-0.6205393671989441,
+				8.83713728399016e-05,
+				1.3558640480041504
 			]
 		}
 	],
@@ -28,7 +27,7 @@
 		{
 			"alphaMode":"BLEND",
 			"doubleSided":true,
-			"name":"FLowerAtlas2",
+			"name":"FLowerAtlas1",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":0
@@ -40,7 +39,7 @@
 	],
 	"meshes":[
 		{
-			"name":"Plane.091",
+			"name":"Plane.058",
 			"primitives":[
 				{
 					"attributes":{
@@ -64,81 +63,81 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"FLowerAtlas_2_Color",
-			"uri":"textures/FLowerAtlas_2_Color.png"
+			"name":"FlowerAtlas_1_Color",
+			"uri":"textures/FlowerAtlas_1_Color.png"
 		}
 	],
 	"accessors":[
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":1656,
+			"count":1040,
 			"max":[
-				0.08770254999399185,
-				0.22614340484142303,
-				0.08411607146263123
+				0.12297415733337402,
+				0.3078821897506714,
+				0.11151079088449478
 			],
 			"min":[
-				-0.08327282965183258,
-				-6.596679313908282e-10,
-				-0.07575279474258423
+				-0.1053781732916832,
+				-8.837136556394398e-05,
+				-0.12080783396959305
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":1656,
+			"count":1040,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":1656,
+			"count":1040,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":1656,
+			"count":1040,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
 			"componentType":5123,
-			"count":2484,
+			"count":1746,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":19872,
+			"byteLength":12480,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":19872,
-			"byteOffset":19872,
+			"byteLength":12480,
+			"byteOffset":12480,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":13248,
-			"byteOffset":39744,
+			"byteLength":8320,
+			"byteOffset":24960,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":26496,
-			"byteOffset":52992,
+			"byteLength":16640,
+			"byteOffset":33280,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":4968,
-			"byteOffset":79488,
+			"byteLength":3492,
+			"byteOffset":49920,
 			"target":34963
 		}
 	],
@@ -150,7 +149,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":84456,
+			"byteLength":53412,
 			"uri":"flower2.bin"
 		}
 	]
