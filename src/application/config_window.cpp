@@ -12,11 +12,10 @@
 #include "imgui_impl_opengl3.h"
 #include "texture_utilities.h"
 
-namespace {
 constexpr unsigned int GUIWidth{1024u};
 constexpr unsigned int GUIHeight{576u};
 constexpr unsigned int numColumns{2u};
-};  // namespace
+constexpr float baseFontSize = 22.0f;
 
 ConfigWindow::~ConfigWindow() {
   if (textureID) glDeleteTextures(1, &textureID);
@@ -109,8 +108,6 @@ void ConfigWindow::setupImGui() {
   // Get window scale for font size
   float windowScale{
       ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
-
-  constexpr float baseFontSize = 20.0f;
 
   // Custom font
   io.Fonts->AddFontFromFileTTF("./res/Inter_18pt-Black.ttf",
