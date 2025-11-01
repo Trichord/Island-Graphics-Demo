@@ -1,4 +1,4 @@
-#include "demo_scene.h"
+#include "island_scene.h"
 
 #include <functional>
 #include <iostream>
@@ -6,9 +6,9 @@
 #include "model.h"
 #include "object_positions.h"
 
-DemoScene::DemoScene() { initializeScene(); }
+IslandScene::IslandScene() { initializeScene(); }
 
-void DemoScene::addAllModelsToScene() {
+void IslandScene::addAllModelsToScene() {
   std::cout << "Loading models";
 
   // Main island
@@ -60,14 +60,14 @@ void DemoScene::addAllModelsToScene() {
   addObjectToScene(grass, ShaderType::GRASS);
 
   // Flowers
-  auto& flower1 = loadInstancedModel("./res/models/flower1/flower1.gltf",
+  auto& flower1 = loadInstancedModel("./res/models/purpleflower/purpleflower.gltf",
                                      "./res/flowers1.txt", 317);
   addObjectToScene(flower1, ShaderType::FLOWERS);
 
   std::cout << " Done." << std::endl;
 }
 
-void DemoScene::addAllLightsToScene() {
+void IslandScene::addAllLightsToScene() {
   // Normalized approximation of sun direction in skybox
   globalLightSource = glm::vec3{-0.363647, -0.739629, -0.566312};
 
@@ -75,4 +75,4 @@ void DemoScene::addAllLightsToScene() {
   addLightToScene(pointLights, PointLight{LIGHTBULB_START}, "circlingLight");
 }
 
-void DemoScene::setupCamera() { camera = glm::vec3{0.0f, 3.0f, 30.0f}; }
+void IslandScene::setupCamera() { camera = glm::vec3{0.0f, 3.0f, 30.0f}; }
