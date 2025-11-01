@@ -4,9 +4,9 @@
 
 /* Concrete implementation of a scene */
 
-class DemoScene : public Scene {
+class IslandScene : public Scene {
  public:
-  DemoScene();
+  IslandScene();
   void addAllModelsToScene() override;
   void addAllLightsToScene() override;
   void setupCamera() override;
