@@ -15,14 +15,25 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"PurpleFlower_1"
+			"name":"PurpleFlower_1",
+			"rotation":[
+				-0.04993763193488121,
+				0,
+				0,
+				0.9987523555755615
+			],
+			"translation":[
+				0.00313724298030138,
+				-0.1184086799621582,
+				0
+			]
 		}
 	],
 	"materials":[
 		{
 			"alphaMode":"BLEND",
 			"doubleSided":true,
-			"name":"FLowerAtlas2.001",
+			"name":"FLowerAtlas2.002",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":0
@@ -34,7 +45,7 @@
 	],
 	"meshes":[
 		{
-			"name":"Plane.002",
+			"name":"Plane.001",
 			"primitives":[
 				{
 					"attributes":{
@@ -66,7 +77,7 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":571,
+			"count":424,
 			"max":[
 				0.07243266701698303,
 				0.3676064610481262,
@@ -74,65 +85,65 @@
 			],
 			"min":[
 				-0.06780009716749191,
-				-1.7860710133099644e-10,
-				-0.05166923999786377
+				0.11675536632537842,
+				-0.004383385181427002
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":571,
+			"count":424,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":571,
+			"count":424,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":571,
+			"count":424,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
 			"componentType":5123,
-			"count":1350,
+			"count":1254,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":6852,
+			"byteLength":5088,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":6852,
-			"byteOffset":6852,
+			"byteLength":5088,
+			"byteOffset":5088,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":4568,
-			"byteOffset":13704,
+			"byteLength":3392,
+			"byteOffset":10176,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":9136,
-			"byteOffset":18272,
+			"byteLength":6784,
+			"byteOffset":13568,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":2700,
-			"byteOffset":27408,
+			"byteLength":2508,
+			"byteOffset":20352,
 			"target":34963
 		}
 	],
@@ -144,7 +155,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":30108,
+			"byteLength":22860,
 			"uri":"purpleflower.bin"
 		}
 	]
