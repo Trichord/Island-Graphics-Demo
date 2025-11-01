@@ -6,14 +6,14 @@
 #include <iostream>
 
 #include "config_window.h"
-#include "demo_scene.h"
+#include "island_scene.h"
 #include "object_positions.h"
 #include "renderer.h"
 #include "scene.h"
 #include "thread_pool.h"
 
 void Application::run() {
-  if (!configWindow.launchSettingsWindow()) return;
+  //if (!configWindow.launchSettingsWindow()) return;
 
   createWindow();
   if (!window) return;
@@ -21,15 +21,15 @@ void Application::run() {
   createOpenGLViewport();
   registerCallbacks();
 
-  DemoScene demoScene;
+  IslandScene islandScene;
   Renderer renderer(ConfigWindow::globalGraphicsSettings.screenWidth,
                     ConfigWindow::globalGraphicsSettings.screenHeight);
   threadPool.stopAllThreads();
 
-  addGlfwUserParam(demoScene);
+  addGlfwUserParam(islandScene);
   centerMouse();
 
-  renderer.updateUBO(demoScene);
+  renderer.updateUBO(islandScene);
 
   // Average FPS
   double totalTime{0};
@@ -49,20 +49,20 @@ void Application::run() {
     framesRendered++;
 
     // User input
-    processInput(demoScene);
+    processInput(islandScene);
     glfwPollEvents();
 
     // Exit condition
     if (glfwWindowShouldClose(window)) break;
 
     // Update GPU shared buffer if camera has moved
-    if (demoScene.camera.hasUpdated()) renderer.updateUBO(demoScene);
+    if (islandScene.camera.hasUpdated()) renderer.updateUBO(islandScene);
 
     // Update scene objects
-    onUpdate(demoScene, deltaTime);
+    onUpdate(islandScene, deltaTime);
 
     // Draw
-    renderer.renderScene(demoScene);
+    renderer.renderScene(islandScene);
 
     glfwSwapBuffers(window);
   }
@@ -203,7 +203,7 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
   lastMouseX = (float)xPos;
   lastMouseY = (float)yPos;
 
-  auto scenePointer = static_cast<DemoScene*>(glfwGetWindowUserPointer(window));
+  auto scenePointer = static_cast<IslandScene*>(glfwGetWindowUserPointer(window));
 
   if (scenePointer)
     scenePointer->camera.processMouseMovement(xOffset, yOffset, GL_TRUE);

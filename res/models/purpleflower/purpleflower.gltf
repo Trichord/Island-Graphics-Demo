@@ -3,10 +3,6 @@
 		"generator":"Khronos glTF Blender I/O v4.5.48",
 		"version":"2.0"
 	},
-	"extensionsUsed":[
-		"KHR_materials_transmission",
-		"KHR_materials_specular"
-	],
 	"scene":0,
 	"scenes":[
 		{
@@ -19,34 +15,26 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"ranunculus1"
+			"name":"PurpleFlower_1"
 		}
 	],
 	"materials":[
 		{
 			"alphaMode":"BLEND",
 			"doubleSided":true,
-			"extensions":{
-				"KHR_materials_transmission":{
-					"transmissionFactor":1
-				},
-				"KHR_materials_specular":{
-					"specularFactor":0
-				}
-			},
-			"name":"myproject_ranunculus1",
+			"name":"FLowerAtlas2.001",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":0
 				},
 				"metallicFactor":0,
-				"roughnessFactor":0.8999999761581421
+				"roughnessFactor":0.5
 			}
 		}
 	],
 	"meshes":[
 		{
-			"name":"ranunculus1",
+			"name":"Plane.002",
 			"primitives":[
 				{
 					"attributes":{
@@ -70,81 +58,81 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"ranunculus1",
-			"uri":"textures/ranunculus1.png"
+			"name":"FLowerAtlas_2_Color",
+			"uri":"textures/FLowerAtlas_2_Color.png"
 		}
 	],
 	"accessors":[
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":280,
+			"count":571,
 			"max":[
-				0.2413969337940216,
-				0.321062833070755,
-				0.2293885052204132
+				0.07243266701698303,
+				0.3676064610481262,
+				0.13597846031188965
 			],
 			"min":[
-				-0.28950005769729614,
-				-0.011319377459585667,
-				-0.21619313955307007
+				-0.06780009716749191,
+				-1.7860710133099644e-10,
+				-0.05166923999786377
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":280,
+			"count":571,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":280,
+			"count":571,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":280,
+			"count":571,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
 			"componentType":5123,
-			"count":762,
+			"count":1350,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":3360,
+			"byteLength":6852,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":3360,
-			"byteOffset":3360,
+			"byteLength":6852,
+			"byteOffset":6852,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":2240,
-			"byteOffset":6720,
+			"byteLength":4568,
+			"byteOffset":13704,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":4480,
-			"byteOffset":8960,
+			"byteLength":9136,
+			"byteOffset":18272,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1524,
-			"byteOffset":13440,
+			"byteLength":2700,
+			"byteOffset":27408,
 			"target":34963
 		}
 	],
@@ -156,8 +144,8 @@
 	],
 	"buffers":[
 		{
-			"byteLength":14964,
-			"uri":"ranunculus.bin"
+			"byteLength":30108,
+			"uri":"purpleflower.bin"
 		}
 	]
 }
