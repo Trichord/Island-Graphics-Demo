@@ -80,10 +80,12 @@ class Scene {
   Skybox& loadSkybox(const std::vector<std::filesystem::path>& filePaths);
   Quad& loadQuad(const std::filesystem::path& texturePath,
                  const std::filesystem::path& positionsPath,
-                 Quad::QuadPattern pattern, float minSize, float maxSize,
-                 unsigned int density = 3, unsigned int numPositions = 0);
+                 Quad::QuadPattern pattern, float minSize = 1.0f,
+                 float maxSize = 1.0f, unsigned int density = 1,
+                 unsigned int numPositions = 0);
   InstancedModel& loadInstancedModel(const std::filesystem::path& modelPath,
                                      const std::filesystem::path& positionsPath,
+                                     float minSize = 1.0f, float maxSize = 1.0f,
                                      unsigned int numPositions = 0);
 
   /**

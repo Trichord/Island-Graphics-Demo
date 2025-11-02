@@ -10,7 +10,7 @@
 class InstancedModel : public Model {
  public:
   InstancedModel(const std::filesystem::path& modelPath,
-                 const std::filesystem::path& positionsPath,
+                 const std::filesystem::path& positionsPath, float minSize = 1.0f, float maxSize = 1.0f,
                  unsigned int numPositions = 0);
   InstancedModel(const InstancedModel&) = delete;
   InstancedModel& operator=(const InstancedModel&) = delete;
@@ -28,6 +28,6 @@ class InstancedModel : public Model {
   void loadPositions(const std::filesystem::path& positionsPath,
                      unsigned int numPositions);
   void setupInstancedBuffers();
-  void generateTransforms();
+  void generateTransforms(float minSize, float maxSize);
   void deleteBuffers();
 };
