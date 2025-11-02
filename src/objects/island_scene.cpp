@@ -72,7 +72,7 @@ void IslandScene::addAllModelsToScene() {
 
   //Blue flowers
   auto& blueFlowers = loadInstancedModel(
-      "./res/models/blueflower/blueflower.gltf", "./res/blueflower_pos.txt", 372);
+      "./res/models/blueflower/blueflower.gltf", "./res/blueflower_pos.txt", 361);
   addObjectToScene(blueFlowers, ShaderType::FLOWERS);
   
   std::cout << " Done." << std::endl;
