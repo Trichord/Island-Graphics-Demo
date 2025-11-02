@@ -25,6 +25,7 @@ Renderer::Renderer(int screenWidth, int screenHeight) {
   setupFlowerShader(shaders.at(ShaderType::FLOWERS));
   setupPBRShader(shaders.at(ShaderType::POINT_PBR));
   setupPBRShader(shaders.at(ShaderType::DIRECTIONAL_PBR));
+  setupPBRShader(shaders.at(ShaderType::TREES));
   setupReflectiveShader(shaders.at(ShaderType::REFLECTIVE));
   setupLightSourceShader(shaders.at(ShaderType::LIGHT_SOURCE));
   setupSkyboxShader(shaders.at(ShaderType::SKYBOX));
@@ -121,17 +122,19 @@ void Renderer::setupUBO() {
 void Renderer::loadShaders() {
   using enum ShaderType;
   shaders.emplace(FLOWERS,
-                  Shader("./shaders/flowers.vert", "./shaders/flowers.frag"));
-  shaders.emplace(POINT_PBR, Shader("./shaders/point_PBR.vert",
-                                    "./shaders/point_PBR.frag"));
-  shaders.emplace(DIRECTIONAL_PBR, Shader("./shaders/directional_PBR.vert",
-                                          "./shaders/directional_PBR.frag"));
-  shaders.emplace(REFLECTIVE, Shader("./shaders/reflective.vert",
-                                     "./shaders/reflective.frag"));
-  shaders.emplace(LIGHT_SOURCE, Shader("./shaders/light_source.vert",
-                                       "./shaders/light_source.frag"));
+                  Shader{"./shaders/flowers.vert", "./shaders/flowers.frag"});
+  shaders.emplace(TREES,
+                  Shader{"./shaders/trees.vert", "./shaders/directional_PBR.frag"});
+  shaders.emplace(POINT_PBR, Shader{"./shaders/point_PBR.vert",
+                                    "./shaders/point_PBR.frag"});
+  shaders.emplace(DIRECTIONAL_PBR, Shader{"./shaders/directional_PBR.vert",
+                                          "./shaders/directional_PBR.frag"});
+  shaders.emplace(REFLECTIVE, Shader{"./shaders/reflective.vert",
+                                     "./shaders/reflective.frag"});
+  shaders.emplace(LIGHT_SOURCE, Shader{"./shaders/light_source.vert",
+                                       "./shaders/light_source.frag"});
   shaders.emplace(SKYBOX,
-                  Shader("./shaders/skybox.vert", "./shaders/skybox.frag"));
+                  Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"});
 }
 
 void Renderer::setupFlowerShader(Shader& shader) {
@@ -179,6 +182,10 @@ void Renderer::updateShaderUniforms(Scene& scene) {
     switch (shaderType) {
       using enum ShaderType;
       case DIRECTIONAL_PBR:
+        if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
+        break;
+
+      case TREES:
         if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
         break;
 
