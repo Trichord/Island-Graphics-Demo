@@ -9,17 +9,18 @@
 IslandScene::IslandScene() { initializeScene(); }
 
 void IslandScene::addAllModelsToScene() {
+  using enum ShaderType;
   std::cout << "Loading models";
 
   // Main island
   auto& island = loadModel("./res/models/island/island.gltf");
-  addObjectToScene(island, ShaderType::DIRECTIONAL_PBR);
+  addObjectToScene(island, DIRECTIONAL_PBR);
 
   std::cout << ".";
 
   // Flight helmet
   auto& helmet = loadModel("./res/models/flight_helmet/FlightHelmet.gltf");
-  addObjectToScene(helmet, ShaderType::POINT_PBR,
+  addObjectToScene(helmet, POINT_PBR,
                    Transform(FLIGHT_HELMET_START, glm::vec3(3.0f), 180.0f,
                              glm::vec3(0.0f, 1.0f, 0.0f)));
 
@@ -27,7 +28,7 @@ void IslandScene::addAllModelsToScene() {
 
   // Lightbulb-
   auto& lightbulb = loadModel("./res/models/lightbulb/lightbulb.gltf");
-  addObjectToScene(lightbulb, ShaderType::LIGHT_SOURCE,
+  addObjectToScene(lightbulb, LIGHT_SOURCE,
                    Transform(LIGHTBULB_START, glm::vec3(1.0f), 90.0f,
                              glm::vec3(1.0f, 0.0f, 0.0f)),
                    "lightbulb");
@@ -40,7 +41,7 @@ void IslandScene::addAllModelsToScene() {
   // Fancy spinning space dodecahedron
   auto& spaceDodeca =
       loadSpaceModel("./res/models/dodecahedron/scene.gltf", spaceBoxPaths);
-  addObjectToScene(spaceDodeca, ShaderType::REFLECTIVE,
+  addObjectToScene(spaceDodeca, REFLECTIVE,
                    Transform(glm::vec3(-21.0f, 16.0f, -25.0f)), "spaceDodeca");
 
   std::cout << ".";
@@ -52,30 +53,35 @@ void IslandScene::addAllModelsToScene() {
       "./res/textures/skybox/front.png", "./res/textures/skybox/back.png"};
 
   auto& skybox = loadSkybox(skyBoxPaths);
-  addObjectToScene(skybox, ShaderType::SKYBOX);
+  addObjectToScene(skybox, SKYBOX);
 
   // Grass
   auto& grass = loadQuad("./res/textures/grass.png", "./res/grass_pos.txt",
                          Quad::RADIAL_PATTERN, 0.3f, 0.5f, 3, 8109);
-  addObjectToScene(grass, ShaderType::FLOWERS);
+  addObjectToScene(grass, FLOWERS);
 
   // Purple flowers
   auto& purpleFlowers =
       loadInstancedModel("./res/models/purpleflower/purpleflower.gltf",
                          "./res/purpleflower_pos.txt", 0.9f, 1.1f, 475);
-  addObjectToScene(purpleFlowers, ShaderType::FLOWERS);
+  addObjectToScene(purpleFlowers, FLOWERS);
 
   // White flowers
   auto& whiteFlowers =
       loadInstancedModel("./res/models/whiteflower/whiteflower.gltf",
                          "./res/whiteflower_pos.txt", 0.9f, 1.1f, 417);
-  addObjectToScene(whiteFlowers, ShaderType::FLOWERS);
+  addObjectToScene(whiteFlowers, FLOWERS);
 
   // Blue flowers
   auto& blueFlowers =
       loadInstancedModel("./res/models/blueflower/blueflower.gltf",
                          "./res/blueflower_pos.txt", 0.9f, 1.1f, 361);
-  addObjectToScene(blueFlowers, ShaderType::FLOWERS);
+  addObjectToScene(blueFlowers, FLOWERS);
+
+  // Tree
+  auto& tree = loadInstancedModel("./res/models/elm/elm.gltf",
+                                  "./res/elm_positions.txt", 0.8f, 1.25f, 24);
+  addObjectToScene(tree, TREES);
 
   std::cout << " Done." << std::endl;
 }

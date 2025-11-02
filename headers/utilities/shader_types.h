@@ -6,6 +6,7 @@
 
 enum class ShaderType {
   FLOWERS,
+  TREES,
   DIRECTIONAL_PBR,
   POINT_PBR,
   REFLECTIVE,
