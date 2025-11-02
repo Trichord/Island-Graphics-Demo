@@ -41,17 +41,15 @@ class ConfigWindow {
                        {1366u, 768u},
                        {1280u, 720}}};
 
-  inline static const std::array<const char*, 4> msaaLevel{"Off", "2x", "4x",
-                                                           "8x"};
-  inline static const std::array<unsigned int, 4> msaaTable{0, 2, 4, 8};
-
+  inline static const std::array<const char*, 3> msaaLevel{"2x", "4x", "8x"};
+  inline static const std::array<unsigned int, 3> msaaTable{2, 4, 8};
   inline static const std::array<const char*, 5> anisoLevel{"Off", "2x", "4x",
                                                             "8x", "16x"};
   inline static const std::array<float, 5> anisoTable{0.0f, 2.0f, 4.0f, 8.0f,
                                                       16.0f};
 
   inline static int resolutionSelectedIndex{1};
-  inline static int msaaSelectedIndex{3};
+  inline static int msaaSelectedIndex{2};
   inline static int anisoSelectedIndex{4};
   inline static const char* resolutionPreviewValue{
       resolutions[resolutionSelectedIndex]};

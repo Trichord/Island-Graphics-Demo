@@ -60,21 +60,23 @@ void IslandScene::addAllModelsToScene() {
   addObjectToScene(grass, ShaderType::FLOWERS);
 
   // Purple flowers
-  auto& purpleFlowers = loadInstancedModel("./res/models/purpleflower/purpleflower.gltf",
-                                     "./res/purpleflower_pos.txt", 475);
+  auto& purpleFlowers =
+      loadInstancedModel("./res/models/purpleflower/purpleflower.gltf",
+                         "./res/purpleflower_pos.txt", 0.9f, 1.1f, 475);
   addObjectToScene(purpleFlowers, ShaderType::FLOWERS);
 
   // White flowers
   auto& whiteFlowers =
       loadInstancedModel("./res/models/whiteflower/whiteflower.gltf",
-                         "./res/whiteflower_pos.txt", 417);
+                         "./res/whiteflower_pos.txt", 0.9f, 1.1f, 417);
   addObjectToScene(whiteFlowers, ShaderType::FLOWERS);
 
-  //Blue flowers
-  auto& blueFlowers = loadInstancedModel(
-      "./res/models/blueflower/blueflower.gltf", "./res/blueflower_pos.txt", 361);
+  // Blue flowers
+  auto& blueFlowers =
+      loadInstancedModel("./res/models/blueflower/blueflower.gltf",
+                         "./res/blueflower_pos.txt", 0.9f, 1.1f, 361);
   addObjectToScene(blueFlowers, ShaderType::FLOWERS);
-  
+
   std::cout << " Done." << std::endl;
 }
 

@@ -13,7 +13,7 @@
 #include "thread_pool.h"
 
 void Application::run() {
-  //if (!configWindow.launchSettingsWindow()) return;
+  if (!configWindow.launchSettingsWindow()) return;
 
   createWindow();
   if (!window) return;
@@ -81,7 +81,7 @@ void Application::createWindow() {
   glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
 
   unsigned int msaa{ConfigWindow::globalGraphicsSettings.msaa};
-  if (msaa != 0) glfwWindowHint(GLFW_SAMPLES, msaa);
+  glfwWindowHint(GLFW_SAMPLES, msaa);
 
   unsigned int width{ConfigWindow::globalGraphicsSettings.screenWidth};
   unsigned int height{ConfigWindow::globalGraphicsSettings.screenHeight};
@@ -123,8 +123,7 @@ void Application::createOpenGLViewport() {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glEnable(GL_FRAMEBUFFER_SRGB);
-
-  if (msaa != 0) glEnable(GL_MULTISAMPLE);
+  glEnable(GL_MULTISAMPLE);
 }
 
 void Application::processInput(Scene& scene) {
@@ -203,7 +202,8 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
   lastMouseX = (float)xPos;
   lastMouseY = (float)yPos;
 
-  auto scenePointer = static_cast<IslandScene*>(glfwGetWindowUserPointer(window));
+  auto scenePointer =
+      static_cast<IslandScene*>(glfwGetWindowUserPointer(window));
 
   if (scenePointer)
     scenePointer->camera.processMouseMovement(xOffset, yOffset, GL_TRUE);

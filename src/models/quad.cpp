@@ -73,12 +73,14 @@ void Quad::render() {
   glBindTexture(GL_TEXTURE_2D, textureID);
 
   glDisable(GL_CULL_FACE);
+  glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
   glBindVertexArray(VAO);
   glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0,
                           static_cast<unsigned int>(transforms.size()));
 
   glEnable(GL_CULL_FACE);
+  glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
   glBindVertexArray(0);
 }

@@ -10,10 +10,11 @@
 
 InstancedModel::InstancedModel(const std::filesystem::path& modelPath,
                                const std::filesystem::path& positionsPath,
+                               float minSize, float maxSize,
                                unsigned int numPositions)
     : Model{modelPath} {
   loadPositions(positionsPath, numPositions);
-  generateTransforms();
+  generateTransforms(minSize, maxSize);
   setupInstancedBuffers();
 }
 
@@ -46,6 +47,7 @@ InstancedModel::~InstancedModel() { deleteBuffers(); }
 
 void InstancedModel::render() {
   glDisable(GL_CULL_FACE);
+  glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
   for (const Primitive::Mesh& mesh : meshes) {
     for (const Primitive& primitive : mesh.primitives) {
@@ -85,6 +87,7 @@ void InstancedModel::render() {
   }
 
   glEnable(GL_CULL_FACE);
+  glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
   glBindVertexArray(0);
   glActiveTexture(GL_TEXTURE0);
 }
@@ -105,22 +108,25 @@ void InstancedModel::loadPositions(const std::filesystem::path& positionsPath,
     std::cerr << "Unable to open " << positionsPath << std::endl;
 }
 
-void InstancedModel::generateTransforms() {
+void InstancedModel::generateTransforms(float minSize, float maxSize) {
   std::random_device rd;
   std::mt19937 mt(rd());
 
   // Rotate the model somewhere in the 360 degree range
-  std::uniform_real_distribution<float> baseRotation{0.0f, 360.0f};
+  std::uniform_real_distribution<float> randRotation{0.0f, 360.0f};
+  std::uniform_real_distribution<float> randScale{minSize, maxSize};
 
   transforms.reserve(positions.size());
 
   for (const auto& position : positions) {
-    float instanceBaseRotation{baseRotation(mt)};
+    float instanceRotation{randRotation(mt)};
+    float instanceScale{randScale(mt)};
 
     glm::mat4 transform{1.0f};
     transform = glm::translate(transform, position);
-    transform = glm::rotate(transform, glm::radians(instanceBaseRotation),
+    transform = glm::rotate(transform, glm::radians(instanceRotation),
                             glm::vec3{0.0f, 1.0f, 0.0f});
+    transform = glm::scale(transform, glm::vec3{instanceScale});
 
     transforms.emplace_back(std::move(transform));
   }
