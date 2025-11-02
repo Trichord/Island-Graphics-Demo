@@ -42,13 +42,13 @@ const glm::mat4& Camera::getViewMatrix() {
   return viewMatrix;
 }
 
-const glm::mat4& Camera::getViewNoTranslationMatrix() {
+const glm::mat4& Camera::getViewMatrixNoTranslation() {
   if (dirtyMatrices) {
     updateCameraMatrices();
     dirtyMatrices = false;
   }
 
-  return viewNoTranslationMatrix;
+  return viewMatrixNoTranslation;
 }
 
 void Camera::processKeyboard(CameraMovement direction, float deltaTime) {
@@ -116,7 +116,7 @@ void Camera::updateCameraVectors() {
 
 void Camera::updateCameraMatrices() {
   viewMatrix = glm::lookAt(position, position + front, up);
-  viewNoTranslationMatrix = glm::mat4{glm::mat3{viewMatrix}};
+  viewMatrixNoTranslation = glm::mat4{glm::mat3{viewMatrix}};
 }
 
 const glm::mat4& Camera::getProjectionMatrix() { return projectionMatrix; }

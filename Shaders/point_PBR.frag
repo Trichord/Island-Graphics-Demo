@@ -13,6 +13,7 @@ vec3 lightColor = vec3(2.5);
 
 //Positions in tangent view space
 in VS_OUT {
+	vec3 cameraPos;
 	vec3 lightPos;
 	vec3 fragPos;
 	vec2 texCoords;
@@ -91,7 +92,7 @@ void main() {
 
 	//vectors
 	vec3 N = normalize(normal);
-	vec3 V = normalize(-fs_in.fragPos);
+	vec3 V = normalize(fs_in.cameraPos - fs_in.fragPos);
 	vec3 L = normalize(fs_in.lightPos - fs_in.fragPos);
 	vec3 H = normalize(L + V);
 	

@@ -21,7 +21,7 @@ class Camera {
          float yaw, float pitch);
 
   const glm::mat4& getViewMatrix();
-  const glm::mat4& getViewNoTranslationMatrix();
+  const glm::mat4& getViewMatrixNoTranslation();
   const glm::mat4& getProjectionMatrix();
 
   void processKeyboard(CameraMovement direction, float deltaTime);
@@ -43,7 +43,7 @@ class Camera {
   glm::vec3 up;
   glm::vec3 worldUp{0.0f, 1.0f, 0.0f};
   glm::mat4 viewMatrix{1.0f};
-  glm::mat4 viewNoTranslationMatrix{1.0f};
+  glm::mat4 viewMatrixNoTranslation{1.0f};
   glm::mat4 projectionMatrix{1.0f};
   glm::mat4 createProjectionMatrix();
   void updateCameraVectors();
