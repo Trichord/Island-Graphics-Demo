@@ -22,7 +22,6 @@ Renderer::Renderer(int screenWidth, int screenHeight) {
   std::cout << " Done." << std::endl;
 
   // Setup shaders
-  setupGrassShader(shaders.at(ShaderType::GRASS));
   setupFlowerShader(shaders.at(ShaderType::FLOWERS));
   setupPBRShader(shaders.at(ShaderType::POINT_PBR));
   setupPBRShader(shaders.at(ShaderType::DIRECTIONAL_PBR));
@@ -124,8 +123,6 @@ void Renderer::setupUBO() {
 
 void Renderer::loadShaders() {
   using enum ShaderType;
-  shaders.emplace(GRASS,
-                  Shader("./shaders/grass.vert", "./shaders/grass.frag"));
   shaders.emplace(FLOWERS,
                   Shader("./shaders/flowers.vert", "./shaders/flowers.frag"));
   shaders.emplace(POINT_PBR, Shader("./shaders/point_PBR.vert",
@@ -138,16 +135,6 @@ void Renderer::loadShaders() {
                                        "./shaders/light_source.frag"));
   shaders.emplace(SKYBOX,
                   Shader("./shaders/skybox.vert", "./shaders/skybox.frag"));
-}
-
-void Renderer::setupGrassShader(Shader& shader) {
-  glm::vec3 windDirection{0.88f, -0.1f, 0.4344f};
-
-  shader.setUniformBlock("matrices", 0);
-  shader.setInt("colorTexture", 0);
-  shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
-  shader.setFloat("windStrength", 0.07f);
-  shader.setVec3("windDirection", glm::normalize(windDirection));
 }
 
 void Renderer::setupFlowerShader(Shader& shader) {
@@ -200,11 +187,6 @@ void Renderer::updateShaderUniforms(Scene& scene) {
 
       case POINT_PBR:
         if (posUpdated) shader.setVec3("lightPosition", pointPos);
-        break;
-
-      case GRASS:
-        shader.setFloat("time", (float)glfwGetTime() * 0.5f);
-        if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
         break;
 
       case FLOWERS:

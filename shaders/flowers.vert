@@ -43,7 +43,7 @@ void main() {
 
 	vec3 windTranslation = calcWindTranslation(time, windDirection, windStrength);
 
-	float mask = smoothstep(0.015, 1.0, aPos.y);
+	float mask = smoothstep(0.01, 1.0, aPos.y);
 	windTranslation *= mask;
 
     gl_Position = projectionViewMatrix * vec4(worldPos.xyz + windTranslation, 1.0);

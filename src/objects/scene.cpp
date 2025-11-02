@@ -17,6 +17,7 @@
 
 Scene::Scene() {
   models.reserve(sceneMaxObjects::maxModels);
+  instancedModels.reserve(sceneMaxObjects::maxInstancedModels);
   spaceModels.reserve(sceneMaxObjects::maxSpaceModels);
   skyboxes.reserve(sceneMaxObjects::maxSkyboxes);
   quads.reserve(sceneMaxObjects::maxQuadModels);
@@ -66,14 +67,14 @@ Skybox& Scene::loadSkybox(const std::vector<std::filesystem::path>& filePaths) {
   return skyboxes.emplace_back(filePaths);
 }
 
-Quad& Scene::loadQuad(const std::filesystem::path& positionsPath,
-                      const std::filesystem::path& texturePath,
+Quad& Scene::loadQuad(const std::filesystem::path& texturePath,
+                      const std::filesystem::path& positionsPath,
                       Quad::QuadPattern pattern, float minSize, float maxSize,
                       unsigned int density, unsigned int numPositions) {
   if (quads.size() >= sceneMaxObjects::maxQuadModels)
     throw std::runtime_error("Max number of quad models reached");
 
-  return quads.emplace_back(positionsPath, texturePath, pattern, minSize,
+  return quads.emplace_back(texturePath, positionsPath, pattern, minSize,
                             maxSize, density, numPositions);
 }
 

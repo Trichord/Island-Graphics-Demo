@@ -13,8 +13,8 @@
 constexpr float rotationVariation{5.0f};
 constexpr float scaleVariationFactor{0.25f};
 
-Quad::Quad(const std::filesystem::path &positionsPath,
-           const std::filesystem::path &texturePath, QuadPattern pattern,
+Quad::Quad(const std::filesystem::path &texturePath,
+           const std::filesystem::path &positionsPath, QuadPattern pattern,
            float minSize, float maxSize, unsigned int density,
            unsigned int numPositions) {
   loadTexture(texturePath);
@@ -112,8 +112,8 @@ void Quad::setupBuffers(unsigned int density) {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
 
   // textures
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+  glEnableVertexAttribArray(3);
+  glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
                         (void *)(6 * sizeof(float)));
 
   // Transform VBO
@@ -123,31 +123,31 @@ void Quad::setupBuffers(unsigned int density) {
                transforms.data(), GL_STATIC_DRAW);
 
   // glm::mat4 instance model matrix
-  glEnableVertexAttribArray(2);
-  glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)0);
-  glEnableVertexAttribArray(3);
-  glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                        (void *)(sizeof(glm::vec4)));
   glEnableVertexAttribArray(4);
-  glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                        (void *)(2 * sizeof(glm::vec4)));
+  glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)0);
   glEnableVertexAttribArray(5);
   glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                        (void *)(sizeof(glm::vec4)));
+  glEnableVertexAttribArray(6);
+  glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                        (void *)(2 * sizeof(glm::vec4)));
+  glEnableVertexAttribArray(7);
+  glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
                         (void *)(3 * sizeof(glm::vec4)));
 
-  glVertexAttribDivisor(2, 1);
-  glVertexAttribDivisor(3, 1);
   glVertexAttribDivisor(4, 1);
   glVertexAttribDivisor(5, 1);
+  glVertexAttribDivisor(6, 1);
+  glVertexAttribDivisor(7, 1);
 
   // Center positions of each quad
   glGenBuffers(1, &positionsVBO);
   glBindBuffer(GL_ARRAY_BUFFER, positionsVBO);
   glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec3),
                positions.data(), GL_STATIC_DRAW);
-  glEnableVertexAttribArray(6);
-  glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
-  glVertexAttribDivisor(6, density);
+  glEnableVertexAttribArray(8);
+  glVertexAttribPointer(8, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
+  glVertexAttribDivisor(8, density);
 
   // reset VAO
   glBindVertexArray(0);

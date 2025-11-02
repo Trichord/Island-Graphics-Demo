@@ -55,15 +55,26 @@ void IslandScene::addAllModelsToScene() {
   addObjectToScene(skybox, ShaderType::SKYBOX);
 
   // Grass
-  auto& grass = loadQuad("./res/grass1.txt", "./res/textures/grass1.png",
+  auto& grass = loadQuad("./res/textures/grass.png", "./res/grass_pos.txt",
                          Quad::RADIAL_PATTERN, 0.3f, 0.5f, 3, 8109);
-  addObjectToScene(grass, ShaderType::GRASS);
+  addObjectToScene(grass, ShaderType::FLOWERS);
 
-  // Flowers
-  auto& flower1 = loadInstancedModel("./res/models/purpleflower/purpleflower.gltf",
-                                     "./res/flowers1.txt", 317);
-  addObjectToScene(flower1, ShaderType::FLOWERS);
+  // Purple flowers
+  auto& purpleFlowers = loadInstancedModel("./res/models/purpleflower/purpleflower.gltf",
+                                     "./res/purpleflower_pos.txt", 475);
+  addObjectToScene(purpleFlowers, ShaderType::FLOWERS);
 
+  // White flowers
+  auto& whiteFlowers =
+      loadInstancedModel("./res/models/whiteflower/whiteflower.gltf",
+                         "./res/whiteflower_pos.txt", 417);
+  addObjectToScene(whiteFlowers, ShaderType::FLOWERS);
+
+  //Blue flowers
+  auto& blueFlowers = loadInstancedModel(
+      "./res/models/blueflower/blueflower.gltf", "./res/blueflower_pos.txt", 372);
+  addObjectToScene(blueFlowers, ShaderType::FLOWERS);
+  
   std::cout << " Done." << std::endl;
 }
 
