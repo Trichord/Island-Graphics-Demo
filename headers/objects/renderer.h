@@ -35,7 +35,6 @@ class Renderer {
 
   void setupUBO();
   void loadShaders();
-  void setupGrassShader(Shader& shader);
   void setupFlowerShader(Shader& shader);
   void setupPBRShader(Shader& shader);
   void setupReflectiveShader(Shader& shader);

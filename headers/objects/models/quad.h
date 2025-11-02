@@ -11,8 +11,8 @@ class Quad : public Renderable {
  public:
   enum QuadPattern { STAR_PATTERN, RADIAL_PATTERN };
 
-  Quad(const std::filesystem::path &positionsPath,
-       const std::filesystem::path &texturePath, QuadPattern pattern,
+  Quad(const std::filesystem::path &texturePath,
+       const std::filesystem::path &positionsPath, QuadPattern pattern,
        float minSize, float maxSize, unsigned int density = 3,
        unsigned int numPositions = 0);
   Quad(const Quad &) = delete;
