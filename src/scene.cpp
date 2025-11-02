@@ -80,11 +80,12 @@ Quad& Scene::loadQuad(const std::filesystem::path& texturePath,
 
 InstancedModel& Scene::loadInstancedModel(
     const std::filesystem::path& modelPath,
-    const std::filesystem::path& positionsPath, unsigned int numPositions) {
+    const std::filesystem::path& positionsPath, float minSize,
+    float maxSize, unsigned int numPositions) {
   if (instancedModels.size() >= sceneMaxObjects::maxInstancedModels)
     throw std::runtime_error{"Max number of instanced models reached"};
 
-  return instancedModels.emplace_back(modelPath, positionsPath, numPositions);
+  return instancedModels.emplace_back(modelPath, positionsPath, minSize, maxSize, numPositions);
 }
 
 Transform& Scene::getObjectTransform(const std::string& key) {
