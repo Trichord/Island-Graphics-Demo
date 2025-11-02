@@ -64,35 +64,32 @@ void Renderer::renderScene(Scene& scene) {
     // For each object of that shader type
     for (auto& object : objectList) {
       glm::mat4 modelMatrix{object.transform.getModelMatrix()};
+      glm::mat3 normalMatrix{object.transform.getNormalMatrix()};
 
       switch (shaderType) {
         // Directional light source
         case ShaderType::DIRECTIONAL_PBR:
           shader.setMat4("modelMatrix", modelMatrix);
-          shader.setMat3("normalMV",
-                         glm::transpose(glm::inverse(glm::mat3{
-                             scene.camera.getViewMatrix() * modelMatrix})));
+          shader.setMat3("normalMatrix", normalMatrix);
           break;
 
         // Point light source
         case ShaderType::POINT_PBR:
           shader.setMat4("modelMatrix", modelMatrix);
-          shader.setMat3("normalMV",
-                         glm::transpose(glm::inverse(glm::mat3{
-                             scene.camera.getViewMatrix() * modelMatrix})));
+          shader.setMat3("normalMatrix", normalMatrix);
           break;
 
         // Reflective shader
         case ShaderType::REFLECTIVE:
           shader.setMat4("modelMatrix", modelMatrix);
-          shader.setMat3("normalMatrix", object.transform.getNormalMatrix());
+          shader.setMat3("normalMatrix", normalMatrix);
           break;
 
           // Skyboxes
         case ShaderType::SKYBOX:
           shader.setMat4("projectionViewNoTranslation",
                          scene.camera.getProjectionMatrix() *
-                             scene.camera.getViewNoTranslationMatrix());
+                             scene.camera.getViewMatrixNoTranslation());
           break;
 
         case ShaderType::LIGHT_SOURCE:

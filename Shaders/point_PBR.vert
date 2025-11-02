@@ -12,28 +12,28 @@ layout (std140) uniform matrices {
 };
 
 out VS_OUT {
+	vec3 cameraPos;
 	vec3 lightPos;
 	vec3 fragPos;
 	vec2 texCoords;
 } vs_out;
 
 uniform mat4 modelMatrix;
-uniform mat3 normalMV; // transpose(inverse(mat3(viewMatrix * modelMatrix)));
+uniform mat3 normalMatrix; //transpose(inverse(mat3(modelMatrix)))
 uniform vec3 lightPosition;
 
 void main () {
-	mat4 viewModel = viewMatrix * modelMatrix;
-
 	//TBN matrix for normal map
-	vec3 T = normalize(normalMV * aTangent.xyz);
-	vec3 N = normalize(normalMV * aNormal);
+	vec3 T = normalize(normalMatrix * aTangent.xyz);
+	vec3 N = normalize(normalMatrix * aNormal);
 	T = normalize(T - dot(T, N) * N); 
 	vec3 B = normalize(cross(N, T) * aTangent.w);
 	mat3 TBN = transpose(mat3(T, B, N));
 
 	vs_out.texCoords = aTexCoords;
-	vs_out.fragPos = TBN * (viewModel * vec4(aPos, 1.0)).xyz;
-	vs_out.lightPos = TBN * (viewMatrix * vec4(lightPosition, 1.0)).xyz;
+	vs_out.fragPos = TBN * (modelMatrix * vec4(aPos, 1.0)).xyz;
+	vs_out.lightPos = TBN * lightPosition;
+	vs_out.cameraPos = TBN * cameraPosition.xyz;
 	
 	gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0);
 }
