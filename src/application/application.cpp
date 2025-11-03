@@ -13,7 +13,7 @@
 #include "thread_pool.h"
 
 void Application::run() {
- //if (!configWindow.launchSettingsWindow()) return;
+  if (!configWindow.launchSettingsWindow()) return;
 
   createWindow();
   if (!window) return;
