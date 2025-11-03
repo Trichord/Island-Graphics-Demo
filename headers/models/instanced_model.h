@@ -21,8 +21,10 @@ class InstancedModel : public Model {
  private:
   GLuint transformsVBO{0};
   GLuint positionsVBO{0};
+  GLuint normalMatricesVBO{0};
   std::vector<glm::mat4> transforms;
   std::vector<glm::vec3> positions;
+  std::vector<glm::mat3> normalMatrices;
 
   void render() override;
   void loadPositions(const std::filesystem::path& positionsPath,
