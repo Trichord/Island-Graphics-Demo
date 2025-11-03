@@ -6,6 +6,11 @@
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 
+/**
+ * @class ConfigWindow
+ * @brief Creates a GLFW window, using Dear ImGUI as a user interface.  Allows
+ * the user to adjust display settings.
+ */
 class ConfigWindow {
  public:
   static inline struct GraphicsSettings {
@@ -25,6 +30,11 @@ class ConfigWindow {
   ConfigWindow& operator=(ConfigWindow&& other) = delete;
   ~ConfigWindow();
 
+  /**
+  * Creates the Display Settings window.
+  * 
+  * @return Settings confirmed or cancelled.
+  */
   bool launchSettingsWindow();
 
  private:
@@ -58,12 +68,38 @@ class ConfigWindow {
 
   GLuint textureID{0};
 
+  /**
+  * Creates the GLFW window, centered and scaled by monitor zoom.
+  */
   bool createWindow();
+
+  /**
+  * Creates Dear ImGui context. Sets Dear ImGui style and loads a custom font.
+  */
   void setupImGui();
+
+  /**
+  * Creates an OpenGL texture ID for the configuration window's image.
+  */
   void loadConfigWindowImage();
+
+  /**
+  * The Dear ImGui render loop. Contains all user interface logic. 
+  * 
+  * @returns Settings confirmed or cancelled.
+  */
   bool renderImGui();
 
+  /**
+  * Helper function for the resolution drop-down menu.  Updates globalGraphicsSettings.
+  * 
+  * @param index The drop-down selected index.
+  */
   void updateGlobalResolution(unsigned int index);
+
+  /**
+  * Helper function for the MSAA drop-down menu.  Updates globalGraphicsSettings.
+  */
   void updateGlobalMSAA(unsigned int index);
   void updateGlobalAniso(unsigned int index);
 };

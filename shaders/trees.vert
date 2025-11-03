@@ -6,6 +6,7 @@ layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
 layout (location = 4) in mat4 aTransform;
 layout (location = 8) in vec3 centerPos;
+layout (location = 9) in mat3 normalMatrix;
 
 
 layout (std140) uniform matrices {
@@ -24,7 +25,6 @@ out VS_OUT {
 uniform vec3 lightDir;
 
 void main() {
-	mat3 normalMatrix = mat3(aTransform);
 	//TBN matrix for normal map
 	vec3 T = normalize(normalMatrix * aTangent.xyz);
 	vec3 N = normalize(normalMatrix * aNormal);

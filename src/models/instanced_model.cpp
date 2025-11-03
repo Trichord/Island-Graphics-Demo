@@ -22,10 +22,13 @@ InstancedModel::InstancedModel(InstancedModel&& other) noexcept
     : Model{std::move(other)} {
   transformsVBO = other.transformsVBO;
   positionsVBO = other.positionsVBO;
+  normalMatricesVBO = other.normalMatricesVBO;
   transforms = std::move(other.transforms);
+  normalMatrices = std::move(other.normalMatrices);
 
   other.transformsVBO = 0;
   other.positionsVBO = 0;
+  other.normalMatricesVBO = 0;
 }
 
 InstancedModel& InstancedModel::operator=(InstancedModel&& other) noexcept {
@@ -35,10 +38,13 @@ InstancedModel& InstancedModel::operator=(InstancedModel&& other) noexcept {
     Model::operator=(std::move(other));
     transformsVBO = other.transformsVBO;
     positionsVBO = other.positionsVBO;
+    normalMatricesVBO = other.normalMatricesVBO;
     transforms = std::move(other.transforms);
+    normalMatrices = std::move(other.normalMatrices);
 
     other.transformsVBO = 0;
     other.positionsVBO = 0;
+    other.normalMatricesVBO = 0;
   }
   return *this;
 }
@@ -117,6 +123,7 @@ void InstancedModel::generateTransforms(float minSize, float maxSize) {
   std::uniform_real_distribution<float> randScale{minSize, maxSize};
 
   transforms.reserve(positions.size());
+  normalMatrices.reserve(positions.size());
 
   for (const auto& position : positions) {
     float instanceRotation{randRotation(mt)};
@@ -128,7 +135,10 @@ void InstancedModel::generateTransforms(float minSize, float maxSize) {
                             glm::vec3{0.0f, 1.0f, 0.0f});
     transform = glm::scale(transform, glm::vec3{instanceScale});
 
+    glm::mat3 normalMatrix{glm::transpose(glm::inverse(glm::mat3{transform}))};
+
     transforms.emplace_back(std::move(transform));
+    normalMatrices.emplace_back(std::move(normalMatrix));
   }
 }
 
@@ -144,6 +154,12 @@ void InstancedModel::setupInstancedBuffers() {
   glBindBuffer(GL_ARRAY_BUFFER, positionsVBO);
   glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec3),
                positions.data(), GL_STATIC_DRAW);
+
+  // Normal matrices VBO
+  glGenBuffers(1, &normalMatricesVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, normalMatricesVBO);
+  glBufferData(GL_ARRAY_BUFFER, normalMatrices.size() * sizeof(glm::mat3),
+               normalMatrices.data(), GL_STATIC_DRAW);
 
   for (const Primitive::Mesh& mesh : meshes) {
     for (const Primitive& primitive : mesh.primitives) {
@@ -175,6 +191,22 @@ void InstancedModel::setupInstancedBuffers() {
       glVertexAttribPointer(8, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
                             (void*)0);
       glVertexAttribDivisor(8, 1);
+
+      // Normal matrices
+      glBindBuffer(GL_ARRAY_BUFFER, normalMatricesVBO);
+      glEnableVertexAttribArray(9);
+      glVertexAttribPointer(9, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
+                            (void*)0);
+      glEnableVertexAttribArray(10);
+      glVertexAttribPointer(10, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
+                            (void*)(sizeof(glm::vec3)));
+      glEnableVertexAttribArray(11);
+      glVertexAttribPointer(11, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
+                            (void*)(2 * sizeof(glm::vec3)));
+
+      glVertexAttribDivisor(9, 1);
+      glVertexAttribDivisor(10, 1);
+      glVertexAttribDivisor(11, 1);
     }
   }
 
@@ -185,4 +217,5 @@ void InstancedModel::setupInstancedBuffers() {
 void InstancedModel::deleteBuffers() {
   glDeleteBuffers(1, &transformsVBO);
   glDeleteBuffers(1, &positionsVBO);
+  glDeleteBuffers(1, &normalMatricesVBO);
 }
