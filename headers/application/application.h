@@ -12,32 +12,34 @@
 #include "thread_pool.h"
 
 /**
-* GLFW window resize callback. Receives the new size of the framebuffer
-* 
-* @param window The window whose framebuffer was resized. 
-* @param width The new width, in pixels, of the framebuffer. 
-* @param height The new height, in pixels, of the framebuffer.
-*/
+ * GLFW window resize callback. Receives the new size of the framebuffer
+ *
+ * @param window The window whose framebuffer was resized.
+ * @param width The new width, in pixels, of the framebuffer.
+ * @param height The new height, in pixels, of the framebuffer.
+ */
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
 /**
-* GLFW mouse callback. Recieves updated cursor coordinates.
-* 
-* @param window The window that recieved the event
-* @param xPos The new x-coordinate, in screen coordinates, of the cursor.
-* @param yPos The new y-coordinate, in screen coordinates, of the cursor.
-*/
+ * GLFW mouse callback. Recieves updated cursor coordinates.
+ *
+ * @param window The window that recieved the event
+ * @param xPos The new x-coordinate, in screen coordinates, of the cursor.
+ * @param yPos The new y-coordinate, in screen coordinates, of the cursor.
+ */
 void mouse_callback(GLFWwindow* window, double xPos, double yPos);
 
 /**
-* GLFW key callback, triggered when a keyboard button is pressed, repeated or released.
-* 
-* @param window The window that received the event.
-* @param key The keyboard key that was pressed or released.
-* @param scancode The system-specific scancode of the key.
-* @param action The button action, such as GLFW_PRESS, GLFW_RELEASE or GLFW_REPEAT
-* @param mods Bit field describing which modifier keys were held down.
-*/
+ * GLFW key callback, triggered when a keyboard button is pressed, repeated or
+ * released.
+ *
+ * @param window The window that received the event.
+ * @param key The keyboard key that was pressed or released.
+ * @param scancode The system-specific scancode of the key.
+ * @param action The button action, such as GLFW_PRESS, GLFW_RELEASE or
+ * GLFW_REPEAT
+ * @param mods Bit field describing which modifier keys were held down.
+ */
 void keyCallback(GLFWwindow* window, int key, int scancode, int action,
                  int mods);
 
@@ -46,11 +48,10 @@ inline float lastMouseX{0.0f};
 inline float lastMouseY{0.0f};
 
 /**
-* @class Application
-* @brief Handles window creation, user input, and the main loop.
-* 
-* Also initializes OpenGL and passes settings from the config window to OpenGL.
-*/
+ * @brief Handles window creation, user input, and the main loop.
+ *
+ * Also initializes OpenGL and passes settings from the config window to OpenGL.
+ */
 class Application {
  public:
   Application() = default;
@@ -68,47 +69,47 @@ class Application {
   ConfigWindow configWindow;
 
   /**
-   * Creates a GLFW window.  Display settings from the config window are passed
-   * to GLFW here.
+   * @brief Creates a GLFW window.  Display settings from the config window are
+   * passed to GLFW here.
    */
   void createWindow();
 
   /**
-   * Checks for GLFW key presses and passes info to the scene.
-   * 
+   * @brief Checks for GLFW key presses and passes info to the scene.
+   *
    * @param scene The target scene.
    */
   void processInput(Scene& scene);
 
   /**
-   * Registers OpenGL function pointers, creates an OpenGL viewport, and
+   * @brief Registers OpenGL function pointers, creates an OpenGL viewport, and
    * optionally sets MSAA.
    */
   void createOpenGLViewport();
 
   /**
-   * Registers GLFW callbacks.  Mouse callback is seperate and should be
+   * @brief Registers GLFW callbacks.  Mouse callback is seperate and should be
    * registered last with centerMouse()
    */
   void registerCallbacks();
 
   /**
-   * Registers a scene with GLFW to be used with GLFW's built in call-backs.
-   * 
+   * @brief Registers a scene with GLFW to be used with GLFW's built in call-backs.
+   *
    * @param scene The target scene to be processed by GLFW.
    */
   void addGlfwUserParam(Scene& scene);
 
   /**
-   * Per-frame update logic.
-   * 
+   * @brief Per-frame update logic.
+   *
    * @param scene The target scene to be updated.
    * @param deltaTime The time elapsed since the last frame.
    */
   void onUpdate(Scene& scene, float deltaTime);
 
   /**
-   * Registers the mouse callback with GLFW.
+   * @brief Registers the mouse callback with GLFW.
    */
   void centerMouse();
 };
