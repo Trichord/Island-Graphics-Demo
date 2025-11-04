@@ -11,11 +11,15 @@
 #include "primitive.h"
 #include "renderable.h"
 
-/* Model owns the OpenGL Texture IDs and copying is disabled to avoid double
- * frees. Texture IDs are released on Model destruction. assetImages is a 1:1
- * mapping of gltf's images array, but with OpenGL texture IDs instead of URIs.
- * Order of fastgltf's images is preserved */
-
+/**
+ * @brief A model loaded from a glTF file.
+ *
+ * @details Model owns the OpenGL texture ID's and copying is disabled to avoid
+ * double frees.  Texture IDs are released upon destruction.  The member
+ * assetImages is a 1:1 mapping of glTF's images array, but with OpenGL texture
+ * IDs instead of URIs. Order between fastgltf's image indices and assetImages
+ * is preserved.
+ */
 class Model : public Renderable {
  public:
   Model() = default;
@@ -26,6 +30,12 @@ class Model : public Renderable {
   Model& operator=(Model&& other) noexcept;
   ~Model();
 
+  /**
+   * @brief Model class's implementation of the Renderable interface.
+   *
+   * @details Draws each primitive in the mesh. Binds albdeo, ambient occlusion,
+   *  metallic, roughness, and normal map textures, if the model has them.
+   */
   void render() override;
 
  protected:
@@ -44,8 +54,21 @@ class Model : public Renderable {
   std::vector<GLuint> assetImages;
   std::unordered_set<unsigned int> processedImageIndices;
 
+  /**
+   * @brief Calls fastgltf to load a model.
+   *
+   * @param path The path to the .gltf file.
+   */
   void loadModel(const std::filesystem::path& path);
-  void loadTextures(const std::filesystem::path& parentPath);
+
+  /**
+   * @brief Uses fastgltf to retrieve all texture image URI's. Turns the URI's
+   * into image data.
+   *
+   * @param parentPath The folder containing the .gltf file.
+   * @return A vector of image data after being processed by stb_image.
+   */
+  void loadTextureImages(const std::filesystem::path& parentPath);
   void loadMaterials(const std::vector<ImageData>& imagedata);
   void deleteTextureIDs();
 };
