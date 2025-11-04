@@ -87,24 +87,19 @@ void Model::loadModel(const std::filesystem::path& path) {
   meshes = fastgltfLoader::loadMeshes(asset);
 
   assetImages.resize(asset.images.size());
-  loadTextures(path.parent_path());
+  loadTextureImages(path.parent_path());
 
   asset = fastgltf::Asset{};
 }
 
-void Model::loadTextures(const std::filesystem::path& parentPath) {
-  // Get all local Uniform Resource Identifiers from gltf, so we can pass the
-  // file paths to the image loader
+void Model::loadTextureImages(const std::filesystem::path& parentPath) {
   std::vector<std::filesystem::path> texturePaths{
       fastgltfLoader::getURIs(asset, parentPath)};
 
-  // Load images
   ImageLoader imageLoader{texturePaths};
-  std::vector<ImageData> imageData{imageLoader.getImageData()};
 
-  // Pass the image data so that OpenGL texture IDs can be generated and
-  // attached to the appropriate materials
-  loadMaterials(imageData);
+  std::vector<ImageData> textureImageData = imageLoader.getImageData();
+  loadMaterials(textureImageData);
 }
 
 void Model::loadMaterials(const std::vector<ImageData>& imageData) {

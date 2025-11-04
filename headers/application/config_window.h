@@ -7,7 +7,6 @@
 #include "GLFW/glfw3.h"
 
 /**
- * @class ConfigWindow
  * @brief Creates a GLFW window, using Dear ImGUI as a user interface.  Allows
  * the user to adjust display settings.
  */
@@ -31,7 +30,7 @@ class ConfigWindow {
   ~ConfigWindow();
 
   /**
-  * Creates the Display Settings window.
+  * @brief Creates the Display Settings window.
   * 
   * @return Settings confirmed or cancelled.
   */
@@ -69,37 +68,45 @@ class ConfigWindow {
   GLuint textureID{0};
 
   /**
-  * Creates the GLFW window, centered and scaled by monitor zoom.
+  * @brief Creates the GLFW window, centered and scaled by monitor zoom.
   */
   bool createWindow();
 
   /**
-  * Creates Dear ImGui context. Sets Dear ImGui style and loads a custom font.
+  * @brief Creates Dear ImGui context. Sets Dear ImGui style and loads a custom font.
   */
   void setupImGui();
 
   /**
-  * Creates an OpenGL texture ID for the configuration window's image.
+  * @brief Creates an OpenGL texture ID for the configuration window's image.
   */
   void loadConfigWindowImage();
 
   /**
-  * The Dear ImGui render loop. Contains all user interface logic. 
+  * @brief The Dear ImGui render loop. Contains all user interface logic. 
   * 
   * @returns Settings confirmed or cancelled.
   */
   bool renderImGui();
 
   /**
-  * Helper function for the resolution drop-down menu.  Updates globalGraphicsSettings.
+  * @brief Helper function for the resolution drop-down menu.  Updates globalGraphicsSettings.
   * 
-  * @param index The drop-down selected index.
+  * @param index The resolution drop-down selected index.
   */
   void updateGlobalResolution(unsigned int index);
 
   /**
-  * Helper function for the MSAA drop-down menu.  Updates globalGraphicsSettings.
+  * @brief Helper function for the MSAA drop-down menu.  Updates globalGraphicsSettings.
+  * 
+  * @param index The msaa drop-down selected index.
   */
   void updateGlobalMSAA(unsigned int index);
+
+  /**
+  * @brief Helper function for anisotropic filtering drop-down menu.  Updates globalGraphicsSettings.
+  * 
+  * @param index The anisotropic filtering drop-down selected index.
+  */
   void updateGlobalAniso(unsigned int index);
 };
