@@ -195,13 +195,13 @@ void InstancedModel::setupInstancedBuffers() {
       // Normal matrices
       glBindBuffer(GL_ARRAY_BUFFER, normalMatricesVBO);
       glEnableVertexAttribArray(9);
-      glVertexAttribPointer(9, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
+      glVertexAttribPointer(9, 3, GL_FLOAT, GL_FALSE, sizeof(glm::mat3),
                             (void*)0);
       glEnableVertexAttribArray(10);
-      glVertexAttribPointer(10, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
+      glVertexAttribPointer(10, 3, GL_FLOAT, GL_FALSE, sizeof(glm::mat3),
                             (void*)(sizeof(glm::vec3)));
       glEnableVertexAttribArray(11);
-      glVertexAttribPointer(11, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
+      glVertexAttribPointer(11, 3, GL_FLOAT, GL_FALSE, sizeof(glm::mat3),
                             (void*)(2 * sizeof(glm::vec3)));
 
       glVertexAttribDivisor(9, 1);
