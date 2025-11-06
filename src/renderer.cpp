@@ -124,7 +124,7 @@ void Renderer::loadShaders() {
   shaders.emplace(FLOWERS,
                   Shader{"./shaders/flowers.vert", "./shaders/flowers.frag"});
   shaders.emplace(TREES,
-                  Shader{"./shaders/trees.vert", "./shaders/directional_PBR.frag"});
+                  Shader{"./shaders/trees.vert", "./shaders/trees.frag"});
   shaders.emplace(POINT_PBR, Shader{"./shaders/point_PBR.vert",
                                     "./shaders/point_PBR.frag"});
   shaders.emplace(DIRECTIONAL_PBR, Shader{"./shaders/directional_PBR.vert",

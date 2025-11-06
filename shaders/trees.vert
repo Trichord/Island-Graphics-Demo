@@ -8,7 +8,6 @@ layout (location = 4) in mat4 aTransform;
 layout (location = 8) in vec3 centerPos;
 layout (location = 9) in mat3 normalMatrix;
 
-
 layout (std140) uniform matrices {
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionViewMatrix;
@@ -25,7 +24,7 @@ out VS_OUT {
 uniform vec3 lightDir;
 
 void main() {
-	//TBN matrix for normal map
+	//TBN matrix for normal map.  Transpose maps world -> tangent
 	vec3 T = normalize(normalMatrix * aTangent.xyz);
 	vec3 N = normalize(normalMatrix * aNormal);
 	T = normalize(T - dot(T, N) * N); 
