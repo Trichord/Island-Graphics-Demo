@@ -79,7 +79,7 @@ void IslandScene::addAllModelsToScene() {
   addObjectToScene(blueFlowers, FLOWERS);
 
   // Tree
-  auto& tree = loadInstancedModel("./res/models/elm/elm.gltf",
+  auto& tree = loadInstancedModel("./res/models/ash/ash.gltf",
                                   "./res/elm_positions.txt", 0.8f, 1.25f, 24);
   addObjectToScene(tree, TREES);
 
