@@ -25,7 +25,7 @@ Renderer::Renderer(int screenWidth, int screenHeight) {
   setupFlowerShader(shaders.at(ShaderType::FLOWERS));
   setupPBRShader(shaders.at(ShaderType::POINT_PBR));
   setupPBRShader(shaders.at(ShaderType::DIRECTIONAL_PBR));
-  setupPBRShader(shaders.at(ShaderType::TREES));
+  setupTreeShader(shaders.at(ShaderType::TREES));
   setupReflectiveShader(shaders.at(ShaderType::REFLECTIVE));
   setupLightSourceShader(shaders.at(ShaderType::LIGHT_SOURCE));
   setupSkyboxShader(shaders.at(ShaderType::SKYBOX));
@@ -155,6 +155,17 @@ void Renderer::setupPBRShader(Shader& shader) {
   shader.setInt("normalMap", 2);
 }
 
+void Renderer::setupTreeShader(Shader& shader){
+  glm::vec3 windDirection{0.88f, -0.1f, 0.4344f};
+  shader.setUniformBlock("matrices", 0);
+  shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
+  shader.setInt("albedoMap", 0);
+  shader.setInt("occlusionRoughMetalMap", 1);
+  shader.setInt("normalMap", 2);
+  shader.setFloat("windStrength", 0.07f);
+  shader.setVec3("windDirection", glm::normalize(windDirection));
+}
+
 void Renderer::setupReflectiveShader(Shader& shader) {
   shader.setUniformBlock("matrices", 0);
   shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
@@ -186,7 +197,8 @@ void Renderer::updateShaderUniforms(Scene& scene) {
         break;
 
       case TREES:
-        if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
+        shader.setFloat("time", (float)glfwGetTime() * 0.5f);
+        if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());  
         break;
 
       case POINT_PBR:
