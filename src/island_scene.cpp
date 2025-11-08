@@ -88,7 +88,7 @@ void IslandScene::addAllModelsToScene() {
 
 void IslandScene::addAllLightsToScene() {
   // Normalized approximation of sun direction in skybox
-  globalLightSource = glm::vec3{-0.363647, -0.739629, -0.566312};
+  globalLightSource = glm::vec3{-0.36669f, -0.731219f, -0.575202f};
 
   // Right next to the flight helmet
   addLightToScene(pointLights, PointLight{LIGHTBULB_START}, "circlingLight");
