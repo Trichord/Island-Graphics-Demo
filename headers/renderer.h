@@ -37,6 +37,7 @@ class Renderer {
   void loadShaders();
   void setupFlowerShader(Shader& shader);
   void setupPBRShader(Shader& shader);
+  void setupTreeShader(Shader& shader);
   void setupReflectiveShader(Shader& shader);
   void setupLightSourceShader(Shader& shader);
   void setupSkyboxShader(Shader& shader);
