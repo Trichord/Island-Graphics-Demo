@@ -1,7 +1,5 @@
 #version 460 core
 
-#define AMBIENT_STRENGTH 0.2
-
 out vec4 fragColor;
 
 uniform sampler2D albedoMap;
@@ -13,6 +11,10 @@ const float INVERSE_PI = 0.31830988618;
 const float mipScale = 0.25;
 const float alphaCutoff = 0.5;
 
+//Tuned to match the island's ground and sky colors
+const vec3 groundColor = vec3(0.04313, 0.09411, 0.01176);
+const vec3 skyColor = vec3(0.30980, 0.38823, 0.56863);
+
 //Bright mid-day sun
 const vec3 lightColor = vec3(1.0, 0.95, 0.9);
 
@@ -23,40 +25,6 @@ in VS_OUT {
 	vec3 fragPos;
 	vec2 texCoords;
 } fs_in;
-
-//Trowbridge-Reitz GGX for normal distribution function
-float distributionGGX(float NdotH, float roughness){
-	float a = roughness * roughness;
-	float a2 = a * a;
-	float NdotH2 = NdotH * NdotH;
-	float denom = NdotH2 * (a2 - 1.0) + 1.0;
-	float denom2 = denom * denom;
-
-	return a2 * INVERSE_PI / denom2;
-}
-
-//Smith's method with Schlick-GGX for geometric shadowing.  k = (a + 1)^2 / 8
-float geometrySmith(float NdotV, float NdotL, float roughness){
-	float r = roughness + 1.0;
-	float k = r * r * 0.125;
-	float invK = 1.0 - k;
-
-	//ggx1 * ggx2
-	float numerator = NdotL * NdotV;
-	float denom = (NdotL * invK + k) * (NdotV * invK + k);
-
-	return numerator / denom;
-}
-
-//Fresnel-Schlick approximation (unrolled x^5)
-vec3 fresnelSchlick(float cosTheta, vec3 F0){
-	float x = clamp(1.0 - cosTheta, 0.0, 1.0);
-	float x2 = x * x;
-	float x4 = x2 * x2;
-	float x5 = x4 * x;
-
-	return F0 + (1.0 - F0) * x5;
-}
 
 //Burely diffuse (unrolled)
 float burleyDiffuseFactor(float FD90, float NdotL, float NdotV){
@@ -95,8 +63,6 @@ float CalcMipLevel(vec2 texture_coord){
     return max(0.0, 0.5 * log2(delta_max_sqr));
 }
 
-uniform vec3 lightDir;
-
 void main() {
 	//material properties, remap normal from [0, 1] to [-1, 1]
 	vec4 albedo = texture(albedoMap, fs_in.texCoords);
@@ -124,24 +90,21 @@ void main() {
 	float NdotL = max(dot(N, L), 0.0);
 	float HdotV = max(dot(H, V), 0.0);
 
+	//Alter diffuse by metallic-ness of the material
 	vec3 kD = vec3(1.0);
 	kD *= 1.0 - metallic;
+
+	//Hemispherical ambient lighting, remapping the normal vector's y component to [0,1]
+	float up = N.y * 0.5 + 0.5;
+	vec3 hemiAmbient = mix(groundColor, skyColor, up) * ao;
 
 	//Burley diffuse
 	float FD90 = 0.5 + 2 * roughness * (HdotV * HdotV);
 	float burleyFactor = burleyDiffuseFactor(FD90, NdotL, NdotV);
-	vec3 diffuse = kD * albedo.rgb * INVERSE_PI * burleyFactor;
-
-	vec3 directLight = diffuse * lightColor * NdotL;
-
-	vec3 ambient = vec3(0.15) * albedo.rgb * ao;
-	vec3 color = ambient + directLight;
-
-
-	vec3 skyColor = vec3(0.4, 0.6, 0.5);
-	vec3 groundColor = vec3(0.1, 0.1, 0.1);
-	vec3 hemiAmbient = mix(groundColor, skyColor, N.y * 0.5 + 0.5);
-	color += hemiAmbient * albedo.rgb * ao;
+	vec3 diffuse = kD * burleyFactor * INVERSE_PI * lightColor;
+	
+	//Final color
+	vec3 color = (hemiAmbient + diffuse) * albedo.rgb;
 	
 	//ACES tone mapping
 	color = ACESFilm(color);

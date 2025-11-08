@@ -78,8 +78,8 @@ void IslandScene::addAllModelsToScene() {
                          "./res/blueflower_pos.txt", 0.9f, 1.1f, 361);
   addObjectToScene(blueFlowers, FLOWERS);
 
-  // Tree
-  auto& tree = loadInstancedModel("./res/models/ash/ash.gltf",
+  // Fir Tree
+  auto& tree = loadInstancedModel("./res/models/firtree/firtree.gltf",
                                   "./res/elm_positions.txt", 0.8f, 1.25f, 24);
   addObjectToScene(tree, TREES);
 
