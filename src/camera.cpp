@@ -58,8 +58,8 @@ void Camera::processKeyboard(CameraMovement direction, float deltaTime) {
   if (direction == BACKWARD) position -= front * velocity;
   if (direction == LEFT) position -= right * velocity;
   if (direction == RIGHT) position += right * velocity;
-  if (direction == UP) position += up * velocity;
-  if (direction == DOWN) position -= up * velocity;
+  if (direction == UP) position += worldUp * velocity;
+  if (direction == DOWN) position -= worldUp * velocity;
 
   hasChanged = true;
   dirtyMatrices = true;
