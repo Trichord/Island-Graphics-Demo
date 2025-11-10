@@ -55,11 +55,11 @@ void main() {
 	vs_out.cameraPos = TBN * cameraPosition.xyz;
 
 	vec3 windTranslation = calcWindTranslation(time, windDirection, windStrength);
-	float mask = smoothstep(0.5, 17.0, aPos.y);
+	float mask = smoothstep(0.05, 17.0, aPos.y);
 	windTranslation *= mask;
 
 	//Exaggerate movement of tree
-	windTranslation *= 10.0f;
+	windTranslation *= 5.0f;
 	
 	 gl_Position = projectionViewMatrix * aTransform * vec4(aPos + windTranslation, 1.0);
 }
