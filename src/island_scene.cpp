@@ -24,14 +24,14 @@ void IslandScene::addAllModelsToScene() {
                    Transform(FLIGHT_HELMET_START, glm::vec3(3.0f), 180.0f,
                              glm::vec3(0.0f, 1.0f, 0.0f)));
 
-  std::cout << ".";
-
   // Lightbulb-
   auto& lightbulb = loadModel("./res/models/lightbulb/lightbulb.gltf");
   addObjectToScene(lightbulb, LIGHT_SOURCE,
                    Transform(LIGHTBULB_START, glm::vec3(1.0f), 90.0f,
                              glm::vec3(1.0f, 0.0f, 0.0f)),
                    "lightbulb");
+
+  std::cout << ".";
 
   std::vector<std::filesystem::path> spaceBoxPaths{
       "./res//Textures/nebula/right.png", "./res//Textures/nebula/left.png",
@@ -44,8 +44,6 @@ void IslandScene::addAllModelsToScene() {
   addObjectToScene(spaceDodeca, REFLECTIVE,
                    Transform(glm::vec3(-21.0f, 16.0f, -25.0f)), "spaceDodeca");
 
-  std::cout << ".";
-
   // Skybox
   std::vector<std::filesystem::path> skyBoxPaths{
       "./res/textures/skybox/right.png", "./res/textures/skybox/left.png",
@@ -56,32 +54,52 @@ void IslandScene::addAllModelsToScene() {
   addObjectToScene(skybox, SKYBOX);
 
   // Grass
-  auto& grass = loadQuad("./res/textures/grass.png", "./res/grass_pos.txt",
-                         Quad::RADIAL_PATTERN, 0.3f, 0.5f, 3, 8109);
+  auto& grass = loadQuad("./res/textures/grass.png", "./res/grass.txt",
+                         Quad::RADIAL_PATTERN, 0.3f, 0.5f, 3, 6630);
   addObjectToScene(grass, FLOWERS);
+
+  std::cout << ".";
+
+  // Dandelions
+  auto& dandelions =
+      loadInstancedModel("./res/models/dandelion/dandelion.gltf",
+                         "./res/dandelions.txt", 0.8f, 1.0f, 464);
+  addObjectToScene(dandelions, FLOWERS);
 
   // Purple flowers
   auto& purpleFlowers =
       loadInstancedModel("./res/models/purpleflower/purpleflower.gltf",
-                         "./res/purpleflower_pos.txt", 0.9f, 1.1f, 475);
+                         "./res/purpleflowers.txt", 0.9f, 1.1f, 133);
   addObjectToScene(purpleFlowers, FLOWERS);
 
   // White flowers
   auto& whiteFlowers =
       loadInstancedModel("./res/models/whiteflower/whiteflower.gltf",
-                         "./res/whiteflower_pos.txt", 0.9f, 1.1f, 417);
+                         "./res/whiteflowers.txt", 0.9f, 1.1f, 177);
   addObjectToScene(whiteFlowers, FLOWERS);
 
   // Blue flowers
   auto& blueFlowers =
       loadInstancedModel("./res/models/blueflower/blueflower.gltf",
-                         "./res/blueflower_pos.txt", 0.9f, 1.1f, 361);
+                         "./res/blueflowers.txt", 0.9f, 1.1f, 61);
   addObjectToScene(blueFlowers, FLOWERS);
 
-  // Fir Tree
-  auto& tree = loadInstancedModel("./res/models/firtree/firtree.gltf",
-                                  "./res/elm_positions.txt", 0.8f, 1.25f, 24);
-  addObjectToScene(tree, TREES);
+  // Fir trees
+  auto& firTree = loadInstancedModel("./res/models/firtree/firtree.gltf",
+                                     "./res/fir_trees.txt", 0.8f, 1.25f, 128);
+  addObjectToScene(firTree, TREES);
+
+  // Noble trees
+  auto& nobleFirTree =
+      loadInstancedModel("./res/models/noblefir/noblefir.gltf",
+                         "./res/noble_firs.txt", 0.7f, 1.2f, 53);
+  addObjectToScene(nobleFirTree, TREES);
+
+  // Dead trees
+  auto& deadTrees =
+      loadInstancedModel("./res/models/dead_tree/dead_tree.gltf",
+                         "./res/dead_trees.txt", 0.65f, 1.25f, 16);
+  addObjectToScene(deadTrees, TREES);
 
   std::cout << " Done." << std::endl;
 }
