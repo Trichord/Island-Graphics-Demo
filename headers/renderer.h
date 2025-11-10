@@ -1,14 +1,13 @@
 #pragma once
 
-#include <map>
-#include <unordered_map>
+#include <glad/glad.h>
+
 #include <glm/glm.hpp>
+#include <unordered_map>
 
 #include "scene.h"
 #include "shader.h"
 #include "shader_types.h"
-#include "renderable.h"
-#include "camera.h"
 
 class Renderer {
  public:
@@ -30,15 +29,17 @@ class Renderer {
     glm::vec4 cameraPosition;
   };
 
+  GLuint UBO{0};
   PackedUBOData uboData;
   std::unordered_map<ShaderType, Shader> shaders;
-  glm::mat4 projectionMatrix;
-  unsigned int UBO;
 
   void setupUBO();
   void loadShaders();
+  void setupFlowerShader(Shader& shader);
   void setupPBRShader(Shader& shader);
+  void setupTreeShader(Shader& shader);
   void setupReflectiveShader(Shader& shader);
   void setupLightSourceShader(Shader& shader);
   void setupSkyboxShader(Shader& shader);
+  void updateShaderUniforms(Scene& scene);
 };

@@ -14,8 +14,9 @@ const vec3 lightColor = vec3(1.0, 0.95, 0.9);
 
 //Positions in tangent view space
 in VS_OUT {
-	vec3 fragPos;
+	vec3 cameraPos;
 	vec3 lightDir;
+	vec3 fragPos;
 	vec2 texCoords;
 } fs_in;
 
@@ -83,7 +84,7 @@ return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 
 void main() {
 	//material properties, remap normal from [0, 1] to [-1, 1]
-	vec3 albedo = texture(albedoMap, fs_in.texCoords).rgb;
+	vec4 albedo = texture(albedoMap, fs_in.texCoords);
 	vec3 normal = texture(normalMap, fs_in.texCoords).rgb * 2.0 - 1.0; 
 	vec3 occlusionRoughMetalMap = texture(occlusionRoughMetalMap, fs_in.texCoords).rgb;
 	float ao = occlusionRoughMetalMap.r;
@@ -92,7 +93,7 @@ void main() {
 
 	//vectors
 	vec3 N = normalize(normal);
-	vec3 V = normalize(-fs_in.fragPos);
+	vec3 V = normalize(fs_in.cameraPos -fs_in.fragPos);
 	vec3 L = normalize(-fs_in.lightDir);
 	vec3 H = normalize(L + V);
 	
@@ -104,7 +105,7 @@ void main() {
 
 	//Fresnel-Shlick base reflectivity
 	vec3 F0 = vec3(0.04);
-	F0 = mix(F0, albedo, metallic);
+	F0 = mix(F0, albedo.rgb, metallic);
 
 	//reflectance equation
 	vec3 Lo = vec3(0.0);
@@ -127,12 +128,12 @@ void main() {
 	//Burley diffuse
 	float FD90 = 0.5 + 2 * roughness * (HdotV * HdotV);
 	float burleyFactor = burleyDiffuseFactor(FD90, NdotL, NdotV);
-	vec3 diffuse = kD * albedo * INVERSE_PI * burleyFactor;
+	vec3 diffuse = kD * albedo.rgb * INVERSE_PI * burleyFactor;
 
 	//add to outgoing radiance Lo
 	Lo += (diffuse + specular) * lightColor * NdotL;
 
-	vec3 ambient = vec3(0.15) * albedo * ao;
+	vec3 ambient = vec3(0.15) * albedo.rgb * ao;
 	vec3 color = ambient + Lo;
 
 	//ACES tone mapping
@@ -141,5 +142,5 @@ void main() {
 	//Gamma correction
 	color = pow(color, vec3(1.0/gamma));
 
-	fragColor = vec4(color, 1.0);
+	fragColor = vec4(color, albedo.a);
 }
