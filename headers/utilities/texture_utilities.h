@@ -1,0 +1,20 @@
+#pragma once
+
+#include <glad/glad.h>
+
+#include "image_loader.h"
+
+struct Sampler {
+  std::uint16_t magFilter, minFilter, wrapS, wrapT;
+
+  Sampler(uint16_t mag = GL_LINEAR, uint16_t min = GL_LINEAR_MIPMAP_LINEAR,
+          uint16_t ws = GL_REPEAT, uint16_t wt = GL_REPEAT)
+      : magFilter(mag), minFilter(min), wrapS(ws), wrapT(wt) {};
+};
+
+namespace textureUtilities {
+GLuint generateTextureID(const ImageData& image, Sampler sampler,
+                         bool sRGB = true, bool anisotropic = true);
+GLuint generateCubemapTextureID(const std::vector<ImageData>& imageData,
+                                bool sRGB = true, bool anisotropic = true);
+}  // namespace texture_utilities
