@@ -7,11 +7,12 @@
 #include <string>
 #include <unordered_map>
 
-// Owns program ID, no copying
+/* Owns program ID, no copying */
+
 class Shader {
  public:
   // Shader program ID
-  GLuint ID = 0;
+  GLuint ID{0};
 
   Shader() = default;
   Shader(const char* vertexPath, const char* fragmentPath,
