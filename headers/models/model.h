@@ -69,6 +69,6 @@ class Model : public Renderable {
    * @return A vector of image data after being processed by stb_image.
    */
   void loadTextureImages(const std::filesystem::path& parentPath);
-  void loadMaterials(const std::vector<ImageData>& imagedata);
+  void loadMaterials(const std::vector<LoadedImage>& imagedata);
   void deleteTextureIDs();
 };

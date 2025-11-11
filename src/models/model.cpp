@@ -82,11 +82,12 @@ void Model::render() {
 
 void Model::loadModel(const std::filesystem::path& path) {
   asset = fastgltfLoader::loadAsset(path);
-
+  
+  materials.resize(asset.materials.size());
   meshes.resize(asset.meshes.size());
-  meshes = fastgltfLoader::loadMeshes(asset);
-
   assetImages.resize(asset.images.size());
+ 
+  meshes = fastgltfLoader::loadMeshes(asset);
   loadTextureImages(path.parent_path());
 
   asset = fastgltf::Asset{};
@@ -98,13 +99,11 @@ void Model::loadTextureImages(const std::filesystem::path& parentPath) {
 
   ImageLoader imageLoader{texturePaths};
 
-  std::vector<ImageData> textureImageData = imageLoader.getImageData();
+  std::vector<LoadedImage> textureImageData = imageLoader.getImageData();
   loadMaterials(textureImageData);
 }
 
-void Model::loadMaterials(const std::vector<ImageData>& imageData) {
-  materials.resize(asset.materials.size());
-
+void Model::loadMaterials(const std::vector<LoadedImage>& imageData) {
   auto processMaterialTexture = [&](const fastgltf::TextureInfo& textureInfo,
                                     bool sRGB) {
     auto [index, sampler] = fastgltfLoader::getTextureInfo(asset, textureInfo);
