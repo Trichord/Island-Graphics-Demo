@@ -87,7 +87,7 @@ void Quad::render() {
 
 void Quad::loadTexture(const std::filesystem::path &texturePath) {
   ImageLoader imageLoader{texturePath};
-  std::vector<ImageData> imageData{imageLoader.getImageData()};
+  std::vector<LoadedImage> imageData{imageLoader.getImageData()};
 
   if (imageData.size())
     textureID = textureUtilities::generateTextureID(

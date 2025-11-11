@@ -38,7 +38,7 @@ ImageLoader::ImageLoader(const std::vector<std::filesystem::path>& filepaths)
 
 ImageLoader::~ImageLoader() { freeImages(); }
 
-const std::vector<ImageData>& ImageLoader::getImageData() const {
+const std::vector<LoadedImage>& ImageLoader::getImageData() const {
   return loadedImages;
 }
 
@@ -65,7 +65,7 @@ void ImageLoader::loadFromFile(const std::filesystem::path& path,
   // model.h
   {
     std::unique_lock<std::mutex> lock{imagesMutex};
-    loadedImages[index] = ImageData{data, width, height, nrChannels};
+    loadedImages[index] = LoadedImage{data, width, height, nrChannels};
   }
 
   ++numImagesLoaded;

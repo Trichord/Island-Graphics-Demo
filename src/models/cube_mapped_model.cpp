@@ -33,7 +33,7 @@ CubeMappedModel::~CubeMappedModel() { glDeleteTextures(1, &cubemapTextureID); }
 void CubeMappedModel::loadTextures(
     const std::vector<std::filesystem::path>& imagePaths) {
   ImageLoader imageLoader{imagePaths};
-  std::vector<ImageData> loadedImages{imageLoader.getImageData()};
+  std::vector<LoadedImage> loadedImages{imageLoader.getImageData()};
   cubemapTextureID =
       textureUtilities::generateCubemapTextureID(loadedImages, true, false);
 }
