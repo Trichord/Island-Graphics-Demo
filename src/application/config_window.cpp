@@ -304,7 +304,7 @@ bool ConfigWindow::renderImGui() {
 
 void ConfigWindow::loadConfigWindowImage() {
   ImageLoader imageLoader{"./res/textures/wireframe_sphere.png"};
-  std::vector<ImageData> imageData{imageLoader.getImageData()};
+  std::vector<LoadedImage> imageData{imageLoader.getImageData()};
 
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     std::cout << "Failed to initialize GLAD" << std::endl;

@@ -6,7 +6,7 @@
 
 #include "config_window.h"
 
-GLuint textureUtilities::generateTextureID(const ImageData& image,
+GLuint textureUtilities::generateTextureID(const LoadedImage& image,
                                            Sampler sampler, bool sRGB,
                                            bool anisotropic) {
   GLuint textureID{0};
@@ -55,7 +55,7 @@ GLuint textureUtilities::generateTextureID(const ImageData& image,
 }
 
 GLuint textureUtilities::generateCubemapTextureID(
-    const std::vector<ImageData>& imageData, bool sRGB, bool anisotropic) {
+    const std::vector<LoadedImage>& imageData, bool sRGB, bool anisotropic) {
   GLuint cubemapTextureID{0};
   glGenTextures(1, &cubemapTextureID);
   glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTextureID);
