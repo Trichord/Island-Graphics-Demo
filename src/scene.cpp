@@ -104,4 +104,5 @@ void Scene::initializeScene() {
   setupCamera();
   addAllModelsToScene();
   addAllLightsToScene();
+  //textureManager.loadAllTextures();
 }

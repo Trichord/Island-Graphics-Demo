@@ -14,8 +14,7 @@
 Model::Model(const std::filesystem::path& path) { loadModel(path); }
 
 Model::Model(Model&& other) noexcept
-    : asset{std::move(other.asset)},
-      meshes{std::move(other.meshes)},
+    : meshes{std::move(other.meshes)},
       materials{std::move(other.materials)},
       assetImages{std::move(other.assetImages)} {
   other.assetImages.clear();
@@ -25,12 +24,10 @@ Model& Model::operator=(Model&& other) noexcept {
   if (this != &other) {
     deleteTextureIDs();
 
-    asset = std::move(other.asset);
     meshes = std::move(other.meshes);
     materials = std::move(other.materials);
     assetImages = std::move(other.assetImages);
 
-    other.asset = fastgltf::Asset{};
     other.assetImages.clear();
   }
 
@@ -81,29 +78,29 @@ void Model::render() {
 }
 
 void Model::loadModel(const std::filesystem::path& path) {
-  asset = fastgltfLoader::loadAsset(path);
-  
+  fastgltf::Asset asset = fastgltfLoader::loadAsset(path);
+
   materials.resize(asset.materials.size());
   meshes.resize(asset.meshes.size());
   assetImages.resize(asset.images.size());
- 
-  meshes = fastgltfLoader::loadMeshes(asset);
-  loadTextureImages(path.parent_path());
 
-  asset = fastgltf::Asset{};
+  meshes = fastgltfLoader::loadMeshes(asset);
+  loadTextureImages(asset, path.parent_path());
 }
 
-void Model::loadTextureImages(const std::filesystem::path& parentPath) {
+void Model::loadTextureImages(fastgltf::Asset& asset,
+                              const std::filesystem::path& parentPath) {
   std::vector<std::filesystem::path> texturePaths{
       fastgltfLoader::getURIs(asset, parentPath)};
 
   ImageLoader imageLoader{texturePaths};
 
   std::vector<LoadedImage> textureImageData = imageLoader.getImageData();
-  loadMaterials(textureImageData);
+  loadMaterials(asset, textureImageData);
 }
 
-void Model::loadMaterials(const std::vector<LoadedImage>& imageData) {
+void Model::loadMaterials(fastgltf::Asset& asset,
+                          const std::vector<LoadedImage>& imageData) {
   auto processMaterialTexture = [&](const fastgltf::TextureInfo& textureInfo,
                                     bool sRGB) {
     auto [index, sampler] = fastgltfLoader::getTextureInfo(asset, textureInfo);
