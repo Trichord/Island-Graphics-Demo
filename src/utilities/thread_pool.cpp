@@ -6,14 +6,13 @@
 #include <queue>
 #include <thread>
 
-ThreadPool::ThreadPool() : stop(false) {
-  unsigned int maxThreads{std::thread::hardware_concurrency()};
+ThreadPool::ThreadPool(unsigned int desiredThreadCount) : stop{false} {
+  unsigned int threadsAvailable{std::thread::hardware_concurrency()};
+  unsigned int maxThreads{std::min(desiredThreadCount, threadsAvailable)};
 
-  // Cap at 6 threads for PBR texture loading.
-  unsigned int numThreads{std::min(6u, maxThreads == 0 ? 2 : maxThreads / 2)};
-  threads.reserve(numThreads);
+  threads.reserve(maxThreads);
 
-  for (unsigned int i = 0; i < numThreads; ++i) {
+  for (unsigned int i = 0; i < maxThreads; ++i) {
     threads.emplace_back([this] {
       while (true) {
         std::function<void()> task;

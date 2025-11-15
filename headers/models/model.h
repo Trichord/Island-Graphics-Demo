@@ -48,7 +48,7 @@ class Model : public Renderable {
           normalImageIndex(norm) {};
   };
 
-  fastgltf::Asset asset;
+  // fastgltf::Asset asset;
   std::vector<Primitive::Mesh> meshes;
   std::vector<Material> materials;
   std::vector<GLuint> assetImages;
@@ -68,7 +68,9 @@ class Model : public Renderable {
    * @param parentPath The folder containing the .gltf file.
    * @return A vector of image data after being processed by stb_image.
    */
-  void loadTextureImages(const std::filesystem::path& parentPath);
-  void loadMaterials(const std::vector<LoadedImage>& imagedata);
+  void loadTextureImages(fastgltf::Asset& asset,
+                         const std::filesystem::path& parentPath);
+  void loadMaterials(fastgltf::Asset& asset,
+                     const std::vector<LoadedImage>& imagedata);
   void deleteTextureIDs();
 };
