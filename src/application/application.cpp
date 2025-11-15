@@ -35,7 +35,7 @@ void Application::run() {
   double totalTime{0};
   double framesRendered{0};
 
-  while (true) {
+  while (!glfwWindowShouldClose(window)) {
     // Clear screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -48,13 +48,6 @@ void Application::run() {
     totalTime += deltaTime;
     framesRendered++;
 
-    // User input
-    processInput(islandScene);
-    glfwPollEvents();
-
-    // Exit condition
-    if (glfwWindowShouldClose(window)) break;
-
     // Update GPU shared buffer if camera has moved
     if (islandScene.camera.hasUpdated()) renderer.updateUBO(islandScene);
 
@@ -63,6 +56,10 @@ void Application::run() {
 
     // Draw
     renderer.renderScene(islandScene);
+
+    // User input
+    processInput(islandScene);
+    glfwPollEvents();
 
     glfwSwapBuffers(window);
   }

@@ -43,7 +43,7 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action,
                  int mods);
 
-inline ThreadPool threadPool;
+inline ThreadPool threadPool{4};
 inline float lastMouseX{0.0f};
 inline float lastMouseY{0.0f};
 

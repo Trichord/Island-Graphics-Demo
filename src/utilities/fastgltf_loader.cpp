@@ -65,8 +65,7 @@ fastgltf::Asset fastgltfLoader::loadAsset(std::filesystem::path path) {
   if (auto error = assetResult.error(); error != fastgltf::Error::None)
     std::cerr << "fastgltf error while loading: " << path << std::endl;
 
-  fastgltf::Asset asset = std::move(assetResult.get());
-  return asset;
+  return std::move(assetResult.get());
 }
 
 std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(
