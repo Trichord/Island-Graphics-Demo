@@ -14,12 +14,27 @@
 
 ImageLoader::ImageLoader(const std::filesystem::path& filepath)
     : numImages{1}, numImagesLoaded{0} {
-  loadedImages.resize(numImages);
-
+  
+    loadedImages.resize(numImages);
   loadFromFile(filepath, 0);
 }
 
-ImageLoader::ImageLoader(const std::vector<std::filesystem::path>& filepaths)
+ImageLoader::ImageLoader(ThreadPool& threadPool,
+                         const std::filesystem::path& filepath)
+    : numImages{1}, numImagesLoaded{0} {
+  loadedImages.resize(numImages);
+
+   threadPool.enqueue([this, filepath]() { loadFromFile(filepath, 0); });
+
+     // Wait for all images to be loaded before leaving constructor
+   {
+     std::unique_lock<std::mutex> lock(imagesMutex);
+     condition.wait(lock, [this] { return numImagesLoaded == numImages; });
+   }
+}
+
+ImageLoader::ImageLoader(ThreadPool& threadPool,
+                         const std::vector<std::filesystem::path>& filepaths)
     : numImages{filepaths.size()}, numImagesLoaded{0} {
   loadedImages.resize(numImages);
 

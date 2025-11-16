@@ -3,6 +3,7 @@
 #include <map>
 #include <stdexcept>
 #include <vector>
+#include <iostream>
 
 #include "camera.h"
 #include "directional_light.h"
@@ -15,7 +16,7 @@
 #include "space_model.h"
 #include "transform.h"
 
-Scene::Scene() {
+Scene::Scene(TextureManager& texManager) : textureManager{texManager} {
   models.reserve(sceneMaxObjects::maxModels);
   instancedModels.reserve(sceneMaxObjects::maxInstancedModels);
   spaceModels.reserve(sceneMaxObjects::maxSpaceModels);
@@ -24,15 +25,13 @@ Scene::Scene() {
   pointLights.reserve(sceneMaxObjects::maxLights);
 }
 
-Scene::Scene(Scene&& other) noexcept {
-  sceneObjects = std::move(other.sceneObjects);
-  other.sceneObjects.clear();
-  camera = std::move(other.camera);
-}
+Scene::Scene(Scene&& other) noexcept
+    : textureManager{other.textureManager},
+      sceneObjects{std::move(other.sceneObjects)},
+      camera{std::move(other.camera)} {}
 
 Scene& Scene::operator=(Scene&& other) noexcept {
   if (this != &other) {
-    sceneObjects.clear();
     sceneObjects = std::move(other.sceneObjects);
     camera = std::move(other.camera);
   }
@@ -48,7 +47,7 @@ Model& Scene::loadModel(const std::filesystem::path& filepath) {
   if (models.size() >= sceneMaxObjects::maxModels)
     throw std::runtime_error("Max number of models reached");
 
-  return models.emplace_back(filepath);
+  return models.emplace_back(textureManager, filepath);
 }
 
 SpaceModel& Scene::loadSpaceModel(
@@ -57,14 +56,14 @@ SpaceModel& Scene::loadSpaceModel(
   if (spaceModels.size() >= sceneMaxObjects::maxSpaceModels)
     throw std::runtime_error("Max number of space models reached");
 
-  return spaceModels.emplace_back(modelPath, imagePaths);
+  return spaceModels.emplace_back(textureManager, modelPath, imagePaths);
 }
 
 Skybox& Scene::loadSkybox(const std::vector<std::filesystem::path>& filePaths) {
   if (skyboxes.size() >= sceneMaxObjects::maxSkyboxes)
     throw std::runtime_error("Max number of skyboxes reached");
 
-  return skyboxes.emplace_back(filePaths);
+  return skyboxes.emplace_back(textureManager, filePaths);
 }
 
 Quad& Scene::loadQuad(const std::filesystem::path& texturePath,
@@ -74,18 +73,21 @@ Quad& Scene::loadQuad(const std::filesystem::path& texturePath,
   if (quads.size() >= sceneMaxObjects::maxQuadModels)
     throw std::runtime_error("Max number of quad models reached");
 
-  return quads.emplace_back(texturePath, positionsPath, pattern, minSize,
+  return quads.emplace_back(textureManager, texturePath, positionsPath, pattern,
+                            minSize,
                             maxSize, density, numPositions);
 }
 
 InstancedModel& Scene::loadInstancedModel(
     const std::filesystem::path& modelPath,
-    const std::filesystem::path& positionsPath, float minSize,
-    float maxSize, unsigned int numPositions) {
+    const std::filesystem::path& positionsPath, float minSize, float maxSize,
+    unsigned int numPositions) {
   if (instancedModels.size() >= sceneMaxObjects::maxInstancedModels)
     throw std::runtime_error{"Max number of instanced models reached"};
 
-  return instancedModels.emplace_back(modelPath, positionsPath, minSize, maxSize, numPositions);
+  return instancedModels.emplace_back(textureManager, modelPath, positionsPath,
+                                      minSize,
+                                      maxSize, numPositions);
 }
 
 Transform& Scene::getObjectTransform(const std::string& key) {
@@ -102,7 +104,11 @@ std::vector<PointLight>& Scene::getPointLights() { return pointLights; }
 
 void Scene::initializeScene() {
   setupCamera();
+  std::cout << "Loading Models...";
   addAllModelsToScene();
+  std::cout << " Done." << std::endl;
   addAllLightsToScene();
-  //textureManager.loadAllTextures();
+  std::cout << "Loading Textures...";
+  textureManager.processTextureQueue();
+  std::cout << " Done." << std::endl;
 }

@@ -8,6 +8,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <memory>
 
 #include "camera.h"
 #include "directional_light.h"
@@ -20,6 +21,7 @@
 #include "skybox.h"
 #include "space_model.h"
 #include "transform.h"
+#include "texture_manager.h"
 
 /*
  * Any storage container (Models, lights, etc.) must guarantee that their
@@ -40,7 +42,7 @@ inline constexpr int maxInstancedModels{25};
 
 class Scene {
  public:
-  Scene();
+  Scene(TextureManager& textureManager);
   Scene(const Scene&) = delete;
   Scene& operator=(const Scene&) = delete;
   Scene(Scene&& other) noexcept;
@@ -55,6 +57,8 @@ class Scene {
   DirectionalLight& getGlobalLightSource();
 
  protected:
+  TextureManager& textureManager;
+
   std::map<ShaderType, std::vector<RenderableObject>> sceneObjects;
   std::unordered_map<std::string, std::reference_wrapper<Transform>>
       namedTransforms;

@@ -7,33 +7,22 @@
 
 #include "image_loader.h"
 #include "texture_utilities.h"
+#include "texture_manager.h"
 
 CubeMappedModel::CubeMappedModel(
-    const std::vector<std::filesystem::path>& imagePaths) {
-  loadTextures(imagePaths);
-}
+    TextureManager& textureManager,
+    const std::vector<std::filesystem::path>& imagePaths)
+    : texManager{textureManager},
+      handle{textureManager.assignModelHandle()},
+      textureSet{textureManager.acquireTextureSet(handle)} {}
 
 CubeMappedModel::CubeMappedModel(CubeMappedModel&& other) noexcept
-    : cubemapTextureID{other.cubemapTextureID} {
-  other.cubemapTextureID = 0;
+    : handle{other.handle},
+      texManager{other.texManager},
+      textureSet{other.textureSet} {
+  other.handle = 0;
 }
 
-CubeMappedModel& CubeMappedModel::operator=(CubeMappedModel&& other) noexcept {
-  if (this != &other) {
-    glDeleteTextures(1, &cubemapTextureID);
-    cubemapTextureID = other.cubemapTextureID;
-    other.cubemapTextureID = 0;
-  }
-
-  return *this;
-}
-
-CubeMappedModel::~CubeMappedModel() { glDeleteTextures(1, &cubemapTextureID); }
-
-void CubeMappedModel::loadTextures(
-    const std::vector<std::filesystem::path>& imagePaths) {
-  ImageLoader imageLoader{imagePaths};
-  std::vector<LoadedImage> loadedImages{imageLoader.getImageData()};
-  cubemapTextureID =
-      textureUtilities::generateCubemapTextureID(loadedImages, true, false);
+CubeMappedModel::~CubeMappedModel() {
+  if (handle) texManager.releaseModel(handle);
 }
