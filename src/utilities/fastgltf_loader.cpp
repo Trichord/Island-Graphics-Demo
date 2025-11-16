@@ -169,6 +169,7 @@ std::vector<std::filesystem::path> fastgltfLoader::getURIs(
     if (auto* uri = std::get_if<fastgltf::sources::URI>(&image.data)) {
       std::filesystem::path relativeImagePath(uri->uri.path().begin(),
                                               uri->uri.path().end());
+
       std::filesystem::path fullImagePath = parentPath / relativeImagePath;
 
       if (!uri->uri.isLocalPath())

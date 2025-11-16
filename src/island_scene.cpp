@@ -1,22 +1,19 @@
 #include "island_scene.h"
+#include "texture_manager.h"
 
 #include <functional>
-#include <iostream>
 
 #include "model.h"
 #include "object_positions.h"
 
-IslandScene::IslandScene() { initializeScene(); }
+IslandScene::IslandScene(TextureManager& textureManager) : Scene(textureManager) { initializeScene(); }
 
 void IslandScene::addAllModelsToScene() {
   using enum ShaderType;
-  std::cout << "Loading models";
 
   // Main island
   auto& island = loadModel("./res/models/island/island.gltf");
   addObjectToScene(island, DIRECTIONAL_PBR);
-
-  std::cout << ".";
 
   // Flight helmet
   auto& helmet = loadModel("./res/models/flight_helmet/FlightHelmet.gltf");
@@ -30,8 +27,6 @@ void IslandScene::addAllModelsToScene() {
                    Transform(LIGHTBULB_START, glm::vec3(1.0f), 90.0f,
                              glm::vec3(1.0f, 0.0f, 0.0f)),
                    "lightbulb");
-
-  std::cout << ".";
 
   std::vector<std::filesystem::path> spaceBoxPaths{
       "./res//Textures/nebula/right.png", "./res//Textures/nebula/left.png",
@@ -57,8 +52,6 @@ void IslandScene::addAllModelsToScene() {
   auto& grass = loadQuad("./res/textures/grass.png", "./res/grass.txt",
                          Quad::RADIAL_PATTERN, 0.3f, 0.5f, 3, 6630);
   addObjectToScene(grass, FLOWERS);
-
-  std::cout << ".";
 
   // Dandelions
   auto& dandelions =
@@ -100,8 +93,6 @@ void IslandScene::addAllModelsToScene() {
       loadInstancedModel("./res/models/dead_tree/dead_tree.gltf",
                          "./res/dead_trees.txt", 0.65f, 1.25f, 16);
   addObjectToScene(deadTrees, TREES);
-
-  std::cout << " Done." << std::endl;
 }
 
 void IslandScene::addAllLightsToScene() {

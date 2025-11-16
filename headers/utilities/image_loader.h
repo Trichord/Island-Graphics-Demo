@@ -8,8 +8,6 @@
 
 #include "thread_pool.h"
 
-extern ThreadPool threadPool;
-
 struct LoadedImage {
   unsigned char* data{nullptr};
   int width{0};
@@ -29,8 +27,12 @@ always returns a vector as it was never intended for single-image loading
 
 class ImageLoader {
  public:
-  explicit ImageLoader(const std::filesystem::path& filepath);
-  explicit ImageLoader(const std::vector<std::filesystem::path>& filepaths);
+  ImageLoader(const std::filesystem::path& filepath);
+
+  ImageLoader(ThreadPool& threadPool,
+              const std::filesystem::path& filepath);
+  ImageLoader(ThreadPool& threadPool,
+              const std::vector<std::filesystem::path>& filepaths);
   ~ImageLoader();
 
   const std::vector<LoadedImage>& getImageData() const;

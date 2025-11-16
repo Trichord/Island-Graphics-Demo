@@ -1,7 +1,7 @@
 #pragma once
 
 #include "glad/glad.h"
-#include "model.h"
+#include "thread_pool.h"
 
 #include <unordered_map>
 #include <queue>
@@ -23,38 +23,46 @@ struct TextureSet {
 
 class TextureManager {
  public:
-  const ModelHandle queueModelTextureSet(const ModelHandle handle,
-                                         fastgltf::Scene&& scene,
-                                         bool sRGB = true);
-  const ModelHandle queueBaseImageTextureSet(const ModelHandle handle,
-                                             std::filesystem::path texturePath,
-                                             bool sRGB = true);
-  const ModelHandle queueCubemapTextureSet(
+  void queueModelTextureSet(
+      const ModelHandle handle, fastgltf::Asset&& asset,
+      const std::filesystem::path& parentPath);
+  void queueBaseImageTextureSet(
+      const ModelHandle handle, std::filesystem::path texturePath);
+  void queueCubemapTextureSet(
       const ModelHandle handle, std::vector<std::filesystem::path> imagePaths,
-      bool sRGB = true);
+                              const std::filesystem::path& parentPath = "./",
+                              bool aniso = true);
   const std::vector<TextureSet>& acquireTextureSet(
       ModelHandle modelHandle) const;
   void releaseModel(ModelHandle modelHandle);
   void processTextureQueue();
+  ModelHandle assignModelHandle();
 
  private:
   struct TextureEntry {
-    std::vector<TextureSet> textureSets;
+    std::vector<TextureSet> textureSets; //Each entry in the vector corresponds to a material index
     int refCount{0};
   };
 
-  using TextureSourceType = std::variant < fastgltf::Scene,
-        std::filesystem::path, std::vector<std::filesystem::path>>;
+  using TextureSourceType = std::variant<fastgltf::Asset, std::filesystem::path,
+                                         std::vector<std::filesystem::path>>;
 
   struct TextureQueueElement {
     TextureSourceType source;
     ModelHandle modelHandle{0};
-    bool sRGB{true};
+    std::filesystem::path parentPath{std::filesystem::current_path()};
+    bool aniso{true};
   };
-
-  uint64_t createUniqueHandle() const;
+ 
   std::unordered_map<ModelHandle, TextureEntry> textureCache;
   std::queue<TextureQueueElement> textureCreationQueue;
 
   void deleteTextureIDs(TextureSet textureSet);
+  void genTexIDFromAsset(ThreadPool& threadPool, fastgltf::Asset& asset, ModelHandle handle,
+                         std::filesystem::path parentPath);
+  void genTexIDFromImage(ThreadPool& threadPool, ModelHandle handle,
+                         const std::filesystem::path& imagePath,
+                         bool aniso = true);
+  void genCubemapTexID(ThreadPool& threadPool, ModelHandle handle,
+                    const std::vector<std::filesystem::path>& imagePaths, bool aniso = true);
 };

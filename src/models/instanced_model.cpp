@@ -1,4 +1,5 @@
 #include "instanced_model.h"
+#include "texture_manager.h"
 
 #include <glad/glad.h>
 
@@ -8,11 +9,12 @@
 #include <iostream>
 #include <random>
 
-InstancedModel::InstancedModel(const std::filesystem::path& modelPath,
+InstancedModel::InstancedModel(TextureManager& textureManager,
+                               const std::filesystem::path& modelPath,
                                const std::filesystem::path& positionsPath,
                                float minSize, float maxSize,
                                unsigned int numPositions)
-    : Model{modelPath} {
+    : Model{textureManager, modelPath} {
   loadPositions(positionsPath, numPositions);
   generateTransforms(minSize, maxSize);
   setupInstancedBuffers();
@@ -31,24 +33,6 @@ InstancedModel::InstancedModel(InstancedModel&& other) noexcept
   other.normalMatricesVBO = 0;
 }
 
-InstancedModel& InstancedModel::operator=(InstancedModel&& other) noexcept {
-  if (this != &other) {
-    deleteBuffers();
-
-    Model::operator=(std::move(other));
-    transformsVBO = other.transformsVBO;
-    positionsVBO = other.positionsVBO;
-    normalMatricesVBO = other.normalMatricesVBO;
-    transforms = std::move(other.transforms);
-    normalMatrices = std::move(other.normalMatrices);
-
-    other.transformsVBO = 0;
-    other.positionsVBO = 0;
-    other.normalMatricesVBO = 0;
-  }
-  return *this;
-}
-
 InstancedModel::~InstancedModel() { deleteBuffers(); }
 
 void InstancedModel::render() {
@@ -58,31 +42,24 @@ void InstancedModel::render() {
   for (const Primitive::Mesh& mesh : meshes) {
     for (const Primitive& primitive : mesh.primitives) {
       int materialIndex{primitive.getMaterialIndex()};
-      int albedoIndex{-1};
-      int aoMetRoughIdx{-1};
-      int normIndex{-1};
 
-      if (materialIndex != -1 && materials.size()) {
-        Material material{materials[materialIndex]};
+      if (materialIndex != -1 && textureSet.size()) {
+        const TextureSet& textures{textureSet[materialIndex]};
 
-        albedoIndex = material.albedoImageIndex;
-        aoMetRoughIdx = material.aoMetallicRoughnessImageIndex;
-        normIndex = material.normalImageIndex;
-      }
+        if (textures.albedo) {
+          glActiveTexture(GL_TEXTURE0);
+          glBindTexture(GL_TEXTURE_2D, textures.albedo);
+        }
 
-      if (albedoIndex != -1) {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, assetImages[albedoIndex]);
-      }
+        if (textures.occlusionRoughnessMetallic) {
+          glActiveTexture(GL_TEXTURE1);
+          glBindTexture(GL_TEXTURE_2D, textures.occlusionRoughnessMetallic);
+        }
 
-      if (aoMetRoughIdx != -1) {
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, assetImages[aoMetRoughIdx]);
-      }
-
-      if (normIndex != -1) {
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, assetImages[normIndex]);
+        if (textures.normal) {
+          glActiveTexture(GL_TEXTURE2);
+          glBindTexture(GL_TEXTURE_2D, textures.normal);
+        }
       }
 
       glBindVertexArray(primitive.getVAO());

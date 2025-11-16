@@ -9,15 +9,19 @@
 
 #include "image_loader.h"
 #include "texture_utilities.h"
+#include "texture_manager.h"
 
 constexpr float rotationVariation{5.0f};
 constexpr float scaleVariationFactor{0.25f};
 
-Quad::Quad(const std::filesystem::path &texturePath,
+Quad::Quad(TextureManager &textureManager,
+           const std::filesystem::path &texturePath,
            const std::filesystem::path &positionsPath, QuadPattern pattern,
            float minSize, float maxSize, unsigned int density,
-           unsigned int numPositions) {
-  loadTexture(texturePath);
+           unsigned int numPositions)
+    : texManager{textureManager},
+      handle{textureManager.assignModelHandle()},
+      textureSet{textureManager.acquireTextureSet(handle)} {
   loadPositions(positionsPath, numPositions);
 
   if (pattern == Quad::RADIAL_PATTERN)
@@ -26,9 +30,13 @@ Quad::Quad(const std::filesystem::path &texturePath,
     generateStarPatternTransforms(minSize, maxSize, density);
 
   setupBuffers(density);
+  texManager.queueBaseImageTextureSet(handle, texturePath);
 }
 
-Quad::Quad(Quad &&other) noexcept {
+Quad::Quad(Quad &&other) noexcept
+    : texManager{other.texManager},
+      handle{other.handle},
+      textureSet{other.textureSet} {
   VAO = other.VAO;
   VBO = other.VBO;
   EBO = other.EBO;
@@ -42,35 +50,17 @@ Quad::Quad(Quad &&other) noexcept {
   other.EBO = 0;
   other.transformsVBO = 0;
   other.positionsVBO = 0;
+  other.handle = 0;
 }
 
-Quad &Quad::operator=(Quad &&other) noexcept {
-  if (this != &other) {
-    deleteBuffers();
-
-    VAO = other.VAO;
-    VBO = other.VBO;
-    EBO = other.EBO;
-    transformsVBO = other.transformsVBO;
-    transforms = std::move(other.transforms);
-    positionsVBO = other.positionsVBO;
-    positions = std::move(other.positions);
-
-    other.VAO = 0;
-    other.VBO = 0;
-    other.EBO = 0;
-    other.transformsVBO = 0;
-    other.positionsVBO = 0;
-  }
-
-  return *this;
+Quad::~Quad() {
+  deleteBuffers();
+  if (handle) texManager.releaseModel(handle);
 }
-
-Quad::~Quad() { deleteBuffers(); }
 
 void Quad::render() {
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, textureID);
+  glBindTexture(GL_TEXTURE_2D, textureSet[0].albedo);
 
   glDisable(GL_CULL_FACE);
   glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
@@ -83,16 +73,6 @@ void Quad::render() {
   glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
   glBindVertexArray(0);
-}
-
-void Quad::loadTexture(const std::filesystem::path &texturePath) {
-  ImageLoader imageLoader{texturePath};
-  std::vector<LoadedImage> imageData{imageLoader.getImageData()};
-
-  if (imageData.size())
-    textureID = textureUtilities::generateTextureID(
-        imageData[0], Sampler{GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR,
-                              GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE});
 }
 
 void Quad::setupBuffers(unsigned int density) {
