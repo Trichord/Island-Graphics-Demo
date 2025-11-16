@@ -9,7 +9,7 @@
 
 #include "config_window.h"
 #include "scene.h"
-#include "thread_pool.h"
+#include "texture_manager.h"
 
 /**
  * GLFW window resize callback. Receives the new size of the framebuffer
@@ -43,7 +43,6 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action,
                  int mods);
 
-inline ThreadPool threadPool{4};
 inline float lastMouseX{0.0f};
 inline float lastMouseY{0.0f};
 
@@ -67,6 +66,7 @@ class Application {
   float currentFrame{0.0f};
   GLFWwindow* window{nullptr};
   ConfigWindow configWindow;
+  TextureManager textureManager;
 
   /**
    * @brief Creates a GLFW window.  Display settings from the config window are

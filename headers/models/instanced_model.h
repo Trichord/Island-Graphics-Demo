@@ -6,16 +6,18 @@
 #include <glm/glm.hpp>
 
 #include "model.h"
+#include "texture_manager.h"
 
 class InstancedModel : public Model {
  public:
-  InstancedModel(const std::filesystem::path& modelPath,
+  InstancedModel(TextureManager& textureManager,
+                 const std::filesystem::path& modelPath,
                  const std::filesystem::path& positionsPath, float minSize = 1.0f, float maxSize = 1.0f,
                  unsigned int numPositions = 0);
   InstancedModel(const InstancedModel&) = delete;
   InstancedModel& operator=(const InstancedModel&) = delete;
   InstancedModel(InstancedModel&& other) noexcept;
-  InstancedModel& operator=(InstancedModel&& other) noexcept;
+  InstancedModel& operator=(InstancedModel&& other) = delete;
   ~InstancedModel();
 
  private:

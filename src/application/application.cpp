@@ -11,6 +11,7 @@
 #include "renderer.h"
 #include "scene.h"
 #include "thread_pool.h"
+#include "texture_manager.h"
 
 void Application::run() {
   if (!configWindow.launchSettingsWindow()) return;
@@ -21,10 +22,9 @@ void Application::run() {
   createOpenGLViewport();
   registerCallbacks();
 
-  IslandScene islandScene;
+  IslandScene islandScene(textureManager);
   Renderer renderer(ConfigWindow::globalGraphicsSettings.screenWidth,
                     ConfigWindow::globalGraphicsSettings.screenHeight);
-  threadPool.stopAllThreads();
 
   addGlfwUserParam(islandScene);
   centerMouse();

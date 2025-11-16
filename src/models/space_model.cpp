@@ -7,11 +7,14 @@
 #include "fastgltf_loader.h"
 #include "glad/glad.h"
 #include "primitive.h"
+#include "texture_manager.h"
 
-SpaceModel::SpaceModel(const std::filesystem::path& modelPath,
+SpaceModel::SpaceModel(TextureManager& textureManager,
+                       const std::filesystem::path& modelPath,
                        const std::vector<std::filesystem::path>& imagePaths)
-    : CubeMappedModel{imagePaths} {
+    : CubeMappedModel{textureManager, imagePaths} {
   loadModel(modelPath);
+  textureManager.queueCubemapTextureSet(handle, imagePaths, "./", false);
 }
 
 SpaceModel::SpaceModel(SpaceModel&& other) noexcept
@@ -19,17 +22,9 @@ SpaceModel::SpaceModel(SpaceModel&& other) noexcept
   meshes = std::move(other.meshes);
 }
 
-SpaceModel& SpaceModel::operator=(SpaceModel&& other) noexcept {
-  if (this != &other) {
-    CubeMappedModel::operator=(std::move(other));
-    meshes = std::move(other.meshes);
-  }
-  return *this;
-}
-
 void SpaceModel::render() {
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTextureID);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, textureSet[0].cubemap);
 
   for (const Primitive::Mesh& mesh : meshes)
     for (const Primitive& primitive : mesh.primitives) {
