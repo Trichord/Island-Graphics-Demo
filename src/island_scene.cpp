@@ -84,7 +84,7 @@ void IslandScene::addAllModelsToScene() {
 
   // Noble trees
   auto& nobleFirTree =
-      loadInstancedModel("./res/models/noblefir/noblefir.gltf",
+      loadInstancedModel(firTree, "./res/models/noblefir/noblefir.gltf",
                          "./res/noble_firs.txt", 0.7f, 1.2f, 53);
   addObjectToScene(nobleFirTree, TREES);
 

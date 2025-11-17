@@ -37,7 +37,7 @@ void TextureManager::queueCubemapTextureSet(
                                aniso);
 }
 
-const std::vector<TextureSet>& TextureManager::acquireTextureSet(
+const std::vector<TextureSet>& TextureManager::acquireUniqueTextureSet(
     ModelHandle modelHandle) const {
   auto textureSetIter = textureCache.find(modelHandle);
 
@@ -59,7 +59,7 @@ void TextureManager::releaseModel(ModelHandle modelHandle) {
   entry.refCount--;
 
   if (entry.refCount == 0) {
-    for (auto& textureSet : entry.textureSets) deleteTextureIDs(textureSet);
+    for (auto& gpuHandle : entry.handlesInUse) glDeleteTextures(1, &gpuHandle);
 
     textureCache.erase(modelIter);
   }
@@ -79,17 +79,6 @@ ModelHandle TextureManager::assignModelHandle() {
   textureCache.emplace(handle, TextureEntry{});
 
   return handle;
-}
-
-void TextureManager::deleteTextureIDs(TextureSet textureSet) {
-  if (textureSet.albedo) glDeleteTextures(1, &textureSet.albedo);
-
-  if (textureSet.occlusionRoughnessMetallic)
-    glDeleteTextures(1, &textureSet.occlusionRoughnessMetallic);
-
-  if (textureSet.normal) glDeleteTextures(1, &textureSet.normal);
-
-  if (textureSet.cubemap) glDeleteTextures(1, &textureSet.cubemap);
 }
 
 void TextureManager::processTextureQueue() {
@@ -151,9 +140,11 @@ void TextureManager::genTexIDFromAsset(ThreadPool& threadPool,
 
     auto [iter, inserted] = processedImageIndices.try_emplace(imageIndex, 0);
 
-    if (inserted)
+    if (inserted) {
       iter->second = textureUtilities::generateTextureID(
           rawTextureData[imageIndex], sampler, sRGB);
+      entry.handlesInUse.insert(iter->second);
+    }
 
     return iter->second;
   };
@@ -198,12 +189,14 @@ void TextureManager::genTexIDFromImage(ThreadPool& threadPool,
   std::vector<LoadedImage> imageData{imageLoader.getImageData()};
 
   if (imageData.size()) {
-    handleIter->second.textureSets[0].albedo =
-        textureUtilities::generateTextureID(
-            imageData[0],
-            Sampler{GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR, GL_CLAMP_TO_EDGE,
-                    GL_CLAMP_TO_EDGE},
-            true, aniso);
+    GLuint texID{textureUtilities::generateTextureID(
+        imageData[0],
+        Sampler{GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR, GL_CLAMP_TO_EDGE,
+                GL_CLAMP_TO_EDGE},
+        true, aniso)};
+
+    handleIter->second.textureSets[0].albedo = texID;
+    handleIter->second.handlesInUse.insert(texID);
   }
 }
 
@@ -220,6 +213,24 @@ void TextureManager::genCubemapTexID(
   ImageLoader imageLoader{threadPool, imagePaths};
   std::vector<LoadedImage> loadedImages{imageLoader.getImageData()};
 
-  handleIter->second.textureSets[0].cubemap =
-      textureUtilities::generateCubemapTextureID(loadedImages, true, aniso);
+  GLuint texID{
+      textureUtilities::generateCubemapTextureID(loadedImages, true, aniso)};
+
+  handleIter->second.textureSets[0].cubemap = texID;
+  handleIter->second.handlesInUse.insert(texID);
+}
+
+const std::vector<TextureSet>& TextureManager::borrowTextureSet(ModelHandle other) {
+
+      auto textureSetIter = textureCache.find(other);
+
+  if (textureSetIter == textureCache.end()) {
+    std::cerr << "model handle not found" << std::endl;
+    static const std::vector<TextureSet> empty;
+    return empty;
+  }
+
+  ++textureSetIter->second.refCount;
+
+  return textureSetIter->second.textureSets;
 }

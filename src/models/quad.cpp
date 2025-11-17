@@ -21,7 +21,26 @@ Quad::Quad(TextureManager &textureManager,
            unsigned int numPositions)
     : texManager{textureManager},
       handle{textureManager.assignModelHandle()},
-      textureSet{textureManager.acquireTextureSet(handle)} {
+      textureSet{textureManager.acquireUniqueTextureSet(handle)} {
+  loadPositions(positionsPath, numPositions);
+
+  if (pattern == Quad::RADIAL_PATTERN)
+    generateRadialPatternTransforms(minSize, maxSize, density);
+  else
+    generateStarPatternTransforms(minSize, maxSize, density);
+
+  setupBuffers(density);
+  texManager.queueBaseImageTextureSet(handle, texturePath);
+}
+
+Quad::Quad(TextureManager &textureManager, const Quad &borrowTarget,
+           const std::filesystem::path &texturePath,
+           const std::filesystem::path &positionsPath, QuadPattern pattern,
+           float minSize, float maxSize, unsigned int density,
+           unsigned int numPositions)
+    : texManager{textureManager},
+      handle{borrowTarget.handle},
+      textureSet{textureManager.borrowTextureSet(borrowTarget.handle)} {
   loadPositions(positionsPath, numPositions);
 
   if (pattern == Quad::RADIAL_PATTERN)
@@ -262,3 +281,5 @@ void Quad::loadPositions(const std::filesystem::path &positionsPath,
   else
     std::cerr << "Unable to open " << positionsPath << std::endl;
 }
+
+ModelHandle Quad::getModelHandle() { return handle; }

@@ -12,7 +12,16 @@
 SpaceModel::SpaceModel(TextureManager& textureManager,
                        const std::filesystem::path& modelPath,
                        const std::vector<std::filesystem::path>& imagePaths)
-    : CubeMappedModel{textureManager, imagePaths} {
+    : CubeMappedModel{textureManager} {
+  loadModel(modelPath);
+  textureManager.queueCubemapTextureSet(handle, imagePaths, "./", false);
+}
+
+SpaceModel::SpaceModel(TextureManager& textureManager,
+                       const SpaceModel& borrowTarget,
+                       const std::filesystem::path& modelPath,
+                       const std::vector<std::filesystem::path>& imagePaths)
+    : CubeMappedModel{textureManager, borrowTarget} {
   loadModel(modelPath);
   textureManager.queueCubemapTextureSet(handle, imagePaths, "./", false);
 }
