@@ -12,6 +12,8 @@ class Skybox : public CubeMappedModel {
   Skybox() = delete;
   Skybox(TextureManager& textureManager,
          const std::vector<std::filesystem::path>& imagePaths);
+  Skybox(TextureManager& textureManager, const Skybox& borrowTarget,
+         const std::vector<std::filesystem::path>& imagePaths);
   Skybox(const Skybox&) = delete;
   Skybox& operator=(const Skybox&) = delete;
   Skybox(Skybox&& other) noexcept;
@@ -19,6 +21,7 @@ class Skybox : public CubeMappedModel {
   ~Skybox();
 
   void render() override;
+  ModelHandle getModelHandle();
 
  private:
   GLuint modelVAO{0};

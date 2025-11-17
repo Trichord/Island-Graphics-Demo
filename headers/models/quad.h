@@ -16,6 +16,12 @@ class Quad : public Renderable {
        const std::filesystem::path &positionsPath, QuadPattern pattern,
        float minSize = 1.0f, float maxSize = 1.0f, unsigned int density = 1,
        unsigned int numPositions = 0);
+  Quad(TextureManager &textureManager, const Quad &borrowTarget,
+       const std::filesystem::path &texturePath,
+       const std::filesystem::path &positionsPath, QuadPattern pattern,
+       float minSize = 1.0f, float maxSize = 1.0f, unsigned int density = 1,
+       unsigned int numPositions = 0);
+
   Quad(const Quad &) = delete;
   Quad &operator=(const Quad &) = delete;
   Quad(Quad &&other) noexcept;
@@ -23,6 +29,7 @@ class Quad : public Renderable {
   ~Quad();
 
   void render() override;
+  ModelHandle getModelHandle();
 
  private:
   GLuint VAO{0};

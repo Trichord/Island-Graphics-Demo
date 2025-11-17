@@ -9,12 +9,16 @@
 #include "texture_utilities.h"
 #include "texture_manager.h"
 
-CubeMappedModel::CubeMappedModel(
-    TextureManager& textureManager,
-    const std::vector<std::filesystem::path>& imagePaths)
+CubeMappedModel::CubeMappedModel(TextureManager& textureManager)
     : texManager{textureManager},
       handle{textureManager.assignModelHandle()},
-      textureSet{textureManager.acquireTextureSet(handle)} {}
+      textureSet{textureManager.acquireUniqueTextureSet(handle)} {}
+
+CubeMappedModel::CubeMappedModel(TextureManager& textureManager,
+                                 const CubeMappedModel& borrowTarget)
+    : texManager{textureManager},
+      handle{borrowTarget.handle},
+      textureSet{textureManager.borrowTextureSet(borrowTarget.handle)} {}
 
 CubeMappedModel::CubeMappedModel(CubeMappedModel&& other) noexcept
     : handle{other.handle},
@@ -26,3 +30,5 @@ CubeMappedModel::CubeMappedModel(CubeMappedModel&& other) noexcept
 CubeMappedModel::~CubeMappedModel() {
   if (handle) texManager.releaseModel(handle);
 }
+
+ModelHandle CubeMappedModel::getModelHandle() { return handle; }

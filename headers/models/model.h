@@ -17,6 +17,8 @@ class Model : public Renderable {
  public:
   Model(TextureManager& textureManager,
         const std::filesystem::path& path);
+  Model(TextureManager& textureManager,
+        const Model& borrowTarget, const std::filesystem::path& path);
   Model(const Model&) = delete;
   Model& operator=(const Model&) = delete;
   Model(Model&& other) noexcept;
@@ -30,6 +32,8 @@ class Model : public Renderable {
    *  metallic, roughness, and normal map textures, if the model has them.
    */
   void render() override;
+
+  ModelHandle getModelHandle();
 
  protected:
   struct Material {

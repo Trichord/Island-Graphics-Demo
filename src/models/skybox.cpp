@@ -8,7 +8,14 @@
 
 Skybox::Skybox(TextureManager& textureManager,
                const std::vector<std::filesystem::path>& imagePaths)
-    : CubeMappedModel{textureManager, imagePaths} {
+    : CubeMappedModel{textureManager} {
+  setupBuffers();
+  textureManager.queueCubemapTextureSet(handle, imagePaths, "./", false);
+}
+
+Skybox::Skybox(TextureManager& textureManager, const Skybox& borrowTarget,
+               const std::vector<std::filesystem::path>& imagePaths)
+    : CubeMappedModel{textureManager, borrowTarget} {
   setupBuffers();
   textureManager.queueCubemapTextureSet(handle, imagePaths, "./", false);
 }

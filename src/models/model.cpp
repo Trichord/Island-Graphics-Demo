@@ -15,7 +15,15 @@
 Model::Model(TextureManager& textureManager, const std::filesystem::path& path)
     : handle{textureManager.assignModelHandle()},
       texManager{textureManager},
-      textureSet{textureManager.acquireTextureSet(handle)} {
+      textureSet{textureManager.acquireUniqueTextureSet(handle)} {
+  loadModel(path);
+}
+
+Model::Model(TextureManager& textureManager, const Model& borrowTarget,
+             const std::filesystem::path& path)
+    : handle{borrowTarget.handle},
+      texManager{textureManager},
+      textureSet{textureManager.borrowTextureSet(borrowTarget.handle)} {
   loadModel(path);
 }
 
@@ -73,3 +81,5 @@ void Model::loadModel(const std::filesystem::path& path) {
 
   texManager.queueModelTextureSet(handle, std::move(asset), path.parent_path());
 }
+
+ModelHandle Model::getModelHandle() { return handle; }
