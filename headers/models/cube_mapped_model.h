@@ -14,9 +14,8 @@
 
 class CubeMappedModel : public Renderable {
  public:
-  explicit CubeMappedModel(
-      TextureManager &textureManager,
-      const std::vector<std::filesystem::path> &imagePaths);
+  explicit CubeMappedModel(TextureManager &textureManager);
+  CubeMappedModel(TextureManager &textureManager, const CubeMappedModel &other);
   CubeMappedModel(const CubeMappedModel &) = delete;
   CubeMappedModel &operator=(const CubeMappedModel &) = delete;
   CubeMappedModel(CubeMappedModel &&other) noexcept;
@@ -24,6 +23,7 @@ class CubeMappedModel : public Renderable {
   virtual ~CubeMappedModel();
 
   void render() override = 0;
+  ModelHandle getModelHandle();
 
  protected:
   ModelHandle handle{0};

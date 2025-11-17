@@ -20,6 +20,17 @@ InstancedModel::InstancedModel(TextureManager& textureManager,
   setupInstancedBuffers();
 }
 
+ InstancedModel::InstancedModel(TextureManager& textureManager,
+               const InstancedModel& borrowTarget,
+               const std::filesystem::path& modelPath,
+               const std::filesystem::path& positionsPath, float minSize,
+               float maxSize, unsigned int numPositions)
+    : Model{textureManager, borrowTarget, modelPath} {
+  loadPositions(positionsPath, numPositions);
+  generateTransforms(minSize, maxSize);
+  setupInstancedBuffers();
+}
+
 InstancedModel::InstancedModel(InstancedModel&& other) noexcept
     : Model{std::move(other)} {
   transformsVBO = other.transformsVBO;

@@ -78,16 +78,33 @@ class Scene {
 
   void initializeScene();
   Model& loadModel(const std::filesystem::path& filepath);
+  Model& loadModel(const Model& borrowTarget,
+                   const std::filesystem::path& filepath);
   SpaceModel& loadSpaceModel(
       const std::filesystem::path& modelPath,
       const std::vector<std::filesystem::path>& imagePaths);
+  SpaceModel& loadSpaceModel(
+      const SpaceModel& borrowTarget, const std::filesystem::path& modelPath,
+      const std::vector<std::filesystem::path>& imagePaths);
   Skybox& loadSkybox(const std::vector<std::filesystem::path>& filePaths);
+  Skybox& loadSkybox(const Skybox& borrowTarget,
+                     const std::vector<std::filesystem::path>& filePaths);
   Quad& loadQuad(const std::filesystem::path& texturePath,
                  const std::filesystem::path& positionsPath,
                  Quad::QuadPattern pattern, float minSize = 1.0f,
                  float maxSize = 1.0f, unsigned int density = 1,
                  unsigned int numPositions = 0);
+  Quad& loadQuad(const Quad& borrowTarget,
+                 const std::filesystem::path& texturePath,
+                 const std::filesystem::path& positionsPath,
+                 Quad::QuadPattern pattern, float minSize = 1.0f,
+                 float maxSize = 1.0f, unsigned int density = 1,
+                 unsigned int numPositions = 0);
   InstancedModel& loadInstancedModel(const std::filesystem::path& modelPath,
+                                     const std::filesystem::path& positionsPath,
+                                     float minSize = 1.0f, float maxSize = 1.0f,
+                                     unsigned int numPositions = 0);
+  InstancedModel& loadInstancedModel(const InstancedModel& borrowTarget, const std::filesystem::path& modelPath,
                                      const std::filesystem::path& positionsPath,
                                      float minSize = 1.0f, float maxSize = 1.0f,
                                      unsigned int numPositions = 0);
