@@ -173,9 +173,9 @@ void Application::onUpdate(Scene& scene, float deltaTime) {
   const float radius{1.25f};
   float time{(float)glfwGetTime()};
 
-  newPos.x = LIGHTBULB_START.x + glm::sin(time * 0.5f) * radius;
-  newPos.z = LIGHTBULB_START.z + glm::cos(time * 0.5f) * radius;
-  newPos.y = LIGHTBULB_START.y;
+  newPos.x = LIGHTBULB_POS.x + glm::sin(time * 0.5f) * radius;
+  newPos.z = LIGHTBULB_POS.z + glm::cos(time * 0.5f) * radius;
+  newPos.y = LIGHTBULB_POS.y;
 
   circlingLight.setPosition(newPos);
 

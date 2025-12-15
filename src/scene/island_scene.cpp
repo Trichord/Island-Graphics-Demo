@@ -18,13 +18,13 @@ void IslandScene::addAllModelsToScene() {
   // Flight helmet
   auto& helmet = loadModel("./res/models/flight_helmet/FlightHelmet.gltf");
   addObjectToScene(helmet, POINT_PBR,
-                   Transform(FLIGHT_HELMET_START, glm::vec3(3.0f), 180.0f,
+                   Transform(FLIGHT_HELMET_POS, glm::vec3(3.0f), 180.0f,
                              glm::vec3(0.0f, 1.0f, 0.0f)));
 
   // Lightbulb-
   auto& lightbulb = loadModel("./res/models/lightbulb/lightbulb.gltf");
   addObjectToScene(lightbulb, LIGHT_SOURCE,
-                   Transform(LIGHTBULB_START, glm::vec3(1.0f), 90.0f,
+                   Transform(LIGHTBULB_POS, glm::vec3(1.0f), 90.0f,
                              glm::vec3(1.0f, 0.0f, 0.0f)),
                    "lightbulb");
 
@@ -37,7 +37,7 @@ void IslandScene::addAllModelsToScene() {
   auto& spaceDodeca =
       loadSpaceModel("./res/models/dodecahedron/scene.gltf", spaceBoxPaths);
   addObjectToScene(spaceDodeca, REFLECTIVE,
-                   Transform(glm::vec3(-21.0f, 16.0f, -25.0f)), "spaceDodeca");
+                   Transform(SPACE_DODECA_POS), "spaceDodeca");
 
   // Skybox
   std::vector<std::filesystem::path> skyBoxPaths{
@@ -100,7 +100,7 @@ void IslandScene::addAllLightsToScene() {
   globalLightSource = glm::vec3{-0.36669f, -0.731219f, -0.575202f};
 
   // Right next to the flight helmet
-  addLightToScene(pointLights, PointLight{LIGHTBULB_START}, "circlingLight");
+  addLightToScene(pointLights, PointLight{LIGHTBULB_POS}, "circlingLight");
 }
 
 void IslandScene::setupCamera() { camera = glm::vec3{0.0f, 3.0f, 30.0f}; }
