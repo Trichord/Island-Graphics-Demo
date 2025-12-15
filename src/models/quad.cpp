@@ -275,11 +275,16 @@ void Quad::loadPositions(const std::filesystem::path &positionsPath,
 
   std::fstream grassFile{positionsPath};
 
-  if (grassFile.is_open())
-    while (grassFile >> x >> y >> z) positions.emplace_back(x, y, z);
-
-  else
+  if (!grassFile.is_open()) {
     std::cerr << "Unable to open " << positionsPath << std::endl;
+    return;
+  }
+
+  while (grassFile >> x >> y >> z) positions.emplace_back(x, y, z);
+
+  if (positions.size() != numPositions && numPositions != 0)
+    std::cout << positionsPath << " expected " << numPositions << " allocated "
+              << positions.size() << std::endl;
 }
 
 ModelHandle Quad::getModelHandle() { return handle; }
