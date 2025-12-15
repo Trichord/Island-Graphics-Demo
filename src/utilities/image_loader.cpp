@@ -81,9 +81,9 @@ void ImageLoader::loadFromFile(const std::filesystem::path& path,
   {
     std::unique_lock<std::mutex> lock{imagesMutex};
     loadedImages[index] = LoadedImage{data, width, height, nrChannels};
+    
+    ++numImagesLoaded;
+
+    if (numImagesLoaded == numImages) condition.notify_one();
   }
-
-  ++numImagesLoaded;
-
-  if (numImagesLoaded == numImages) condition.notify_one();
 }

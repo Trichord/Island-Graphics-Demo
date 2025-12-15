@@ -73,7 +73,7 @@ void IslandScene::addAllModelsToScene() {
 
   // Blue flowers
   auto& blueFlowers =
-      loadInstancedModel("./res/models/blueflower/blueflower.gltf",
+      loadInstancedModel(whiteFlowers, "./res/models/blueflower/blueflower.gltf",
                          "./res/blueflowers.txt", 0.9f, 1.1f, 61);
   addObjectToScene(blueFlowers, FLOWERS);
 
