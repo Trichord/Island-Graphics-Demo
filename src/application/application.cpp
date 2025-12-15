@@ -27,7 +27,7 @@ void Application::run() {
                     ConfigWindow::globalGraphicsSettings.screenHeight);
 
   addGlfwUserParam(islandScene);
-  centerMouse();
+  //centerMouse();
 
   renderer.updateUBO(islandScene);
 
@@ -152,15 +152,6 @@ void Application::processInput(Scene& scene) {
 void Application::registerCallbacks() {
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetKeyCallback(window, keyCallback);
-}
-
-void Application::centerMouse() {
-  // Set mouse position before registering callback
-  double x{0.0f};
-  double y{0.0f};
-  glfwGetCursorPos(window, &x, &y);
-  lastMouseX = (float)x;
-  lastMouseY = (float)y;
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
@@ -193,6 +184,14 @@ void Application::onUpdate(Scene& scene, float deltaTime) {
 }
 
 void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
+  static bool firstMouse{true};
+
+  if (firstMouse) {
+    lastMouseX = (float)xPos;
+    lastMouseY = (float)yPos;
+    firstMouse = false;
+  }
+
   float xOffset{(float)(xPos - lastMouseX)};
   float yOffset{(float)(lastMouseY - yPos)};
 
