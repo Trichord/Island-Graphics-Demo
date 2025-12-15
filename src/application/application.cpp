@@ -11,6 +11,7 @@
 #include "renderer.h"
 #include "scene.h"
 #include "thread_pool.h"
+#include "texture_manager.h"
 
 void Application::run() {
   if (!configWindow.launchSettingsWindow()) return;
@@ -21,13 +22,12 @@ void Application::run() {
   createOpenGLViewport();
   registerCallbacks();
 
-  IslandScene islandScene;
+  IslandScene islandScene(textureManager);
   Renderer renderer(ConfigWindow::globalGraphicsSettings.screenWidth,
                     ConfigWindow::globalGraphicsSettings.screenHeight);
-  threadPool.stopAllThreads();
 
   addGlfwUserParam(islandScene);
-  centerMouse();
+  //centerMouse();
 
   renderer.updateUBO(islandScene);
 
@@ -35,7 +35,7 @@ void Application::run() {
   double totalTime{0};
   double framesRendered{0};
 
-  while (true) {
+  while (!glfwWindowShouldClose(window)) {
     // Clear screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -48,13 +48,6 @@ void Application::run() {
     totalTime += deltaTime;
     framesRendered++;
 
-    // User input
-    processInput(islandScene);
-    glfwPollEvents();
-
-    // Exit condition
-    if (glfwWindowShouldClose(window)) break;
-
     // Update GPU shared buffer if camera has moved
     if (islandScene.camera.hasUpdated()) renderer.updateUBO(islandScene);
 
@@ -63,6 +56,10 @@ void Application::run() {
 
     // Draw
     renderer.renderScene(islandScene);
+
+    // User input
+    processInput(islandScene);
+    glfwPollEvents();
 
     glfwSwapBuffers(window);
   }
@@ -155,15 +152,6 @@ void Application::processInput(Scene& scene) {
 void Application::registerCallbacks() {
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetKeyCallback(window, keyCallback);
-}
-
-void Application::centerMouse() {
-  // Set mouse position before registering callback
-  double x{0.0f};
-  double y{0.0f};
-  glfwGetCursorPos(window, &x, &y);
-  lastMouseX = (float)x;
-  lastMouseY = (float)y;
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
@@ -185,9 +173,9 @@ void Application::onUpdate(Scene& scene, float deltaTime) {
   const float radius{1.25f};
   float time{(float)glfwGetTime()};
 
-  newPos.x = LIGHTBULB_START.x + glm::sin(time * 0.5f) * radius;
-  newPos.z = LIGHTBULB_START.z + glm::cos(time * 0.5f) * radius;
-  newPos.y = LIGHTBULB_START.y;
+  newPos.x = LIGHTBULB_POS.x + glm::sin(time * 0.5f) * radius;
+  newPos.z = LIGHTBULB_POS.z + glm::cos(time * 0.5f) * radius;
+  newPos.y = LIGHTBULB_POS.y;
 
   circlingLight.setPosition(newPos);
 
@@ -196,6 +184,14 @@ void Application::onUpdate(Scene& scene, float deltaTime) {
 }
 
 void mouse_callback(GLFWwindow* window, double xPos, double yPos) {
+  static bool firstMouse{true};
+
+  if (firstMouse) {
+    lastMouseX = (float)xPos;
+    lastMouseY = (float)yPos;
+    firstMouse = false;
+  }
+
   float xOffset{(float)(xPos - lastMouseX)};
   float yOffset{(float)(lastMouseY - yPos)};
 

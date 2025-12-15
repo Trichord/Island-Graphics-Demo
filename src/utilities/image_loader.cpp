@@ -14,12 +14,27 @@
 
 ImageLoader::ImageLoader(const std::filesystem::path& filepath)
     : numImages{1}, numImagesLoaded{0} {
-  loadedImages.resize(numImages);
-
+  
+    loadedImages.resize(numImages);
   loadFromFile(filepath, 0);
 }
 
-ImageLoader::ImageLoader(const std::vector<std::filesystem::path>& filepaths)
+ImageLoader::ImageLoader(ThreadPool& threadPool,
+                         const std::filesystem::path& filepath)
+    : numImages{1}, numImagesLoaded{0} {
+  loadedImages.resize(numImages);
+
+   threadPool.enqueue([this, filepath]() { loadFromFile(filepath, 0); });
+
+     // Wait for all images to be loaded before leaving constructor
+   {
+     std::unique_lock<std::mutex> lock(imagesMutex);
+     condition.wait(lock, [this] { return numImagesLoaded == numImages; });
+   }
+}
+
+ImageLoader::ImageLoader(ThreadPool& threadPool,
+                         const std::vector<std::filesystem::path>& filepaths)
     : numImages{filepaths.size()}, numImagesLoaded{0} {
   loadedImages.resize(numImages);
 
@@ -38,7 +53,7 @@ ImageLoader::ImageLoader(const std::vector<std::filesystem::path>& filepaths)
 
 ImageLoader::~ImageLoader() { freeImages(); }
 
-const std::vector<ImageData>& ImageLoader::getImageData() const {
+const std::vector<LoadedImage>& ImageLoader::getImageData() const {
   return loadedImages;
 }
 
@@ -65,10 +80,10 @@ void ImageLoader::loadFromFile(const std::filesystem::path& path,
   // model.h
   {
     std::unique_lock<std::mutex> lock{imagesMutex};
-    loadedImages[index] = ImageData{data, width, height, nrChannels};
+    loadedImages[index] = LoadedImage{data, width, height, nrChannels};
+    
+    ++numImagesLoaded;
+
+    if (numImagesLoaded == numImages) condition.notify_one();
   }
-
-  ++numImagesLoaded;
-
-  if (numImagesLoaded == numImages) condition.notify_one();
 }

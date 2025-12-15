@@ -5,20 +5,25 @@
 
 #include "cube_mapped_model.h"
 #include "glad/glad.h"
+#include "texture_manager.h"
 
 class Skybox : public CubeMappedModel {
  public:
   Skybox() = delete;
-  explicit Skybox(const std::vector<std::filesystem::path>& imagePaths);
+  Skybox(TextureManager& textureManager,
+         const std::vector<std::filesystem::path>& imagePaths);
+  Skybox(TextureManager& textureManager, const Skybox& borrowTarget,
+         const std::vector<std::filesystem::path>& imagePaths);
   Skybox(const Skybox&) = delete;
   Skybox& operator=(const Skybox&) = delete;
   Skybox(Skybox&& other) noexcept;
-  Skybox& operator=(Skybox&& other) noexcept;
+  Skybox& operator=(Skybox&& other) = delete;
   ~Skybox();
 
   void render() override;
+  ModelHandle getModelHandle();
 
- protected:
+ private:
   GLuint modelVAO{0};
   GLuint modelVBO{0};
   GLuint modelEBO{0};
