@@ -37,6 +37,7 @@ void TextureManager::queueCubemapTextureSet(
                                aniso);
 }
 
+//TODO: add default purple texture for missing texturesets
 const std::vector<TextureSet>& TextureManager::acquireUniqueTextureSet(
     ModelHandle modelHandle) const {
   auto textureSetIter = textureCache.find(modelHandle);

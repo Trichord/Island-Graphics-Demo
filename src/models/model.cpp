@@ -16,7 +16,7 @@ Model::Model(TextureManager& textureManager, const std::filesystem::path& path)
     : handle{textureManager.assignModelHandle()},
       texManager{textureManager},
       textureSet{textureManager.acquireUniqueTextureSet(handle)} {
-  loadModel(path);
+  loadModel(path, false);
 }
 
 Model::Model(TextureManager& textureManager, const Model& borrowTarget,
@@ -24,7 +24,7 @@ Model::Model(TextureManager& textureManager, const Model& borrowTarget,
     : handle{borrowTarget.handle},
       texManager{textureManager},
       textureSet{textureManager.borrowTextureSet(borrowTarget.handle)} {
-  loadModel(path);
+  loadModel(path, true);
 }
 
 Model::Model(Model&& other) noexcept
@@ -73,13 +73,15 @@ void Model::render() {
   glActiveTexture(GL_TEXTURE0);
 }
 
-void Model::loadModel(const std::filesystem::path& path) {
+void Model::loadModel(const std::filesystem::path& path, bool borrowed) {
   fastgltf::Asset asset = fastgltfLoader::loadAsset(path);
 
   meshes.resize(asset.meshes.size());
   meshes = fastgltfLoader::loadMeshes(asset);
 
-  texManager.queueModelTextureSet(handle, std::move(asset), path.parent_path());
+  if (!borrowed)
+    texManager.queueModelTextureSet(handle, std::move(asset),
+                                    path.parent_path());
 }
 
 ModelHandle Model::getModelHandle() { return handle; }

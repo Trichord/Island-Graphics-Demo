@@ -50,6 +50,5 @@ class Model : public Renderable {
   const std::vector<TextureSet>& textureSet;
   std::vector<Primitive::Mesh> meshes;
 
-  void loadModel(const std::filesystem::path& path);
-
+  void loadModel(const std::filesystem::path& path, bool borrowed);
 };
