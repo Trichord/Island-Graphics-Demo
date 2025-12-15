@@ -4,10 +4,20 @@
 
 #include "cube_mapped_model.h"
 #include "glad/glad.h"
+#include "texture_manager.h"
 
-Skybox::Skybox(const std::vector<std::filesystem::path>& imagePaths)
-    : CubeMappedModel{imagePaths} {
+Skybox::Skybox(TextureManager& textureManager,
+               const std::vector<std::filesystem::path>& imagePaths)
+    : CubeMappedModel{textureManager} {
   setupBuffers();
+  textureManager.queueCubemapTextureSet(handle, imagePaths, "./", false);
+}
+
+Skybox::Skybox(TextureManager& textureManager, const Skybox& borrowTarget,
+               const std::vector<std::filesystem::path>& imagePaths)
+    : CubeMappedModel{textureManager, borrowTarget} {
+  setupBuffers();
+  textureManager.queueCubemapTextureSet(handle, imagePaths, "./", false);
 }
 
 Skybox::Skybox(Skybox&& other) noexcept : CubeMappedModel{std::move(other)} {
@@ -20,29 +30,15 @@ Skybox::Skybox(Skybox&& other) noexcept : CubeMappedModel{std::move(other)} {
   other.modelEBO = 0;
 }
 
-Skybox& Skybox::operator=(Skybox&& other) noexcept {
-  if (this != &other) {
-    CubeMappedModel::operator=(std::move(other));
-    deleteBuffers();
-
-    modelVAO = other.modelVAO;
-    modelVBO = other.modelVBO;
-    modelEBO = other.modelEBO;
-
-    other.modelVAO = 0;
-    other.modelVBO = 0;
-    other.modelEBO = 0;
-  }
-
-  return *this;
+Skybox::~Skybox() {
+  deleteBuffers();
+  if (handle) texManager.releaseModel(handle);
 }
-
-Skybox::~Skybox() { deleteBuffers(); }
 
 void Skybox::render() {
   glBindVertexArray(modelVAO);
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTextureID);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, textureSet[0].cubemap);
   glDepthFunc(GL_LEQUAL);
   glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
   glDepthFunc(GL_LESS);
