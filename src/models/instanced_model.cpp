@@ -51,11 +51,13 @@ void InstancedModel::render() {
   glDisable(GL_CULL_FACE);
   glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
+  int lastMaterialIndex{-1};
+
   for (const Primitive::Mesh& mesh : meshes) {
     for (const Primitive& primitive : mesh.primitives) {
       int materialIndex{primitive.getMaterialIndex()};
 
-      if (materialIndex != -1 && textureSet.size()) {
+      if (materialIndex != lastMaterialIndex && materialIndex != -1 && textureSet.size()) {
         const TextureSet& textures{textureSet[materialIndex]};
 
         if (textures.albedo) {
