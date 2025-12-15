@@ -107,9 +107,4 @@ class Application {
    * @param deltaTime The time elapsed since the last frame.
    */
   void onUpdate(Scene& scene, float deltaTime);
-
-  /**
-   * @brief Registers the mouse callback with GLFW.
-   */
-  void centerMouse();
 };
