@@ -8,6 +8,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <memory>
 
 #include "camera.h"
 #include "directional_light.h"
@@ -20,6 +21,7 @@
 #include "skybox.h"
 #include "space_model.h"
 #include "transform.h"
+#include "texture_manager.h"
 
 /*
  * Any storage container (Models, lights, etc.) must guarantee that their
@@ -40,7 +42,7 @@ inline constexpr int maxInstancedModels{25};
 
 class Scene {
  public:
-  Scene();
+  Scene(TextureManager& textureManager);
   Scene(const Scene&) = delete;
   Scene& operator=(const Scene&) = delete;
   Scene(Scene&& other) noexcept;
@@ -55,6 +57,8 @@ class Scene {
   DirectionalLight& getGlobalLightSource();
 
  protected:
+  TextureManager& textureManager;
+
   std::map<ShaderType, std::vector<RenderableObject>> sceneObjects;
   std::unordered_map<std::string, std::reference_wrapper<Transform>>
       namedTransforms;
@@ -74,16 +78,33 @@ class Scene {
 
   void initializeScene();
   Model& loadModel(const std::filesystem::path& filepath);
+  Model& loadModel(const Model& borrowTarget,
+                   const std::filesystem::path& filepath);
   SpaceModel& loadSpaceModel(
       const std::filesystem::path& modelPath,
       const std::vector<std::filesystem::path>& imagePaths);
+  SpaceModel& loadSpaceModel(
+      const SpaceModel& borrowTarget, const std::filesystem::path& modelPath,
+      const std::vector<std::filesystem::path>& imagePaths);
   Skybox& loadSkybox(const std::vector<std::filesystem::path>& filePaths);
+  Skybox& loadSkybox(const Skybox& borrowTarget,
+                     const std::vector<std::filesystem::path>& filePaths);
   Quad& loadQuad(const std::filesystem::path& texturePath,
                  const std::filesystem::path& positionsPath,
                  Quad::QuadPattern pattern, float minSize = 1.0f,
                  float maxSize = 1.0f, unsigned int density = 1,
                  unsigned int numPositions = 0);
+  Quad& loadQuad(const Quad& borrowTarget,
+                 const std::filesystem::path& texturePath,
+                 const std::filesystem::path& positionsPath,
+                 Quad::QuadPattern pattern, float minSize = 1.0f,
+                 float maxSize = 1.0f, unsigned int density = 1,
+                 unsigned int numPositions = 0);
   InstancedModel& loadInstancedModel(const std::filesystem::path& modelPath,
+                                     const std::filesystem::path& positionsPath,
+                                     float minSize = 1.0f, float maxSize = 1.0f,
+                                     unsigned int numPositions = 0);
+  InstancedModel& loadInstancedModel(const InstancedModel& borrowTarget, const std::filesystem::path& modelPath,
                                      const std::filesystem::path& positionsPath,
                                      float minSize = 1.0f, float maxSize = 1.0f,
                                      unsigned int numPositions = 0);

@@ -65,8 +65,7 @@ fastgltf::Asset fastgltfLoader::loadAsset(std::filesystem::path path) {
   if (auto error = assetResult.error(); error != fastgltf::Error::None)
     std::cerr << "fastgltf error while loading: " << path << std::endl;
 
-  fastgltf::Asset asset = std::move(assetResult.get());
-  return asset;
+  return std::move(assetResult.get());
 }
 
 std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(
@@ -170,6 +169,7 @@ std::vector<std::filesystem::path> fastgltfLoader::getURIs(
     if (auto* uri = std::get_if<fastgltf::sources::URI>(&image.data)) {
       std::filesystem::path relativeImagePath(uri->uri.path().begin(),
                                               uri->uri.path().end());
+
       std::filesystem::path fullImagePath = parentPath / relativeImagePath;
 
       if (!uri->uri.isLocalPath())

@@ -10,64 +10,59 @@
 #include "image_loader.h"
 #include "primitive.h"
 #include "texture_utilities.h"
+#include "texture_manager.h"
 
-Model::Model(const std::filesystem::path& path) { loadModel(path); }
+Model::Model(TextureManager& textureManager, const std::filesystem::path& path)
+    : handle{textureManager.assignModelHandle()},
+      texManager{textureManager},
+      textureSet{textureManager.acquireUniqueTextureSet(handle)} {
+  loadModel(path, false);
+}
+
+Model::Model(TextureManager& textureManager, const Model& borrowTarget,
+             const std::filesystem::path& path)
+    : handle{borrowTarget.handle},
+      texManager{textureManager},
+      textureSet{textureManager.borrowTextureSet(borrowTarget.handle)} {
+  loadModel(path, true);
+}
 
 Model::Model(Model&& other) noexcept
-    : asset{std::move(other.asset)},
-      meshes{std::move(other.meshes)},
-      materials{std::move(other.materials)},
-      assetImages{std::move(other.assetImages)} {
-  other.assetImages.clear();
+    : meshes{std::move(other.meshes)},
+      handle{other.handle},
+      texManager{other.texManager},
+      textureSet{other.textureSet} {
+  other.handle = 0;
 }
 
-Model& Model::operator=(Model&& other) noexcept {
-  if (this != &other) {
-    deleteTextureIDs();
-
-    asset = std::move(other.asset);
-    meshes = std::move(other.meshes);
-    materials = std::move(other.materials);
-    assetImages = std::move(other.assetImages);
-
-    other.asset = fastgltf::Asset{};
-    other.assetImages.clear();
-  }
-
-  return *this;
+Model::~Model() {
+  if (handle) texManager.releaseModel(handle);
 }
-
-Model::~Model() { deleteTextureIDs(); }
 
 void Model::render() {
+  int lastMaterialIndex{-1};
+
   for (const Primitive::Mesh& mesh : meshes) {
     for (const Primitive& primitive : mesh.primitives) {
       int materialIndex{primitive.getMaterialIndex()};
-      int albedoIndex{-1};
-      int aoMetRoughIdx{-1};
-      int normIndex{-1};
 
-      if (materialIndex != -1 && materials.size()) {
-        Material material{materials[materialIndex]};
+      if (materialIndex != lastMaterialIndex && materialIndex != -1 && textureSet.size()) {
+        const TextureSet& textures{textureSet[materialIndex]};
 
-        albedoIndex = material.albedoImageIndex;
-        aoMetRoughIdx = material.aoMetallicRoughnessImageIndex;
-        normIndex = material.normalImageIndex;
-      }
+        if (textures.albedo) {
+          glActiveTexture(GL_TEXTURE0);
+          glBindTexture(GL_TEXTURE_2D, textures.albedo);
+        }
 
-      if (albedoIndex != -1) {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, assetImages[albedoIndex]);
-      }
+        if (textures.occlusionRoughnessMetallic) {
+          glActiveTexture(GL_TEXTURE1);
+          glBindTexture(GL_TEXTURE_2D, textures.occlusionRoughnessMetallic);
+        }
 
-      if (aoMetRoughIdx != -1) {
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, assetImages[aoMetRoughIdx]);
-      }
-
-      if (normIndex != -1) {
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, assetImages[normIndex]);
+        if (textures.normal) {
+          glActiveTexture(GL_TEXTURE2);
+          glBindTexture(GL_TEXTURE_2D, textures.normal);
+        }
       }
 
       glBindVertexArray(primitive.getVAO());
@@ -80,71 +75,15 @@ void Model::render() {
   glActiveTexture(GL_TEXTURE0);
 }
 
-void Model::loadModel(const std::filesystem::path& path) {
-  asset = fastgltfLoader::loadAsset(path);
+void Model::loadModel(const std::filesystem::path& path, bool borrowed) {
+  fastgltf::Asset asset = fastgltfLoader::loadAsset(path);
 
   meshes.resize(asset.meshes.size());
   meshes = fastgltfLoader::loadMeshes(asset);
 
-  assetImages.resize(asset.images.size());
-  loadTextureImages(path.parent_path());
-
-  asset = fastgltf::Asset{};
+  if (!borrowed)
+    texManager.queueModelTextureSet(handle, std::move(asset),
+                                    path.parent_path());
 }
 
-void Model::loadTextureImages(const std::filesystem::path& parentPath) {
-  std::vector<std::filesystem::path> texturePaths{
-      fastgltfLoader::getURIs(asset, parentPath)};
-
-  ImageLoader imageLoader{texturePaths};
-
-  std::vector<ImageData> textureImageData = imageLoader.getImageData();
-  loadMaterials(textureImageData);
-}
-
-void Model::loadMaterials(const std::vector<ImageData>& imageData) {
-  materials.resize(asset.materials.size());
-
-  auto processMaterialTexture = [&](const fastgltf::TextureInfo& textureInfo,
-                                    bool sRGB) {
-    auto [index, sampler] = fastgltfLoader::getTextureInfo(asset, textureInfo);
-
-    // Generate new texture id if the index is not already in the set image
-    // indices already processed
-    if (processedImageIndices.insert(index).second) {
-      GLuint texID{
-          textureUtilities::generateTextureID(imageData[index], sampler, sRGB)};
-      assetImages[index] = texID;
-    }
-
-    return static_cast<unsigned int>(index);
-  };
-
-  // Process all materials in the gltf asset
-  for (unsigned int i = 0; i < asset.materials.size(); ++i) {
-    const auto& material = asset.materials[i];
-
-    if (material.pbrData.baseColorTexture.has_value()) {
-      auto& baseColorTexture = material.pbrData.baseColorTexture.value();
-      materials[i].albedoImageIndex =
-          processMaterialTexture(baseColorTexture, true);
-    }
-
-    if (material.pbrData.metallicRoughnessTexture.has_value()) {
-      auto& metallicRoughnessTexture =
-          material.pbrData.metallicRoughnessTexture.value();
-      materials[i].aoMetallicRoughnessImageIndex =
-          processMaterialTexture(metallicRoughnessTexture, false);
-    }
-
-    if (material.normalTexture.has_value()) {
-      auto& normalTexture = material.normalTexture.value();
-      materials[i].normalImageIndex =
-          processMaterialTexture(normalTexture, false);
-    }
-  }
-}
-
-void Model::deleteTextureIDs() {
-  for (const GLuint& textureID : assetImages) glDeleteTextures(1, &textureID);
-}
+ModelHandle Model::getModelHandle() { return handle; }

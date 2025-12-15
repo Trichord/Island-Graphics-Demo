@@ -10,24 +10,19 @@
 #include "image_loader.h"
 #include "primitive.h"
 #include "renderable.h"
+#include "texture_manager.h"
 
-/**
- * @brief A model loaded from a glTF file.
- *
- * @details Model owns the OpenGL texture ID's and copying is disabled to avoid
- * double frees.  Texture IDs are released upon destruction.  The member
- * assetImages is a 1:1 mapping of glTF's images array, but with OpenGL texture
- * IDs instead of URIs. Order between fastgltf's image indices and assetImages
- * is preserved.
- */
+
 class Model : public Renderable {
  public:
-  Model() = default;
-  explicit Model(const std::filesystem::path& path);
+  Model(TextureManager& textureManager,
+        const std::filesystem::path& path);
+  Model(TextureManager& textureManager,
+        const Model& borrowTarget, const std::filesystem::path& path);
   Model(const Model&) = delete;
   Model& operator=(const Model&) = delete;
   Model(Model&& other) noexcept;
-  Model& operator=(Model&& other) noexcept;
+  Model& operator=(Model&& other) = delete;
   ~Model();
 
   /**
@@ -38,6 +33,8 @@ class Model : public Renderable {
    */
   void render() override;
 
+  ModelHandle getModelHandle();
+
  protected:
   struct Material {
     int albedoImageIndex, aoMetallicRoughnessImageIndex, normalImageIndex;
@@ -47,28 +44,11 @@ class Model : public Renderable {
           aoMetallicRoughnessImageIndex(metRough),
           normalImageIndex(norm) {};
   };
-
-  fastgltf::Asset asset;
+  
+  ModelHandle handle{0};
+  TextureManager& texManager;
+  const std::vector<TextureSet>& textureSet;
   std::vector<Primitive::Mesh> meshes;
-  std::vector<Material> materials;
-  std::vector<GLuint> assetImages;
-  std::unordered_set<unsigned int> processedImageIndices;
 
-  /**
-   * @brief Calls fastgltf to load a model.
-   *
-   * @param path The path to the .gltf file.
-   */
-  void loadModel(const std::filesystem::path& path);
-
-  /**
-   * @brief Uses fastgltf to retrieve all texture image URI's. Turns the URI's
-   * into image data.
-   *
-   * @param parentPath The folder containing the .gltf file.
-   * @return A vector of image data after being processed by stb_image.
-   */
-  void loadTextureImages(const std::filesystem::path& parentPath);
-  void loadMaterials(const std::vector<ImageData>& imagedata);
-  void deleteTextureIDs();
+  void loadModel(const std::filesystem::path& path, bool borrowed);
 };
