@@ -37,7 +37,7 @@ void TextureManager::queueCubemapTextureSet(
                                aniso);
 }
 
-//TODO: add default purple texture for missing texturesets
+// TODO: add default purple texture for missing texturesets
 const std::vector<TextureSet>& TextureManager::acquireUniqueTextureSet(
     ModelHandle modelHandle) const {
   auto textureSetIter = textureCache.find(modelHandle);
@@ -51,8 +51,8 @@ const std::vector<TextureSet>& TextureManager::acquireUniqueTextureSet(
   return textureSetIter->second.textureSets;
 }
 
-void TextureManager::releaseModel(ModelHandle modelHandle) {
-  auto modelIter{textureCache.find(modelHandle)};
+void TextureManager::releaseModel(ModelHandle handle) {
+  auto modelIter{textureCache.find(handle)};
 
   if (modelIter == textureCache.end()) return;
 
@@ -60,7 +60,8 @@ void TextureManager::releaseModel(ModelHandle modelHandle) {
   entry.refCount--;
 
   if (entry.refCount == 0) {
-    for (auto& gpuHandle : entry.handlesInUse) glDeleteTextures(1, &gpuHandle);
+    for (auto& gpuHandle : entry.textureHandles)
+      glDeleteTextures(1, &gpuHandle);
 
     textureCache.erase(modelIter);
   }
@@ -144,7 +145,7 @@ void TextureManager::genTexIDFromAsset(ThreadPool& threadPool,
     if (inserted) {
       iter->second = textureUtilities::generateTextureID(
           rawTextureData[imageIndex], sampler, sRGB);
-      entry.handlesInUse.insert(iter->second);
+      entry.textureHandles.insert(iter->second);
     }
 
     return iter->second;
@@ -197,7 +198,7 @@ void TextureManager::genTexIDFromImage(ThreadPool& threadPool,
         true, aniso)};
 
     handleIter->second.textureSets[0].albedo = texID;
-    handleIter->second.handlesInUse.insert(texID);
+    handleIter->second.textureHandles.insert(texID);
   }
 }
 
@@ -218,12 +219,12 @@ void TextureManager::genCubemapTexID(
       textureUtilities::generateCubemapTextureID(loadedImages, true, aniso)};
 
   handleIter->second.textureSets[0].cubemap = texID;
-  handleIter->second.handlesInUse.insert(texID);
+  handleIter->second.textureHandles.insert(texID);
 }
 
-const std::vector<TextureSet>& TextureManager::borrowTextureSet(ModelHandle other) {
-
-      auto textureSetIter = textureCache.find(other);
+const std::vector<TextureSet>& TextureManager::borrowTextureSet(
+    ModelHandle other) {
+  auto textureSetIter = textureCache.find(other);
 
   if (textureSetIter == textureCache.end()) {
     std::cerr << "model handle not found" << std::endl;

@@ -43,7 +43,7 @@ class TextureManager {
   // Each entry in the vector corresponds to a material index
   struct TextureEntry {
     std::vector<TextureSet> textureSets;
-    std::unordered_set<GLuint> handlesInUse;
+    std::unordered_set<GLuint> textureHandles;
     int refCount{0};
   };
 

@@ -20,11 +20,12 @@ InstancedModel::InstancedModel(TextureManager& textureManager,
   setupInstancedBuffers();
 }
 
- InstancedModel::InstancedModel(TextureManager& textureManager,
-               const InstancedModel& borrowTarget,
-               const std::filesystem::path& modelPath,
-               const std::filesystem::path& positionsPath, float minSize,
-               float maxSize, unsigned int numPositions)
+InstancedModel::InstancedModel(TextureManager& textureManager,
+                               const InstancedModel& borrowTarget,
+                               const std::filesystem::path& modelPath,
+                               const std::filesystem::path& positionsPath,
+                               float minSize, float maxSize,
+                               unsigned int numPositions)
     : Model{textureManager, borrowTarget, modelPath} {
   loadPositions(positionsPath, numPositions);
   generateTransforms(minSize, maxSize);
@@ -95,11 +96,16 @@ void InstancedModel::loadPositions(const std::filesystem::path& positionsPath,
 
   std::fstream positionsFile{positionsPath};
 
-  if (positionsFile.is_open())
-    while (positionsFile >> x >> y >> z) positions.emplace_back(x, y, z);
-
-  else
+  if (!positionsFile.is_open()) {
     std::cerr << "Unable to open " << positionsPath << std::endl;
+    return;
+  }
+
+  while (positionsFile >> x >> y >> z) positions.emplace_back(x, y, z);
+
+  if (positions.size() != numPositions && numPositions != 0)
+    std::cout << positionsPath << " expected " << numPositions << " allocated "
+              << positions.size() << std::endl;
 }
 
 void InstancedModel::generateTransforms(float minSize, float maxSize) {
