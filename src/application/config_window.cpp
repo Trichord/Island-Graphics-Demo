@@ -56,8 +56,8 @@ bool ConfigWindow::createWindow() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
   glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
+  glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
   // Create window with graphics context
   float windowScale{
@@ -156,7 +156,8 @@ bool ConfigWindow::renderImGui() {
 
     // Dear ImGUI window
     ImGui::Begin("Island Tech Demo - Display Settings", NULL,
-                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
+                     ImGuiWindowFlags_NoTitleBar);
 
     // start of display settings, image, and advanced options group
     ImGui::BeginGroup();
