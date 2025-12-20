@@ -33,11 +33,11 @@ void IslandScene::addAllModelsToScene() {
       "./res//Textures/nebula/top.png",   "./res//Textures/nebula/bottom.png",
       "./res//Textures/nebula/front.png", "./res//Textures/nebula/back.png"};
 
-  // Fancy spinning space dodecahedron
-  auto& spaceDodeca =
-      loadSpaceModel("./res/models/dodecahedron/scene.gltf", spaceBoxPaths);
-  addObjectToScene(spaceDodeca, REFLECTIVE,
-                   Transform(SPACE_DODECA_POS), "spaceDodeca");
+  // Fancy spinning space model
+  auto& spaceModel =
+      loadSpaceModel("./res/models/space_model/scene.gltf", spaceBoxPaths);
+  addObjectToScene(spaceModel, REFLECTIVE,
+                   Transform(SPACE_DODECA_POS), "spaceModel");
 
   // Skybox
   std::vector<std::filesystem::path> skyBoxPaths{

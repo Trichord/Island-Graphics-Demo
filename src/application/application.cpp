@@ -27,7 +27,6 @@ void Application::run() {
                     ConfigWindow::globalGraphicsSettings.screenHeight);
 
   addGlfwUserParam(islandScene);
-  //centerMouse();
 
   renderer.updateUBO(islandScene);
 
@@ -76,6 +75,7 @@ void Application::createWindow() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
+  glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
   unsigned int msaa{ConfigWindow::globalGraphicsSettings.msaa};
   glfwWindowHint(GLFW_SAMPLES, msaa);
@@ -162,8 +162,8 @@ void Application::addGlfwUserParam(Scene& scene) {
 
 void Application::onUpdate(Scene& scene, float deltaTime) {
   // Rotate the fancy space dodecahedron
-  auto& spaceDodeca = scene.getObjectTransform("spaceDodeca");
-  spaceDodeca.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});
+  auto& spaceModel = scene.getObjectTransform("spaceModel");
+  spaceModel.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});
 
   // Move the light around the flight helmet
   auto& circlingLight =
