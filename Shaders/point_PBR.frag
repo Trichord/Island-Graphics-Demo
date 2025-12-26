@@ -9,7 +9,7 @@ uniform float gamma;
 
 const float INVERSE_PI = 0.31830988618;
 
-vec3 lightColor = vec3(2.5);
+const vec3 lightColor = vec3(2.5);
 
 //Positions in tangent view space
 in VS_OUT {
@@ -24,7 +24,7 @@ float distributionGGX(float NdotH, float roughness){
 	float a = roughness * roughness;
 	float a2 = a * a;
 	float NdotH2 = NdotH * NdotH;
-	float denom = NdotH2 * (a2 - 1.0) + 1.0;
+	float denom = fma(NdotH2, a2 - 1.0, 1.0);
 	float denom2 = denom * denom;
 
 	return a2 * INVERSE_PI / denom2;
@@ -72,11 +72,11 @@ float burleyDiffuseFactor(float FD90, float NdotL, float NdotV){
 
 //ACES film tone mapping (Krzysztof Narkowicz)
 vec3 ACESFilm(vec3 x) {
-float a = 2.51;
-float b = 0.03;
-float c = 2.43;
-float d = 0.59;
-float e = 0.14;
+const float a = 2.51;
+const float b = 0.03;
+const float c = 2.43;
+const float d = 0.59;
+const float e = 0.14;
 
 return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
@@ -90,10 +90,12 @@ void main() {
 	float roughness = occlusionRoughMetalMap.g;
 	float metallic = occlusionRoughMetalMap.b;
 
+	vec3 lightDir = fs_in.lightPos - fs_in.fragPos;
+
 	//vectors
 	vec3 N = normalize(normal);
 	vec3 V = normalize(fs_in.cameraPos - fs_in.fragPos);
-	vec3 L = normalize(fs_in.lightPos - fs_in.fragPos);
+	vec3 L = normalize(lightDir);
 	vec3 H = normalize(L + V);
 	
 	//dot products
@@ -110,7 +112,7 @@ void main() {
 	vec3 Lo = vec3(0.0);
 
 	//radiance
-	float lightDistance = length(fs_in.lightPos - fs_in.fragPos);
+	float lightDistance = length(lightDir);
 	float attenuation = 1.0 / (lightDistance * lightDistance);
 	vec3 radiance = lightColor * attenuation;
 
@@ -126,7 +128,7 @@ void main() {
 
 	//Avoid division by 0 with a small constant
 	vec3 numerator = NDF * G * F;
-	float denom = max(4.0 * NdotL * NdotV, 1.0e-6); 
+	float denom = max(4.0 * NdotL * NdotV, 0.0001); 
 	vec3 specular = numerator / denom;
 
 	//Burley diffuse

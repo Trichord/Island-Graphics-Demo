@@ -55,6 +55,9 @@ Renderer& Renderer::operator=(Renderer&& other) noexcept {
 }
 
 void Renderer::renderScene(Scene& scene) {
+  // Clear screen
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
   updateShaderUniforms(scene);
 
   // For each shader type in the scene
@@ -155,7 +158,7 @@ void Renderer::setupPBRShader(Shader& shader) {
   shader.setInt("normalMap", 2);
 }
 
-void Renderer::setupTreeShader(Shader& shader){
+void Renderer::setupTreeShader(Shader& shader) {
   glm::vec3 windDirection{0.88f, -0.1f, 0.4344f};
   shader.setUniformBlock("matrices", 0);
   shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
@@ -198,7 +201,7 @@ void Renderer::updateShaderUniforms(Scene& scene) {
 
       case TREES:
         shader.setFloat("time", (float)glfwGetTime() * 0.5f);
-        if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());  
+        if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
         break;
 
       case POINT_PBR:

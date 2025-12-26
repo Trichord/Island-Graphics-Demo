@@ -1,11 +1,10 @@
 #version 460 core
 
-#define AMBIENT_STRENGTH 0.8
-
 const vec3 lightColor = vec3(1.0, 0.95, 0.9);
 const vec3 defaultNormal = vec3(0.0, 1.0, 0.0);
 const float alphaCutoff = 0.5;
 const float mipScale = 0.25;
+const float ambientStrength = 0.8;
 
 out vec4 fragColor;
 
@@ -26,11 +25,11 @@ float CalcMipLevel(vec2 texture_coord){
 
 //ACES film tone mapping (Krzysztof Narkowicz)
 vec3 ACESFilm(vec3 x) {
-float a = 2.51;
-float b = 0.03;
-float c = 2.43;
-float d = 0.59;
-float e = 0.14;
+const float a = 2.51;
+const float b = 0.03;
+const float c = 2.43;
+const float d = 0.59;
+const float e = 0.14;
 
 return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
@@ -49,7 +48,7 @@ void main() {
     vec3 normal = gl_FrontFacing ? defaultNormal : -defaultNormal;
     
     //Ambient
-    vec3 ambient = AMBIENT_STRENGTH * lightColor * grassColor.rgb;
+    vec3 ambient = ambientStrength * lightColor * grassColor.rgb;
 
     //Diffuse
     vec3 lightDirection = normalize(-lightDir);
@@ -59,7 +58,7 @@ void main() {
     vec3 color = ambient + diffuse;
 
     //Tone mapping
-    //color = ACESFilm(color);
+    color = ACESFilm(color);
 
     //Gamma correction
 	color = pow(color, vec3(1.0/gamma)); 
