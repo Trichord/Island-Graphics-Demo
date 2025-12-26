@@ -35,9 +35,6 @@ void Application::run() {
   double framesRendered{0};
 
   while (!glfwWindowShouldClose(window)) {
-    // Clear screen
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     // Delta Time
     currentFrame = (float)glfwGetTime();
     deltaTime = currentFrame - lastFrame;

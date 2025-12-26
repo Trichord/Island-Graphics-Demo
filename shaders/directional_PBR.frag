@@ -12,6 +12,9 @@ const float INVERSE_PI = 0.31830988618;
 //Bright mid-day sun
 const vec3 lightColor = vec3(1.0, 0.95, 0.9);
 
+//Fixed ambient term
+const vec3 fixedAmbient = vec3(0.15);
+
 //Positions in tangent view space
 in VS_OUT {
 	vec3 cameraPos;
@@ -25,7 +28,7 @@ float distributionGGX(float NdotH, float roughness){
 	float a = roughness * roughness;
 	float a2 = a * a;
 	float NdotH2 = NdotH * NdotH;
-	float denom = NdotH2 * (a2 - 1.0) + 1.0;
+	float denom = fma(NdotH2, a2 - 1.0, 1.0);
 	float denom2 = denom * denom;
 
 	return a2 * INVERSE_PI / denom2;
@@ -73,11 +76,11 @@ float burleyDiffuseFactor(float FD90, float NdotL, float NdotV){
 
 //ACES film tone mapping (Krzysztof Narkowicz)
 vec3 ACESFilm(vec3 x) {
-float a = 2.51;
-float b = 0.03;
-float c = 2.43;
-float d = 0.59;
-float e = 0.14;
+const float a = 2.51;
+const float b = 0.03;
+const float c = 2.43;
+const float d = 0.59;
+const float e = 0.14;
 
 return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
@@ -122,7 +125,7 @@ void main() {
 
 	//Avoid division by 0, using a small constant
 	vec3 numerator = NDF * G * F;
-	float denom = max(4.0 * NdotL * NdotV, 1.0e-6);
+	float denom = max(4.0 * NdotL * NdotV, 0.0001);
 	vec3 specular = numerator / denom;
 
 	//Burley diffuse
@@ -133,7 +136,7 @@ void main() {
 	//add to outgoing radiance Lo
 	Lo += (diffuse + specular) * lightColor * NdotL;
 
-	vec3 ambient = vec3(0.15) * albedo.rgb * ao;
+	vec3 ambient = fixedAmbient * albedo.rgb * ao;
 	vec3 color = ambient + Lo;
 
 	//ACES tone mapping
