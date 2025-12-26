@@ -56,11 +56,11 @@ void Application::run() {
     // Draw
     renderer.renderScene(islandScene);
 
-    // User input
-    processInput(islandScene);
-    glfwPollEvents();
-
     glfwSwapBuffers(window);
+
+    // User input
+    glfwPollEvents();
+    processInput(islandScene);
   }
 
   glfwTerminate();

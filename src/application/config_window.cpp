@@ -122,6 +122,8 @@ void ConfigWindow::setupImGui() {
 }
 
 bool ConfigWindow::renderImGui() {
+  bool settingsConfirmed{false};
+
   // GLFW window scale
   float windowScale{
       ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
@@ -136,9 +138,7 @@ bool ConfigWindow::renderImGui() {
   ImVec2 windowUpperLeft{0.0f, 0.0f};
 
   // Loop until settings are confirmed
-  while (true) {
-    glfwPollEvents();
-
+  while (!glfwWindowShouldClose(window)) {
     // Sleep if minimized
     if (glfwGetWindowAttrib(window, GLFW_ICONIFIED)) {
       ImGui_ImplGlfw_Sleep(10);
@@ -270,7 +270,7 @@ bool ConfigWindow::renderImGui() {
                   windowPadding.y};
 
     ImGui::SetCursorScreenPos(ImVec2{cancelX, cancelY});
-    if (ImGui::Button("Cancel")) return false;
+    if (ImGui::Button("Cancel")) glfwSetWindowShouldClose(window, true);
 
     ImGui::SameLine();
 
@@ -284,7 +284,10 @@ bool ConfigWindow::renderImGui() {
                       windowPadding.y};
 
     ImGui::SetCursorScreenPos(ImVec2{confirmXPos, confirmYPos});
-    if (ImGui::Button("Confirm")) break;
+    if (ImGui::Button("Confirm")) {
+      settingsConfirmed = true;
+      glfwSetWindowShouldClose(window, true);
+    }
 
     // End
     ImGui::End();
@@ -299,8 +302,10 @@ bool ConfigWindow::renderImGui() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     glfwSwapBuffers(window);
+    glfwPollEvents();
   }
-  return true;
+
+  return settingsConfirmed;
 }
 
 void ConfigWindow::loadConfigWindowImage() {
