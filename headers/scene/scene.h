@@ -45,8 +45,8 @@ class Scene {
   Scene(TextureManager& textureManager);
   Scene(const Scene&) = delete;
   Scene& operator=(const Scene&) = delete;
-  Scene(Scene&& other) noexcept;
-  Scene& operator=(Scene&& other) noexcept;
+  Scene(Scene&& other) noexcept = default;
+  Scene& operator=(Scene&& other) noexcept = default;
 
   Camera camera;
 
