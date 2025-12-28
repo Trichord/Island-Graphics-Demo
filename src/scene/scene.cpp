@@ -25,20 +25,6 @@ Scene::Scene(TextureManager& texManager) : textureManager{texManager} {
   pointLights.reserve(sceneMaxObjects::maxLights);
 }
 
-Scene::Scene(Scene&& other) noexcept
-    : textureManager{other.textureManager},
-      sceneObjects{std::move(other.sceneObjects)},
-      camera{std::move(other.camera)} {}
-
-Scene& Scene::operator=(Scene&& other) noexcept {
-  if (this != &other) {
-    sceneObjects = std::move(other.sceneObjects);
-    camera = std::move(other.camera);
-  }
-
-  return *this;
-}
-
 std::map<ShaderType, std::vector<RenderableObject>>& Scene::getSceneObjects() {
   return sceneObjects;
 }
