@@ -50,48 +50,48 @@ void IslandScene::addAllModelsToScene() {
 
   // Grass
   auto& grass = loadQuad("./res/textures/grass.png", "./res/grass.txt",
-                         Quad::RADIAL_PATTERN, 0.3f, 0.5f, 3, 6630);
+                         Quad::RADIAL_PATTERN, 0.3f, 0.5f, 3, 6881);
   addObjectToScene(grass, FLOWERS);
 
   // Dandelions
   auto& dandelions =
       loadInstancedModel("./res/models/dandelion/dandelion.gltf",
-                         "./res/dandelions.txt", 0.8f, 1.0f, 464);
+                         "./res/dandelions.txt", 1.0f, 1.5f, 1887);
   addObjectToScene(dandelions, FLOWERS);
 
   // Purple flowers
   auto& purpleFlowers =
       loadInstancedModel("./res/models/purpleflower/purpleflower.gltf",
-                         "./res/purpleflowers.txt", 0.9f, 1.1f, 133);
+                         "./res/purpleflowers.txt", 0.9f, 1.1f, 256);
   addObjectToScene(purpleFlowers, FLOWERS);
 
   // White flowers
   auto& whiteFlowers =
       loadInstancedModel("./res/models/whiteflower/whiteflower.gltf",
-                         "./res/whiteflowers.txt", 0.9f, 1.1f, 177);
+                         "./res/whiteflowers.txt", 0.9f, 1.1f, 371);
   addObjectToScene(whiteFlowers, FLOWERS);
 
   // Blue flowers
   auto& blueFlowers =
       loadInstancedModel(whiteFlowers, "./res/models/blueflower/blueflower.gltf",
-                         "./res/blueflowers.txt", 0.9f, 1.1f, 61);
+                         "./res/blueflowers.txt", 0.9f, 1.1f, 181);
   addObjectToScene(blueFlowers, FLOWERS);
 
   // Fir trees
   auto& firTree = loadInstancedModel("./res/models/firtree/firtree.gltf",
-                                     "./res/fir_trees.txt", 0.8f, 1.25f, 128);
+                                     "./res/fir_trees.txt", 0.7f, 1.5f, 223);
   addObjectToScene(firTree, TREES);
 
   // Noble trees
   auto& nobleFirTree =
       loadInstancedModel(firTree, "./res/models/noblefir/noblefir.gltf",
-                         "./res/noble_firs.txt", 0.7f, 1.2f, 53);
+                         "./res/noble_firs.txt", 0.7f, 1.2f, 50);
   addObjectToScene(nobleFirTree, TREES);
 
   // Dead trees
   auto& deadTrees =
       loadInstancedModel("./res/models/dead_tree/dead_tree.gltf",
-                         "./res/dead_trees.txt", 0.65f, 1.25f, 16);
+                         "./res/dead_trees.txt", 0.65f, 1.25f, 23);
   addObjectToScene(deadTrees, TREES);
 }
 
