@@ -3,7 +3,7 @@
 const vec3 lightColor = vec3(1.0, 0.95, 0.9);
 const float alphaCutoff = 0.5;
 const float mipScale = 0.25;
-const float ambientStrength = 0.15;
+const float ambientStrength = 0.2;
 
 out vec4 fragColor;
 

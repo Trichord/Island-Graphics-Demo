@@ -8,7 +8,7 @@ uniform sampler2D normalMap;
 uniform float gamma;
 
 const float INVERSE_PI = 0.31830988618;
-
+const vec3 fixedAmbient = vec3(0.2);
 const vec3 lightColor = vec3(2.5);
 
 //Positions in tangent view space
@@ -139,7 +139,7 @@ void main() {
 	//add to outgoing radiance Lo
 	Lo += (diffuse + specular) * radiance * NdotL;
 
-	vec3 ambient = vec3(0.15) * albedo.rgb * ao;
+	vec3 ambient = fixedAmbient * albedo.rgb * ao;
 	vec3 color = ambient + Lo;
 
 	//ACES tone mapping
