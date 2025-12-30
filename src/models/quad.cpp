@@ -22,6 +22,9 @@ Quad::Quad(TextureManager &textureManager,
     : texManager{textureManager},
       handle{textureManager.assignModelHandle()},
       textureSet{textureManager.acquireUniqueTextureSet(handle)} {
+
+  normalMatrices.reserve(numPositions * density);
+  positions.reserve(numPositions);
   loadPositions(positionsPath, numPositions);
 
   if (pattern == Quad::RADIAL_PATTERN)
@@ -63,12 +66,15 @@ Quad::Quad(Quad &&other) noexcept
   transforms = std::move(other.transforms);
   positionsVBO = other.positionsVBO;
   positions = std::move(other.positions);
+  normalMatricesVBO = other.normalMatricesVBO;
+  normalMatrices = std::move(other.normalMatrices);
 
   other.VAO = 0;
   other.VBO = 0;
   other.EBO = 0;
   other.transformsVBO = 0;
   other.positionsVBO = 0;
+  other.normalMatricesVBO = 0;
   other.handle = 0;
 }
 
@@ -112,6 +118,10 @@ void Quad::setupBuffers(unsigned int density) {
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
 
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                        (void *)(3 * sizeof(float)));
+
   // textures
   glEnableVertexAttribArray(3);
   glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
@@ -124,6 +134,7 @@ void Quad::setupBuffers(unsigned int density) {
                transforms.data(), GL_STATIC_DRAW);
 
   // glm::mat4 instance model matrix
+  glBindBuffer(GL_ARRAY_BUFFER, transformsVBO);
   glEnableVertexAttribArray(4);
   glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)0);
   glEnableVertexAttribArray(5);
@@ -149,6 +160,29 @@ void Quad::setupBuffers(unsigned int density) {
   glEnableVertexAttribArray(8);
   glVertexAttribPointer(8, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
   glVertexAttribDivisor(8, density);
+
+  // Normal matrices (using mat4 as mat3 is unreliable)
+  glGenBuffers(1, &normalMatricesVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, normalMatricesVBO);
+  glBufferData(GL_ARRAY_BUFFER, normalMatrices.size() * sizeof(glm::mat4),
+               normalMatrices.data(), GL_STATIC_DRAW);
+
+  glEnableVertexAttribArray(9);
+  glVertexAttribPointer(9, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)0);
+  glEnableVertexAttribArray(10);
+  glVertexAttribPointer(10, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                        (void *)(sizeof(glm::vec4)));
+  glEnableVertexAttribArray(11);
+  glVertexAttribPointer(11, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                        (void *)(2 * sizeof(glm::vec4)));
+  glEnableVertexAttribArray(11);
+  glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                        (void *)(3 * sizeof(glm::vec4)));
+
+  glVertexAttribDivisor(9, 1);
+  glVertexAttribDivisor(10, 1);
+  glVertexAttribDivisor(11, 1);
+  glVertexAttribDivisor(12, 1);
 
   // reset VAO
   glBindVertexArray(0);
@@ -204,7 +238,11 @@ void Quad::generateRadialPatternTransforms(float minSize, float maxSize,
                                           instanceScale + rndScaleJitter(mt),
                                           instanceScale));
 
+      glm::mat4 normalMatrix{
+          glm::transpose(glm::inverse(glm::mat3{transform}))};
+
       transforms.emplace_back(std::move(transform));
+      normalMatrices.emplace_back(std::move(normalMatrix));
     }
   }
 }
@@ -253,7 +291,11 @@ void Quad::generateStarPatternTransforms(float minSize, float maxSize,
                                           instanceScale + rndScaleJitter(mt),
                                           instanceScale));
 
+      glm::mat4 normalMatrix{
+          glm::transpose(glm::inverse(glm::mat3{transform}))};
+
       transforms.emplace_back(std::move(transform));
+      normalMatrices.emplace_back(std::move(normalMatrix));
     }
   }
 }
@@ -261,6 +303,7 @@ void Quad::generateStarPatternTransforms(float minSize, float maxSize,
 void Quad::deleteBuffers() {
   glDeleteBuffers(1, &transformsVBO);
   glDeleteBuffers(1, &positionsVBO);
+  glDeleteBuffers(1, &normalMatricesVBO);
   glDeleteBuffers(1, &VBO);
   glDeleteBuffers(1, &EBO);
   glDeleteVertexArrays(1, &VAO);
@@ -268,7 +311,6 @@ void Quad::deleteBuffers() {
 
 void Quad::loadPositions(const std::filesystem::path &positionsPath,
                          unsigned int numPositions) {
-  positions.reserve(numPositions);
   float x{0.0f};
   float y{0.0f};
   float z{0.0f};

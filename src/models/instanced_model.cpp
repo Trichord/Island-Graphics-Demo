@@ -15,6 +15,7 @@ InstancedModel::InstancedModel(TextureManager& textureManager,
                                float minSize, float maxSize,
                                unsigned int numPositions)
     : Model{textureManager, modelPath} {
+  positions.reserve(numPositions);
   loadPositions(positionsPath, numPositions);
   generateTransforms(minSize, maxSize);
   setupInstancedBuffers();
@@ -90,8 +91,7 @@ void InstancedModel::render() {
 }
 
 void InstancedModel::loadPositions(const std::filesystem::path& positionsPath,
-                                   unsigned int numPositions) {
-  positions.reserve(numPositions);
+                                   unsigned int numPositions) { 
   float x{0.0f};
   float y{0.0f};
   float z{0.0f};
@@ -131,7 +131,7 @@ void InstancedModel::generateTransforms(float minSize, float maxSize) {
                             glm::vec3{0.0f, 1.0f, 0.0f});
     transform = glm::scale(transform, glm::vec3{instanceScale});
 
-    glm::mat3 normalMatrix{glm::transpose(glm::inverse(glm::mat3{transform}))};
+    glm::mat4 normalMatrix{glm::transpose(glm::inverse(glm::mat3{transform}))};
 
     transforms.emplace_back(std::move(transform));
     normalMatrices.emplace_back(std::move(normalMatrix));
@@ -154,7 +154,7 @@ void InstancedModel::setupInstancedBuffers() {
   // Normal matrices VBO
   glGenBuffers(1, &normalMatricesVBO);
   glBindBuffer(GL_ARRAY_BUFFER, normalMatricesVBO);
-  glBufferData(GL_ARRAY_BUFFER, normalMatrices.size() * sizeof(glm::mat3),
+  glBufferData(GL_ARRAY_BUFFER, normalMatrices.size() * sizeof(glm::mat4),
                normalMatrices.data(), GL_STATIC_DRAW);
 
   for (const Primitive::Mesh& mesh : meshes) {
@@ -191,18 +191,22 @@ void InstancedModel::setupInstancedBuffers() {
       // Normal matrices
       glBindBuffer(GL_ARRAY_BUFFER, normalMatricesVBO);
       glEnableVertexAttribArray(9);
-      glVertexAttribPointer(9, 3, GL_FLOAT, GL_FALSE, sizeof(glm::mat3),
+      glVertexAttribPointer(9, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
                             (void*)0);
       glEnableVertexAttribArray(10);
-      glVertexAttribPointer(10, 3, GL_FLOAT, GL_FALSE, sizeof(glm::mat3),
-                            (void*)(sizeof(glm::vec3)));
+      glVertexAttribPointer(10, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                            (void*)(sizeof(glm::vec4)));
       glEnableVertexAttribArray(11);
-      glVertexAttribPointer(11, 3, GL_FLOAT, GL_FALSE, sizeof(glm::mat3),
-                            (void*)(2 * sizeof(glm::vec3)));
+      glVertexAttribPointer(11, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                            (void*)(2 * sizeof(glm::vec4)));
+      glEnableVertexAttribArray(12);
+      glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                            (void*)(3 * sizeof(glm::vec4)));
 
       glVertexAttribDivisor(9, 1);
       glVertexAttribDivisor(10, 1);
       glVertexAttribDivisor(11, 1);
+      glVertexAttribDivisor(12, 1);
     }
   }
 
