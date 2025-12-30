@@ -54,15 +54,6 @@ const float e = 0.14;
 return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
-//Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
-float CalcMipLevel(vec2 texture_coord){
-    vec2 dx = dFdx(texture_coord);
-    vec2 dy = dFdy(texture_coord);
-    float delta_max_sqr = max(dot(dx, dx), dot(dy, dy));
-                
-    return max(0.0, 0.5 * log2(delta_max_sqr));
-}
-
 void main() {
 	//material properties, remap normal from [0, 1] to [-1, 1]
 	vec4 albedo = texture(albedoMap, fs_in.texCoords);
@@ -72,11 +63,7 @@ void main() {
 	float roughness = occlusionRoughMetalMap.g;
 	float metallic = occlusionRoughMetalMap.b;
 
-	//Scale alpha by mip level
-    vec2 texSize = vec2(textureSize(albedoMap, 0)); // Level 0 size
-    albedo.a *= 1 + max(0, CalcMipLevel(fs_in.texCoords * texSize)) * mipScale;
-
-	// Rescale alpha by partial derivative
+	// Rescale alpha by partial derivative. Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
     albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
   
 	//vectors
