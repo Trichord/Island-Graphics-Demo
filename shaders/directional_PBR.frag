@@ -13,7 +13,7 @@ const float INVERSE_PI = 0.31830988618;
 const vec3 lightColor = vec3(1.0, 0.95, 0.9);
 
 //Fixed ambient term
-const vec3 fixedAmbient = vec3(0.15);
+const vec3 fixedAmbient = vec3(0.2);
 
 //Positions in tangent view space
 in VS_OUT {
