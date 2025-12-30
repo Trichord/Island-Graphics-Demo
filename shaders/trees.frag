@@ -12,10 +12,6 @@ const float mipScale = 0.25;
 const float alphaCutoff = 0.5;
 const vec3 fixedAmbient = vec3(0.2);
 
-//Tuned to match the island's ground and sky colors
-const vec3 groundColor = vec3(0.04313, 0.09411, 0.01176);
-const vec3 skyColor = vec3(0.30980, 0.38823, 0.56863);
-
 //Bright mid-day sun
 const vec3 lightColor = vec3(1.0, 0.95, 0.9);
 
