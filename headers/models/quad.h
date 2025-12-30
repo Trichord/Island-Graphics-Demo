@@ -37,7 +37,9 @@ class Quad : public Renderable {
   GLuint EBO{0};
   GLuint transformsVBO{0};
   GLuint positionsVBO{0};
+  GLuint normalMatricesVBO{0};
   std::vector<glm::mat4> transforms;
+  std::vector<glm::mat4> normalMatrices;
   std::vector<glm::vec3> positions;
   ModelHandle handle{0};
   TextureManager &texManager;
