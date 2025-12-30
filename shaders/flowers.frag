@@ -14,15 +14,6 @@ uniform float gamma;
 in vec2 texCoords;
 in vec3 normal;
 
-//Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
-float CalcMipLevel(vec2 texture_coord){
-    vec2 dx = dFdx(texture_coord);
-    vec2 dy = dFdy(texture_coord);
-    float delta_max_sqr = max(dot(dx, dx), dot(dy, dy));
-                
-    return max(0.0, 0.5 * log2(delta_max_sqr));
-}
-
 //ACES film tone mapping (Krzysztof Narkowicz)
 vec3 ACESFilm(vec3 x) {
 const float a = 2.51;
@@ -45,11 +36,7 @@ void main() {
     vec3 lightDirection = normalize(-lightDir);
     float NdotL = dot(normalizedNormal, lightDirection);
 
-    //Scale alpha by mip level
-    vec2 texSize = vec2(textureSize(colorTexture, 0)); // Level 0 size
-    grassColor.a *= 1 + max(0, CalcMipLevel(texCoords * texSize)) * mipScale;
-
-    // Rescale alpha by partial derivative
+    // Rescale alpha by partial derivative. Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
     grassColor.a = (grassColor.a - alphaCutoff) / max(fwidth(grassColor.a), 0.0001) + 0.5;
     
     //Ambient
