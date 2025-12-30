@@ -131,7 +131,9 @@ void main() {
 	//Burley diffuse
 	float FD90 = 0.5 + 2 * roughness * (HdotV * HdotV);
 	float burleyFactor = burleyDiffuseFactor(FD90, NdotL, NdotV);
-	vec3 diffuse = kD * albedo.rgb * INVERSE_PI * burleyFactor;
+	vec3 fD = albedo.rgb * INVERSE_PI * burleyFactor;
+
+	vec3 diffuse = kD * fD;
 
 	//add to outgoing radiance Lo
 	Lo += (diffuse + specular) * lightColor * NdotL;

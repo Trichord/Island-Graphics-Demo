@@ -1,6 +1,6 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v4.5.48",
+		"generator":"Khronos glTF Blender I/O v5.0.21",
 		"version":"2.0"
 	},
 	"extensionsUsed":[
@@ -42,7 +42,7 @@
 					"ior":1000
 				}
 			},
-			"name":"BarkMat.012",
+			"name":"BarkMat.001",
 			"normalTexture":{
 				"index":0
 			},
@@ -70,7 +70,7 @@
 					"ior":1000
 				}
 			},
-			"name":"BranchMat.009",
+			"name":"BranchMat.001",
 			"normalTexture":{
 				"index":3
 			},
@@ -86,7 +86,7 @@
 	],
 	"meshes":[
 		{
-			"name":"Object_4.003",
+			"name":"Object_4.001",
 			"primitives":[
 				{
 					"attributes":{
@@ -101,7 +101,7 @@
 			]
 		},
 		{
-			"name":"Object_5.003",
+			"name":"Object_5.001",
 			"primitives":[
 				{
 					"attributes":{
@@ -219,7 +219,7 @@
 		{
 			"bufferView":5,
 			"componentType":5126,
-			"count":2478,
+			"count":2484,
 			"max":[
 				2.8005571365356445,
 				7.451717376708984,
@@ -235,25 +235,25 @@
 		{
 			"bufferView":6,
 			"componentType":5126,
-			"count":2478,
+			"count":2484,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":7,
 			"componentType":5126,
-			"count":2478,
+			"count":2484,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":8,
 			"componentType":5126,
-			"count":2478,
+			"count":2484,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":9,
 			"componentType":5126,
-			"count":2478,
+			"count":2484,
 			"type":"VEC4"
 		},
 		{
@@ -296,38 +296,38 @@
 		},
 		{
 			"buffer":0,
-			"byteLength":29736,
+			"byteLength":29808,
 			"byteOffset":357768,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":29736,
-			"byteOffset":387504,
+			"byteLength":29808,
+			"byteOffset":387576,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":19824,
-			"byteOffset":417240,
+			"byteLength":19872,
+			"byteOffset":417384,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":19824,
-			"byteOffset":437064,
+			"byteLength":19872,
+			"byteOffset":437256,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":39648,
-			"byteOffset":456888,
+			"byteLength":39744,
+			"byteOffset":457128,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":6372,
-			"byteOffset":496536,
+			"byteOffset":496872,
 			"target":34963
 		}
 	],
@@ -345,7 +345,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":502908,
+			"byteLength":503244,
 			"uri":"noblefir.bin"
 		}
 	]
