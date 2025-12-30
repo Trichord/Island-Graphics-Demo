@@ -10,6 +10,7 @@ uniform float gamma;
 const float INVERSE_PI = 0.31830988618;
 const float mipScale = 0.25;
 const float alphaCutoff = 0.5;
+const vec3 fixedAmbient = vec3(0.15);
 
 //Tuned to match the island's ground and sky colors
 const vec3 groundColor = vec3(0.04313, 0.09411, 0.01176);
@@ -81,18 +82,19 @@ void main() {
 	vec3 kD = vec3(1.0);
 	kD *= 1.0 - metallic;
 
-	//Hemispherical ambient lighting, remapping the normal vector's y component to [0,1]
-	float up = N.y * 0.5 + 0.5;
-	vec3 hemiAmbient = mix(groundColor, skyColor, up) * ao;
-
 	//Burley diffuse
 	float FD90 = 0.5 + 2 * roughness * (HdotV * HdotV);
 	float burleyFactor = burleyDiffuseFactor(FD90, NdotL, NdotV);
-	vec3 diffuse = kD * burleyFactor * INVERSE_PI * lightColor;
+	vec3 diffuse = kD * albedo.rgb * INVERSE_PI * burleyFactor;
+
+	vec3 accumulatedLight = diffuse * lightColor * NdotL;
+	
+	//Ambient
+	vec3 ambient = fixedAmbient * albedo.rgb * ao;
 	
 	//Final color
-	vec3 color = (hemiAmbient + diffuse) * albedo.rgb;
-	
+	vec3 color = ambient + accumulatedLight;
+
 	//ACES tone mapping
 	color = ACESFilm(color);
 
