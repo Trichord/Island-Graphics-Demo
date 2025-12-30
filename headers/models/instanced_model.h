@@ -33,7 +33,7 @@ class InstancedModel : public Model {
   GLuint normalMatricesVBO{0};
   std::vector<glm::mat4> transforms;
   std::vector<glm::vec3> positions;
-  std::vector<glm::mat3> normalMatrices;
+  std::vector<glm::mat4> normalMatrices;
 
   void render() override;
   void loadPositions(const std::filesystem::path& positionsPath,
