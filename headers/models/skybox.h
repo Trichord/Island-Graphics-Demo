@@ -24,9 +24,9 @@ class Skybox : public CubeMappedModel {
   ModelHandle getModelHandle();
 
  private:
-  GLuint modelVAO{0};
-  GLuint modelVBO{0};
-  GLuint modelEBO{0};
+  GLuint VAO{0};
+  GLuint VBO{0};
+  GLuint EBO{0};
 
   inline static const float vertices[]{-1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f,
                                        1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f,

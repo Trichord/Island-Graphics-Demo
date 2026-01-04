@@ -79,13 +79,13 @@ void IslandScene::addAllModelsToScene() {
 
   // Fir trees
   auto& firTree = loadInstancedModel("./res/models/firtree/firtree.gltf",
-                                     "./res/fir_trees.txt", 0.7f, 1.5f, 223);
+                                     "./res/fir_trees.txt", 0.7f, 1.5f, 219);
   addObjectToScene(firTree, TREES);
 
   // Noble trees
   auto& nobleFirTree =
       loadInstancedModel(firTree, "./res/models/noblefir/noblefir.gltf",
-                         "./res/noble_firs.txt", 0.7f, 1.2f, 50);
+                         "./res/noble_firs.txt", 0.7f, 1.2f, 55);
   addObjectToScene(nobleFirTree, TREES);
 
   // Dead trees
@@ -93,6 +93,7 @@ void IslandScene::addAllModelsToScene() {
       loadInstancedModel("./res/models/dead_tree/dead_tree.gltf",
                          "./res/dead_trees.txt", 0.65f, 1.25f, 23);
   addObjectToScene(deadTrees, TREES);
+
 }
 
 void IslandScene::addAllLightsToScene() {

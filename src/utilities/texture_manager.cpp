@@ -25,16 +25,17 @@ void TextureManager::queueModelTextureSet(
   textureCreationQueue.emplace(std::move(asset), handle, parentPath);
 }
 
-void TextureManager::queueBaseImageTextureSet(
-    const ModelHandle handle, std::filesystem::path texturePath) {
-  textureCreationQueue.emplace(std::move(texturePath), handle, "./");
+void TextureManager::queueBaseImageTextureSet(const ModelHandle handle,
+                                              std::filesystem::path texturePath,
+                                              bool sRGB, bool aniso) {
+  textureCreationQueue.emplace(std::move(texturePath), handle, "./", sRGB,
+                               aniso);
 }
 
 void TextureManager::queueCubemapTextureSet(
     const ModelHandle handle, std::vector<std::filesystem::path> imagePaths,
-    const std::filesystem::path& parentPath, bool aniso) {
-  textureCreationQueue.emplace(std::move(imagePaths), handle, parentPath,
-                               aniso);
+    const std::filesystem::path& parentPath, bool sRGB) {
+  textureCreationQueue.emplace(std::move(imagePaths), handle, parentPath, sRGB);
 }
 
 // TODO: add default purple texture for missing texturesets
@@ -99,14 +100,14 @@ void TextureManager::processTextureQueue() {
     else if (std::holds_alternative<std::filesystem::path>(queueElement.source))
       genTexIDFromImage(threadPool, queueElement.modelHandle,
                         std::get<std::filesystem::path>(queueElement.source),
-                        queueElement.aniso);
+                        queueElement.sRGB, queueElement.aniso);
 
     else if (std::holds_alternative<std::vector<std::filesystem::path>>(
                  queueElement.source))
       genCubemapTexID(
           threadPool, queueElement.modelHandle,
           std::get<std::vector<std::filesystem::path>>(queueElement.source),
-          queueElement.aniso);
+          queueElement.sRGB);
 
     textureCreationQueue.pop();
   }
@@ -179,7 +180,7 @@ void TextureManager::genTexIDFromAsset(ThreadPool& threadPool,
 void TextureManager::genTexIDFromImage(ThreadPool& threadPool,
                                        ModelHandle handle,
                                        const std::filesystem::path& imagePath,
-                                       bool aniso) {
+                                       bool sRGB, bool aniso) {
   auto handleIter = textureCache.find(handle);
 
   if (handleIter == textureCache.end()) return;
@@ -195,7 +196,7 @@ void TextureManager::genTexIDFromImage(ThreadPool& threadPool,
         imageData[0],
         Sampler{GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR, GL_CLAMP_TO_EDGE,
                 GL_CLAMP_TO_EDGE},
-        true, aniso)};
+        sRGB, aniso)};
 
     handleIter->second.textureSets[0].albedo = texID;
     handleIter->second.textureHandles.insert(texID);
@@ -204,7 +205,7 @@ void TextureManager::genTexIDFromImage(ThreadPool& threadPool,
 
 void TextureManager::genCubemapTexID(
     ThreadPool& threadPool, ModelHandle handle,
-    const std::vector<std::filesystem::path>& imagePaths, bool aniso) {
+    const std::vector<std::filesystem::path>& imagePaths, bool sRGB) {
   auto handleIter = textureCache.find(handle);
 
   if (handleIter == textureCache.end()) return;
@@ -215,8 +216,7 @@ void TextureManager::genCubemapTexID(
   ImageLoader imageLoader{threadPool, imagePaths};
   std::vector<LoadedImage> loadedImages{imageLoader.getImageData()};
 
-  GLuint texID{
-      textureUtilities::generateCubemapTextureID(loadedImages, true, aniso)};
+  GLuint texID{textureUtilities::generateCubemapTextureID(loadedImages, sRGB)};
 
   handleIter->second.textureSets[0].cubemap = texID;
   handleIter->second.textureHandles.insert(texID);

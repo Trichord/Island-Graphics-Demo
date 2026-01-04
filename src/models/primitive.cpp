@@ -7,8 +7,6 @@
 #include <iostream>
 #include <vector>
 
-// Don't forget to call std::move when calling Primitive constructor!  Avoid
-// copies
 Primitive::Primitive(std::vector<Vertex>&& verts,
                      std::vector<std::uint32_t>&& inds, int matIndex)
     : materialIndex{matIndex},
@@ -64,6 +62,12 @@ GLsizei Primitive::getIndicesSize() const {
 
 int Primitive::getMaterialIndex() const { return materialIndex; }
 
+/* Vertex attribute layout:
+* 0 - position (vec3)
+* 1 - normal (vec3)
+* 2 - tangent (vec4)
+* 3 - texture coordinates (vec2)
+*/
 void Primitive::setupPrimitiveBuffers() {
   if (!vertices.size() || !indices.size()) {
     std::cout << "Error: missing either vertices or indices in mesh"
@@ -71,38 +75,36 @@ void Primitive::setupPrimitiveBuffers() {
     return;
   }
 
-  glGenVertexArrays(1, &VAO);
-  glBindVertexArray(VAO);
+  glCreateVertexArrays(1, &VAO);
 
-  glGenBuffers(1, &VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0],
-               GL_STATIC_DRAW);
+  glEnableVertexArrayAttrib(VAO, 0);
+  glEnableVertexArrayAttrib(VAO, 1);
+  glEnableVertexArrayAttrib(VAO, 2);
+  glEnableVertexArrayAttrib(VAO, 3);
 
-  glGenBuffers(1, &EBO);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
-               &indices[0], GL_STATIC_DRAW);
+  glCreateBuffers(1, &VBO);
+  glNamedBufferStorage(VBO, vertices.size() * sizeof(Vertex), vertices.data(),
+                       0);
 
-  // vertices
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+  glCreateBuffers(1, &EBO);
+  glNamedBufferStorage(EBO, indices.size() * sizeof(unsigned int),
+                       indices.data(), 0);
 
-  // normals
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        (void*)offsetof(Vertex, normal));
+  glVertexArrayVertexBuffer(VAO, 0, VBO, 0, sizeof(Vertex));
 
-  // tangent
-  glEnableVertexAttribArray(2);
-  glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        (void*)offsetof(Vertex, tangent));
+  glVertexArrayElementBuffer(VAO, EBO);
 
-  // textures
-  glEnableVertexAttribArray(3);
-  glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                        (void*)offsetof(Vertex, texCoords));
+  glVertexArrayAttribFormat(VAO, 0, 3, GL_FLOAT, GL_FALSE,
+                            offsetof(Vertex, position));
+  glVertexArrayAttribFormat(VAO, 1, 3, GL_FLOAT, GL_FALSE,
+                            offsetof(Vertex, normal));
+  glVertexArrayAttribFormat(VAO, 2, 4, GL_FLOAT, GL_FALSE,
+                            offsetof(Vertex, tangent));
+  glVertexArrayAttribFormat(VAO, 3, 2, GL_FLOAT, GL_FALSE,
+                            offsetof(Vertex, texCoords));
 
-  // reset VAO
-  glBindVertexArray(0);
+  glVertexArrayAttribBinding(VAO, 0, 0);
+  glVertexArrayAttribBinding(VAO, 1, 0);
+  glVertexArrayAttribBinding(VAO, 2, 0);
+  glVertexArrayAttribBinding(VAO, 3, 0);
 }

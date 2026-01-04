@@ -5,8 +5,7 @@ layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
 layout (location = 4) in mat4 aTransform;
-layout (location = 8) in vec3 centerPos;
-layout (location = 9) in mat3 normalMatrix;
+layout (location = 8) in mat4 aNormalMatrix;
 
 layout (std140) uniform matrices {
 	layout (offset = 0) mat4 viewMatrix;
@@ -26,6 +25,8 @@ uniform float windStrength;
 uniform vec3 windDirection;
 uniform vec3 lightDir;
 
+vec4 centerPos = aTransform[3];
+
 float random(vec2 st){
     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
 }
@@ -42,6 +43,9 @@ vec3 calcWindTranslation(float timeStamp, vec3 windDir, float windStr){
 }
 
 void main() {
+	//Shave off padding from mat4
+	mat3 normalMatrix = mat3(aNormalMatrix);
+
 	//TBN matrix for normal map.  Transpose maps world -> tangent
 	vec3 T = normalize(normalMatrix * aTangent.xyz);
 	vec3 N = normalize(normalMatrix * aNormal);

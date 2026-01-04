@@ -10,24 +10,24 @@ Skybox::Skybox(TextureManager& textureManager,
                const std::vector<std::filesystem::path>& imagePaths)
     : CubeMappedModel{textureManager} {
   setupBuffers();
-  textureManager.queueCubemapTextureSet(handle, imagePaths, "./", false);
+  textureManager.queueCubemapTextureSet(handle, imagePaths, "./");
 }
 
 Skybox::Skybox(TextureManager& textureManager, const Skybox& borrowTarget,
                const std::vector<std::filesystem::path>& imagePaths)
     : CubeMappedModel{textureManager, borrowTarget} {
   setupBuffers();
-  textureManager.queueCubemapTextureSet(handle, imagePaths, "./", false);
+  textureManager.queueCubemapTextureSet(handle, imagePaths, "./");
 }
 
 Skybox::Skybox(Skybox&& other) noexcept : CubeMappedModel{std::move(other)} {
-  modelVAO = other.modelVAO;
-  modelVBO = other.modelVBO;
-  modelEBO = other.modelEBO;
+  VAO = other.VAO;
+  VBO = other.VBO;
+  EBO = other.EBO;
 
-  other.modelVAO = 0;
-  other.modelVBO = 0;
-  other.modelEBO = 0;
+  other.VAO = 0;
+  other.VBO = 0;
+  other.EBO = 0;
 }
 
 Skybox::~Skybox() {
@@ -36,36 +36,51 @@ Skybox::~Skybox() {
 }
 
 void Skybox::render() {
-  glBindVertexArray(modelVAO);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, textureSet[0].cubemap);
   glDepthFunc(GL_LEQUAL);
-  glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-  glDepthFunc(GL_LESS);
 
-  glBindVertexArray(0);
+  if (!textureSet.empty()) glBindTextureUnit(0, textureSet[0].cubemap);
+
+  glBindVertexArray(VAO);
+  glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+  glDepthFunc(GL_LESS);
 }
 
 void Skybox::setupBuffers() {
-  glGenVertexArrays(1, &modelVAO);
-  glBindVertexArray(modelVAO);
-  glGenBuffers(1, &modelVBO);
-  glBindBuffer(GL_ARRAY_BUFFER, modelVBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glCreateVertexArrays(1, &VAO);
 
-  glGenBuffers(1, &modelEBO);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, modelEBO);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
-               GL_STATIC_DRAW);
+  glEnableVertexArrayAttrib(VAO, 0);
 
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  glCreateBuffers(1, &VBO);
+  glNamedBufferStorage(VBO, sizeof(vertices), &vertices[0], 0);
 
-  glBindVertexArray(0);
+  glCreateBuffers(1, &EBO);
+  glNamedBufferStorage(EBO, sizeof(indices), &indices[0], 0);
+
+  glVertexArrayAttribFormat(VAO, 0, 3, GL_FLOAT, GL_FALSE, 0);
+  glVertexArrayVertexBuffer(VAO, 0, VBO, 0, 3 * sizeof(float));
+
+  glVertexArrayElementBuffer(VAO, EBO);
+  
+  glVertexArrayAttribBinding(VAO, 0, 0);
+
+  // glGenVertexArrays(1, &VAO);
+  // glBindVertexArray(VAO);
+  // glGenBuffers(1, &VBO);
+  // glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+  // glGenBuffers(1, &EBO);
+  // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+  // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
+  // GL_STATIC_DRAW);
+
+  // glEnableVertexAttribArray(0);
+  //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 }
 
 void Skybox::deleteBuffers() {
-  glDeleteBuffers(1, &modelVBO);
-  glDeleteBuffers(1, &modelEBO);
-  glDeleteVertexArrays(1, &modelVAO);
+  glDeleteBuffers(1, &VBO);
+  glDeleteBuffers(1, &EBO);
+  glDeleteVertexArrays(1, &VAO);
 }

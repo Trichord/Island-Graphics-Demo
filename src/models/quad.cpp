@@ -22,7 +22,6 @@ Quad::Quad(TextureManager &textureManager,
     : texManager{textureManager},
       handle{textureManager.assignModelHandle()},
       textureSet{textureManager.acquireUniqueTextureSet(handle)} {
-
   normalMatrices.reserve(numPositions * density);
   positions.reserve(numPositions);
   loadPositions(positionsPath, numPositions);
@@ -84,11 +83,10 @@ Quad::~Quad() {
 }
 
 void Quad::render() {
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, textureSet[0].albedo);
-
   glDisable(GL_CULL_FACE);
   glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+
+  if (!textureSet.empty()) glBindTextureUnit(0, textureSet[0].albedo);
 
   glBindVertexArray(VAO);
   glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0,
@@ -100,92 +98,92 @@ void Quad::render() {
   glBindVertexArray(0);
 }
 
+/**
+* 
+*/
 void Quad::setupBuffers(unsigned int density) {
-  // Quad VAO, EBO
-  glGenVertexArrays(1, &VAO);
-  glBindVertexArray(VAO);
+  glCreateVertexArrays(1, &VAO);
 
-  glGenBuffers(1, &VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices[0], GL_STATIC_DRAW);
+  // Attribute indices. NOTE: location 2 is not used (for tangents) to
+  // maintain shader compatibility between quad and instanced model.
+  for (GLuint attribIndex : {0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12})
+    glEnableVertexArrayAttrib(VAO, attribIndex);
+ 
+  glCreateBuffers(1, &VBO);
+  glNamedBufferStorage(VBO, sizeof(vertices), &vertices[0], 0);
 
-  glGenBuffers(1, &EBO);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), &indices[0],
-               GL_STATIC_DRAW);
+  glCreateBuffers(1, &EBO);
+  glNamedBufferStorage(EBO, sizeof(indices), &indices[0], 0);
 
-  // vertices
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+  glCreateBuffers(1, &transformsVBO);
+  glNamedBufferStorage(transformsVBO, transforms.size() * sizeof(glm::mat4),
+                       transforms.data(), GL_DYNAMIC_STORAGE_BIT);
 
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                        (void *)(3 * sizeof(float)));
+  glCreateBuffers(1, &normalMatricesVBO);
+  glNamedBufferStorage(normalMatricesVBO,
+                       normalMatrices.size() * sizeof(glm::mat4),
+                       normalMatrices.data(), GL_DYNAMIC_STORAGE_BIT);
 
-  // textures
-  glEnableVertexAttribArray(3);
-  glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                        (void *)(6 * sizeof(float)));
+  glCreateBuffers(1, &positionsVBO);
+  glNamedBufferStorage(positionsVBO, positions.size() * sizeof(glm::vec3),
+                       positions.data(), GL_DYNAMIC_STORAGE_BIT);
 
-  // Transform VBO
-  glGenBuffers(1, &transformsVBO);
-  glBindBuffer(GL_ARRAY_BUFFER, transformsVBO);
-  glBufferData(GL_ARRAY_BUFFER, transforms.size() * sizeof(glm::mat4),
-               transforms.data(), GL_STATIC_DRAW);
+  glVertexArrayVertexBuffer(VAO, 0, VBO, 0, 8 * sizeof(float));
+  glVertexArrayVertexBuffer(VAO, 1, transformsVBO, 0, sizeof(glm::mat4));
+  glVertexArrayVertexBuffer(VAO, 2, normalMatricesVBO, 0, sizeof(glm::mat4));
+  glVertexArrayVertexBuffer(VAO, 3, positionsVBO, 0, sizeof(glm::vec3));
 
-  // glm::mat4 instance model matrix
-  glBindBuffer(GL_ARRAY_BUFFER, transformsVBO);
-  glEnableVertexAttribArray(4);
-  glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)0);
-  glEnableVertexAttribArray(5);
-  glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                        (void *)(sizeof(glm::vec4)));
-  glEnableVertexAttribArray(6);
-  glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                        (void *)(2 * sizeof(glm::vec4)));
-  glEnableVertexAttribArray(7);
-  glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                        (void *)(3 * sizeof(glm::vec4)));
+  glVertexArrayElementBuffer(VAO, EBO);
 
-  glVertexAttribDivisor(4, 1);
-  glVertexAttribDivisor(5, 1);
-  glVertexAttribDivisor(6, 1);
-  glVertexAttribDivisor(7, 1);
+  // Vertex layout
+  glVertexArrayAttribFormat(VAO, 0, 3, GL_FLOAT, GL_FALSE, 0);
+  glVertexArrayAttribFormat(VAO, 1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float));
+  glVertexArrayAttribFormat(VAO, 3, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float));
 
-  // Center positions of each quad
-  glGenBuffers(1, &positionsVBO);
-  glBindBuffer(GL_ARRAY_BUFFER, positionsVBO);
-  glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec3),
-               positions.data(), GL_STATIC_DRAW);
-  glEnableVertexAttribArray(8);
-  glVertexAttribPointer(8, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
-  glVertexAttribDivisor(8, density);
+  // Transform matrices layout
+  glVertexArrayAttribFormat(VAO, 4, 4, GL_FLOAT, GL_FALSE, 0);
+  glVertexArrayAttribFormat(VAO, 5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4));
+  glVertexArrayAttribFormat(VAO, 6, 4, GL_FLOAT, GL_FALSE,
+                            2 * sizeof(glm::vec4));
+  glVertexArrayAttribFormat(VAO, 7, 4, GL_FLOAT, GL_FALSE,
+                            3 * sizeof(glm::vec4));
 
-  // Normal matrices (using mat4 as mat3 is unreliable)
-  glGenBuffers(1, &normalMatricesVBO);
-  glBindBuffer(GL_ARRAY_BUFFER, normalMatricesVBO);
-  glBufferData(GL_ARRAY_BUFFER, normalMatrices.size() * sizeof(glm::mat4),
-               normalMatrices.data(), GL_STATIC_DRAW);
+  // Normal matrices layout
+  glVertexArrayAttribFormat(VAO, 8, 4, GL_FLOAT, GL_FALSE, 0);
+  glVertexArrayAttribFormat(VAO, 9, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4));
+  glVertexArrayAttribFormat(VAO, 10, 4, GL_FLOAT, GL_FALSE,
+                            2 * sizeof(glm::vec4));
+  glVertexArrayAttribFormat(VAO, 11, 4, GL_FLOAT, GL_FALSE,
+                            3 * sizeof(glm::vec4));
 
-  glEnableVertexAttribArray(9);
-  glVertexAttribPointer(9, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)0);
-  glEnableVertexAttribArray(10);
-  glVertexAttribPointer(10, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                        (void *)(sizeof(glm::vec4)));
-  glEnableVertexAttribArray(11);
-  glVertexAttribPointer(11, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                        (void *)(2 * sizeof(glm::vec4)));
-  glEnableVertexAttribArray(11);
-  glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                        (void *)(3 * sizeof(glm::vec4)));
+  // Center positions layout
+  glVertexArrayAttribFormat(VAO, 12, 3, GL_FLOAT, GL_FALSE, 0);
 
-  glVertexAttribDivisor(9, 1);
-  glVertexAttribDivisor(10, 1);
-  glVertexAttribDivisor(11, 1);
-  glVertexAttribDivisor(12, 1);
+  // Vertex
+  glVertexArrayAttribBinding(VAO, 0, 0);
+  glVertexArrayAttribBinding(VAO, 1, 0);
+  glVertexArrayAttribBinding(VAO, 3, 0);
 
-  // reset VAO
-  glBindVertexArray(0);
+  // Transform matrices
+  glVertexArrayAttribBinding(VAO, 4, 1);
+  glVertexArrayAttribBinding(VAO, 5, 1);
+  glVertexArrayAttribBinding(VAO, 6, 1);
+  glVertexArrayAttribBinding(VAO, 7, 1);
+
+  // Normal matrices
+  glVertexArrayAttribBinding(VAO, 8, 2);
+  glVertexArrayAttribBinding(VAO, 9, 2);
+  glVertexArrayAttribBinding(VAO, 10, 2);
+  glVertexArrayAttribBinding(VAO, 11, 2);
+
+  // Center positions
+  glVertexArrayAttribBinding(VAO, 12, 3);
+
+  // Divisors (each cluster shares a center point)
+  glVertexArrayBindingDivisor(VAO, 0, 0);
+  glVertexArrayBindingDivisor(VAO, 1, 1);
+  glVertexArrayBindingDivisor(VAO, 2, 1);
+  glVertexArrayBindingDivisor(VAO, 3, density);
 }
 
 void Quad::generateRadialPatternTransforms(float minSize, float maxSize,
