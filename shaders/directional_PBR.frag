@@ -90,9 +90,6 @@ void main() {
 	vec4 albedo = texture(albedoMap, fs_in.texCoords);
 	vec3 normal = texture(normalMap, fs_in.texCoords).rgb * 2.0 - 1.0; 
 	vec3 occlusionRoughMetalMap = texture(occlusionRoughMetalMap, fs_in.texCoords).rgb;
-	float ao = occlusionRoughMetalMap.r;
-	float roughness = occlusionRoughMetalMap.g;
-	float metallic = occlusionRoughMetalMap.b;
 
 	//vectors
 	vec3 N = normalize(normal);
@@ -105,6 +102,10 @@ void main() {
 	float NdotL = max(dot(N, L), 0.0);
 	float NdotH = max(dot(N, H), 0.0);
 	float HdotV = max(dot(H, V), 0.0);
+
+	float ao = occlusionRoughMetalMap.r;
+	float roughness = occlusionRoughMetalMap.g;
+	float metallic = occlusionRoughMetalMap.b;
 
 	//Fresnel-Shlick base reflectivity
 	vec3 F0 = vec3(0.04);

@@ -36,14 +36,16 @@ void main() {
     vec3 lightDirection = normalize(-lightDir);
     float NdotL = dot(normalizedNormal, lightDirection);
 
+    //Diffuse
+    float diffuseStrength = NdotL * 0.5 + 0.5;
+
     // Rescale alpha by partial derivative. Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
     grassColor.a = (grassColor.a - alphaCutoff) / max(fwidth(grassColor.a), 0.0001) + 0.5;
     
     //Ambient
     vec3 ambient = ambientStrength * lightColor * grassColor.rgb;
-
-    //Diffuse
-    float diffuseStrength = NdotL * 0.5 + 0.5;
+    
+    //Diffuse continued after filling texture load with math
     vec3 diffuse = diffuseStrength * lightColor * grassColor.rgb;
 
     vec3 color = ambient + diffuse;

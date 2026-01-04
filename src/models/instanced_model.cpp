@@ -58,23 +58,18 @@ void InstancedModel::render() {
     for (const Primitive& primitive : mesh.primitives) {
       int materialIndex{primitive.getMaterialIndex()};
 
-      if (materialIndex != lastMaterialIndex && materialIndex != -1 && textureSet.size()) {
+      if (materialIndex != lastMaterialIndex && materialIndex != -1 &&
+          textureSet.size()) {
+        lastMaterialIndex = materialIndex;
+
         const TextureSet& textures{textureSet[materialIndex]};
 
-        if (textures.albedo) {
-          glActiveTexture(GL_TEXTURE0);
-          glBindTexture(GL_TEXTURE_2D, textures.albedo);
-        }
+        if (textures.albedo) glBindTextureUnit(0, textures.albedo);
 
-        if (textures.occlusionRoughnessMetallic) {
-          glActiveTexture(GL_TEXTURE1);
-          glBindTexture(GL_TEXTURE_2D, textures.occlusionRoughnessMetallic);
-        }
+        if (textures.occlusionRoughnessMetallic)
+          glBindTextureUnit(1, textures.occlusionRoughnessMetallic);
 
-        if (textures.normal) {
-          glActiveTexture(GL_TEXTURE2);
-          glBindTexture(GL_TEXTURE_2D, textures.normal);
-        }
+        if (textures.normal) glBindTextureUnit(2, textures.normal);
       }
 
       glBindVertexArray(primitive.getVAO());
@@ -86,12 +81,10 @@ void InstancedModel::render() {
 
   glEnable(GL_CULL_FACE);
   glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-  glBindVertexArray(0);
-  glActiveTexture(GL_TEXTURE0);
 }
 
 void InstancedModel::loadPositions(const std::filesystem::path& positionsPath,
-                                   unsigned int numPositions) { 
+                                   unsigned int numPositions) {
   float x{0.0f};
   float y{0.0f};
   float z{0.0f};
@@ -138,80 +131,72 @@ void InstancedModel::generateTransforms(float minSize, float maxSize) {
   }
 }
 
+/** 
+@brief Binding points: 
+1 - transform matrices
+2 - normal matrices
+*/
 void InstancedModel::setupInstancedBuffers() {
-  // Transforms VBO
-  glGenBuffers(1, &transformsVBO);
-  glBindBuffer(GL_ARRAY_BUFFER, transformsVBO);
-  glBufferData(GL_ARRAY_BUFFER, transforms.size() * sizeof(glm::mat4),
-               transforms.data(), GL_STATIC_DRAW);
+  glCreateBuffers(1, &transformsVBO);
+  glNamedBufferStorage(transformsVBO, transforms.size() * sizeof(glm::mat4),
+                       transforms.data(), GL_DYNAMIC_STORAGE_BIT);
 
-  // Positions VBO
-  glGenBuffers(1, &positionsVBO);
-  glBindBuffer(GL_ARRAY_BUFFER, positionsVBO);
-  glBufferData(GL_ARRAY_BUFFER, positions.size() * sizeof(glm::vec3),
-               positions.data(), GL_STATIC_DRAW);
+  glCreateBuffers(1, &positionsVBO);
+  glNamedBufferStorage(positionsVBO, positions.size() * sizeof(glm::vec3),
+                       positions.data(), GL_DYNAMIC_STORAGE_BIT);
 
-  // Normal matrices VBO
-  glGenBuffers(1, &normalMatricesVBO);
-  glBindBuffer(GL_ARRAY_BUFFER, normalMatricesVBO);
-  glBufferData(GL_ARRAY_BUFFER, normalMatrices.size() * sizeof(glm::mat4),
-               normalMatrices.data(), GL_STATIC_DRAW);
+  glCreateBuffers(1, &normalMatricesVBO);
+  glNamedBufferStorage(normalMatricesVBO,
+                       normalMatrices.size() * sizeof(glm::mat4),
+                       normalMatrices.data(), GL_DYNAMIC_STORAGE_BIT);
 
   for (const Primitive::Mesh& mesh : meshes) {
     for (const Primitive& primitive : mesh.primitives) {
-      glBindVertexArray(primitive.getVAO());
+      GLuint VAO{primitive.getVAO()};
 
-      // Transforms attributes
-      glBindBuffer(GL_ARRAY_BUFFER, transformsVBO);
-      glEnableVertexAttribArray(4);
-      glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                            (void*)0);
-      glEnableVertexAttribArray(5);
-      glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                            (void*)(sizeof(glm::vec4)));
-      glEnableVertexAttribArray(6);
-      glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                            (void*)(2 * sizeof(glm::vec4)));
-      glEnableVertexAttribArray(7);
-      glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                            (void*)(3 * sizeof(glm::vec4)));
+      // Instanced attributes
+      for (GLuint attribIndex : {4, 5, 6, 7, 8, 9, 10, 11})
+        glEnableVertexArrayAttrib(VAO, attribIndex);
 
-      glVertexAttribDivisor(4, 1);
-      glVertexAttribDivisor(5, 1);
-      glVertexAttribDivisor(6, 1);
-      glVertexAttribDivisor(7, 1);
+      glVertexArrayVertexBuffer(VAO, 1, transformsVBO, 0, sizeof(glm::mat4));
+      glVertexArrayVertexBuffer(VAO, 2, normalMatricesVBO, 0,
+                                sizeof(glm::mat4));
 
-      // Positions attributes
-      glBindBuffer(GL_ARRAY_BUFFER, positionsVBO);
-      glEnableVertexAttribArray(8);
-      glVertexAttribPointer(8, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
-                            (void*)0);
-      glVertexAttribDivisor(8, 1);
+      // Transform matrices layout
+      glVertexArrayAttribFormat(VAO, 4, 4, GL_FLOAT, GL_FALSE, 0);
+      glVertexArrayAttribFormat(VAO, 5, 4, GL_FLOAT, GL_FALSE,
+                                sizeof(glm::vec4));
+      glVertexArrayAttribFormat(VAO, 6, 4, GL_FLOAT, GL_FALSE,
+                                2 * sizeof(glm::vec4));
+      glVertexArrayAttribFormat(VAO, 7, 4, GL_FLOAT, GL_FALSE,
+                                3 * sizeof(glm::vec4));
+
+      // Normal matrices layout
+      glVertexArrayAttribFormat(VAO, 8, 4, GL_FLOAT, GL_FALSE, 0);
+      glVertexArrayAttribFormat(VAO, 9, 4, GL_FLOAT, GL_FALSE,
+                                sizeof(glm::vec4));
+      glVertexArrayAttribFormat(VAO, 10, 4, GL_FLOAT, GL_FALSE,
+                                2 * sizeof(glm::vec4));
+      glVertexArrayAttribFormat(VAO, 11, 4, GL_FLOAT, GL_FALSE,
+                                3 * sizeof(glm::vec4));
+
+      // Transform matrices
+      glVertexArrayAttribBinding(VAO, 4, 1);
+      glVertexArrayAttribBinding(VAO, 5, 1);
+      glVertexArrayAttribBinding(VAO, 6, 1);
+      glVertexArrayAttribBinding(VAO, 7, 1);
 
       // Normal matrices
-      glBindBuffer(GL_ARRAY_BUFFER, normalMatricesVBO);
-      glEnableVertexAttribArray(9);
-      glVertexAttribPointer(9, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                            (void*)0);
-      glEnableVertexAttribArray(10);
-      glVertexAttribPointer(10, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                            (void*)(sizeof(glm::vec4)));
-      glEnableVertexAttribArray(11);
-      glVertexAttribPointer(11, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                            (void*)(2 * sizeof(glm::vec4)));
-      glEnableVertexAttribArray(12);
-      glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                            (void*)(3 * sizeof(glm::vec4)));
+      glVertexArrayAttribBinding(VAO, 8, 2);
+      glVertexArrayAttribBinding(VAO, 9, 2);
+      glVertexArrayAttribBinding(VAO, 10, 2);
+      glVertexArrayAttribBinding(VAO, 11, 2);
 
-      glVertexAttribDivisor(9, 1);
-      glVertexAttribDivisor(10, 1);
-      glVertexAttribDivisor(11, 1);
-      glVertexAttribDivisor(12, 1);
+      // Divisors
+      glVertexArrayBindingDivisor(VAO, 1, 1);
+      glVertexArrayBindingDivisor(VAO, 2, 1);
     }
   }
-
-  // reset VAO
-  glBindVertexArray(0);
 }
 
 void InstancedModel::deleteBuffers() {

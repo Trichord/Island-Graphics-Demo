@@ -27,11 +27,11 @@ class TextureManager {
   void queueModelTextureSet(const ModelHandle handle, fastgltf::Asset&& asset,
                             const std::filesystem::path& parentPath);
   void queueBaseImageTextureSet(const ModelHandle handle,
-                                std::filesystem::path texturePath);
+                                std::filesystem::path texturePath, bool sRGB = true, bool aniso = true);
   void queueCubemapTextureSet(const ModelHandle handle,
                               std::vector<std::filesystem::path> imagePaths,
                               const std::filesystem::path& parentPath = "./",
-                              bool aniso = true);
+                              bool sRGB = true);
   const std::vector<TextureSet>& acquireUniqueTextureSet(
       ModelHandle modelHandle) const;
   const std::vector<TextureSet>& borrowTextureSet(ModelHandle other);
@@ -54,6 +54,7 @@ class TextureManager {
     TextureSourceType source;
     ModelHandle modelHandle{0};
     std::filesystem::path parentPath{std::filesystem::current_path()};
+    bool sRGB{true};
     bool aniso{true};
   };
 
@@ -64,8 +65,7 @@ class TextureManager {
                          ModelHandle handle, std::filesystem::path parentPath);
   void genTexIDFromImage(ThreadPool& threadPool, ModelHandle handle,
                          const std::filesystem::path& imagePath,
-                         bool aniso = true);
+                         bool sRGB = true, bool aniso = true);
   void genCubemapTexID(ThreadPool& threadPool, ModelHandle handle,
-                       const std::vector<std::filesystem::path>& imagePaths,
-                       bool aniso = true);
+                       const std::vector<std::filesystem::path>& imagePaths, bool sRGB);
 };

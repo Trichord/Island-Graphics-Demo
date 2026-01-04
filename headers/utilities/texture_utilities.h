@@ -16,5 +16,5 @@ namespace textureUtilities {
 GLuint generateTextureID(const LoadedImage& image, Sampler sampler,
                          bool sRGB = true, bool anisotropic = true);
 GLuint generateCubemapTextureID(const std::vector<LoadedImage>& imageData,
-                                bool sRGB = true, bool anisotropic = true);
+                                bool sRGB = true);
 }  // namespace texture_utilities
