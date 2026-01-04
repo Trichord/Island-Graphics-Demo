@@ -16,6 +16,8 @@
 #include "shader_types.h"
 #include "transform.h"
 
+constexpr glm::vec3 windDir{1.0f, 0.0f, 0.0f};
+
 Renderer::Renderer(int screenWidth, int screenHeight) {
   // Load shaders
   std::cout << "Loading Shaders...";
