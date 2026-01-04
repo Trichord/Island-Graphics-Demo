@@ -71,7 +71,6 @@ void Application::createWindow() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
   unsigned int msaa{ConfigWindow::globalGraphicsSettings.msaa};
@@ -118,6 +117,7 @@ void Application::createOpenGLViewport() {
   glEnable(GL_CULL_FACE);
   glEnable(GL_FRAMEBUFFER_SRGB);
   glEnable(GL_MULTISAMPLE);
+  glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 }
 
 void Application::processInput(Scene& scene) {

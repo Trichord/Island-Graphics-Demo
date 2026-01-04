@@ -46,23 +46,19 @@ void Model::render() {
     for (const Primitive& primitive : mesh.primitives) {
       int materialIndex{primitive.getMaterialIndex()};
 
-      if (materialIndex != lastMaterialIndex && materialIndex != -1 && textureSet.size()) {
+      if (materialIndex != lastMaterialIndex && materialIndex != -1 &&
+          textureSet.size()) {
+        //Avoid rebinding
+        lastMaterialIndex = materialIndex;
+        
         const TextureSet& textures{textureSet[materialIndex]};
+        
+        if (textures.albedo) glBindTextureUnit(0, textures.albedo);
 
-        if (textures.albedo) {
-          glActiveTexture(GL_TEXTURE0);
-          glBindTexture(GL_TEXTURE_2D, textures.albedo);
-        }
+        if (textures.occlusionRoughnessMetallic)
+          glBindTextureUnit(1, textures.occlusionRoughnessMetallic);
 
-        if (textures.occlusionRoughnessMetallic) {
-          glActiveTexture(GL_TEXTURE1);
-          glBindTexture(GL_TEXTURE_2D, textures.occlusionRoughnessMetallic);
-        }
-
-        if (textures.normal) {
-          glActiveTexture(GL_TEXTURE2);
-          glBindTexture(GL_TEXTURE_2D, textures.normal);
-        }
+        if (textures.normal) glBindTextureUnit(2, textures.normal);
       }
 
       glBindVertexArray(primitive.getVAO());
@@ -70,9 +66,6 @@ void Model::render() {
                      0);
     }
   }
-
-  glBindVertexArray(0);
-  glActiveTexture(GL_TEXTURE0);
 }
 
 void Model::loadModel(const std::filesystem::path& path, bool borrowed) {

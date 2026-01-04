@@ -14,7 +14,7 @@ SpaceModel::SpaceModel(TextureManager& textureManager,
                        const std::vector<std::filesystem::path>& imagePaths)
     : CubeMappedModel{textureManager} {
   loadModel(modelPath);
-  textureManager.queueCubemapTextureSet(handle, imagePaths, "./", false);
+  textureManager.queueCubemapTextureSet(handle, imagePaths, "./");
 }
 
 SpaceModel::SpaceModel(TextureManager& textureManager,
@@ -23,7 +23,7 @@ SpaceModel::SpaceModel(TextureManager& textureManager,
                        const std::vector<std::filesystem::path>& imagePaths)
     : CubeMappedModel{textureManager, borrowTarget} {
   loadModel(modelPath);
-  textureManager.queueCubemapTextureSet(handle, imagePaths, "./", false);
+  textureManager.queueCubemapTextureSet(handle, imagePaths, "./");
 }
 
 SpaceModel::SpaceModel(SpaceModel&& other) noexcept
@@ -32,8 +32,7 @@ SpaceModel::SpaceModel(SpaceModel&& other) noexcept
 }
 
 void SpaceModel::render() {
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, textureSet[0].cubemap);
+  if (!textureSet.empty()) glBindTextureUnit(0, textureSet[0].cubemap);
 
   for (const Primitive::Mesh& mesh : meshes)
     for (const Primitive& primitive : mesh.primitives) {
@@ -41,9 +40,6 @@ void SpaceModel::render() {
       glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT,
                      0);
     }
-
-  glBindVertexArray(0);
-  glActiveTexture(GL_TEXTURE0);
 }
 
 void SpaceModel::loadModel(const std::filesystem::path& path) {

@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 
+#include <cstring>
 #include <glm/glm.hpp>
 #include <iostream>
 #include <unordered_map>
@@ -112,13 +113,22 @@ void Renderer::updateUBO(Scene& scene) {
   uboData.projectionViewMatrix =
       scene.camera.getProjectionMatrix() * scene.camera.getViewMatrix();
   uboData.cameraPosition = glm::vec4{scene.camera.getPosition(), 0.0f};
-  glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(PackedUBOData), &uboData);
+
+  void* uboPointer{
+      glMapNamedBufferRange(UBO, 0, sizeof(PackedUBOData),
+                            GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT)};
+
+  std::memcpy(uboPointer, &uboData, sizeof(PackedUBOData));
+
+  glUnmapNamedBuffer(UBO);
 }
 
 void Renderer::setupUBO() {
-  glGenBuffers(1, &UBO);
-  glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-  glBufferData(GL_UNIFORM_BUFFER, sizeof(PackedUBOData), NULL, GL_STATIC_DRAW);
+  glCreateBuffers(1, &UBO);
+
+  glNamedBufferStorage(UBO, sizeof(PackedUBOData), nullptr,
+                       GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
+
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, UBO);
 }
 

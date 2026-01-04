@@ -5,8 +5,8 @@ layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
 layout (location = 4) in mat4 aTransform;
-layout (location = 8) in vec3 centerPos;
-layout (location = 9) in mat4 normalMatrix;
+layout (location = 8) in mat4 aNormalMatrix;
+layout (location = 12) in vec3 centerPos;
 
 layout (std140) uniform matrices {
 	layout (offset = 0) mat4 viewMatrix;
@@ -40,7 +40,7 @@ vec3 calcWindTranslation(float timeStamp, vec3 windDir, float windStr){
 void main() {
 	texCoords = aTexCoords; 
 
-	mat3 unpaddedNormalMatrix = mat3(normalMatrix);
+	mat3 unpaddedNormalMatrix = mat3(aNormalMatrix);
 	normal = unpaddedNormalMatrix * aNormal;
 
 	vec4 worldPos = aTransform * vec4(aPos, 1.0);
