@@ -25,7 +25,7 @@ class Renderer {
   // Packed UBO data holds everything we want to share with all shaders
   struct PackedUBOData {
     glm::mat4 viewMatrix;
-    glm::mat4 projectionViewMatrix;
+    glm::mat4 viewProjectionMatrix;
     glm::vec4 cameraPosition;
   };
 

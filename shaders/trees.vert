@@ -20,6 +20,9 @@ out VS_OUT {
 	vec2 texCoords;
 } vs_out;
 
+const float minVertexHeight = 0.05;
+const float maxVertexHeight = 17.0;
+
 uniform float time;
 uniform float windStrength;
 uniform vec3 windDirection;
@@ -32,11 +35,12 @@ float random(vec2 st){
 }
 
 vec3 calcWindTranslation(float timeStamp, vec3 windDir, float windStr){
-	float vertexOffset = random(aTransform[0].xy) * 0.7;
+	float seedValue = random(aTransform[0].xy) * 0.7;
 	
-	float time1 = sin(timeStamp + random(centerPos.yx) + vertexOffset);
+	float time1 = sin(timeStamp + random(centerPos.yx) + seedValue);
 	float time2 = cos(timeStamp + random(centerPos.yx * 1.337));
 
+	// Remap waves from [-1, 1] to [-0.05, 0.95] 
 	float wave = (time1 * 0.5 + 0.45) * (time2 * 0.5 + 0.45);
 
 	return windDir * wave * windStr;
@@ -59,7 +63,7 @@ void main() {
 	vs_out.cameraPos = TBN * cameraPosition.xyz;
 
 	vec3 windTranslation = calcWindTranslation(time, windDirection, windStrength);
-	float mask = smoothstep(0.05, 17.0, aPos.y);
+	float mask = smoothstep(minVertexHeight, maxVertexHeight, aPos.y);
 	windTranslation *= mask;
 
 	//Exaggerate movement of tree
