@@ -10,7 +10,6 @@
 #include "light.h"
 #include "model.h"
 #include "point_light.h"
-#include "quad.h"
 #include "shader_types.h"
 #include "skybox.h"
 #include "space_model.h"
@@ -21,7 +20,6 @@ Scene::Scene(TextureManager& texManager) : textureManager{texManager} {
   instancedModels.reserve(sceneMaxObjects::maxInstancedModels);
   spaceModels.reserve(sceneMaxObjects::maxSpaceModels);
   skyboxes.reserve(sceneMaxObjects::maxSkyboxes);
-  quads.reserve(sceneMaxObjects::maxQuadModels);
   pointLights.reserve(sceneMaxObjects::maxLights);
 }
 
@@ -76,30 +74,6 @@ Skybox& Scene::loadSkybox(const Skybox& borrowTarget,
     throw std::runtime_error("Max number of skyboxes reached");
 
   return skyboxes.emplace_back(textureManager, borrowTarget, filePaths);
-}
-
-Quad& Scene::loadQuad(const std::filesystem::path& texturePath,
-                      const std::filesystem::path& positionsPath,
-                      Quad::QuadPattern pattern, float minSize, float maxSize,
-                      unsigned int density, unsigned int numPositions) {
-  if (quads.size() >= sceneMaxObjects::maxQuadModels)
-    throw std::runtime_error("Max number of quad models reached");
-
-  return quads.emplace_back(textureManager, texturePath, positionsPath, pattern,
-                            minSize, maxSize, density, numPositions);
-}
-
-Quad& Scene::loadQuad(const Quad& borrowTarget,
-                      const std::filesystem::path& texturePath,
-                      const std::filesystem::path& positionsPath,
-                      Quad::QuadPattern pattern, float minSize, float maxSize,
-                      unsigned int density, unsigned int numPositions) {
-  if (quads.size() >= sceneMaxObjects::maxQuadModels)
-    throw std::runtime_error("Max number of quad models reached");
-
-  return quads.emplace_back(textureManager, borrowTarget, texturePath,
-                            positionsPath, pattern, minSize, maxSize, density,
-                            numPositions);
 }
 
 InstancedModel& Scene::loadInstancedModel(

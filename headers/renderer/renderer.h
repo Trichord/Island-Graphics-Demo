@@ -20,6 +20,7 @@ class Renderer {
 
   void renderScene(Scene& scene);
   void updateUBO(Scene& scene);
+  void cullRenderables(Scene& scene);
 
  private:
   // Packed UBO data holds everything we want to share with all shaders

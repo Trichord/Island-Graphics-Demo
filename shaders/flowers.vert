@@ -6,7 +6,6 @@ layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
 layout (location = 4) in mat4 aTransform;
 layout (location = 8) in mat4 aNormalMatrix;
-layout (location = 12) in vec3 centerPos;
 
 layout (std140) uniform matrices {
 	layout (offset = 0) mat4 viewMatrix;
@@ -23,6 +22,8 @@ const float maxVertexHeight = 1.0;
 uniform float time;
 uniform float windStrength;
 uniform vec3 windDirection;
+
+vec4 centerPos = aTransform[3];
 
 float random(vec2 st) {
     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
