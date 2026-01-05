@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <array>
 
 inline constexpr float defaultCameraYaw{90.0f};
 inline constexpr float defaultCameraPitch{0.0f};
@@ -23,6 +24,8 @@ class Camera {
   const glm::mat4& getViewMatrix();
   const glm::mat4& getViewMatrixNoTranslation();
   const glm::mat4& getProjectionMatrix();
+  const glm::mat4& getViewProjectionMatrix();
+  const std::array<glm::vec4, 6>& getFrustumPlanes(bool normalized);
 
   void processKeyboard(CameraMovement direction, float deltaTime);
   void processMouseMovement(float xoffset, float yoffset,
@@ -31,10 +34,10 @@ class Camera {
   const glm::vec3& getPosition() const;
 
  private:
-  float yaw = defaultCameraYaw;
-  float pitch = defaultCameraPitch;
-  float movementSpeed = defaultCameraSpeed;
-  float mouseSensitivity = defaultCameraSensitivity;
+  float yaw{defaultCameraYaw};
+  float pitch{defaultCameraPitch};
+  float movementSpeed{defaultCameraSpeed};
+  float mouseSensitivity{defaultCameraSensitivity};
   bool hasChanged{false};
   bool dirtyMatrices{true};
   glm::vec3 position{0.0f};
@@ -45,6 +48,9 @@ class Camera {
   glm::mat4 viewMatrix{1.0f};
   glm::mat4 viewMatrixNoTranslation{1.0f};
   glm::mat4 projectionMatrix{1.0f};
+  glm::mat4 viewProjectionMatrix{1.0f};
+  std::array<glm::vec4, 6> frustumPlanes;
+  
   glm::mat4 createProjectionMatrix();
   void updateCameraVectors();
   void updateCameraMatrices();

@@ -16,15 +16,14 @@
 #include "shader_types.h"
 #include "transform.h"
 
-constexpr glm::vec3 windDir{1.0f, 0.0f, 0.0f};
+//Normalized wind direction, east southeast with a slight downward angle
+constexpr glm::vec3 windDir{0.892079f, -0.101373f, 0.440362f};
 
 Renderer::Renderer(int screenWidth, int screenHeight) {
-  // Load shaders
   std::cout << "Loading Shaders...";
   loadShaders();
   std::cout << " Done." << std::endl;
 
-  // Setup shaders
   setupFlowerShader(shaders.at(ShaderType::FLOWERS));
   setupPBRShader(shaders.at(ShaderType::POINT_PBR));
   setupPBRShader(shaders.at(ShaderType::DIRECTIONAL_PBR));
@@ -33,7 +32,7 @@ Renderer::Renderer(int screenWidth, int screenHeight) {
   setupLightSourceShader(shaders.at(ShaderType::LIGHT_SOURCE));
   setupSkyboxShader(shaders.at(ShaderType::SKYBOX));
 
-  // Uniform Buffer Object
+
   setupUBO();
 }
 
@@ -58,7 +57,6 @@ Renderer& Renderer::operator=(Renderer&& other) noexcept {
 }
 
 void Renderer::renderScene(Scene& scene) {
-  // Clear screen
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   updateShaderUniforms(scene);
@@ -74,27 +72,23 @@ void Renderer::renderScene(Scene& scene) {
       glm::mat3 normalMatrix{object.transform.getNormalMatrix()};
 
       switch (shaderType) {
-        // Directional light source
         case ShaderType::DIRECTIONAL_PBR:
           shader.setMat4("modelMatrix", modelMatrix);
           shader.setMat3("normalMatrix", normalMatrix);
           break;
 
-        // Point light source
         case ShaderType::POINT_PBR:
           shader.setMat4("modelMatrix", modelMatrix);
           shader.setMat3("normalMatrix", normalMatrix);
           break;
 
-        // Reflective shader
         case ShaderType::REFLECTIVE:
           shader.setMat4("modelMatrix", modelMatrix);
           shader.setMat3("normalMatrix", normalMatrix);
           break;
 
-          // Skyboxes
         case ShaderType::SKYBOX:
-          shader.setMat4("projectionViewNoTranslation",
+          shader.setMat4("viewProjectionNoTranslation",
                          scene.camera.getProjectionMatrix() *
                              scene.camera.getViewMatrixNoTranslation());
           break;
@@ -112,8 +106,7 @@ void Renderer::renderScene(Scene& scene) {
 
 void Renderer::updateUBO(Scene& scene) {
   uboData.viewMatrix = scene.camera.getViewMatrix();
-  uboData.projectionViewMatrix =
-      scene.camera.getProjectionMatrix() * scene.camera.getViewMatrix();
+  uboData.viewProjectionMatrix = scene.camera.getViewProjectionMatrix();
   uboData.cameraPosition = glm::vec4{scene.camera.getPosition(), 0.0f};
 
   void* uboPointer{
@@ -159,7 +152,7 @@ void Renderer::setupFlowerShader(Shader& shader) {
   shader.setInt("colorTexture", 0);
   shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
   shader.setFloat("windStrength", 0.07f);
-  shader.setVec3("windDirection", glm::normalize(windDirection));
+  shader.setVec3("windDirection", windDir);
 }
 
 void Renderer::setupPBRShader(Shader& shader) {
@@ -178,7 +171,7 @@ void Renderer::setupTreeShader(Shader& shader) {
   shader.setInt("occlusionRoughMetalMap", 1);
   shader.setInt("normalMap", 2);
   shader.setFloat("windStrength", 0.07f);
-  shader.setVec3("windDirection", glm::normalize(windDirection));
+  shader.setVec3("windDirection", windDir);
 }
 
 void Renderer::setupReflectiveShader(Shader& shader) {
