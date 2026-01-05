@@ -15,7 +15,6 @@
 #include "instanced_model.h"
 #include "model.h"
 #include "point_light.h"
-#include "quad.h"
 #include "renderable.h"
 #include "shader_types.h"
 #include "skybox.h"
@@ -66,7 +65,6 @@ class Scene {
   std::vector<Model> models;
   std::vector<SpaceModel> spaceModels;
   std::vector<Skybox> skyboxes;
-  std::vector<Quad> quads;
   std::vector<InstancedModel> instancedModels;
   std::vector<PointLight> pointLights;
 
@@ -89,17 +87,6 @@ class Scene {
   Skybox& loadSkybox(const std::vector<std::filesystem::path>& filePaths);
   Skybox& loadSkybox(const Skybox& borrowTarget,
                      const std::vector<std::filesystem::path>& filePaths);
-  Quad& loadQuad(const std::filesystem::path& texturePath,
-                 const std::filesystem::path& positionsPath,
-                 Quad::QuadPattern pattern, float minSize = 1.0f,
-                 float maxSize = 1.0f, unsigned int density = 1,
-                 unsigned int numPositions = 0);
-  Quad& loadQuad(const Quad& borrowTarget,
-                 const std::filesystem::path& texturePath,
-                 const std::filesystem::path& positionsPath,
-                 Quad::QuadPattern pattern, float minSize = 1.0f,
-                 float maxSize = 1.0f, unsigned int density = 1,
-                 unsigned int numPositions = 0);
   InstancedModel& loadInstancedModel(const std::filesystem::path& modelPath,
                                      const std::filesystem::path& positionsPath,
                                      float minSize = 1.0f, float maxSize = 1.0f,

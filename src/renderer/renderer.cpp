@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 
+#include <array>
 #include <cstring>
 #include <glm/glm.hpp>
 #include <iostream>
@@ -16,7 +17,7 @@
 #include "shader_types.h"
 #include "transform.h"
 
-//Normalized wind direction, east southeast with a slight downward angle
+// Normalized wind direction, east southeast with a slight downward angle
 constexpr glm::vec3 windDir{0.892079f, -0.101373f, 0.440362f};
 
 Renderer::Renderer(int screenWidth, int screenHeight) {
@@ -31,7 +32,6 @@ Renderer::Renderer(int screenWidth, int screenHeight) {
   setupReflectiveShader(shaders.at(ShaderType::REFLECTIVE));
   setupLightSourceShader(shaders.at(ShaderType::LIGHT_SOURCE));
   setupSkyboxShader(shaders.at(ShaderType::SKYBOX));
-
 
   setupUBO();
 }
@@ -219,4 +219,15 @@ void Renderer::updateShaderUniforms(Scene& scene) {
         break;
     }
   }
+}
+
+void Renderer::cullRenderables(Scene& scene) {
+  const std::array<glm::vec4, 6>& frustumPlanes{
+      scene.camera.getFrustumPlanes(false)};
+
+  /*
+  for (auto& [_, objectList] : scene.getSceneObjects())
+    for (auto& object : objectList)
+      object.cullable = object.checkVisibility(frustumPlanes);
+      */
 }

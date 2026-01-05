@@ -49,8 +49,8 @@ void IslandScene::addAllModelsToScene() {
   addObjectToScene(skybox, SKYBOX);
 
   // Grass
-  auto& grass = loadQuad("./res/textures/grass.png", "./res/grass.txt",
-                         Quad::RADIAL_PATTERN, 0.3f, 0.5f, 3, 6881);
+  auto &grass = loadInstancedModel("./res/models/grass/grass.gltf", "./res/grass.txt", 0.3f,
+                     0.5, 6881);
   addObjectToScene(grass, FLOWERS);
 
   // Dandelions

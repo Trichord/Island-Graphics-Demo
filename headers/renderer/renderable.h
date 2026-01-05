@@ -11,4 +11,5 @@ class Renderable {
 struct RenderableObject {
   std::reference_wrapper<Renderable> renderable;
   Transform transform;
+  bool cullable{false};
 };
