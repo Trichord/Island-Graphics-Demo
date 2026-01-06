@@ -142,13 +142,16 @@ std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(
 
       // Check if there are any materials at all
       unsigned int materialIndex = 0;
-      if (gltfPrimitive.materialIndex.has_value())
+      fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
+      if (gltfPrimitive.materialIndex.has_value()) {
         materialIndex =
             static_cast<unsigned int>(gltfPrimitive.materialIndex.value());
+        alphaMode = asset.materials[materialIndex].alphaMode;
+      }
 
       // Build the primitive
       mesh.primitives.emplace_back(std::move(vertices), std::move(indices),
-                                   materialIndex);
+                                   materialIndex, alphaMode);
     }
 
     // Add the mesh
