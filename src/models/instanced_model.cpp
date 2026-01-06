@@ -4,6 +4,7 @@
 #include <glad/glad.h>
 
 #include <fstream>
+#include <fastgltf/types.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -49,9 +50,6 @@ InstancedModel::InstancedModel(InstancedModel&& other) noexcept
 InstancedModel::~InstancedModel() { deleteBuffers(); }
 
 void InstancedModel::render() {
-  glDisable(GL_CULL_FACE);
-  glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-
   int lastMaterialIndex{-1};
 
   for (const Primitive::Mesh& mesh : meshes) {
@@ -70,17 +68,24 @@ void InstancedModel::render() {
           glBindTextureUnit(1, textures.occlusionRoughnessMetallic);
 
         if (textures.normal) glBindTextureUnit(2, textures.normal);
+
+        if (primitive.getAlphaMode() != fastgltf::AlphaMode::Opaque) {
+          glDisable(GL_CULL_FACE);
+          glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+        }
       }
 
       glBindVertexArray(primitive.getVAO());
       glDrawElementsInstanced(GL_TRIANGLES, primitive.getIndicesSize(),
                               GL_UNSIGNED_INT, 0,
                               static_cast<unsigned int>(transforms.size()));
+
+      if (primitive.getAlphaMode() != fastgltf::AlphaMode::Opaque) {
+        glEnable(GL_CULL_FACE);
+        glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+      }
     }
   }
-
-  glEnable(GL_CULL_FACE);
-  glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 }
 
 void InstancedModel::loadPositions(const std::filesystem::path& positionsPath,

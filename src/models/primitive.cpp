@@ -1,6 +1,8 @@
 #include "primitive.h"
 
+
 #include <glad/glad.h>
+
 
 #include <cstddef>
 #include <cstdint>
@@ -8,8 +10,9 @@
 #include <vector>
 
 Primitive::Primitive(std::vector<Vertex>&& verts,
-                     std::vector<std::uint32_t>&& inds, int matIndex)
-    : materialIndex{matIndex},
+                     std::vector<std::uint32_t>&& inds, int matIndex,
+                     fastgltf::AlphaMode mode)
+    : materialIndex{matIndex}, alphaMode {mode},
       vertices{std::move(verts)},
       indices{std::move(inds)} {
   setupPrimitiveBuffers();
@@ -21,6 +24,7 @@ Primitive::Primitive(Primitive&& other) noexcept
   VBO = other.VBO;
   EBO = other.EBO;
   materialIndex = other.materialIndex;
+  alphaMode = other.alphaMode;
 
   other.EBO = 0;
   other.VBO = 0;
@@ -39,6 +43,7 @@ Primitive& Primitive::operator=(Primitive&& other) noexcept {
     VBO = other.VBO;
     EBO = other.EBO;
     materialIndex = other.materialIndex;
+    alphaMode = other.alphaMode;
 
     other.EBO = 0;
     other.VBO = 0;
@@ -61,6 +66,8 @@ GLsizei Primitive::getIndicesSize() const {
 }
 
 int Primitive::getMaterialIndex() const { return materialIndex; }
+
+fastgltf::AlphaMode Primitive::getAlphaMode() const { return alphaMode; }
 
 /* Vertex attribute layout:
 * 0 - position (vec3)
