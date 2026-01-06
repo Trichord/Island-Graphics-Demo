@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 
 #include <cstdint>
+#include <fastgltf/types.hpp>
 #include <glm/glm.hpp>
 #include <vector>
 
@@ -32,7 +33,7 @@ class Primitive {
 
   Primitive() = default;
   Primitive(std::vector<Vertex>&& verts, std::vector<std::uint32_t>&& inds,
-            int matIndex = -1);
+            int matIndex = -1, fastgltf::AlphaMode alphaMode = fastgltf::AlphaMode::Opaque);
   Primitive(const Primitive&) = delete;
   Primitive& operator=(const Primitive&) = delete;
   Primitive(Primitive&& other) noexcept;
@@ -42,6 +43,7 @@ class Primitive {
   GLuint getVAO() const;
   GLsizei getIndicesSize() const;
   int getMaterialIndex() const;
+  fastgltf::AlphaMode getAlphaMode() const;
 
  private:
   GLuint VAO{0};
@@ -50,6 +52,6 @@ class Primitive {
   int materialIndex{-1};
   std::vector<Vertex> vertices;
   std::vector<std::uint32_t> indices;
-
+  fastgltf::AlphaMode alphaMode;
   void setupPrimitiveBuffers();
 };
