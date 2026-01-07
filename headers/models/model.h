@@ -51,4 +51,5 @@ class Model : public Renderable {
   std::vector<Primitive::Mesh> meshes;
 
   void loadModel(const std::filesystem::path& path, bool borrowed);
+  virtual void drawPrimitive(const Primitive& primitive);
 };

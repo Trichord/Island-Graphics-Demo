@@ -44,7 +44,7 @@ Skybox::~Skybox() {
 void Skybox::render() {
   glDepthFunc(GL_LEQUAL);
 
-  if (!textureSet.empty()) glBindTextureUnit(0, textureSet[0].cubemap);
+  if (!textureSet.empty()) glBindTextureUnit(3, textureSet[0].cubemap);
 
   glBindVertexArray(VAO);
   glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);

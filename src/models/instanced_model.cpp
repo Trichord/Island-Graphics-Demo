@@ -49,54 +49,10 @@ InstancedModel::InstancedModel(InstancedModel&& other) noexcept
 
 InstancedModel::~InstancedModel() { deleteBuffers(); }
 
-void InstancedModel::render() {
-  int lastMaterialIndex{-1};
-  bool alphaEnabled{false};
-  bool needsAlpha{false};
-
-  for (const Primitive::Mesh& mesh : meshes) {
-    for (const Primitive& primitive : mesh.primitives) {
-      int materialIndex{primitive.getMaterialIndex()};
-      needsAlpha = primitive.getAlphaMode() != fastgltf::AlphaMode::Opaque;
-
-      // Switch materials
-      if (materialIndex != lastMaterialIndex && materialIndex != -1 &&
-          textureSet.size()) {
-        lastMaterialIndex = materialIndex;
-
-        const TextureSet& textures{textureSet[materialIndex]};
-
-        if (textures.albedo) glBindTextureUnit(0, textures.albedo);
-
-        if (textures.occlusionRoughnessMetallic)
-          glBindTextureUnit(1, textures.occlusionRoughnessMetallic);
-
-        if (textures.normal) glBindTextureUnit(2, textures.normal);
-      }
-
-      // Per-primitive alpha mode
-      if (needsAlpha != alphaEnabled) {
-        if (needsAlpha) {
-          glDisable(GL_CULL_FACE);
-          glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-        } else {
-          glEnable(GL_CULL_FACE);
-          glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-        }
-        alphaEnabled = needsAlpha;
-      }
-
-      glBindVertexArray(primitive.getVAO());
-      glDrawElementsInstanced(GL_TRIANGLES, primitive.getIndicesSize(),
-                              GL_UNSIGNED_INT, 0,
-                              static_cast<unsigned int>(transforms.size()));
-    }
-  }
-
-  if (alphaEnabled) {
-    glEnable(GL_CULL_FACE);
-    glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-  }
+void InstancedModel::drawPrimitive(const Primitive& primitive) {
+  glDrawElementsInstanced(GL_TRIANGLES, primitive.getIndicesSize(),
+                          GL_UNSIGNED_INT, 0,
+                          static_cast<unsigned int>(transforms.size()));
 }
 
 void InstancedModel::loadPositions(const std::filesystem::path& positionsPath,
