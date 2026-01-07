@@ -39,32 +39,57 @@ Model::~Model() {
   if (handle) texManager.releaseModel(handle);
 }
 
+void Model::drawPrimitive(const Primitive& primitive) {
+  glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0);
+}
+
 void Model::render() {
   int lastMaterialIndex{-1};
+  bool alphaEnabled{false};
+  bool needsAlpha{false};
 
   for (const Primitive::Mesh& mesh : meshes) {
     for (const Primitive& primitive : mesh.primitives) {
       int materialIndex{primitive.getMaterialIndex()};
+      needsAlpha = primitive.getAlphaMode() != fastgltf::AlphaMode::Opaque;
 
+      // Switch materials
       if (materialIndex != lastMaterialIndex && materialIndex != -1 &&
           textureSet.size()) {
-        //Avoid rebinding
         lastMaterialIndex = materialIndex;
-        
+
         const TextureSet& textures{textureSet[materialIndex]};
-        
+
         if (textures.albedo) glBindTextureUnit(0, textures.albedo);
 
         if (textures.occlusionRoughnessMetallic)
           glBindTextureUnit(1, textures.occlusionRoughnessMetallic);
 
         if (textures.normal) glBindTextureUnit(2, textures.normal);
+
+        if (textures.cubemap) glBindTextureUnit(3, textures.cubemap);
+      }
+
+      // Per-primitive alpha mode
+      if (needsAlpha != alphaEnabled) {
+        if (needsAlpha) {
+          glDisable(GL_CULL_FACE);
+          glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+        } else {
+          glEnable(GL_CULL_FACE);
+          glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+        }
+        alphaEnabled = needsAlpha;
       }
 
       glBindVertexArray(primitive.getVAO());
-      glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT,
-                     0);
+      drawPrimitive(primitive);
     }
+  }
+
+  if (alphaEnabled) {
+    glEnable(GL_CULL_FACE);
+    glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
   }
 }
 

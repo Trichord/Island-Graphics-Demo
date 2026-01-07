@@ -22,14 +22,3 @@ CubeMappedModel::CubeMappedModel(
                        const std::filesystem::path& modelPath,
                        const std::vector<std::filesystem::path>& imagePaths)
     : Model{textureManager, borrowTarget, modelPath} {}
-
-void CubeMappedModel::render() {
-  if (!textureSet.empty()) glBindTextureUnit(0, textureSet[0].cubemap);
-
-  for (const Primitive::Mesh& mesh : meshes)
-    for (const Primitive& primitive : mesh.primitives) {
-      glBindVertexArray(primitive.getVAO());
-      glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT,
-                     0);
-    }
-}

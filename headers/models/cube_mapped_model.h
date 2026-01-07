@@ -21,6 +21,4 @@ class CubeMappedModel : public Model {
                   const CubeMappedModel& borrowTarget,
              const std::filesystem::path& modelPath,
              const std::vector<std::filesystem::path>& imagePaths);
-  
-  void render() override;
 };

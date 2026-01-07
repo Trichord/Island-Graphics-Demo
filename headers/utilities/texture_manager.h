@@ -15,6 +15,14 @@
 
 typedef uint64_t ModelHandle;
 
+/**
+* @details
+* OpenGL Texture Units:
+* 0 - Albedo
+* 1 - Occlusion, Roughness, Metallic
+* 2 - Normal map
+* 3 - Cubemap
+*/
 struct TextureSet {
   GLuint albedo{0};
   GLuint occlusionRoughnessMetallic{0};
