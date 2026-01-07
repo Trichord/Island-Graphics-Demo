@@ -7,7 +7,7 @@
 #include "glad/glad.h"
 #include "texture_manager.h"
 
-class Skybox : public CubeMappedModel {
+class Skybox : public Renderable {
  public:
   Skybox() = delete;
   Skybox(TextureManager& textureManager,
@@ -27,6 +27,9 @@ class Skybox : public CubeMappedModel {
   GLuint VAO{0};
   GLuint VBO{0};
   GLuint EBO{0};
+  ModelHandle handle{0};
+  TextureManager& texManager;
+  const std::vector<TextureSet>& textureSet;
 
   inline static const float vertices[]{-1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f,
                                        1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f,
