@@ -35,7 +35,7 @@ void IslandScene::addAllModelsToScene() {
 
   // Fancy spinning space model
   auto& spaceModel =
-      loadSpaceModel("./res/models/space_model/scene.gltf", spaceBoxPaths);
+      loadCubeMappedModel("./res/models/space_model/scene.gltf", spaceBoxPaths);
   addObjectToScene(spaceModel, REFLECTIVE,
                    Transform(SPACE_DODECA_POS), "spaceModel");
 

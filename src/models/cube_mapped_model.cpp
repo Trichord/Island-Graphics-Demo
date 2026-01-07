@@ -9,26 +9,27 @@
 #include "texture_utilities.h"
 #include "texture_manager.h"
 
-CubeMappedModel::CubeMappedModel(TextureManager& textureManager)
-    : texManager{textureManager},
-      handle{textureManager.assignModelHandle()},
-      textureSet{textureManager.acquireUniqueTextureSet(handle)} {}
-
-CubeMappedModel::CubeMappedModel(TextureManager& textureManager,
-                                 const CubeMappedModel& borrowTarget)
-    : texManager{textureManager},
-      handle{borrowTarget.handle},
-      textureSet{textureManager.borrowTextureSet(borrowTarget.handle)} {}
-
-CubeMappedModel::CubeMappedModel(CubeMappedModel&& other) noexcept
-    : handle{other.handle},
-      texManager{other.texManager},
-      textureSet{other.textureSet} {
-  other.handle = 0;
+CubeMappedModel::CubeMappedModel(
+    TextureManager& textureManager,
+                       const std::filesystem::path& modelPath,
+                       const std::vector<std::filesystem::path>& imagePaths)
+    : Model{textureManager, modelPath} {
+  textureManager.queueCubemapTextureSet(handle, imagePaths, "./");
 }
 
-CubeMappedModel::~CubeMappedModel() {
-  if (handle) texManager.releaseModel(handle);
-}
+CubeMappedModel::CubeMappedModel(
+    TextureManager& textureManager, const CubeMappedModel& borrowTarget,
+                       const std::filesystem::path& modelPath,
+                       const std::vector<std::filesystem::path>& imagePaths)
+    : Model{textureManager, borrowTarget, modelPath} {}
 
-ModelHandle CubeMappedModel::getModelHandle() { return handle; }
+void CubeMappedModel::render() {
+  if (!textureSet.empty()) glBindTextureUnit(0, textureSet[0].cubemap);
+
+  for (const Primitive::Mesh& mesh : meshes)
+    for (const Primitive& primitive : mesh.primitives) {
+      glBindVertexArray(primitive.getVAO());
+      glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT,
+                     0);
+    }
+}
