@@ -12,13 +12,12 @@
 #include "point_light.h"
 #include "shader_types.h"
 #include "skybox.h"
-#include "space_model.h"
 #include "transform.h"
 
 Scene::Scene(TextureManager& texManager) : textureManager{texManager} {
   models.reserve(sceneMaxObjects::maxModels);
   instancedModels.reserve(sceneMaxObjects::maxInstancedModels);
-  spaceModels.reserve(sceneMaxObjects::maxSpaceModels);
+  cubeMappedModels.reserve(sceneMaxObjects::maxCubeMappedModels);
   skyboxes.reserve(sceneMaxObjects::maxSkyboxes);
   pointLights.reserve(sceneMaxObjects::maxLights);
 }
@@ -42,22 +41,22 @@ Model& Scene::loadModel(const Model& borrowTarget,
   return models.emplace_back(textureManager, borrowTarget, filepath);
 }
 
-SpaceModel& Scene::loadSpaceModel(
+CubeMappedModel& Scene::loadCubeMappedModel(
     const std::filesystem::path& modelPath,
     const std::vector<std::filesystem::path>& imagePaths) {
-  if (spaceModels.size() >= sceneMaxObjects::maxSpaceModels)
+  if (cubeMappedModels.size() >= sceneMaxObjects::maxCubeMappedModels)
     throw std::runtime_error("Max number of space models reached");
 
-  return spaceModels.emplace_back(textureManager, modelPath, imagePaths);
+  return cubeMappedModels.emplace_back(textureManager, modelPath, imagePaths);
 }
 
-SpaceModel& Scene::loadSpaceModel(
-    const SpaceModel& borrowTarget, const std::filesystem::path& modelPath,
+CubeMappedModel& Scene::loadCubeMappedModel(
+    const CubeMappedModel& borrowTarget, const std::filesystem::path& modelPath,
     const std::vector<std::filesystem::path>& imagePaths) {
-  if (spaceModels.size() >= sceneMaxObjects::maxSpaceModels)
+  if (cubeMappedModels.size() >= sceneMaxObjects::maxCubeMappedModels)
     throw std::runtime_error("Max number of space models reached");
 
-  return spaceModels.emplace_back(textureManager, borrowTarget, modelPath,
+  return cubeMappedModels.emplace_back(textureManager, borrowTarget, modelPath,
                                   imagePaths);
 }
 

@@ -8,26 +8,32 @@
 
 Skybox::Skybox(TextureManager& textureManager,
                const std::vector<std::filesystem::path>& imagePaths)
-    : CubeMappedModel{textureManager} {
-  setupBuffers();
+    : handle{textureManager.assignModelHandle()},
+      texManager{textureManager},
+      textureSet{textureManager.acquireUniqueTextureSet(handle)} {
   textureManager.queueCubemapTextureSet(handle, imagePaths, "./");
+  setupBuffers();
 }
 
 Skybox::Skybox(TextureManager& textureManager, const Skybox& borrowTarget,
                const std::vector<std::filesystem::path>& imagePaths)
-    : CubeMappedModel{textureManager, borrowTarget} {
+    : handle{borrowTarget.handle},
+      texManager{textureManager},
+      textureSet{textureManager.borrowTextureSet(borrowTarget.handle)} {
   setupBuffers();
-  textureManager.queueCubemapTextureSet(handle, imagePaths, "./");
 }
 
-Skybox::Skybox(Skybox&& other) noexcept : CubeMappedModel{std::move(other)} {
-  VAO = other.VAO;
-  VBO = other.VBO;
-  EBO = other.EBO;
-
+Skybox::Skybox(Skybox&& other) noexcept
+    : textureSet{other.textureSet},
+      handle{other.handle},
+      texManager{other.texManager},
+      VAO{other.VAO},
+      VBO{other.VBO},
+      EBO{other.EBO} {
   other.VAO = 0;
   other.VBO = 0;
   other.EBO = 0;
+  other.handle = 0;
 }
 
 Skybox::~Skybox() {
@@ -61,7 +67,7 @@ void Skybox::setupBuffers() {
   glVertexArrayVertexBuffer(VAO, 0, VBO, 0, 3 * sizeof(float));
 
   glVertexArrayElementBuffer(VAO, EBO);
-  
+
   glVertexArrayAttribBinding(VAO, 0, 0);
 }
 

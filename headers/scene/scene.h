@@ -18,7 +18,6 @@
 #include "renderable.h"
 #include "shader_types.h"
 #include "skybox.h"
-#include "space_model.h"
 #include "transform.h"
 #include "texture_manager.h"
 
@@ -32,7 +31,7 @@
 
 namespace sceneMaxObjects {
 inline constexpr int maxModels{50};
-inline constexpr int maxSpaceModels{10};
+inline constexpr int maxCubeMappedModels{10};
 inline constexpr int maxSkyboxes{10};
 inline constexpr int maxQuadModels{10};
 inline constexpr int maxLights{5};
@@ -63,7 +62,7 @@ class Scene {
       namedTransforms;
   std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights;
   std::vector<Model> models;
-  std::vector<SpaceModel> spaceModels;
+  std::vector<CubeMappedModel> cubeMappedModels;
   std::vector<Skybox> skyboxes;
   std::vector<InstancedModel> instancedModels;
   std::vector<PointLight> pointLights;
@@ -78,11 +77,12 @@ class Scene {
   Model& loadModel(const std::filesystem::path& filepath);
   Model& loadModel(const Model& borrowTarget,
                    const std::filesystem::path& filepath);
-  SpaceModel& loadSpaceModel(
+  CubeMappedModel& loadCubeMappedModel(
       const std::filesystem::path& modelPath,
       const std::vector<std::filesystem::path>& imagePaths);
-  SpaceModel& loadSpaceModel(
-      const SpaceModel& borrowTarget, const std::filesystem::path& modelPath,
+  CubeMappedModel& loadCubeMappedModel(
+      const CubeMappedModel& borrowTarget,
+      const std::filesystem::path& modelPath,
       const std::vector<std::filesystem::path>& imagePaths);
   Skybox& loadSkybox(const std::vector<std::filesystem::path>& filePaths);
   Skybox& loadSkybox(const Skybox& borrowTarget,
