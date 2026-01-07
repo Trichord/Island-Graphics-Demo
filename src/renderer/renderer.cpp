@@ -177,14 +177,14 @@ void Renderer::setupTreeShader(Shader& shader) {
 void Renderer::setupReflectiveShader(Shader& shader) {
   shader.setUniformBlock("matrices", 0);
   shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
-  shader.setInt("cubemap", 0);
+  shader.setInt("cubemap", 3);
 }
 
 void Renderer::setupLightSourceShader(Shader& shader) {
   shader.setUniformBlock("matrices", 0);
 }
 void Renderer::setupSkyboxShader(Shader& shader) {
-  shader.setInt("skybox", 0);
+  shader.setInt("skybox", 3);
   shader.setFloat("gamma", ConfigWindow::globalGraphicsSettings.gamma);
 }
 

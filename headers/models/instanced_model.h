@@ -35,7 +35,7 @@ class InstancedModel : public Model {
   std::vector<glm::vec3> positions;
   std::vector<glm::mat4> normalMatrices;
 
-  void render() override;
+  void drawPrimitive(const Primitive& primative) override;
   void loadPositions(const std::filesystem::path& positionsPath,
                      unsigned int numPositions);
   void setupInstancedBuffers();
