@@ -1,11 +1,11 @@
 #include "texture_utilities.h"
 
-#include <glad/glad.h>
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 
 #include "config_window.h"
+#include "glad/glad.h"
 
 GLuint textureUtilities::generateTextureID(const LoadedImage& image,
                                            Sampler sampler, bool sRGB,

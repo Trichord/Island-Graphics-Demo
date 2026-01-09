@@ -1,6 +1,6 @@
 #include "light.h"
 
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
 
 Light::Light(const glm::vec3& newColor) : color{newColor} {}
 

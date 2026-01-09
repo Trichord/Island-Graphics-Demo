@@ -1,15 +1,12 @@
 #include "model.h"
 
-#include <glad/glad.h>
-
-#include <fastgltf/types.hpp>
 #include <filesystem>
 #include <vector>
 
+#include "fastgltf/types.hpp"
 #include "fastgltf_loader.h"
-#include "image_loader.h"
+#include "glad/glad.h"
 #include "primitive.h"
-#include "texture_utilities.h"
 #include "texture_manager.h"
 
 Model::Model(TextureManager& textureManager, const std::filesystem::path& path)
@@ -28,10 +25,10 @@ Model::Model(TextureManager& textureManager, const Model& borrowTarget,
 }
 
 Model::Model(Model&& other) noexcept
-    : meshes{std::move(other.meshes)},
-      handle{other.handle},
+    : handle{other.handle},
       texManager{other.texManager},
-      textureSet{other.textureSet} {
+      textureSet{other.textureSet},
+      meshes{std::move(other.meshes)} {
   other.handle = 0;
 }
 
@@ -44,41 +41,29 @@ void Model::drawPrimitive(const Primitive& primitive) {
 }
 
 void Model::render() {
-  int lastMaterialIndex{-1};
+  std::size_t lastMaterialIndex{0};
   bool alphaEnabled{false};
   bool needsAlpha{false};
+  bool materialBound{false};
 
   for (const Primitive::Mesh& mesh : meshes) {
     for (const Primitive& primitive : mesh.primitives) {
-      int materialIndex{primitive.getMaterialIndex()};
       needsAlpha = primitive.getAlphaMode() != fastgltf::AlphaMode::Opaque;
 
-      // Switch materials
-      if (materialIndex != lastMaterialIndex && materialIndex != -1 &&
-          textureSet.size()) {
-        lastMaterialIndex = materialIndex;
+      if (primitive.materialsExist()) {
+        std::size_t materialIndex{primitive.getMaterialIndex()};
 
-        const TextureSet& textures{textureSet[materialIndex]};
-
-        if (textures.albedo) glBindTextureUnit(0, textures.albedo);
-
-        if (textures.occlusionRoughnessMetallic)
-          glBindTextureUnit(1, textures.occlusionRoughnessMetallic);
-
-        if (textures.normal) glBindTextureUnit(2, textures.normal);
-
-        if (textures.cubemap) glBindTextureUnit(3, textures.cubemap);
+        // Switch materials
+        if (materialIndex != lastMaterialIndex || !materialBound) {
+          lastMaterialIndex = materialIndex;
+          materialBound = true;
+          bindTextures(textureSet[materialIndex]);
+        }
       }
 
       // Per-primitive alpha mode
       if (needsAlpha != alphaEnabled) {
-        if (needsAlpha) {
-          glDisable(GL_CULL_FACE);
-          glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-        } else {
-          glEnable(GL_CULL_FACE);
-          glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-        }
+        setAlphaMode(needsAlpha);
         alphaEnabled = needsAlpha;
       }
 
@@ -88,8 +73,7 @@ void Model::render() {
   }
 
   if (alphaEnabled) {
-    glEnable(GL_CULL_FACE);
-    glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    setAlphaMode(false);
   }
 }
 
@@ -105,3 +89,38 @@ void Model::loadModel(const std::filesystem::path& path, bool borrowed) {
 }
 
 ModelHandle Model::getModelHandle() { return handle; }
+
+void Model::bindTextures(const TextureSet& textures) {
+  if (textures.albedo) glBindTextureUnit(0, textures.albedo);
+
+  if (textures.occlusionRoughnessMetallic)
+    glBindTextureUnit(1, textures.occlusionRoughnessMetallic);
+
+  if (textures.normal) glBindTextureUnit(2, textures.normal);
+
+  if (textures.cubemap) glBindTextureUnit(3, textures.cubemap);
+}
+
+void Model::setAlphaMode(bool enabled) {
+  if (enabled) {
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+  } else {
+    glEnable(GL_CULL_FACE);
+    glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+  }
+}
+
+void Model::assignMaterialIndex(std::size_t newIndex) {
+  for (auto& mesh : meshes)
+    for (auto& primitive : mesh.primitives)
+      primitive.setMaterialIndex(newIndex);
+}
+
+bool Model::hasMaterials() const {
+  for (const auto& mesh : meshes)
+    for (const auto& primitive : mesh.primitives)
+      if (primitive.materialsExist()) return true;
+
+  return false;
+}

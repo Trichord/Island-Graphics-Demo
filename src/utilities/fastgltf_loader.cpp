@@ -1,13 +1,13 @@
 #include "fastgltf_loader.h"
 
-#include <fastgltf/core.hpp>
-#include <fastgltf/glm_element_traits.hpp>
-#include <fastgltf/tools.hpp>
-#include <fastgltf/types.hpp>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
 
+#include "fastgltf/core.hpp"
+#include "fastgltf/glm_element_traits.hpp"
+#include "fastgltf/tools.hpp"
+#include "fastgltf/types.hpp"
 #include "primitive.h"
 
 std::string fastgltfErrorToString(fastgltf::Error error) {
@@ -47,13 +47,13 @@ std::string fastgltfErrorToString(fastgltf::Error error) {
   }
 }
 
-fastgltf::Asset fastgltfLoader::loadAsset(std::filesystem::path path) {
+fastgltf::Asset fastgltfLoader::loadAsset(const std::filesystem::path& path) {
   static fastgltf::Parser parser;
   auto data = fastgltf::GltfDataBuffer::FromPath(path);
 
   if (data.error() != fastgltf::Error::None) {
-    std::cerr << "FastGLTF error loading from " << path << std::endl;
-    std::cerr << fastgltfErrorToString(data.error()) << std::endl;
+    std::cerr << "FastGLTF error loading from " << path << std::endl
+              << fastgltfErrorToString(data.error()) << std::endl;
     return fastgltf::Asset{};
   }
 
@@ -72,11 +72,11 @@ std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(
     const fastgltf::Asset& asset) {
   std::vector<Primitive::Mesh> meshes;
 
-  for (const fastgltf::Mesh& gltfMesh : asset.meshes) {
+  for (const auto& gltfMesh : asset.meshes) {
     Primitive::Mesh mesh;
     mesh.primitives.reserve(gltfMesh.primitives.size());
 
-    for (const fastgltf::Primitive& gltfPrimitive : gltfMesh.primitives) {
+    for (const auto& gltfPrimitive : gltfMesh.primitives) {
       std::vector<Primitive::Vertex> vertices;
       std::vector<std::uint32_t> indices;
 
@@ -141,17 +141,20 @@ std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(
       }
 
       // Check if there are any materials at all
-      unsigned int materialIndex = 0;
+      bool hasMaterials{false};
+      std::size_t materialIndex{0};
       fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
-      if (gltfPrimitive.materialIndex.has_value()) {
-        materialIndex =
-            static_cast<unsigned int>(gltfPrimitive.materialIndex.value());
+
+      if (gltfPrimitive.materialIndex.has_value() && !asset.images.empty() &&
+          !asset.materials.empty()) {
+        hasMaterials = true;
+        materialIndex = gltfPrimitive.materialIndex.value();
         alphaMode = asset.materials[materialIndex].alphaMode;
       }
 
       // Build the primitive
       mesh.primitives.emplace_back(std::move(vertices), std::move(indices),
-                                   materialIndex, alphaMode);
+                                   hasMaterials, materialIndex, alphaMode);
     }
 
     // Add the mesh
@@ -162,7 +165,7 @@ std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(
 }
 
 std::vector<std::filesystem::path> fastgltfLoader::getURIs(
-    const fastgltf::Asset& asset, const std::filesystem::path parentPath) {
+    const fastgltf::Asset& asset, const std::filesystem::path& parentPath) {
   std::vector<std::filesystem::path> URIpaths;
   URIpaths.reserve(asset.images.size());
 

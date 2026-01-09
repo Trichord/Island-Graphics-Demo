@@ -1,10 +1,9 @@
 #pragma once
 
-#include <glad/glad.h>
-
-#include <glm/glm.hpp>
 #include <unordered_map>
 
+#include "glad/glad.h"
+#include "glm/glm.hpp"
 #include "scene.h"
 #include "shader.h"
 #include "shader_types.h"

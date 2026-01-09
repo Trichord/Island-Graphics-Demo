@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
 
 static const inline glm::vec3 FLIGHT_HELMET_POS{0.0f, -2.47f, 50.0f};
 

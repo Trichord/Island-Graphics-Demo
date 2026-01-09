@@ -1,7 +1,6 @@
 #pragma once
 
-#include <glm/glm.hpp>
-
+#include "glm/glm.hpp"
 #include "light.h"
 
 class PointLight : public Light {
