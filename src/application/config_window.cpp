@@ -1,11 +1,9 @@
 #include "config_window.h"
 
-#include "glad/glad.h"
-#include <GLFW/glfw3.h>
-
 #include <iostream>
 #include <vector>
 
+#include "gl_context.h"
 #include "image_loader.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"

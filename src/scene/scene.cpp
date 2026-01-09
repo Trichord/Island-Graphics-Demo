@@ -1,11 +1,10 @@
 #include "scene.h"
 
+#include <iostream>
 #include <map>
 #include <stdexcept>
 #include <vector>
-#include <iostream>
 
-#include "camera.h"
 #include "directional_light.h"
 #include "light.h"
 #include "model.h"
@@ -57,7 +56,7 @@ CubeMappedModel& Scene::loadCubeMappedModel(
     throw std::runtime_error("Max number of space models reached");
 
   return cubeMappedModels.emplace_back(textureManager, borrowTarget, modelPath,
-                                  imagePaths);
+                                       imagePaths);
 }
 
 Skybox& Scene::loadSkybox(const std::vector<std::filesystem::path>& filePaths) {

@@ -1,21 +1,19 @@
 #include "texture_manager.h"
-#include "glad/glad.h"
-#include "thread_pool.h"
-#include "model.h"
-#include "fastgltf_loader.h"
-#include "texture_utilities.h"
 
-#include <unordered_map>
-#include <stddef.h>
-#include <vector>
 #include <cstdint>
-#include <utility>
-#include <fastgltf/types.hpp>
 #include <filesystem>
-#include <unordered_set>
-#include <random>
-#include <limits>
 #include <iostream>
+#include <limits>
+#include <random>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include "fastgltf/types.hpp"
+#include "fastgltf_loader.h"
+#include "glad/glad.h"
+#include "texture_utilities.h"
+#include "thread_pool.h"
 
 constexpr unsigned int desiredThreadCount{6u};
 
@@ -119,7 +117,11 @@ void TextureManager::genTexIDFromAsset(ThreadPool& threadPool,
                                        std::filesystem::path parentPath) {
   // Return not found
   auto handleIter = textureCache.find(handle);
-  if (handleIter == textureCache.end()) return;
+  if (handleIter == textureCache.end()) {
+    std::cerr << "ERROR: Handle " << handle << " not found for model "
+              << parentPath << std::endl;
+    return;
+  }
 
   // Get raw image data
   std::vector<std::filesystem::path> texturePaths{

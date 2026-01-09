@@ -7,7 +7,6 @@
 #include <unordered_set>
 #include <queue>
 #include <variant>
-#include <utility>
 #include <vector>
 #include <cstdint>
 #include <fastgltf/types.hpp>

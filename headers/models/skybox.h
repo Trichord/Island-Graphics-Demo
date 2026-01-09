@@ -3,8 +3,8 @@
 #include <filesystem>
 #include <vector>
 
-#include "cube_mapped_model.h"
 #include "glad/glad.h"
+#include "renderable.h"
 #include "texture_manager.h"
 
 class Skybox : public Renderable {

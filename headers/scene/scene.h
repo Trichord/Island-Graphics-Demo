@@ -8,7 +8,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <memory>
 
 #include "camera.h"
 #include "directional_light.h"
@@ -20,6 +19,7 @@
 #include "skybox.h"
 #include "transform.h"
 #include "texture_manager.h"
+#include "cube_mapped_model.h"
 
 /*
  * Any storage container (Models, lights, etc.) must guarantee that their

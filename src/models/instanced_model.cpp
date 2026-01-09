@@ -1,14 +1,13 @@
 #include "instanced_model.h"
-#include "texture_manager.h"
-
-#include <glad/glad.h>
 
 #include <fstream>
-#include <fastgltf/types.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <random>
+
+#include "glad/glad.h"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "texture_manager.h"
 
 InstancedModel::InstancedModel(TextureManager& textureManager,
                                const std::filesystem::path& modelPath,
@@ -41,6 +40,7 @@ InstancedModel::InstancedModel(InstancedModel&& other) noexcept
   normalMatricesVBO = other.normalMatricesVBO;
   transforms = std::move(other.transforms);
   normalMatrices = std::move(other.normalMatrices);
+  positions = std::move(other.positions);
 
   other.transformsVBO = 0;
   other.positionsVBO = 0;

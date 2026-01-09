@@ -1,11 +1,11 @@
 #include "camera.h"
 
 #include <cmath>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/matrix_access.hpp>
 
 #include "config_window.h"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_access.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 Camera::Camera() : projectionMatrix{createProjectionMatrix()} {
   updateCameraVectors();
@@ -174,7 +174,7 @@ const std::array<glm::vec4, 6>& Camera::getFrustumPlanes(bool normalized) {
   // Far
   frustumPlanes[5] = row3 - row2;
 
-  if (normalized) 
+  if (normalized)
     for (auto& vec : frustumPlanes) normalizePlane(vec);
 
   return frustumPlanes;

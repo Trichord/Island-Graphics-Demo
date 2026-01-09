@@ -1,10 +1,9 @@
 #pragma once
 
-#include <glad/glad.h>
-
 #include <filesystem>
-#include <glm/glm.hpp>
 
+#include "glad/glad.h"
+#include "glm/glm.hpp"
 #include "model.h"
 #include "texture_manager.h"
 

@@ -1,17 +1,12 @@
-#include "application.h"
-
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
 #include <iostream>
 
+#include "gl_context.h"
+#include "application.h"
 #include "config_window.h"
 #include "island_scene.h"
 #include "object_positions.h"
 #include "renderer.h"
 #include "scene.h"
-#include "thread_pool.h"
-#include "texture_manager.h"
 
 void Application::run() {
   if (!configWindow.launchSettingsWindow()) return;

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <glad/glad.h>
-
 #include <cstdint>
-#include <fastgltf/types.hpp>
-#include <glm/glm.hpp>
 #include <vector>
+
+#include "fastgltf/types.hpp"
+#include "glad/glad.h"
+#include "glm/glm.hpp"
 
 /* Primitive owns its VAO / VBO / EBO. Copying is disabled to avoid double frees
  * or unecessary resource holding */
@@ -32,8 +32,10 @@ class Primitive {
   };
 
   Primitive() = default;
-  Primitive(std::vector<Vertex>&& verts, std::vector<std::uint32_t>&& inds,
-            int matIndex = -1, fastgltf::AlphaMode alphaMode = fastgltf::AlphaMode::Opaque);
+  Primitive(std::vector<Vertex>&& verticies,
+            std::vector<std::uint32_t>&& indicies, bool hasMaterials = false,
+            std::size_t matIndex = 0,
+            fastgltf::AlphaMode alphaMode = fastgltf::AlphaMode::Opaque);
   Primitive(const Primitive&) = delete;
   Primitive& operator=(const Primitive&) = delete;
   Primitive(Primitive&& other) noexcept;
@@ -42,16 +44,20 @@ class Primitive {
 
   GLuint getVAO() const;
   GLsizei getIndicesSize() const;
-  int getMaterialIndex() const;
+  std::size_t getMaterialIndex() const;
   fastgltf::AlphaMode getAlphaMode() const;
+  void setMaterialIndex(std::size_t newIndex);
+  bool materialsExist() const;
 
  private:
   GLuint VAO{0};
   GLuint VBO{0};
   GLuint EBO{0};
-  int materialIndex{-1};
+  bool hasMaterials{false};
+  std::size_t materialIndex{0};
   std::vector<Vertex> vertices;
   std::vector<std::uint32_t> indices;
   fastgltf::AlphaMode alphaMode;
+
   void setupPrimitiveBuffers();
 };
