@@ -1,24 +1,17 @@
 #pragma once
 
-#include <glad/glad.h>
-
-#include <fastgltf/types.hpp>
 #include <filesystem>
-#include <unordered_set>
 #include <vector>
 
-#include "image_loader.h"
 #include "primitive.h"
 #include "renderable.h"
 #include "texture_manager.h"
 
-
 class Model : public Renderable {
  public:
-  Model(TextureManager& textureManager,
+  Model(TextureManager& textureManager, const std::filesystem::path& path);
+  Model(TextureManager& textureManager, const Model& borrowTarget,
         const std::filesystem::path& path);
-  Model(TextureManager& textureManager,
-        const Model& borrowTarget, const std::filesystem::path& path);
   Model(const Model&) = delete;
   Model& operator=(const Model&) = delete;
   Model(Model&& other) noexcept;
@@ -44,12 +37,16 @@ class Model : public Renderable {
           aoMetallicRoughnessImageIndex(metRough),
           normalImageIndex(norm) {};
   };
-  
+
   ModelHandle handle{0};
   TextureManager& texManager;
   const std::vector<TextureSet>& textureSet;
   std::vector<Primitive::Mesh> meshes;
 
   void loadModel(const std::filesystem::path& path, bool borrowed);
+  void bindTextures(const TextureSet& textureSet);
+  void setAlphaMode(bool enabled);
   virtual void drawPrimitive(const Primitive& primitive);
+  void assignMaterialIndex(std::size_t newIndex);
+  bool hasMaterials() const;
 };

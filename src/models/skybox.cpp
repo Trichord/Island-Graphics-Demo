@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "cube_mapped_model.h"
 #include "glad/glad.h"
 #include "texture_manager.h"
 

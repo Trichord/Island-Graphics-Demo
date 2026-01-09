@@ -1,7 +1,7 @@
 #pragma once
 
-#include <glm/glm.hpp>
 #include <array>
+#include "glm/glm.hpp"
 
 inline constexpr float defaultCameraYaw{90.0f};
 inline constexpr float defaultCameraPitch{0.0f};
@@ -50,7 +50,7 @@ class Camera {
   glm::mat4 projectionMatrix{1.0f};
   glm::mat4 viewProjectionMatrix{1.0f};
   std::array<glm::vec4, 6> frustumPlanes;
-  
+
   glm::mat4 createProjectionMatrix();
   void updateCameraVectors();
   void updateCameraMatrices();

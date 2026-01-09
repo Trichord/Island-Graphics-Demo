@@ -1,20 +1,20 @@
 #include "primitive.h"
 
-
-#include <glad/glad.h>
-
-
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <vector>
 
-Primitive::Primitive(std::vector<Vertex>&& verts,
-                     std::vector<std::uint32_t>&& inds, int matIndex,
-                     fastgltf::AlphaMode mode)
-    : materialIndex{matIndex}, alphaMode {mode},
-      vertices{std::move(verts)},
-      indices{std::move(inds)} {
+#include "glad/glad.h"
+
+Primitive::Primitive(std::vector<Vertex>&& vertices_,
+                     std::vector<std::uint32_t>&& indices_, bool hasMaterials_,
+                     std::size_t matIndex, fastgltf::AlphaMode mode)
+    : hasMaterials{hasMaterials_},
+      materialIndex{matIndex},
+      vertices{std::move(vertices_)},
+      indices{std::move(indices_)},
+      alphaMode{mode} {
   setupPrimitiveBuffers();
 }
 
@@ -23,6 +23,7 @@ Primitive::Primitive(Primitive&& other) noexcept
   VAO = other.VAO;
   VBO = other.VBO;
   EBO = other.EBO;
+  hasMaterials = other.hasMaterials;
   materialIndex = other.materialIndex;
   alphaMode = other.alphaMode;
 
@@ -42,6 +43,7 @@ Primitive& Primitive::operator=(Primitive&& other) noexcept {
     VAO = other.VAO;
     VBO = other.VBO;
     EBO = other.EBO;
+    hasMaterials = other.hasMaterials;
     materialIndex = other.materialIndex;
     alphaMode = other.alphaMode;
 
@@ -65,16 +67,23 @@ GLsizei Primitive::getIndicesSize() const {
   return static_cast<GLsizei>(indices.size());
 }
 
-int Primitive::getMaterialIndex() const { return materialIndex; }
+std::size_t Primitive::getMaterialIndex() const { return materialIndex; }
 
 fastgltf::AlphaMode Primitive::getAlphaMode() const { return alphaMode; }
 
+bool Primitive::materialsExist() const { return hasMaterials; }
+
+void Primitive::setMaterialIndex(std::size_t newIndex) {
+  materialIndex = newIndex;
+  hasMaterials = true;
+}
+
 /* Vertex attribute layout:
-* 0 - position (vec3)
-* 1 - normal (vec3)
-* 2 - tangent (vec4)
-* 3 - texture coordinates (vec2)
-*/
+ * 0 - position (vec3)
+ * 1 - normal (vec3)
+ * 2 - tangent (vec4)
+ * 3 - texture coordinates (vec2)
+ */
 void Primitive::setupPrimitiveBuffers() {
   if (!vertices.size() || !indices.size()) {
     std::cout << "Error: missing either vertices or indices in mesh"

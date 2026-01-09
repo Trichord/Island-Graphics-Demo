@@ -1,15 +1,15 @@
 #include "shader.h"
 
-#include <glad/glad.h>
-
 #include <array>
 #include <fstream>
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
+
+#include "glad/glad.h"
+#include "glm/glm.hpp"
+#include "glm/gtc/type_ptr.hpp"
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath,
                const char* geometryPath) {

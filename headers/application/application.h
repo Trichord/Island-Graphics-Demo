@@ -4,9 +4,7 @@
  * not here, GLFW would trigger a glad.h include error.
  */
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
+#include "gl_context.h"
 #include "config_window.h"
 #include "scene.h"
 #include "texture_manager.h"

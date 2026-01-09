@@ -1,7 +1,6 @@
 #pragma once
 
-#include <glad/glad.h>
-
+#include "glad/glad.h"
 #include "image_loader.h"
 
 struct Sampler {
@@ -17,4 +16,4 @@ GLuint generateTextureID(const LoadedImage& image, Sampler sampler,
                          bool sRGB = true, bool anisotropic = true);
 GLuint generateCubemapTextureID(const std::vector<LoadedImage>& imageData,
                                 bool sRGB = true);
-}  // namespace texture_utilities
+}  // namespace textureUtilities

@@ -1,12 +1,13 @@
 #include "island_scene.h"
-#include "texture_manager.h"
-
-#include <functional>
 
 #include "model.h"
 #include "object_positions.h"
+#include "texture_manager.h"
 
-IslandScene::IslandScene(TextureManager& textureManager) : Scene(textureManager) { initializeScene(); }
+IslandScene::IslandScene(TextureManager& textureManager)
+    : Scene(textureManager) {
+  initializeScene();
+}
 
 void IslandScene::addAllModelsToScene() {
   using enum ShaderType;
@@ -36,8 +37,8 @@ void IslandScene::addAllModelsToScene() {
   // Fancy spinning space model
   auto& spaceModel =
       loadCubeMappedModel("./res/models/space_model/scene.gltf", spaceBoxPaths);
-  addObjectToScene(spaceModel, REFLECTIVE,
-                   Transform(SPACE_DODECA_POS), "spaceModel");
+  addObjectToScene(spaceModel, REFLECTIVE, Transform(SPACE_DODECA_POS),
+                   "spaceModel");
 
   // Skybox
   std::vector<std::filesystem::path> skyBoxPaths{
@@ -49,8 +50,8 @@ void IslandScene::addAllModelsToScene() {
   addObjectToScene(skybox, SKYBOX);
 
   // Grass
-  auto &grass = loadInstancedModel("./res/models/grass/grass.gltf", "./res/grass.txt", 0.3f,
-                     0.5, 6881);
+  auto& grass = loadInstancedModel("./res/models/grass/grass.gltf",
+                                   "./res/grass.txt", 0.3f, 0.5, 6881);
   addObjectToScene(grass, FLOWERS);
 
   // Dandelions
@@ -72,9 +73,9 @@ void IslandScene::addAllModelsToScene() {
   addObjectToScene(whiteFlowers, FLOWERS);
 
   // Blue flowers
-  auto& blueFlowers =
-      loadInstancedModel(whiteFlowers, "./res/models/blueflower/blueflower.gltf",
-                         "./res/blueflowers.txt", 0.9f, 1.1f, 181);
+  auto& blueFlowers = loadInstancedModel(
+      whiteFlowers, "./res/models/blueflower/blueflower.gltf",
+      "./res/blueflowers.txt", 0.9f, 1.1f, 181);
   addObjectToScene(blueFlowers, FLOWERS);
 
   // Fir trees
@@ -93,7 +94,6 @@ void IslandScene::addAllModelsToScene() {
       loadInstancedModel("./res/models/dead_tree/dead_tree.gltf",
                          "./res/dead_trees.txt", 0.65f, 1.25f, 23);
   addObjectToScene(deadTrees, TREES);
-
 }
 
 void IslandScene::addAllLightsToScene() {

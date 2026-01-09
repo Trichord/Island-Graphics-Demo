@@ -1,16 +1,15 @@
 #include "renderer.h"
 
-#include <glad/glad.h>
-
 #include <array>
 #include <cstring>
-#include <glm/glm.hpp>
 #include <iostream>
 #include <unordered_map>
 
 #include "camera.h"
 #include "config_window.h"
 #include "directional_light.h"
+#include "glad/glad.h"
+#include "glm/glm.hpp"
 #include "renderable.h"
 #include "scene.h"
 #include "shader.h"
