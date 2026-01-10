@@ -1,7 +1,10 @@
 #include "model.h"
 
+#include <algorithm>
 #include <filesystem>
+#include <limits>
 #include <vector>
+#include <iostream>
 
 #include "fastgltf/types.hpp"
 #include "fastgltf_loader.h"
@@ -14,6 +17,7 @@ Model::Model(TextureManager& textureManager, const std::filesystem::path& path)
       texManager{textureManager},
       textureSet{textureManager.acquireUniqueTextureSet(handle)} {
   loadModel(path, false);
+  calculateAABB();
 }
 
 Model::Model(TextureManager& textureManager, const Model& borrowTarget,
@@ -22,6 +26,7 @@ Model::Model(TextureManager& textureManager, const Model& borrowTarget,
       texManager{textureManager},
       textureSet{textureManager.borrowTextureSet(borrowTarget.handle)} {
   loadModel(path, true);
+  calculateAABB();
 }
 
 Model::Model(Model&& other) noexcept
@@ -123,4 +128,32 @@ bool Model::hasMaterials() const {
       if (primitive.materialsExist()) return true;
 
   return false;
+}
+
+void Model::calculateAABB() {
+  float minX{std::numeric_limits<float>::infinity()};
+  float minY{std::numeric_limits<float>::infinity()};
+  float minZ{std::numeric_limits<float>::infinity()};
+  float maxX{-std::numeric_limits<float>::infinity()};
+  float maxY{-std::numeric_limits<float>::infinity()};
+  float maxZ{-std::numeric_limits<float>::infinity()};
+
+  for (const auto& mesh : meshes)
+    for (const auto& primitive : mesh.primitives)
+      for (const auto& vertex : primitive.getVertices()) {
+        minX = std::min(vertex.position.x, minX);
+        minY = std::min(vertex.position.y, minY);
+        minZ = std::min(vertex.position.z, minZ);
+
+        maxX = std::max(vertex.position.x, maxX);
+        maxY = std::max(vertex.position.y, maxY);
+        maxZ = std::max(vertex.position.z, maxZ);
+      }
+
+  aabb = AABB{minX, minY, minZ, maxX, maxY, maxZ};
+}
+
+bool Model::performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
+                           const glm::mat4& modelMatrix) {
+  return aabb.intersects(frustumPlanes, modelMatrix);
 }

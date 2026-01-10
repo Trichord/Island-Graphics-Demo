@@ -59,6 +59,7 @@ void Renderer::renderScene(Scene& scene) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   updateShaderUniforms(scene);
+  cullRenderables(scene);
 
   // For each shader type in the scene
   for (auto& [shaderType, objectList] : scene.getSceneObjects()) {
@@ -67,29 +68,17 @@ void Renderer::renderScene(Scene& scene) {
 
     // For each object of that shader type
     for (auto& object : objectList) {
+      if (!object.isVisible) continue;
+
       glm::mat4 modelMatrix{object.transform.getModelMatrix()};
       glm::mat3 normalMatrix{object.transform.getNormalMatrix()};
 
       switch (shaderType) {
         case ShaderType::DIRECTIONAL_PBR:
-          shader.setMat4("modelMatrix", modelMatrix);
-          shader.setMat3("normalMatrix", normalMatrix);
-          break;
-
         case ShaderType::POINT_PBR:
-          shader.setMat4("modelMatrix", modelMatrix);
-          shader.setMat3("normalMatrix", normalMatrix);
-          break;
-
         case ShaderType::REFLECTIVE:
           shader.setMat4("modelMatrix", modelMatrix);
           shader.setMat3("normalMatrix", normalMatrix);
-          break;
-
-        case ShaderType::SKYBOX:
-          shader.setMat4("viewProjectionNoTranslation",
-                         scene.camera.getProjectionMatrix() *
-                             scene.camera.getViewMatrixNoTranslation());
           break;
 
         case ShaderType::LIGHT_SOURCE:
@@ -204,6 +193,7 @@ void Renderer::updateShaderUniforms(Scene& scene) {
         break;
 
       case TREES:
+      case FLOWERS:
         shader.setFloat("time", (float)glfwGetTime() * 0.5f);
         if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
         break;
@@ -212,9 +202,10 @@ void Renderer::updateShaderUniforms(Scene& scene) {
         if (posUpdated) shader.setVec3("lightPosition", pointPos);
         break;
 
-      case FLOWERS:
-        shader.setFloat("time", (float)glfwGetTime() * 0.5f);
-        if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
+      case ShaderType::SKYBOX:
+        shader.setMat4("viewProjectionNoTranslation",
+                       scene.camera.getProjectionMatrix() *
+                           scene.camera.getViewMatrixNoTranslation());
         break;
     }
   }
@@ -222,11 +213,11 @@ void Renderer::updateShaderUniforms(Scene& scene) {
 
 void Renderer::cullRenderables(Scene& scene) {
   const std::array<glm::vec4, 6>& frustumPlanes{
-      scene.camera.getFrustumPlanes(false)};
+      scene.camera.getFrustumPlanes()};
 
-  /*
   for (auto& [_, objectList] : scene.getSceneObjects())
-    for (auto& object : objectList)
-      object.cullable = object.checkVisibility(frustumPlanes);
-      */
+    for (auto& object : objectList) {
+      object.isVisible = object.renderable.get().performCulling(
+          frustumPlanes, object.transform.getModelMatrix());
+    }
 }

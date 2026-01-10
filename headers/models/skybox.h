@@ -21,6 +21,8 @@ class Skybox : public Renderable {
   ~Skybox();
 
   void render() override;
+  bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
+                      const glm::mat4& modelMatrix) override;
   ModelHandle getModelHandle();
 
  private:
