@@ -145,7 +145,7 @@ void normalizePlane(glm::vec4& vec) {
   vec /= length;
 }
 
-const std::array<glm::vec4, 6>& Camera::getFrustumPlanes(bool normalized) {
+const std::array<glm::vec4, 6>& Camera::getFrustumPlanes() {
   if (dirtyMatrices) {
     updateCameraMatrices();
     dirtyMatrices = false;
@@ -174,8 +174,7 @@ const std::array<glm::vec4, 6>& Camera::getFrustumPlanes(bool normalized) {
   // Far
   frustumPlanes[5] = row3 - row2;
 
-  if (normalized)
-    for (auto& vec : frustumPlanes) normalizePlane(vec);
+  for (auto& vec : frustumPlanes) normalizePlane(vec);
 
   return frustumPlanes;
 }

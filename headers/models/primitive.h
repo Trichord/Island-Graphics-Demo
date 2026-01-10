@@ -48,6 +48,7 @@ class Primitive {
   fastgltf::AlphaMode getAlphaMode() const;
   void setMaterialIndex(std::size_t newIndex);
   bool materialsExist() const;
+  const std::vector<Vertex>& getVertices() const;
 
  private:
   GLuint VAO{0};

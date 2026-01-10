@@ -6,6 +6,7 @@
 #include "primitive.h"
 #include "renderable.h"
 #include "texture_manager.h"
+#include "aabb.h"
 
 class Model : public Renderable {
  public:
@@ -25,6 +26,8 @@ class Model : public Renderable {
    *  metallic, roughness, and normal map textures, if the model has them.
    */
   void render() override;
+  bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
+                      const glm::mat4& modelMatrix) override;
 
   ModelHandle getModelHandle();
 
@@ -42,9 +45,11 @@ class Model : public Renderable {
   TextureManager& texManager;
   const std::vector<TextureSet>& textureSet;
   std::vector<Primitive::Mesh> meshes;
+  AABB aabb;
 
   void loadModel(const std::filesystem::path& path, bool borrowed);
   void bindTextures(const TextureSet& textureSet);
+  void calculateAABB();
   void setAlphaMode(bool enabled);
   virtual void drawPrimitive(const Primitive& primitive);
   void assignMaterialIndex(std::size_t newIndex);

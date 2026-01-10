@@ -26,6 +26,9 @@ class InstancedModel : public Model {
   InstancedModel& operator=(InstancedModel&& other) = delete;
   ~InstancedModel();
 
+  bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
+                      const glm::mat4& modelMatrix) override;
+
  private:
   GLuint transformsVBO{0};
   GLuint positionsVBO{0};

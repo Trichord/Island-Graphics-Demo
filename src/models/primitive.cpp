@@ -124,3 +124,7 @@ void Primitive::setupPrimitiveBuffers() {
   glVertexArrayAttribBinding(VAO, 2, 0);
   glVertexArrayAttribBinding(VAO, 3, 0);
 }
+
+const std::vector<Primitive::Vertex>& Primitive::getVertices() const {
+  return vertices;
+}

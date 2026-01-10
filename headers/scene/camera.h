@@ -25,7 +25,7 @@ class Camera {
   const glm::mat4& getViewMatrixNoTranslation();
   const glm::mat4& getProjectionMatrix();
   const glm::mat4& getViewProjectionMatrix();
-  const std::array<glm::vec4, 6>& getFrustumPlanes(bool normalized);
+  const std::array<glm::vec4, 6>& getFrustumPlanes();
 
   void processKeyboard(CameraMovement direction, float deltaTime);
   void processMouseMovement(float xoffset, float yoffset,
