@@ -1,9 +1,11 @@
 #include "fastgltf_loader.h"
 
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
+#include "aabb.h"
 #include "fastgltf/core.hpp"
 #include "fastgltf/glm_element_traits.hpp"
 #include "fastgltf/tools.hpp"
@@ -152,9 +154,30 @@ std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(
         alphaMode = asset.materials[materialIndex].alphaMode;
       }
 
+      // Create AABB
+      float minX{std::numeric_limits<float>::infinity()};
+      float minY{std::numeric_limits<float>::infinity()};
+      float minZ{std::numeric_limits<float>::infinity()};
+      float maxX{-std::numeric_limits<float>::infinity()};
+      float maxY{-std::numeric_limits<float>::infinity()};
+      float maxZ{-std::numeric_limits<float>::infinity()};
+
+      for (const auto& vertex : vertices) {
+        minX = std::min(vertex.position.x, minX);
+        minY = std::min(vertex.position.y, minY);
+        minZ = std::min(vertex.position.z, minZ);
+
+        maxX = std::max(vertex.position.x, maxX);
+        maxY = std::max(vertex.position.y, maxY);
+        maxZ = std::max(vertex.position.z, maxZ);
+      }
+
+      AABB aabb{minX, minY, minZ, maxX, maxY, maxZ};
+
       // Build the primitive
       mesh.primitives.emplace_back(std::move(vertices), std::move(indices),
-                                   hasMaterials, materialIndex, alphaMode);
+                                   std::move(aabb), hasMaterials, materialIndex,
+                                   alphaMode);
     }
 
     // Add the mesh

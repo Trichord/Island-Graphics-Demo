@@ -5,16 +5,19 @@
 #include <iostream>
 #include <vector>
 
+#include "aabb.h"
 #include "glad/glad.h"
 
 Primitive::Primitive(std::vector<Vertex>&& vertices_,
-                     std::vector<std::uint32_t>&& indices_, bool hasMaterials_,
-                     std::size_t matIndex, fastgltf::AlphaMode mode)
-    : hasMaterials{hasMaterials_},
-      materialIndex{matIndex},
-      vertices{std::move(vertices_)},
+                     std::vector<std::uint32_t>&& indices_, AABB&& aabb_,
+                     bool hasMaterials_, std::size_t materialIndex_,
+                     fastgltf::AlphaMode alphaMode_)
+    : vertices{std::move(vertices_)},
       indices{std::move(indices_)},
-      alphaMode{mode} {
+      aabb{aabb_},
+      hasMaterials{hasMaterials_},
+      materialIndex{materialIndex_},
+      alphaMode{alphaMode_} {
   setupPrimitiveBuffers();
 }
 
@@ -26,6 +29,7 @@ Primitive::Primitive(Primitive&& other) noexcept
   hasMaterials = other.hasMaterials;
   materialIndex = other.materialIndex;
   alphaMode = other.alphaMode;
+  aabb = other.aabb;
 
   other.EBO = 0;
   other.VBO = 0;
@@ -70,6 +74,8 @@ GLsizei Primitive::getIndicesSize() const {
 std::size_t Primitive::getMaterialIndex() const { return materialIndex; }
 
 fastgltf::AlphaMode Primitive::getAlphaMode() const { return alphaMode; }
+
+const AABB& Primitive::getAABB() const { return aabb; }
 
 bool Primitive::materialsExist() const { return hasMaterials; }
 
