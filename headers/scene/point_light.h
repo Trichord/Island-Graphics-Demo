@@ -8,8 +8,8 @@ class PointLight : public Light {
   PointLight() = default;
   PointLight(const glm::vec3& newPosition,
              const glm::vec3& newColor = glm::vec3(1.0f));
-  const glm::vec3& getColor() const override;
-  const glm::vec3& getPosition() const;
+  glm::vec3 getColor() const override;
+  glm::vec3 getPosition() const;
   void setPosition(const glm::vec3& newPosition);
   bool positionHasUpdated();
 
