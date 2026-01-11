@@ -10,7 +10,7 @@ uniform float gamma;
 const float INVERSE_PI = 0.31830988618;
 const float mipScale = 0.25;
 const float alphaCutoff = 0.5;
-const vec3 fixedAmbient = vec3(0.2);
+const vec3 fixedAmbient = vec3(0.25);
 
 //Bright mid-day sun
 const vec3 lightColor = vec3(1.0, 0.95, 0.9);
@@ -59,6 +59,7 @@ void main() {
 	float ao = occlusionRoughMetalMap.r;
 	float roughness = occlusionRoughMetalMap.g;
 	float metallic = occlusionRoughMetalMap.b;
+
 
 	// Rescale alpha by partial derivative. Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
     albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
