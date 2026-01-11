@@ -10,7 +10,7 @@ class Light {
   explicit Light(const glm::vec3& newColor = glm::vec3(1.0f));
   virtual ~Light() = default;
   void setColor(const glm::vec3& newColor);
-  virtual const glm::vec3& getColor() const = 0;
+  virtual glm::vec3 getColor() const = 0;
   bool colorHasUpdated();
 
  protected:
