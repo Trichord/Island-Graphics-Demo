@@ -41,6 +41,7 @@ class InstancedModel : public Model {
   };
 
   std::vector<InstanceData> instances;
+  std::size_t visibleInstances{0};
 
   GLuint instancesVBO{0};
 

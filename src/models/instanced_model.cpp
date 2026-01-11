@@ -1,7 +1,9 @@
 #include "instanced_model.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <random>
 
 #include "glad/glad.h"
@@ -48,7 +50,7 @@ InstancedModel::~InstancedModel() { deleteBuffers(); }
 void InstancedModel::drawPrimitive(const Primitive& primitive) {
   glDrawElementsInstanced(GL_TRIANGLES, primitive.getIndicesSize(),
                           GL_UNSIGNED_INT, 0,
-                          static_cast<unsigned int>(instances.size()));
+                          static_cast<GLsizei>(visibleInstances));
 }
 
 void InstancedModel::loadPositions(const std::filesystem::path& positionsPath,
@@ -120,8 +122,9 @@ void InstancedModel::generateWorldAABBs() {
 
 void InstancedModel::setupInstancedBuffers() {
   glCreateBuffers(1, &instancesVBO);
-  glNamedBufferStorage(instancesVBO, instances.size() * sizeof(InstanceData),
-                       instances.data(), GL_DYNAMIC_STORAGE_BIT);
+  glNamedBufferStorage(
+      instancesVBO, instances.size() * sizeof(InstanceData), instances.data(),
+      GL_DYNAMIC_STORAGE_BIT | GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
 
   for (const Primitive::Mesh& mesh : meshes) {
     for (const Primitive& primitive : mesh.primitives) {
@@ -198,8 +201,30 @@ bool InstancedModel::performCulling(
   }
 
   if (visible) {
+    // Move visible instances to front of vector
+    auto iter = std::partition(
+        instances.begin(), instances.end(),
+        [](const InstanceData& instance) { return instance.isVisible; });
+    visibleInstances = std::distance(instances.begin(), iter);
 
-  }
+    // Sort front to back for speed on depth testing, over proper alpha blending
+    std::sort(instances.begin(), instances.begin() + visibleInstances,
+              [](const InstanceData& a, const InstanceData& b) {
+                return a.sortKey < b.sortKey;
+              });
+
+    // Update GPU side
+    void* bufferPtr{glMapNamedBufferRange(
+        instancesVBO, 0, visibleInstances * sizeof(InstanceData),
+        GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT)};
+
+    std::memcpy(bufferPtr, instances.data(),
+                visibleInstances * sizeof(InstanceData));
+
+    glUnmapNamedBuffer(instancesVBO);
+
+  } else
+    visibleInstances = 0;
 
   return visible;
 }
