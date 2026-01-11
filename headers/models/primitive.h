@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "aabb.h"
 #include "fastgltf/types.hpp"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
@@ -32,9 +33,9 @@ class Primitive {
   };
 
   Primitive() = default;
-  Primitive(std::vector<Vertex>&& verticies,
-            std::vector<std::uint32_t>&& indicies, bool hasMaterials = false,
-            std::size_t matIndex = 0,
+  Primitive(std::vector<Vertex>&& vertices,
+            std::vector<std::uint32_t>&& indices, AABB&& aabb,
+            bool hasMaterials = false, std::size_t matIndex = 0,
             fastgltf::AlphaMode alphaMode = fastgltf::AlphaMode::Opaque);
   Primitive(const Primitive&) = delete;
   Primitive& operator=(const Primitive&) = delete;
@@ -43,21 +44,23 @@ class Primitive {
   ~Primitive();
 
   GLuint getVAO() const;
+  const AABB& getAABB() const;
   GLsizei getIndicesSize() const;
   std::size_t getMaterialIndex() const;
   fastgltf::AlphaMode getAlphaMode() const;
+  const std::vector<Vertex>& getVertices() const;
   void setMaterialIndex(std::size_t newIndex);
   bool materialsExist() const;
-  const std::vector<Vertex>& getVertices() const;
 
  private:
   GLuint VAO{0};
   GLuint VBO{0};
   GLuint EBO{0};
-  bool hasMaterials{false};
-  std::size_t materialIndex{0};
   std::vector<Vertex> vertices;
   std::vector<std::uint32_t> indices;
+  AABB aabb;
+  bool hasMaterials{false};
+  std::size_t materialIndex{0};
   fastgltf::AlphaMode alphaMode;
 
   void setupPrimitiveBuffers();

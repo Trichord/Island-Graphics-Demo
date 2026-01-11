@@ -77,6 +77,7 @@ void Skybox::deleteBuffers() {
 }
 
 bool Skybox::performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
-                            const glm::mat4& modelMatrix) {
+                            const glm::mat4& modelMatrix,
+                            const glm::vec3& cameraPos) {
   return true;
 }

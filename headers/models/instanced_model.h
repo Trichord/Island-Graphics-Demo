@@ -27,20 +27,28 @@ class InstancedModel : public Model {
   ~InstancedModel();
 
   bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
-                      const glm::mat4& modelMatrix) override;
+                      const glm::mat4& modelMatrix,
+                      const glm::vec3& cameraPos) override;
 
  private:
-  GLuint transformsVBO{0};
-  GLuint positionsVBO{0};
-  GLuint normalMatricesVBO{0};
-  std::vector<glm::mat4> transforms;
-  std::vector<glm::vec3> positions;
-  std::vector<glm::mat4> normalMatrices;
+  struct InstanceData {
+    glm::mat4 modelMatrix{1.0f};
+    glm::mat4 normalMatrix{1.0f};
+    glm::vec3 position{0.0f};
+    AABB worldAABB;
+    bool isVisible{false};
+    double sortKey{0.0f};
+  };
+
+  std::vector<InstanceData> instances;
+
+  GLuint instancesVBO{0};
 
   void drawPrimitive(const Primitive& primative) override;
   void loadPositions(const std::filesystem::path& positionsPath,
                      unsigned int numPositions);
   void setupInstancedBuffers();
-  void generateTransforms(float minSize, float maxSize);
+  void generateInstanceMatrices(float minSize, float maxSize);
+  void generateWorldAABBs();
   void deleteBuffers();
 };
