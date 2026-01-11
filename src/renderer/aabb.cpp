@@ -9,7 +9,6 @@ AABB::AABB(float minX, float minY, float minZ, float maxX, float maxY,
 AABB::AABB(const glm::vec3& min_, const glm::vec3& max_)
     : min{min_}, max{max_} {}
 
-// Credit: Fabian “ryg” Giesen
 bool AABB::intersects(const std::array<glm::vec4, 6>& planes,
                       const glm::mat4& modelMatrix) const {
   glm::vec3 center = 0.5f * (min + max);
@@ -33,7 +32,25 @@ bool AABB::intersects(const std::array<glm::vec4, 6>& planes,
   return true;
 }
 
+bool AABB::intersectsWorldSpace(const std::array<glm::vec4, 6>& planes) const {
+  glm::vec3 center = 0.5f * (min + max);
+  glm::vec3 extent = 0.5f * (max - min);
+
+  for (const auto& plane : planes) {
+    glm::vec3 normal{glm::vec3{plane}};
+
+    if (glm::dot(center, normal) + glm::dot(extent, glm::abs(normal)) <
+        -plane.w)
+      return false;
+  }
+
+  return true;
+}
+
 void AABB::resize(float scale) {
   min *= scale;
   max *= scale;
 }
+
+const glm::vec3& AABB::getMin() const { return min; }
+const glm::vec3& AABB::getMax() const { return max; }

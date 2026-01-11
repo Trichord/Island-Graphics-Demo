@@ -15,9 +15,10 @@ InstancedModel::InstancedModel(TextureManager& textureManager,
                                float minSize, float maxSize,
                                unsigned int numPositions)
     : Model{textureManager, modelPath} {
-  positions.reserve(numPositions);
+  instances.reserve(numPositions);
   loadPositions(positionsPath, numPositions);
-  generateTransforms(minSize, maxSize);
+  generateInstanceMatrices(minSize, maxSize);
+  generateWorldAABBs();
   setupInstancedBuffers();
 }
 
@@ -29,22 +30,17 @@ InstancedModel::InstancedModel(TextureManager& textureManager,
                                unsigned int numPositions)
     : Model{textureManager, borrowTarget, modelPath} {
   loadPositions(positionsPath, numPositions);
-  generateTransforms(minSize, maxSize);
+  generateInstanceMatrices(minSize, maxSize);
+  generateWorldAABBs();
   setupInstancedBuffers();
 }
 
 InstancedModel::InstancedModel(InstancedModel&& other) noexcept
     : Model{std::move(other)} {
-  transformsVBO = other.transformsVBO;
-  positionsVBO = other.positionsVBO;
-  normalMatricesVBO = other.normalMatricesVBO;
-  transforms = std::move(other.transforms);
-  normalMatrices = std::move(other.normalMatrices);
-  positions = std::move(other.positions);
+  instancesVBO = other.instancesVBO;
+  instances = std::move(other.instances);
 
-  other.transformsVBO = 0;
-  other.positionsVBO = 0;
-  other.normalMatricesVBO = 0;
+  other.instancesVBO = 0;
 }
 
 InstancedModel::~InstancedModel() { deleteBuffers(); }
@@ -52,7 +48,7 @@ InstancedModel::~InstancedModel() { deleteBuffers(); }
 void InstancedModel::drawPrimitive(const Primitive& primitive) {
   glDrawElementsInstanced(GL_TRIANGLES, primitive.getIndicesSize(),
                           GL_UNSIGNED_INT, 0,
-                          static_cast<unsigned int>(transforms.size()));
+                          static_cast<unsigned int>(instances.size()));
 }
 
 void InstancedModel::loadPositions(const std::filesystem::path& positionsPath,
@@ -68,14 +64,17 @@ void InstancedModel::loadPositions(const std::filesystem::path& positionsPath,
     return;
   }
 
-  while (positionsFile >> x >> y >> z) positions.emplace_back(x, y, z);
+  while (positionsFile >> x >> y >> z) {
+    instances.emplace_back();
+    instances.back().position = glm::vec3{x, y, z};
+  }
 
-  if (positions.size() != numPositions && numPositions != 0)
+  if (instances.size() != numPositions && numPositions != 0)
     std::cout << positionsPath << " expected " << numPositions << " allocated "
-              << positions.size() << std::endl;
+              << instances.size() << std::endl;
 }
 
-void InstancedModel::generateTransforms(float minSize, float maxSize) {
+void InstancedModel::generateInstanceMatrices(float minSize, float maxSize) {
   std::random_device rd;
   std::mt19937 mt(rd());
 
@@ -83,44 +82,46 @@ void InstancedModel::generateTransforms(float minSize, float maxSize) {
   std::uniform_real_distribution<float> randRotation{0.0f, 360.0f};
   std::uniform_real_distribution<float> randScale{minSize, maxSize};
 
-  transforms.reserve(positions.size());
-  normalMatrices.reserve(positions.size());
-
-  for (const auto& position : positions) {
+  for (auto& instance : instances) {
     float instanceRotation{randRotation(mt)};
     float instanceScale{randScale(mt)};
 
-    glm::mat4 transform{1.0f};
-    transform = glm::translate(transform, position);
-    transform = glm::rotate(transform, glm::radians(instanceRotation),
-                            glm::vec3{0.0f, 1.0f, 0.0f});
-    transform = glm::scale(transform, glm::vec3{instanceScale});
+    glm::mat4 modelMatrix{1.0f};
+    modelMatrix = glm::translate(modelMatrix, instance.position);
+    modelMatrix = glm::rotate(modelMatrix, glm::radians(instanceRotation),
+                              glm::vec3{0.0f, 1.0f, 0.0f});
+    modelMatrix = glm::scale(modelMatrix, glm::vec3{instanceScale});
 
-    glm::mat4 normalMatrix{glm::transpose(glm::inverse(glm::mat3{transform}))};
+    glm::mat4 normalMatrix{
+        glm::transpose(glm::inverse(glm::mat3{modelMatrix}))};
 
-    transforms.emplace_back(std::move(transform));
-    normalMatrices.emplace_back(std::move(normalMatrix));
+    instance.modelMatrix = modelMatrix;
+    instance.normalMatrix = normalMatrix;
   }
 }
 
-/**
-@brief Binding points:
-1 - transform matrices
-2 - normal matrices
-*/
+void InstancedModel::generateWorldAABBs() {
+  for (auto& instance : instances) {
+    const glm::vec3& localMin{aabb.getMin()};
+    const glm::vec3& localMax{aabb.getMax()};
+    glm::vec3 localCenter = 0.5f * (localMin + localMax);
+    glm::vec3 localExtent = 0.5f * (localMax - localMin);
+
+    glm::mat3 RS{glm::mat3{instance.modelMatrix}};
+    glm::mat3 absRS{glm::abs(RS[0]), glm::abs(RS[1]), glm::abs(RS[2])};
+
+    glm::vec3 worldCenter{instance.modelMatrix * glm::vec4(localCenter, 1.0f)};
+    glm::vec3 worldExtent{absRS * localExtent};
+
+    instance.worldAABB =
+        AABB{worldCenter - worldExtent, worldCenter + worldExtent};
+  }
+}
+
 void InstancedModel::setupInstancedBuffers() {
-  glCreateBuffers(1, &transformsVBO);
-  glNamedBufferStorage(transformsVBO, transforms.size() * sizeof(glm::mat4),
-                       transforms.data(), GL_DYNAMIC_STORAGE_BIT);
-
-  glCreateBuffers(1, &positionsVBO);
-  glNamedBufferStorage(positionsVBO, positions.size() * sizeof(glm::vec3),
-                       positions.data(), GL_DYNAMIC_STORAGE_BIT);
-
-  glCreateBuffers(1, &normalMatricesVBO);
-  glNamedBufferStorage(normalMatricesVBO,
-                       normalMatrices.size() * sizeof(glm::mat4),
-                       normalMatrices.data(), GL_DYNAMIC_STORAGE_BIT);
+  glCreateBuffers(1, &instancesVBO);
+  glNamedBufferStorage(instancesVBO, instances.size() * sizeof(InstanceData),
+                       instances.data(), GL_DYNAMIC_STORAGE_BIT);
 
   for (const Primitive::Mesh& mesh : meshes) {
     for (const Primitive& primitive : mesh.primitives) {
@@ -130,27 +131,34 @@ void InstancedModel::setupInstancedBuffers() {
       for (GLuint attribIndex : {4, 5, 6, 7, 8, 9, 10, 11})
         glEnableVertexArrayAttrib(VAO, attribIndex);
 
-      glVertexArrayVertexBuffer(VAO, 1, transformsVBO, 0, sizeof(glm::mat4));
-      glVertexArrayVertexBuffer(VAO, 2, normalMatricesVBO, 0,
-                                sizeof(glm::mat4));
+      // Bind instance VBO to primitive VAO
+      glVertexArrayVertexBuffer(VAO, 1, instancesVBO, 0, sizeof(InstanceData));
 
-      // Transform matrices layout
-      glVertexArrayAttribFormat(VAO, 4, 4, GL_FLOAT, GL_FALSE, 0);
-      glVertexArrayAttribFormat(VAO, 5, 4, GL_FLOAT, GL_FALSE,
-                                sizeof(glm::vec4));
-      glVertexArrayAttribFormat(VAO, 6, 4, GL_FLOAT, GL_FALSE,
-                                2 * sizeof(glm::vec4));
-      glVertexArrayAttribFormat(VAO, 7, 4, GL_FLOAT, GL_FALSE,
-                                3 * sizeof(glm::vec4));
+      // Model matrices layout
+      glVertexArrayAttribFormat(VAO, 4, 4, GL_FLOAT, GL_FALSE,
+                                offsetof(InstanceData, modelMatrix));
+      glVertexArrayAttribFormat(
+          VAO, 5, 4, GL_FLOAT, GL_FALSE,
+          offsetof(InstanceData, modelMatrix) + sizeof(glm::vec4));
+      glVertexArrayAttribFormat(
+          VAO, 6, 4, GL_FLOAT, GL_FALSE,
+          offsetof(InstanceData, modelMatrix) + 2 * sizeof(glm::vec4));
+      glVertexArrayAttribFormat(
+          VAO, 7, 4, GL_FLOAT, GL_FALSE,
+          offsetof(InstanceData, modelMatrix) + 3 * sizeof(glm::vec4));
 
       // Normal matrices layout
-      glVertexArrayAttribFormat(VAO, 8, 4, GL_FLOAT, GL_FALSE, 0);
-      glVertexArrayAttribFormat(VAO, 9, 4, GL_FLOAT, GL_FALSE,
-                                sizeof(glm::vec4));
-      glVertexArrayAttribFormat(VAO, 10, 4, GL_FLOAT, GL_FALSE,
-                                2 * sizeof(glm::vec4));
-      glVertexArrayAttribFormat(VAO, 11, 4, GL_FLOAT, GL_FALSE,
-                                3 * sizeof(glm::vec4));
+      glVertexArrayAttribFormat(VAO, 8, 4, GL_FLOAT, GL_FALSE,
+                                offsetof(InstanceData, normalMatrix));
+      glVertexArrayAttribFormat(
+          VAO, 9, 4, GL_FLOAT, GL_FALSE,
+          offsetof(InstanceData, normalMatrix) + sizeof(glm::vec4));
+      glVertexArrayAttribFormat(
+          VAO, 10, 4, GL_FLOAT, GL_FALSE,
+          offsetof(InstanceData, normalMatrix) + 2 * sizeof(glm::vec4));
+      glVertexArrayAttribFormat(
+          VAO, 11, 4, GL_FLOAT, GL_FALSE,
+          offsetof(InstanceData, normalMatrix) + 3 * sizeof(glm::vec4));
 
       // Transform matrices
       glVertexArrayAttribBinding(VAO, 4, 1);
@@ -159,26 +167,39 @@ void InstancedModel::setupInstancedBuffers() {
       glVertexArrayAttribBinding(VAO, 7, 1);
 
       // Normal matrices
-      glVertexArrayAttribBinding(VAO, 8, 2);
-      glVertexArrayAttribBinding(VAO, 9, 2);
-      glVertexArrayAttribBinding(VAO, 10, 2);
-      glVertexArrayAttribBinding(VAO, 11, 2);
+      glVertexArrayAttribBinding(VAO, 8, 1);
+      glVertexArrayAttribBinding(VAO, 9, 1);
+      glVertexArrayAttribBinding(VAO, 10, 1);
+      glVertexArrayAttribBinding(VAO, 11, 1);
 
-      // Divisors
+      // Divisor
       glVertexArrayBindingDivisor(VAO, 1, 1);
-      glVertexArrayBindingDivisor(VAO, 2, 1);
     }
   }
 }
 
-void InstancedModel::deleteBuffers() {
-  glDeleteBuffers(1, &transformsVBO);
-  glDeleteBuffers(1, &positionsVBO);
-  glDeleteBuffers(1, &normalMatricesVBO);
-}
+void InstancedModel::deleteBuffers() { glDeleteBuffers(1, &instancesVBO); }
 
 bool InstancedModel::performCulling(
-    const std::array<glm::vec4, 6>& frustumPlanes,
-    const glm::mat4& modelMatrix) {
-  return true;
+    const std::array<glm::vec4, 6>& frustumPlanes, const glm::mat4& modelMatrix,
+    const glm::vec3& cameraPos) {
+  bool visible{false};
+
+  for (auto& instance : instances) {
+    if (instance.isVisible =
+            instance.worldAABB.intersectsWorldSpace(frustumPlanes)) {
+      double xDist{instance.position.x - cameraPos.x};
+      double zDist{instance.position.z - cameraPos.z};
+
+      instance.sortKey = xDist * xDist + zDist * zDist;
+
+      visible = true;
+    }
+  }
+
+  if (visible) {
+
+  }
+
+  return visible;
 }

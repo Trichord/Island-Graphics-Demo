@@ -27,7 +27,8 @@ class Model : public Renderable {
    */
   void render() override;
   bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
-                      const glm::mat4& modelMatrix) override;
+                      const glm::mat4& modelMatrix,
+                      const glm::vec3& cameraPos) override;
 
   ModelHandle getModelHandle();
 

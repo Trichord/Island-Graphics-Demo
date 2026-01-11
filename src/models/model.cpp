@@ -4,7 +4,6 @@
 #include <filesystem>
 #include <limits>
 #include <vector>
-#include <iostream>
 
 #include "fastgltf/types.hpp"
 #include "fastgltf_loader.h"
@@ -139,21 +138,25 @@ void Model::calculateAABB() {
   float maxZ{-std::numeric_limits<float>::infinity()};
 
   for (const auto& mesh : meshes)
-    for (const auto& primitive : mesh.primitives)
-      for (const auto& vertex : primitive.getVertices()) {
-        minX = std::min(vertex.position.x, minX);
-        minY = std::min(vertex.position.y, minY);
-        minZ = std::min(vertex.position.z, minZ);
+    for (const auto& primitive : mesh.primitives) {
+      const AABB& primAABB{primitive.getAABB()};
+      const glm::vec3& aabbMin{primAABB.getMin()};
+      const glm::vec3& aabbMax{primAABB.getMax()};
 
-        maxX = std::max(vertex.position.x, maxX);
-        maxY = std::max(vertex.position.y, maxY);
-        maxZ = std::max(vertex.position.z, maxZ);
-      }
+      minX = std::min(aabbMin.x, minX);
+      minY = std::min(aabbMin.y, minY);
+      minZ = std::min(aabbMin.z, minZ);
+
+      maxX = std::max(aabbMax.x, maxX);
+      maxY = std::max(aabbMax.y, maxY);
+      maxZ = std::max(aabbMax.z, maxZ);
+    }
 
   aabb = AABB{minX, minY, minZ, maxX, maxY, maxZ};
 }
 
-bool Model::performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
-                           const glm::mat4& modelMatrix) {
+bool Model::performCulling(
+    const std::array<glm::vec4, 6>& frustumPlanes, const glm::mat4& modelMatrix,
+    const glm::vec3& cameraPos) {
   return aabb.intersects(frustumPlanes, modelMatrix);
 }
