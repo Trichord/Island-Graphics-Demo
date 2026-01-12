@@ -22,6 +22,11 @@ void IslandScene::addAllModelsToScene() {
                    Transform(FLIGHT_HELMET_POS, glm::vec3(3.0f), 180.0f,
                              glm::vec3(0.0f, 1.0f, 0.0f)));
 
+  // Dead tree
+  auto& deadTree = loadModel("./res/models/dead_tree/dead_tree.gltf");
+  addObjectToScene(deadTree, DIRECTIONAL_PBR,
+                   Transform(DEAD_TREE_POS, glm::vec3{1.0f}, 45.0f));
+
   // Lightbulb-
   auto& lightbulb = loadModel("./res/models/lightbulb/lightbulb.gltf");
   addObjectToScene(lightbulb, LIGHT_SOURCE,
@@ -80,7 +85,7 @@ void IslandScene::addAllModelsToScene() {
 
   // Tree 1
   auto& tree1 = loadInstancedModel("./res/models/tree1/tree1.gltf",
-                                     "./res/fir_trees.txt", 0.8f, 1.2f, 219);
+                                   "./res/tree1.txt", 0.8f, 1.2f, 75);
   addObjectToScene(tree1, TREES);
 
   /*
@@ -90,12 +95,6 @@ void IslandScene::addAllModelsToScene() {
                          "./res/noble_firs.txt", 0.7f, 1.2f, 55);
   addObjectToScene(nobleFirTree, TREES);
   */
-
-  // Dead trees
-  auto& deadTrees =
-      loadInstancedModel("./res/models/dead_tree/dead_tree.gltf",
-                         "./res/dead_trees.txt", 0.65f, 1.25f, 23);
-  addObjectToScene(deadTrees, TREES);
 }
 
 void IslandScene::addAllLightsToScene() {
