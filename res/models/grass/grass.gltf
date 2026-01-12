@@ -15,35 +15,35 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"Plane"
+			"name":"Object_12"
 		}
 	],
 	"materials":[
 		{
 			"alphaMode":"BLEND",
 			"doubleSided":true,
-			"name":"Material.001",
+			"name":"Grass_Material.001",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":0
 				},
-				"metallicFactor":0,
-				"roughnessFactor":0.5
+				"metallicFactor":0
 			}
 		}
 	],
 	"meshes":[
 		{
-			"name":"Plane",
+			"name":"Object_4.001",
 			"primitives":[
 				{
 					"attributes":{
 						"POSITION":0,
 						"NORMAL":1,
 						"TEXCOORD_0":2,
-						"TANGENT":3
+						"TEXCOORD_1":3,
+						"TANGENT":4
 					},
-					"indices":4,
+					"indices":5,
 					"material":0
 				}
 			]
@@ -58,81 +58,93 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"grass",
-			"uri":"textures/grass.png"
+			"name":"Image_0",
+			"uri":"textures/Image_0.png"
 		}
 	],
 	"accessors":[
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":4,
+			"count":84,
 			"max":[
-				2.1855694143368964e-08,
-				1,
-				0.5
+				2.2395033836364746,
+				1.1716361045837402,
+				2.3754165172576904
 			],
 			"min":[
-				-2.1855694143368964e-08,
-				0,
-				-0.5
+				-1.6117373704910278,
+				-4.110283384761715e-07,
+				-1.594314455986023
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":4,
+			"count":84,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":4,
+			"count":84,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":4,
-			"type":"VEC4"
+			"count":84,
+			"type":"VEC2"
 		},
 		{
 			"bufferView":4,
+			"componentType":5126,
+			"count":84,
+			"type":"VEC4"
+		},
+		{
+			"bufferView":5,
 			"componentType":5123,
-			"count":6,
+			"count":168,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":48,
+			"byteLength":1008,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":48,
-			"byteOffset":48,
+			"byteLength":1008,
+			"byteOffset":1008,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":32,
-			"byteOffset":96,
+			"byteLength":672,
+			"byteOffset":2016,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":64,
-			"byteOffset":128,
+			"byteLength":672,
+			"byteOffset":2688,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":12,
-			"byteOffset":192,
+			"byteLength":1344,
+			"byteOffset":3360,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":336,
+			"byteOffset":4704,
 			"target":34963
 		}
 	],
@@ -144,7 +156,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":204,
+			"byteLength":5040,
 			"uri":"grass.bin"
 		}
 	]
