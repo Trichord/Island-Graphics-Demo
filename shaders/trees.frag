@@ -10,7 +10,7 @@ uniform float gamma;
 const float INVERSE_PI = 0.31830988618;
 const float mipScale = 0.25;
 const float alphaCutoff = 0.5;
-const vec3 fixedAmbient = vec3(0.25);
+const vec3 fixedAmbient = vec3(0.2);
 
 //Bright mid-day sun
 const vec3 lightColor = vec3(1.0, 0.95, 0.9);
