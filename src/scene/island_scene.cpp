@@ -16,16 +16,16 @@ void IslandScene::addAllModelsToScene() {
   auto& island = loadModel("./res/models/island/island.gltf");
   addObjectToScene(island, DIRECTIONAL_PBR);
 
+    // Dead tree
+  auto& deadTree = loadModel("./res/models/dead_tree/dead_tree.gltf");
+  addObjectToScene(deadTree, DIRECTIONAL_PBR,
+                   Transform(DEAD_TREE_POS, glm::vec3{1.0f}, 45.0f));
+
   // Flight helmet
   auto& helmet = loadModel("./res/models/flight_helmet/FlightHelmet.gltf");
   addObjectToScene(helmet, POINT_PBR,
                    Transform(FLIGHT_HELMET_POS, glm::vec3(3.0f), 180.0f,
                              glm::vec3(0.0f, 1.0f, 0.0f)));
-
-  // Dead tree
-  auto& deadTree = loadModel("./res/models/dead_tree/dead_tree.gltf");
-  addObjectToScene(deadTree, DIRECTIONAL_PBR,
-                   Transform(DEAD_TREE_POS, glm::vec3{1.0f}, 45.0f));
 
   // Lightbulb-
   auto& lightbulb = loadModel("./res/models/lightbulb/lightbulb.gltf");
@@ -56,7 +56,7 @@ void IslandScene::addAllModelsToScene() {
 
   // Grass
   auto& grass = loadInstancedModel("./res/models/grass/grass.gltf",
-                                   "./res/grass.txt", 0.3f, 0.5, 6881);
+                                   "./res/grass.txt", 0.3f, 0.5, 905);
   addObjectToScene(grass, FLOWERS);
 
   // Dandelions
@@ -85,8 +85,13 @@ void IslandScene::addAllModelsToScene() {
 
   // Tree 1
   auto& tree1 = loadInstancedModel("./res/models/tree1/tree1.gltf",
-                                   "./res/tree1.txt", 0.8f, 1.2f, 75);
+                                   "./res/tree1.txt", 0.8f, 1.2f, 9);
   addObjectToScene(tree1, TREES);
+
+  // Tree 2
+  auto& tree2 = loadInstancedModel(tree1, "./res/models/tree2/tree2.gltf",
+                                   "./res/tree2.txt", 0.8f, 1.125f, 67);
+  addObjectToScene(tree2, TREES);
 
   /*
   // Noble trees
@@ -105,4 +110,4 @@ void IslandScene::addAllLightsToScene() {
   addLightToScene(pointLights, PointLight{LIGHTBULB_POS}, "circlingLight");
 }
 
-void IslandScene::setupCamera() { camera = glm::vec3{0.0f, 3.0f, 30.0f}; }
+void IslandScene::setupCamera() { camera = glm::vec3{0.0f, 0.0f, 30.0f}; }
