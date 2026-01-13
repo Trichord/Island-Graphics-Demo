@@ -9,16 +9,18 @@ inline constexpr float defaultCameraSpeed{5.0f};
 inline constexpr float defaultCameraSensitivity{0.1f};
 inline constexpr float defaultCameraZoom{45.0f};
 inline constexpr float defaultCameraNearPlane{0.1f};
-inline constexpr float defaultCameraFarPlane{600.0f};
+inline constexpr float defaultCameraFarPlane{475.0f};
 
 enum class CameraMovement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
 
 class Camera {
  public:
   Camera();
-  Camera(glm::vec3 pos, glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f),
+  Camera(glm::vec3 pos,
+         glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f),
          float y = defaultCameraYaw, float p = defaultCameraPitch);
-  Camera(float posX, float posY, float posZ, float upX, float upY, float upZ,
+  Camera(float posX,
+         float posY, float posZ, float upX, float upY, float upZ,
          float yaw, float pitch);
 
   const glm::mat4& getViewMatrix();
@@ -32,8 +34,10 @@ class Camera {
                             bool constrainPitch = true);
   bool hasUpdated();
   const glm::vec3& getPosition() const;
+  void setAspectRatio(float ratio);
 
  private:
+  float aspectRatio{16.0f / 9.0f};
   float yaw{defaultCameraYaw};
   float pitch{defaultCameraPitch};
   float movementSpeed{defaultCameraSpeed};

@@ -162,11 +162,12 @@ void Shader::setUniformBlock(const std::string& name, unsigned int index) {
   GLuint blockID{glGetUniformBlockIndex(ID, name.c_str())};
   uniformLocations.emplace(name, blockID);
 
-  if (blockID != -1)
-    glUniformBlockBinding(ID, blockID, index);
+  if (blockID != -1) glUniformBlockBinding(ID, blockID, index);
+  /*
   else
     std::cerr << "ShaderID: " << ID << ", unknown uniform block : " << name
               << std::endl;
+              */
 }
 
 GLint Shader::getCachedLocation(const std::string& name) {
@@ -176,9 +177,11 @@ GLint Shader::getCachedLocation(const std::string& name) {
   GLint location{glGetUniformLocation(ID, name.c_str())};
   uniformLocations.emplace(name, location);
 
+  /*
   if (location == -1)
     std::cout << "Shader ID: " << ID << ", unknown uniform : " << name
               << std::endl;
+              */
 
   return location;
 }
