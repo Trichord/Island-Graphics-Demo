@@ -5,6 +5,7 @@
 #include <limits>
 #include <vector>
 
+#include "config_window.h"
 #include "fastgltf/types.hpp"
 #include "fastgltf_loader.h"
 #include "glad/glad.h"
@@ -44,7 +45,7 @@ void Model::drawPrimitive(const Primitive& primitive) {
   glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0);
 }
 
-void Model::render() {
+void Model::render(unsigned int globalMSAA) {
   std::size_t lastMaterialIndex{0};
   bool alphaEnabled{false};
   bool needsAlpha{false};
@@ -67,7 +68,7 @@ void Model::render() {
 
       // Per-primitive alpha mode
       if (needsAlpha != alphaEnabled) {
-        setAlphaMode(needsAlpha);
+        setAlphaMode(globalMSAA, needsAlpha);
         alphaEnabled = needsAlpha;
       }
 
@@ -77,7 +78,7 @@ void Model::render() {
   }
 
   if (alphaEnabled) {
-    setAlphaMode(false);
+    setAlphaMode(globalMSAA, false);
   }
 }
 
@@ -94,24 +95,24 @@ void Model::loadModel(const std::filesystem::path& path, bool borrowed) {
 
 ModelHandle Model::getModelHandle() { return handle; }
 
-void Model::bindTextures(const TextureSet& textures) {
-  if (textures.albedo) glBindTextureUnit(0, textures.albedo);
+void Model::bindTextures(const Material& materials) {
+  if (materials.albedo) glBindTextureUnit(0, materials.albedo);
 
-  if (textures.occlusionRoughnessMetallic)
-    glBindTextureUnit(1, textures.occlusionRoughnessMetallic);
+  if (materials.occlusionRoughnessMetallic)
+    glBindTextureUnit(1, materials.occlusionRoughnessMetallic);
 
-  if (textures.normal) glBindTextureUnit(2, textures.normal);
+  if (materials.normal) glBindTextureUnit(2, materials.normal);
 
-  if (textures.cubemap) glBindTextureUnit(3, textures.cubemap);
+  if (materials.cubemap) glBindTextureUnit(3, materials.cubemap);
 }
 
-void Model::setAlphaMode(bool enabled) {
-  if (enabled) {
+void Model::setAlphaMode(unsigned int globalMSAA, bool needsAlpha) {
+  if (needsAlpha) {
     glDisable(GL_CULL_FACE);
-    glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    if (globalMSAA) glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
   } else {
     glEnable(GL_CULL_FACE);
-    glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    if (globalMSAA) glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
   }
 }
 
@@ -155,8 +156,8 @@ void Model::calculateAABB() {
   aabb = AABB{minX, minY, minZ, maxX, maxY, maxZ};
 }
 
-bool Model::performCulling(
-    const std::array<glm::vec4, 6>& frustumPlanes, const glm::mat4& modelMatrix,
-    const glm::vec3& cameraPos) {
+bool Model::performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
+                           const glm::mat4& modelMatrix,
+                           const glm::vec3& cameraPos) {
   return aabb.intersects(frustumPlanes, modelMatrix);
 }
