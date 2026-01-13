@@ -193,7 +193,7 @@ bool ConfigWindow::renderImGui(GraphicsSettings& settings) {
 
     // Gamma
     ImGui::Text("Gamma");
-    ImGui::SliderFloat("##gammaSlider", &settings.gamma, 0.5f, 3.0f, "%.3f",
+    ImGui::SliderFloat("##gammaSlider", &settings.gamma, 0.8f, 1.3f, "%.2f",
                        ImGuiSliderFlags_ClampOnInput);
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort |
                              ImGuiHoveredFlags_NoSharedDelay))

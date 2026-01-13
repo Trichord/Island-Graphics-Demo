@@ -3,11 +3,11 @@
 const vec3 lightColor = vec3(1.0, 0.95, 0.9);
 const float alphaCutoff = 0.5;
 const float mipScale = 0.25;
-const float ambientStrength = 0.2;
 
 out vec4 fragColor;
 
 uniform sampler2D albedoMap;
+uniform vec3 ambientLight;
 uniform vec3 lightDir;
 uniform float gamma;
 
@@ -43,7 +43,7 @@ void main() {
     float diffuseStrength = NdotL * 0.5 + 0.5;
     
     //Ambient
-    vec3 ambient = ambientStrength * lightColor * albedo.rgb;
+    vec3 ambient = ambientLight * lightColor * albedo.rgb;
     
     //Diffuse continued after filling texture load with math
     vec3 diffuse = diffuseStrength * lightColor * albedo.rgb;
