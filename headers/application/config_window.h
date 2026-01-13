@@ -11,15 +11,15 @@
  */
 class ConfigWindow {
  public:
-  static inline struct GraphicsSettings {
+  struct GraphicsSettings {
     unsigned int screenWidth{2560};
     unsigned int screenHeight{1440};
     bool fullscreen{true};
     bool vsync{false};
     unsigned int msaa{8};
-    float anisotropicFiltering{16.0f};
+    unsigned int anisotropicFiltering{16u};
     float gamma{1.0f};
-  } globalGraphicsSettings;
+  };
 
   ConfigWindow() = default;
   ConfigWindow(const ConfigWindow&) = delete;
@@ -29,11 +29,11 @@ class ConfigWindow {
   ~ConfigWindow();
 
   /**
-  * @brief Creates the Display Settings window.
-  * 
-  * @return Settings confirmed or cancelled.
-  */
-  bool launchSettingsWindow();
+   * @brief Creates the Display Settings window.
+   *
+   * @return Settings confirmed or cancelled.
+   */
+  bool launchSettingsWindow(GraphicsSettings& settings);
 
  private:
   GLFWwindow* window{nullptr};
@@ -49,12 +49,13 @@ class ConfigWindow {
                        {1366u, 768u},
                        {1280u, 720}}};
 
-  inline static const std::array<const char*, 3> msaaLevel{"2x", "4x", "8x"};
-  inline static const std::array<unsigned int, 3> msaaTable{2, 4, 8};
+  inline static const std::array<const char*, 4> msaaLevel{"Off", "2x", "4x",
+                                                           "8x"};
+  inline static const std::array<unsigned int, 4> msaaTable{0, 2, 4, 8};
   inline static const std::array<const char*, 5> anisoLevel{"Off", "2x", "4x",
                                                             "8x", "16x"};
-  inline static const std::array<float, 5> anisoTable{0.0f, 2.0f, 4.0f, 8.0f,
-                                                      16.0f};
+  inline static const std::array<unsigned int, 5> anisoTable{0u, 2u, 4u, 8u,
+                                                      16u};
 
   inline static int resolutionSelectedIndex{1};
   inline static int msaaSelectedIndex{2};
@@ -67,45 +68,46 @@ class ConfigWindow {
   GLuint textureID{0};
 
   /**
-  * @brief Creates the GLFW window, centered and scaled by monitor zoom.
-  */
+   * @brief Creates the GLFW window, centered and scaled by monitor zoom.
+   */
   bool createWindow();
 
   /**
-  * @brief Creates Dear ImGui context. Sets Dear ImGui style and loads a custom font.
-  */
+   * @brief Creates Dear ImGui context. Sets Dear ImGui style and loads a custom
+   * font.
+   */
   void setupImGui();
 
   /**
-  * @brief Creates an OpenGL texture ID for the configuration window's image.
-  */
+   * @brief Creates an OpenGL texture ID for the configuration window's image.
+   */
   void loadConfigWindowImage();
 
   /**
-  * @brief The Dear ImGui render loop. Contains all user interface logic. 
-  * 
-  * @returns Settings confirmed or cancelled.
-  */
-  bool renderImGui();
+   * @brief The Dear ImGui render loop. Contains all user interface logic.
+   *
+   * @returns Settings confirmed or cancelled.
+   */
+  bool renderImGui(GraphicsSettings& settings);
 
   /**
-  * @brief Helper function for the resolution drop-down menu.  Updates globalGraphicsSettings.
-  * 
-  * @param index The resolution drop-down selected index.
-  */
-  void updateGlobalResolution(unsigned int index);
+   * @brief Helper function for the resolution drop-down menu.
+   *
+   * @param index The resolution drop-down selected index.
+   */
+  void updateResolution(GraphicsSettings& settings, unsigned int index);
 
   /**
-  * @brief Helper function for the MSAA drop-down menu.  Updates globalGraphicsSettings.
-  * 
-  * @param index The msaa drop-down selected index.
-  */
-  void updateGlobalMSAA(unsigned int index);
+   * @brief Helper function for the MSAA drop-down menu.
+   *
+   * @param index The msaa drop-down selected index.
+   */
+  void updateMSAA(GraphicsSettings& settings, unsigned int index);
 
   /**
-  * @brief Helper function for anisotropic filtering drop-down menu.  Updates globalGraphicsSettings.
-  * 
-  * @param index The anisotropic filtering drop-down selected index.
-  */
-  void updateGlobalAniso(unsigned int index);
+   * @brief Helper function for anisotropic filtering drop-down menu.
+   *
+   * @param index The anisotropic filtering drop-down selected index.
+   */
+  void updateAniso(GraphicsSettings& settings, unsigned int index);
 };

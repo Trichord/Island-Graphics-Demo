@@ -1,25 +1,32 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v4.5.48",
+		"generator":"Khronos glTF Blender I/O v5.0.21",
 		"version":"2.0"
 	},
 	"extensionsUsed":[
-		"KHR_materials_specular",
-		"KHR_materials_ior"
+		"KHR_materials_specular"
 	],
 	"scene":0,
 	"scenes":[
 		{
 			"name":"Scene",
 			"nodes":[
-				0
+				0,
+				1,
+				2
 			]
 		}
 	],
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"Object_21"
+			"name":"bark07_0"
+		},
+		{
+			"name":"Acer_medium_2_LOD2"
+		},
+		{
+			"name":"Acer_medium_2_LOD2.001"
 		}
 	],
 	"materials":[
@@ -27,17 +34,10 @@
 			"doubleSided":true,
 			"extensions":{
 				"KHR_materials_specular":{
-					"specularColorFactor":[
-						0.125,
-						0.125,
-						0.125
-					]
-				},
-				"KHR_materials_ior":{
-					"ior":1000
+					"specularFactor":0.12677262723445892
 				}
 			},
-			"name":"bark.001",
+			"name":"Tree Bark",
 			"normalTexture":{
 				"index":0
 			},
@@ -45,6 +45,7 @@
 				"baseColorTexture":{
 					"index":1
 				},
+				"metallicFactor":0,
 				"metallicRoughnessTexture":{
 					"index":2
 				}
@@ -53,16 +54,18 @@
 	],
 	"meshes":[
 		{
-			"name":"Object_11.001",
+			"name":"Mesh",
 			"primitives":[
 				{
 					"attributes":{
 						"POSITION":0,
 						"NORMAL":1,
 						"TEXCOORD_0":2,
-						"TANGENT":3
+						"TANGENT":3,
+						"COLOR_0":4,
+						"COLOR_1":5
 					},
-					"indices":4,
+					"indices":6,
 					"material":0
 				}
 			]
@@ -85,91 +88,117 @@
 	"images":[
 		{
 			"mimeType":"image/jpeg",
-			"name":"tree_bark_40_normal",
-			"uri":"textures/tree_bark_40_normal.jpg"
+			"name":"tree_bark_68_normal",
+			"uri":"textures/tree_bark_68_normal.png"
 		},
 		{
 			"mimeType":"image/jpeg",
-			"name":"tree_bark_40_color",
-			"uri":"textures/tree_bark_40_color.jpg"
+			"name":"tree_bark_68_color",
+			"uri":"textures/tree_bark_68_color.png"
 		},
 		{
-			"mimeType":"image/jpeg",
-			"name":"tree_bark_40_arm",
-			"uri":"textures/tree_bark_40_arm.jpg"
+			"mimeType":"image/png",
+			"name":"tree_bark_68_roughness",
+			"uri":"textures/tree_bark_68_roughness.png"
 		}
 	],
 	"accessors":[
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":2139,
+			"count":1416,
 			"max":[
-				3.084024667739868,
-				16.09697723388672,
-				3.9682395458221436
+				2.75366473197937,
+				13.086271286010742,
+				3.029113531112671
 			],
 			"min":[
-				-4.8425984382629395,
-				0,
-				-4.194778919219971
+				-4.523311138153076,
+				-0.0004906419781036675,
+				-5.164801597595215
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":2139,
+			"count":1416,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":2139,
+			"count":1416,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":2139,
+			"count":1416,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
+			"componentType":5121,
+			"count":1416,
+			"normalized":true,
+			"type":"VEC4"
+		},
+		{
+			"bufferView":5,
 			"componentType":5123,
-			"count":4452,
+			"count":1416,
+			"normalized":true,
+			"type":"VEC4"
+		},
+		{
+			"bufferView":6,
+			"componentType":5123,
+			"count":4752,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":25668,
+			"byteLength":16992,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":25668,
-			"byteOffset":25668,
+			"byteLength":16992,
+			"byteOffset":16992,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":17112,
-			"byteOffset":51336,
+			"byteLength":11328,
+			"byteOffset":33984,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":34224,
-			"byteOffset":68448,
+			"byteLength":22656,
+			"byteOffset":45312,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":8904,
-			"byteOffset":102672,
+			"byteLength":5664,
+			"byteOffset":67968,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":11328,
+			"byteOffset":73632,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":9504,
+			"byteOffset":84960,
 			"target":34963
 		}
 	],
@@ -181,7 +210,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":111576,
+			"byteLength":94464,
 			"uri":"dead_tree.bin"
 		}
 	]

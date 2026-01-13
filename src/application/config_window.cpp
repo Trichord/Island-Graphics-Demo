@@ -10,10 +10,12 @@
 #include "imgui_impl_opengl3.h"
 #include "texture_utilities.h"
 
+namespace {
 constexpr unsigned int GUIWidth{1024u};
 constexpr unsigned int GUIHeight{576u};
 constexpr unsigned int numColumns{2u};
 constexpr float baseFontSize = 22.0f;
+}  // namespace
 
 ConfigWindow::~ConfigWindow() {
   if (textureID) glDeleteTextures(1, &textureID);
@@ -23,14 +25,14 @@ static void glfw_error_callback(int error, const char* description) {
   std::cerr << "GLFW Error " << error << description << std::endl;
 }
 
-bool ConfigWindow::launchSettingsWindow() {
+bool ConfigWindow::launchSettingsWindow(GraphicsSettings& settings) {
   if (!createWindow()) return false;
 
   loadConfigWindowImage();
 
   setupImGui();
 
-  bool settingsConfirmed{renderImGui()};
+  bool settingsConfirmed{renderImGui(settings)};
 
   // Cleanup
   ImGui_ImplOpenGL3_Shutdown();
@@ -119,7 +121,7 @@ void ConfigWindow::setupImGui() {
   style.ScaleAllSizes(windowScale);
 }
 
-bool ConfigWindow::renderImGui() {
+bool ConfigWindow::renderImGui(GraphicsSettings& settings) {
   bool settingsConfirmed{false};
 
   // GLFW window scale
@@ -175,7 +177,7 @@ bool ConfigWindow::renderImGui() {
         if (ImGui::Selectable(resolutions[i], isResolutionSelected)) {
           resolutionSelectedIndex = i;
           resolutionPreviewValue = resolutions[resolutionSelectedIndex];
-          updateGlobalResolution(i);
+          updateResolution(settings, i);
         }
         if (isResolutionSelected) ImGui::SetItemDefaultFocus();
       }
@@ -183,16 +185,16 @@ bool ConfigWindow::renderImGui() {
     }
     ImGui::Spacing();
 
-    ImGui::Checkbox("Fullscreen", &globalGraphicsSettings.fullscreen);
+    ImGui::Checkbox("Fullscreen", &settings.fullscreen);
     ImGui::Spacing();
 
-    ImGui::Checkbox("VSync", &globalGraphicsSettings.vsync);
+    ImGui::Checkbox("VSync", &settings.vsync);
     ImGui::Spacing();
 
     // Gamma
     ImGui::Text("Gamma");
-    ImGui::SliderFloat("##gammaSlider", &globalGraphicsSettings.gamma, 0.5f,
-                       3.0f, "%.3f", ImGuiSliderFlags_ClampOnInput);
+    ImGui::SliderFloat("##gammaSlider", &settings.gamma, 0.5f, 3.0f, "%.3f",
+                       ImGuiSliderFlags_ClampOnInput);
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort |
                              ImGuiHoveredFlags_NoSharedDelay))
       ImGui::SetTooltip("Ctrl + Click to edit",
@@ -212,7 +214,7 @@ bool ConfigWindow::renderImGui() {
         if (ImGui::Selectable(msaaLevel[i], isMSAASelected)) {
           msaaSelectedIndex = i;
           msaaPreviewValue = msaaLevel[msaaSelectedIndex];
-          updateGlobalMSAA(i);
+          updateMSAA(settings, i);
         }
         if (isMSAASelected) ImGui::SetItemDefaultFocus();
       }
@@ -230,7 +232,7 @@ bool ConfigWindow::renderImGui() {
         if (ImGui::Selectable(anisoLevel[i], isAnisoSelected)) {
           anisoSelectedIndex = i;
           anisoPreviewValue = anisoLevel[anisoSelectedIndex];
-          updateGlobalAniso(i);
+          updateAniso(settings, i);
         }
         if (isAnisoSelected) ImGui::SetItemDefaultFocus();
       }
@@ -317,20 +319,22 @@ void ConfigWindow::loadConfigWindowImage() {
 
   if (!imageData.size()) return;
 
-  textureID = textureUtilities::generateTextureID(imageData[0], false, false);
+  textureID = textureUtilities::generateTextureID(imageData[0], Sampler{},
+                                                  TextureConfig{}, false);
 }
 
-void ConfigWindow::updateGlobalResolution(unsigned int index) {
+void ConfigWindow::updateResolution(GraphicsSettings& settings,
+                                    unsigned int index) {
   if (index < resolutionTable.size()) {
-    globalGraphicsSettings.screenWidth = resolutionTable[index].first;
-    globalGraphicsSettings.screenHeight = resolutionTable[index].second;
+    settings.screenWidth = resolutionTable[index].first;
+    settings.screenHeight = resolutionTable[index].second;
   }
 }
 
-void ConfigWindow::updateGlobalMSAA(unsigned int index) {
-  if (index < msaaTable.size()) globalGraphicsSettings.msaa = msaaTable[index];
+void ConfigWindow::updateMSAA(GraphicsSettings& settings, unsigned int index) {
+  if (index < msaaTable.size()) settings.msaa = msaaTable[index];
 }
-void ConfigWindow::updateGlobalAniso(unsigned int index) {
+void ConfigWindow::updateAniso(GraphicsSettings& settings, unsigned int index) {
   if (index < anisoTable.size())
-    globalGraphicsSettings.anisotropicFiltering = anisoTable[index];
+    settings.anisotropicFiltering = anisoTable[index];
 }

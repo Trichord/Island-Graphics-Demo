@@ -3,10 +3,10 @@
 #include <filesystem>
 #include <vector>
 
+#include "aabb.h"
 #include "primitive.h"
 #include "renderable.h"
 #include "texture_manager.h"
-#include "aabb.h"
 
 class Model : public Renderable {
  public:
@@ -25,7 +25,7 @@ class Model : public Renderable {
    * @details Draws each primitive in the mesh. Binds albdeo, ambient occlusion,
    *  metallic, roughness, and normal map textures, if the model has them.
    */
-  void render() override;
+  void render(unsigned int globalMSAA) override;
   bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
                       const glm::mat4& modelMatrix,
                       const glm::vec3& cameraPos) override;
@@ -33,10 +33,11 @@ class Model : public Renderable {
   ModelHandle getModelHandle();
 
  protected:
-  struct Material {
+  struct MaterialIndicies {
     int albedoImageIndex, aoMetallicRoughnessImageIndex, normalImageIndex;
 
-    Material(int alb = -1, int metRough = -1, int norm = -1, int ao = -1)
+    MaterialIndicies(int alb = -1, int metRough = -1, int norm = -1,
+                     int ao = -1)
         : albedoImageIndex(alb),
           aoMetallicRoughnessImageIndex(metRough),
           normalImageIndex(norm) {};
@@ -44,14 +45,14 @@ class Model : public Renderable {
 
   ModelHandle handle{0};
   TextureManager& texManager;
-  const std::vector<TextureSet>& textureSet;
+  const std::vector<Material>& textureSet;
   std::vector<Primitive::Mesh> meshes;
   AABB aabb;
 
   void loadModel(const std::filesystem::path& path, bool borrowed);
-  void bindTextures(const TextureSet& textureSet);
+  void bindTextures(const Material& textureSet);
   void calculateAABB();
-  void setAlphaMode(bool enabled);
+  void setAlphaMode(unsigned int globalMSAA, bool needsAlpha);
   virtual void drawPrimitive(const Primitive& primitive);
   void assignMaterialIndex(std::size_t newIndex);
   bool hasMaterials() const;
