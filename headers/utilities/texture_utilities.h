@@ -11,9 +11,15 @@ struct Sampler {
       : magFilter(mag), minFilter(min), wrapS(ws), wrapT(wt) {};
 };
 
+struct TextureConfig {
+  bool sRGBRequested{false};
+  bool anisoRequested{false};
+  float anisoLevel{0.0f};
+};
+
 namespace textureUtilities {
 GLuint generateTextureID(const LoadedImage& image, Sampler sampler,
-                         bool sRGB = true, bool anisotropic = true);
+                         TextureConfig config, bool globalAnsioEnabled);
 GLuint generateCubemapTextureID(const std::vector<LoadedImage>& imageData,
                                 bool sRGB = true);
 }  // namespace textureUtilities

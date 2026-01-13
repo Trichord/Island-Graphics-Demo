@@ -10,17 +10,27 @@
 #include "scene.h"
 
 void Application::run() {
-  if (!configWindow.launchSettingsWindow()) return;
+  ConfigWindow configWindow;
+  ConfigWindow::GraphicsSettings graphicsSettings;
 
-  createWindow();
+  if (!configWindow.launchSettingsWindow(graphicsSettings)) return;
+
+  createWindow(graphicsSettings);
   if (!window) return;
 
-  createOpenGLViewport();
+  createOpenGLViewport(graphicsSettings);
   registerCallbacks();
 
   IslandScene islandScene(textureManager);
-  Renderer renderer(ConfigWindow::globalGraphicsSettings.screenWidth,
-                    ConfigWindow::globalGraphicsSettings.screenHeight);
+  islandScene.camera.setAspectRatio(
+      static_cast<float>(graphicsSettings.screenWidth) /
+      static_cast<float>(graphicsSettings.screenHeight));
+
+  if (graphicsSettings.anisotropicFiltering)
+    textureManager.setAnisoLevel(
+        static_cast<float>(graphicsSettings.anisotropicFiltering));
+
+  Renderer renderer(graphicsSettings);
 
   addGlfwUserParam(islandScene);
 
@@ -61,7 +71,8 @@ void Application::run() {
   return;
 }
 
-void Application::createWindow() {
+void Application::createWindow(
+    const ConfigWindow::GraphicsSettings& graphicsSettings) {
   glfwInit();
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -69,13 +80,16 @@ void Application::createWindow() {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-  unsigned int msaa{ConfigWindow::globalGraphicsSettings.msaa};
-  glfwWindowHint(GLFW_SAMPLES, msaa);
+  unsigned int msaa{graphicsSettings.msaa};
+  if (msaa) {
+    glfwWindowHint(GLFW_SAMPLES, msaa);
+    glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
+  }
 
-  unsigned int width{ConfigWindow::globalGraphicsSettings.screenWidth};
-  unsigned int height{ConfigWindow::globalGraphicsSettings.screenHeight};
+  unsigned int width{graphicsSettings.screenWidth};
+  unsigned int height{graphicsSettings.screenHeight};
 
-  if (ConfigWindow::globalGraphicsSettings.fullscreen)
+  if (graphicsSettings.fullscreen)
     window = glfwCreateWindow(width, height, "OpenGL Demo",
                               glfwGetPrimaryMonitor(), nullptr);
 
@@ -89,31 +103,33 @@ void Application::createWindow() {
 
   glfwMakeContextCurrent(window);
 
-  if (ConfigWindow::globalGraphicsSettings.vsync)
+  if (graphicsSettings.vsync)
     glfwSwapInterval(1);
 
   else
     glfwSwapInterval(0);
 }
 
-void Application::createOpenGLViewport() {
+void Application::createOpenGLViewport(
+    const ConfigWindow::GraphicsSettings& graphicsSettings) {
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     std::cout << "Failed to initialize GLAD" << std::endl;
     glfwTerminate();
     return;
   }
 
-  unsigned int width{ConfigWindow::globalGraphicsSettings.screenWidth};
-  unsigned int height{ConfigWindow::globalGraphicsSettings.screenHeight};
-  unsigned int msaa{ConfigWindow::globalGraphicsSettings.msaa};
+  unsigned int width{graphicsSettings.screenWidth};
+  unsigned int height{graphicsSettings.screenHeight};
+  unsigned int msaa{graphicsSettings.msaa};
 
   glViewport(0, 0, width, height);
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glEnable(GL_FRAMEBUFFER_SRGB);
-  glEnable(GL_MULTISAMPLE);
   glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+  if (graphicsSettings.msaa) glEnable(GL_MULTISAMPLE);
 }
 
 void Application::processInput(Scene& scene) {

@@ -4,8 +4,8 @@
  * not here, GLFW would trigger a glad.h include error.
  */
 
-#include "gl_context.h"
 #include "config_window.h"
+#include "gl_context.h"
 #include "scene.h"
 #include "texture_manager.h"
 
@@ -63,14 +63,13 @@ class Application {
   float lastFrame{0.0f};
   float currentFrame{0.0f};
   GLFWwindow* window{nullptr};
-  ConfigWindow configWindow;
   TextureManager textureManager;
 
   /**
    * @brief Creates a GLFW window.  Display settings from the config window are
    * passed to GLFW here.
    */
-  void createWindow();
+  void createWindow(const ConfigWindow::GraphicsSettings& graphicsSettings);
 
   /**
    * @brief Checks for GLFW key presses and passes info to the scene.
@@ -83,7 +82,8 @@ class Application {
    * @brief Registers OpenGL function pointers, creates an OpenGL viewport, and
    * optionally sets MSAA.
    */
-  void createOpenGLViewport();
+  void createOpenGLViewport(
+      const ConfigWindow::GraphicsSettings& graphicsSettings);
 
   /**
    * @brief Registers GLFW callbacks.  Mouse callback is seperate and should be
@@ -92,7 +92,8 @@ class Application {
   void registerCallbacks();
 
   /**
-   * @brief Registers a scene with GLFW to be used with GLFW's built in call-backs.
+   * @brief Registers a scene with GLFW to be used with GLFW's built in
+   * call-backs.
    *
    * @param scene The target scene to be processed by GLFW.
    */

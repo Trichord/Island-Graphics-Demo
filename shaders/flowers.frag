@@ -7,7 +7,7 @@ const float ambientStrength = 0.2;
 
 out vec4 fragColor;
 
-uniform sampler2D colorTexture;
+uniform sampler2D albedoMap;
 uniform vec3 lightDir;
 uniform float gamma;
 
@@ -26,7 +26,10 @@ return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
 void main() {
-    vec4 grassColor = texture(colorTexture, texCoords);
+    vec4 albedo = texture(albedoMap, texCoords);
+
+    if(albedo.a < 0.1)
+        discard;
 
     //Flip normal if 2D quad is facing away
     vec3 normalizedNormal = normalize(normal);
@@ -38,15 +41,12 @@ void main() {
 
     //Diffuse
     float diffuseStrength = NdotL * 0.5 + 0.5;
-
-    // Rescale alpha by partial derivative. Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
-    grassColor.a = (grassColor.a - alphaCutoff) / max(fwidth(grassColor.a), 0.0001) + 0.5;
     
     //Ambient
-    vec3 ambient = ambientStrength * lightColor * grassColor.rgb;
+    vec3 ambient = ambientStrength * lightColor * albedo.rgb;
     
     //Diffuse continued after filling texture load with math
-    vec3 diffuse = diffuseStrength * lightColor * grassColor.rgb;
+    vec3 diffuse = diffuseStrength * lightColor * albedo.rgb;
 
     vec3 color = ambient + diffuse;
 
@@ -56,5 +56,5 @@ void main() {
     //Gamma correction
 	color = pow(color, vec3(1.0/gamma)); 
    
-    fragColor = vec4(color, grassColor.a);
+    fragColor = vec4(color, albedo.a);
 }
