@@ -119,3 +119,9 @@ void Scene::initializeScene() {
   textureManager.processTextureQueue();
   std::cout << " Done." << std::endl;
 }
+
+glm::vec3 Scene::getAmbientLight() const { return ambientLight; }
+
+void Scene::setAmbientLight(const glm::vec3& ambient) {
+  ambientLight = ambient;
+}
