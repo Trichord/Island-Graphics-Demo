@@ -5,12 +5,12 @@ out vec4 fragColor;
 uniform sampler2D albedoMap;
 uniform sampler2D occlusionRoughMetalMap;
 uniform sampler2D normalMap;
+uniform vec3 ambientLight;
 uniform float gamma;
 
 const float INVERSE_PI = 0.31830988618;
 const float mipScale = 0.25;
 const float alphaCutoff = 0.5;
-const vec3 fixedAmbient = vec3(0.2);
 
 //Bright mid-day sun
 const vec3 lightColor = vec3(1.0, 0.95, 0.9);
@@ -87,7 +87,7 @@ void main() {
 	vec3 accumulatedLight = diffuse * lightColor * NdotL;
 	
 	//Ambient
-	vec3 ambient = fixedAmbient * albedo.rgb * ao;
+	vec3 ambient = ambientLight * albedo.rgb * ao;
 	
 	//Final color
 	vec3 color = ambient + accumulatedLight;

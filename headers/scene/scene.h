@@ -53,6 +53,8 @@ class Scene {
   Transform& getObjectTransform(const std::string& key);
   Light& getNamedLight(const std::string& key);
   DirectionalLight& getGlobalLightSource();
+  glm::vec3 getAmbientLight() const;
+  void setAmbientLight(const glm::vec3& ambient);
 
  protected:
   TextureManager& textureManager;
@@ -61,6 +63,7 @@ class Scene {
   std::unordered_map<std::string, std::reference_wrapper<Transform>>
       namedTransforms;
   std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights;
+
   std::vector<Model> models;
   std::vector<CubeMappedModel> cubeMappedModels;
   std::vector<Skybox> skyboxes;
@@ -68,15 +71,18 @@ class Scene {
   std::vector<PointLight> pointLights;
 
   DirectionalLight globalLightSource;
+  glm::vec3 ambientLight{0.2f};
 
   virtual void addAllModelsToScene() = 0;
   virtual void addAllLightsToScene() = 0;
   virtual void setupCamera() = 0;
 
   void initializeScene();
+
   Model& loadModel(const std::filesystem::path& filepath);
   Model& loadModel(const Model& borrowTarget,
                    const std::filesystem::path& filepath);
+
   CubeMappedModel& loadCubeMappedModel(
       const std::filesystem::path& modelPath,
       const std::vector<std::filesystem::path>& imagePaths);
@@ -84,9 +90,11 @@ class Scene {
       const CubeMappedModel& borrowTarget,
       const std::filesystem::path& modelPath,
       const std::vector<std::filesystem::path>& imagePaths);
+
   Skybox& loadSkybox(const std::vector<std::filesystem::path>& filePaths);
   Skybox& loadSkybox(const Skybox& borrowTarget,
                      const std::vector<std::filesystem::path>& filePaths);
+
   InstancedModel& loadInstancedModel(const std::filesystem::path& modelPath,
                                      const std::filesystem::path& positionsPath,
                                      float minSize = 1.0f, float maxSize = 1.0f,

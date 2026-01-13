@@ -5,15 +5,11 @@ out vec4 fragColor;
 uniform sampler2D albedoMap;
 uniform sampler2D occlusionRoughMetalMap;
 uniform sampler2D normalMap;
+uniform vec3 ambientLight;
+uniform vec3 lightColor;
 uniform float gamma;
 
 const float INVERSE_PI = 0.31830988618;
-
-//Bright mid-day sun
-const vec3 lightColor = vec3(1.0, 0.95, 0.9);
-
-//Fixed ambient term
-const vec3 fixedAmbient = vec3(0.2);
 
 //Positions in tangent view space
 in VS_OUT {
@@ -139,7 +135,7 @@ void main() {
 	//add to outgoing radiance Lo
 	Lo += (diffuse + specular) * lightColor * NdotL;
 
-	vec3 ambient = fixedAmbient * albedo.rgb * ao;
+	vec3 ambient = ambientLight * albedo.rgb * ao;
 	vec3 color = ambient + Lo;
 
 	//ACES tone mapping
