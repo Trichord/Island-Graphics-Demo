@@ -133,11 +133,8 @@ void Camera::updateCameraMatrices() {
 const glm::mat4& Camera::getProjectionMatrix() { return projectionMatrix; }
 
 glm::mat4 Camera::createProjectionMatrix() {
-  return glm::perspective(
-      glm::radians(defaultCameraZoom),
-      (float)ConfigWindow::globalGraphicsSettings.screenWidth /
-          (float)ConfigWindow::globalGraphicsSettings.screenHeight,
-      defaultCameraNearPlane, defaultCameraFarPlane);
+  return glm::perspective(glm::radians(defaultCameraZoom), aspectRatio,
+                          defaultCameraNearPlane, defaultCameraFarPlane);
 }
 
 void normalizePlane(glm::vec4& vec) {
@@ -177,4 +174,10 @@ const std::array<glm::vec4, 6>& Camera::getFrustumPlanes() {
   for (auto& vec : frustumPlanes) normalizePlane(vec);
 
   return frustumPlanes;
+}
+
+void Camera::setAspectRatio(float ratio) {
+  aspectRatio = ratio;
+  projectionMatrix = createProjectionMatrix();
+  dirtyMatrices = true;
 }

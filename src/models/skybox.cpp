@@ -40,7 +40,7 @@ Skybox::~Skybox() {
   if (handle) texManager.releaseModel(handle);
 }
 
-void Skybox::render() {
+void Skybox::render(unsigned int globalMSAA) {
   glDepthFunc(GL_LEQUAL);
 
   if (!textureSet.empty()) glBindTextureUnit(3, textureSet[0].cubemap);
