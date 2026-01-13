@@ -20,7 +20,7 @@ class Skybox : public Renderable {
   Skybox& operator=(Skybox&& other) = delete;
   ~Skybox();
 
-  void render() override;
+  void render(unsigned int globalMSAA) override;
   bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
                       const glm::mat4& modelMatrix,
                       const glm::vec3& cameraPos) override;
@@ -32,7 +32,7 @@ class Skybox : public Renderable {
   GLuint EBO{0};
   ModelHandle handle{0};
   TextureManager& texManager;
-  const std::vector<TextureSet>& textureSet;
+  const std::vector<Material>& textureSet;
 
   inline static const float vertices[]{-1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f,
                                        1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f,

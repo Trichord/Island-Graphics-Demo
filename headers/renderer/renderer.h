@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 
+#include "config_window.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "scene.h"
@@ -11,11 +12,11 @@
 class Renderer {
  public:
   Renderer() = delete;
-  Renderer(int screenWidth, int screenHeight);
+  explicit Renderer(const ConfigWindow::GraphicsSettings& graphicsSettings);
   Renderer(const Renderer&) = delete;
   Renderer& operator=(const Renderer&) = delete;
   Renderer(Renderer&& other) noexcept;
-  Renderer& operator=(Renderer&& other) noexcept;
+  Renderer& operator=(Renderer&& other) = delete;
 
   void renderScene(Scene& scene);
   void updateUBO(Scene& scene);
@@ -32,14 +33,10 @@ class Renderer {
   GLuint UBO{0};
   PackedUBOData uboData;
   std::unordered_map<ShaderType, Shader> shaders;
+  const ConfigWindow::GraphicsSettings graphicsSettings;
 
   void setupUBO();
   void loadShaders();
-  void setupFlowerShader(Shader& shader);
-  void setupPBRShader(Shader& shader);
-  void setupTreeShader(Shader& shader);
-  void setupReflectiveShader(Shader& shader);
-  void setupLightSourceShader(Shader& shader);
-  void setupSkyboxShader(Shader& shader);
+  void setupShader(Shader& shader);
   void updateShaderUniforms(Scene& scene);
 };
