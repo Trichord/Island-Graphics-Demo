@@ -19,18 +19,18 @@
 // Normalized wind direction, east southeast with a slight downward angle
 constexpr glm::vec3 windDir{0.892079f, -0.101373f, 0.440362f};
 constexpr glm::vec3 ambientLight{0.15f};
-//Bright midday sun
+// Bright midday sun
 constexpr glm::vec3 lightColor{1.0f, 0.95f, 0.9f};
 
 Renderer::Renderer(const ConfigWindow::GraphicsSettings& settings)
     : graphicsSettings{settings} {
+  setupUBO();
+
   std::cout << "Loading Shaders...";
   loadShaders();
   std::cout << " Done." << std::endl;
 
   for (auto& [_, shader] : shaders) setupShader(shader);
-
-  setupUBO();
 }
 
 Renderer::Renderer(Renderer&& other) noexcept
@@ -157,11 +157,10 @@ void Renderer::setupShader(Shader& shader) {
   shader.setVec3("ambientLight", ambientLight);
   shader.setVec3("lightColor", lightColor);
 
-
   shader.setFloat("windStrength", 0.07f);
   shader.setVec3("windDirection", windDir);
 
-    shader.setFloat("gamma", graphicsSettings.gamma);
+  shader.setFloat("gamma", graphicsSettings.gamma);
 }
 
 void Renderer::updateShaderUniforms(Scene& scene) {

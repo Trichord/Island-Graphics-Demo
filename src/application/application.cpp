@@ -79,22 +79,20 @@ void Application::createWindow(
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+  glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 
-  unsigned int msaa{graphicsSettings.msaa};
-  if (msaa) {
-    glfwWindowHint(GLFW_SAMPLES, msaa);
-    glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
-  }
+  if (graphicsSettings.msaa)
+    glfwWindowHint(GLFW_SAMPLES, graphicsSettings.msaa);
 
-  unsigned int width{graphicsSettings.screenWidth};
-  unsigned int height{graphicsSettings.screenHeight};
+  int width{graphicsSettings.screenWidth};
+  int height{graphicsSettings.screenHeight};
 
   if (graphicsSettings.fullscreen)
-    window = glfwCreateWindow(width, height, "OpenGL Demo",
+    window = glfwCreateWindow(width, height, "Island Tech Demo",
                               glfwGetPrimaryMonitor(), nullptr);
 
   else
-    window = glfwCreateWindow(width, height, "OpenGL Demo", NULL, NULL);
+    window = glfwCreateWindow(width, height, "Island Tech Demo", NULL, NULL);
 
   if (!window) {
     std::cout << "Failed to create GLFW window" << std::endl;
@@ -118,9 +116,8 @@ void Application::createOpenGLViewport(
     return;
   }
 
-  unsigned int width{graphicsSettings.screenWidth};
-  unsigned int height{graphicsSettings.screenHeight};
-  unsigned int msaa{graphicsSettings.msaa};
+  GLsizei width{static_cast<GLsizei>(graphicsSettings.screenWidth)};
+  GLsizei height{static_cast<GLsizei>(graphicsSettings.screenHeight)};
 
   glViewport(0, 0, width, height);
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
