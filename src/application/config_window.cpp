@@ -323,18 +323,17 @@ void ConfigWindow::loadConfigWindowImage() {
                                                   TextureConfig{}, false);
 }
 
-void ConfigWindow::updateResolution(GraphicsSettings& settings,
-                                    unsigned int index) {
+void ConfigWindow::updateResolution(GraphicsSettings& settings, int index) {
   if (index < resolutionTable.size()) {
     settings.screenWidth = resolutionTable[index].first;
     settings.screenHeight = resolutionTable[index].second;
   }
 }
 
-void ConfigWindow::updateMSAA(GraphicsSettings& settings, unsigned int index) {
+void ConfigWindow::updateMSAA(GraphicsSettings& settings, int index) {
   if (index < msaaTable.size()) settings.msaa = msaaTable[index];
 }
-void ConfigWindow::updateAniso(GraphicsSettings& settings, unsigned int index) {
+void ConfigWindow::updateAniso(GraphicsSettings& settings, int index) {
   if (index < anisoTable.size())
     settings.anisotropicFiltering = anisoTable[index];
 }

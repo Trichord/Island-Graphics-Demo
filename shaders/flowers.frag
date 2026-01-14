@@ -28,6 +28,9 @@ return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 void main() {
     vec4 albedo = texture(albedoMap, texCoords);
 
+    // Rescale alpha by partial derivative. Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
+    albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
+
     if(albedo.a < 0.1)
         discard;
 

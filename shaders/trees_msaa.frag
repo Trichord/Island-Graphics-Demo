@@ -60,7 +60,6 @@ void main() {
 	float roughness = occlusionRoughMetalMap.g;
 	float metallic = occlusionRoughMetalMap.b;
 
-
 	// Rescale alpha by partial derivative. Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
     albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
   
