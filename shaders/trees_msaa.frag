@@ -62,7 +62,7 @@ void main() {
 
 	// Rescale alpha by partial derivative. Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
     albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
-  
+
 	//vectors
 	vec3 N = normalize(normal);
 	vec3 V = normalize(fs_in.cameraPos -fs_in.fragPos);

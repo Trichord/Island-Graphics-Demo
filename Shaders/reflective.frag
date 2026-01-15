@@ -9,7 +9,7 @@ layout (std140) uniform matrices {
 in vec3 normal;
 in vec3 position;
 
-uniform samplerCube cubemap;
+uniform samplerCube cubeMap;
 uniform float gamma;
 
 out vec4 fragColor;
@@ -17,7 +17,7 @@ out vec4 fragColor;
 void main() {
 	vec3 viewDir = normalize(position - cameraPosition.xyz);
 	vec3 reflectDir = reflect(viewDir, normalize(normal));
-	vec3 color = texture(cubemap, reflectDir).rgb;
+	vec3 color = texture(cubeMap, reflectDir).rgb;
 	color = pow(color, vec3(1.0/gamma));
 	
 	fragColor = vec4(color, 1.0); 
