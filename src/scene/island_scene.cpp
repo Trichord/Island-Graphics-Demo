@@ -89,7 +89,7 @@ void IslandScene::addAllModelsToScene() {
   addObjectToScene(tree1, TREES);
 
   // Tree 2
-  auto& tree2 = loadInstancedModel(tree1, "./res/models/tree2/tree2.gltf",
+  auto& tree2 = loadInstancedModel(tree1, "./res/models/tree3/tree3.gltf",
                                    "./res/tree2.txt", 0.8f, 1.125f, 67);
   addObjectToScene(tree2, TREES);
 
