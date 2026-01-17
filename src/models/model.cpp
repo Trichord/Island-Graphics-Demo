@@ -5,7 +5,6 @@
 #include <limits>
 #include <vector>
 
-#include "config_window.h"
 #include "fastgltf/types.hpp"
 #include "fastgltf_loader.h"
 #include "glad/glad.h"
@@ -52,6 +51,7 @@ void Model::render(unsigned int globalMSAA) {
   bool materialBound{false};
 
   for (const Primitive::Mesh& mesh : meshes) {
+    if (!mesh.isVisible) continue;
     for (const Primitive& primitive : mesh.primitives) {
       needsAlpha = primitive.getAlphaMode() != fastgltf::AlphaMode::Opaque;
 
@@ -141,8 +141,11 @@ void Model::calculateAABB() {
   for (const auto& mesh : meshes)
     for (const auto& primitive : mesh.primitives) {
       const AABB& primAABB{primitive.getAABB()};
-      const glm::vec3& aabbMin{primAABB.getMin()};
-      const glm::vec3& aabbMax{primAABB.getMax()};
+
+      const glm::vec3 center{primAABB.getCenter()};
+      const glm::vec3 extent{primAABB.getExtent()};
+      const glm::vec3 aabbMin{center - extent};
+      const glm::vec3 aabbMax{center + extent};
 
       minX = std::min(aabbMin.x, minX);
       minY = std::min(aabbMin.y, minY);
@@ -158,6 +161,13 @@ void Model::calculateAABB() {
 
 bool Model::performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
                            const glm::mat4& modelMatrix,
-                           const glm::vec3& cameraPos) {
-  return aabb.intersects(frustumPlanes, modelMatrix);
+                           const glm::vec3& cameraPos,
+                           const float cullDistanceScale) {
+  bool visible{false};
+
+  if (aabb.intersects(frustumPlanes, modelMatrix)) {
+    visible = true;
+    for (auto& mesh : meshes) mesh.isVisible = true;
+  }
+  return visible;
 }
