@@ -22,8 +22,8 @@ class Skybox : public Renderable {
 
   void render(unsigned int globalMSAA) override;
   bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
-                      const glm::mat4& modelMatrix,
-                      const glm::vec3& cameraPos) override;
+                      const glm::mat4& modelMatrix, const glm::vec3& cameraPos,
+                      const float cullDistanceScale) override;
   ModelHandle getModelHandle();
 
  private:

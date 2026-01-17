@@ -21,6 +21,7 @@ constexpr glm::vec3 windDir{0.892079f, -0.101373f, 0.440362f};
 constexpr glm::vec3 ambientLight{0.15f};
 // Bright midday sun
 constexpr glm::vec3 lightColor{1.0f, 0.95f, 0.9f};
+constexpr float grassCullDistance{0.29f};
 
 Renderer::Renderer(const ConfigWindow::GraphicsSettings& settings)
     : graphicsSettings{settings} {
@@ -42,10 +43,10 @@ Renderer::Renderer(Renderer&& other) noexcept
 }
 
 void Renderer::renderScene(Scene& scene) {
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
   updateShaderUniforms(scene);
   cullRenderables(scene);
+  
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   // For each shader type in the scene
   for (auto& [shaderType, objectList] : scene.getSceneObjects()) {
@@ -79,11 +80,12 @@ void Renderer::renderScene(Scene& scene) {
 }
 
 void Renderer::updateUBO(Scene& scene) {
-  uboData.viewMatrix = scene.camera.getViewMatrix();
+  /*
+    uboData.viewMatrix = scene.camera.getViewMatrix();
   uboData.viewProjectionMatrix = scene.camera.getViewProjectionMatrix();
   uboData.cameraPosition = glm::vec4{scene.camera.getPosition(), 0.0f};
 
-  /*
+  */
   // Culling test
 glm::vec3 position{15.0f, 5.0f, 15.0f};
 glm::vec3 front{0.0f, 0.0f, 1.0f};
@@ -91,15 +93,14 @@ glm::vec3 up{0.0f, 1.0f, 0.0f};
 glm::mat4 viewMatrix{glm::lookAt(position, position + front, up)};
 glm::mat4 projectionMatrix{glm::perspective(
     glm::radians(defaultCameraZoom),
-    (float)ConfigWindow::globalGraphicsSettings.screenWidth /
-        (float)ConfigWindow::globalGraphicsSettings.screenHeight,
+    2560.0f / 1440.0f,
     defaultCameraNearPlane, defaultCameraFarPlane)};
 
 uboData.viewMatrix = viewMatrix;
 uboData.viewProjectionMatrix = projectionMatrix * viewMatrix;
 uboData.cameraPosition = glm::vec4{position, 0.0f};
 //End Culling Test
-*/
+
 
   void* uboPointer{
       glMapNamedBufferRange(UBO, 0, sizeof(PackedUBOData),
@@ -202,10 +203,12 @@ void Renderer::cullRenderables(Scene& scene) {
   const std::array<glm::vec4, 6>& frustumPlanes{
       scene.camera.getFrustumPlanes()};
 
-  for (auto& [_, objectList] : scene.getSceneObjects())
+  for (auto& [shaderType, objectList] : scene.getSceneObjects())
     for (auto& object : objectList) {
+      using enum ShaderType;
       object.isVisible = object.renderable.get().performCulling(
           frustumPlanes, object.transform.getModelMatrix(),
-          scene.camera.getPosition());
+          scene.camera.getPosition(),
+          shaderType == FLOWERS ? grassCullDistance : 1.0f);
     }
 }

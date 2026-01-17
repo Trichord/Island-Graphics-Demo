@@ -13,7 +13,7 @@ void IslandScene::addAllModelsToScene() {
   using enum ShaderType;
 
   // Main island
-  auto& island = loadModel("./res/models/island/island.gltf");
+  auto& island = loadTerrain("./res/models/island/island.gltf");
   addObjectToScene(island, DIRECTIONAL_PBR);
 
     // Dead tree

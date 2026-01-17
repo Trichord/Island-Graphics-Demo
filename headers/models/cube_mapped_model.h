@@ -16,6 +16,5 @@ class CubeMappedModel : public Model {
                   const std::vector<std::filesystem::path>& imagePaths);
   CubeMappedModel(TextureManager& textureManager,
                   const CubeMappedModel& borrowTarget,
-                  const std::filesystem::path& modelPath,
-                  const std::vector<std::filesystem::path>& imagePaths);
+                  const std::filesystem::path& modelPath);
 };

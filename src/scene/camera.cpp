@@ -2,7 +2,6 @@
 
 #include <cmath>
 
-#include "config_window.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_access.hpp"
 #include "glm/gtc/matrix_transform.hpp"
