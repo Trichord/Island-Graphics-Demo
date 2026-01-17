@@ -104,16 +104,12 @@ void InstancedModel::generateInstanceMatrices(float minSize, float maxSize) {
 
 void InstancedModel::generateWorldAABBs() {
   for (auto& instance : instances) {
-    const glm::vec3& localMin{aabb.getMin()};
-    const glm::vec3& localMax{aabb.getMax()};
-    glm::vec3 localCenter = 0.5f * (localMin + localMax);
-    glm::vec3 localExtent = 0.5f * (localMax - localMin);
-
     glm::mat3 RS{glm::mat3{instance.modelMatrix}};
     glm::mat3 absRS{glm::abs(RS[0]), glm::abs(RS[1]), glm::abs(RS[2])};
 
-    glm::vec3 worldCenter{instance.modelMatrix * glm::vec4(localCenter, 1.0f)};
-    glm::vec3 worldExtent{absRS * localExtent};
+    glm::vec3 worldCenter{instance.modelMatrix *
+                          glm::vec4(aabb.getCenter(), 1.0f)};
+    glm::vec3 worldExtent{absRS * aabb.getExtent()};
 
     instance.worldAABB =
         AABB{worldCenter - worldExtent, worldCenter + worldExtent};
@@ -185,10 +181,24 @@ void InstancedModel::deleteBuffers() { glDeleteBuffers(1, &instancesVBO); }
 
 bool InstancedModel::performCulling(
     const std::array<glm::vec4, 6>& frustumPlanes, const glm::mat4& modelMatrix,
-    const glm::vec3& cameraPos) {
+    const glm::vec3& cameraPos, const float cullDistanceScale) {
   bool visible{false};
 
+  // Near + (far - near) * scale
+  const float cullDistance{frustumPlanes[4].w +
+                           (frustumPlanes[5].w - frustumPlanes[4].w) *
+                               cullDistanceScale};
+
   for (auto& instance : instances) {
+    if (cullDistanceScale < 1.0f) {
+      const float objToCamera{glm::length(cameraPos - instance.position)};
+
+      if (objToCamera > cullDistance) {
+        instance.isVisible = false;
+        continue;
+      }
+    }
+
     if (instance.isVisible =
             instance.worldAABB.intersectsWorldSpace(frustumPlanes)) {
       double xDist{instance.position.x - cameraPos.x};
@@ -225,6 +235,8 @@ bool InstancedModel::performCulling(
 
   } else
     visibleInstances = 0;
+
+  for (auto& mesh : meshes) mesh.isVisible = visible;
 
   return visible;
 }

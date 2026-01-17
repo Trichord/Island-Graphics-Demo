@@ -4,16 +4,16 @@
 
 AABB::AABB(float minX, float minY, float minZ, float maxX, float maxY,
            float maxZ)
-    : min{minX, minY, minZ}, max{maxX, maxY, maxZ} {}
+    : center{0.5f *
+             (glm::vec3{minX, minY, minZ} + glm::vec3{maxX, maxY, maxZ})},
+      extent{0.5f *
+             (glm::vec3{maxX, maxY, maxZ} - glm::vec3{minX, minY, minZ})} {}
 
 AABB::AABB(const glm::vec3& min_, const glm::vec3& max_)
-    : min{min_}, max{max_} {}
+    : center{0.5f * (min_ + max_)}, extent{0.5f * (max_ - min_)} {}
 
 bool AABB::intersects(const std::array<glm::vec4, 6>& planes,
                       const glm::mat4& modelMatrix) const {
-  glm::vec3 center = 0.5f * (min + max);
-  glm::vec3 extent = 0.5f * (max - min);
-
   glm::mat3 RS{glm::mat3{modelMatrix}};
   glm::mat3 absRS{glm::abs(RS[0]), glm::abs(RS[1]), glm::abs(RS[2])};
 
@@ -21,36 +21,27 @@ bool AABB::intersects(const std::array<glm::vec4, 6>& planes,
   glm::vec3 worldExtent{absRS * extent};
 
   for (const auto& plane : planes) {
-    glm::vec3 normal{glm::vec3{plane}};
+    float d{glm::dot(worldCenter, glm::vec3{plane})};
+    float r{glm::dot(worldExtent, glm::vec3{glm::abs(plane)})};
 
-    if (glm::dot(worldCenter, normal) +
-            glm::dot(worldExtent, glm::abs(normal)) <
-        -plane.w)
-      return false;
+    if (d + r < -plane.w) return false;
   }
 
   return true;
 }
 
 bool AABB::intersectsWorldSpace(const std::array<glm::vec4, 6>& planes) const {
-  glm::vec3 center = 0.5f * (min + max);
-  glm::vec3 extent = 0.5f * (max - min);
-
   for (const auto& plane : planes) {
-    glm::vec3 normal{glm::vec3{plane}};
+    float d{glm::dot(center, glm::vec3{plane})};
+    float r{glm::dot(extent, glm::vec3{glm::abs(plane)})};
 
-    if (glm::dot(center, normal) + glm::dot(extent, glm::abs(normal)) <
-        -plane.w)
-      return false;
+    if (d + r < -plane.w) return false;
   }
 
   return true;
 }
 
-void AABB::resize(float scale) {
-  min *= scale;
-  max *= scale;
-}
+void AABB::resize(float scale) { extent *= scale; }
 
-const glm::vec3& AABB::getMin() const { return min; }
-const glm::vec3& AABB::getMax() const { return max; }
+glm::vec3 AABB::getCenter() const { return center; }
+glm::vec3 AABB::getExtent() const { return extent; }

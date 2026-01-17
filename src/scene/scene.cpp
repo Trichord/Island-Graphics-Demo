@@ -27,7 +27,7 @@ std::map<ShaderType, std::vector<RenderableObject>>& Scene::getSceneObjects() {
 
 Model& Scene::loadModel(const std::filesystem::path& filepath) {
   if (models.size() >= sceneMaxObjects::maxModels)
-    throw std::runtime_error("Max number of models reached");
+    throw std::runtime_error("Max number of models reached!");
 
   return models.emplace_back(textureManager, filepath);
 }
@@ -35,43 +35,9 @@ Model& Scene::loadModel(const std::filesystem::path& filepath) {
 Model& Scene::loadModel(const Model& borrowTarget,
                         const std::filesystem::path& filepath) {
   if (models.size() >= sceneMaxObjects::maxModels)
-    throw std::runtime_error("Max number of models reached");
+    throw std::runtime_error("Max number of models reached!");
 
   return models.emplace_back(textureManager, borrowTarget, filepath);
-}
-
-CubeMappedModel& Scene::loadCubeMappedModel(
-    const std::filesystem::path& modelPath,
-    const std::vector<std::filesystem::path>& imagePaths) {
-  if (cubeMappedModels.size() >= sceneMaxObjects::maxCubeMappedModels)
-    throw std::runtime_error("Max number of space models reached");
-
-  return cubeMappedModels.emplace_back(textureManager, modelPath, imagePaths);
-}
-
-CubeMappedModel& Scene::loadCubeMappedModel(
-    const CubeMappedModel& borrowTarget, const std::filesystem::path& modelPath,
-    const std::vector<std::filesystem::path>& imagePaths) {
-  if (cubeMappedModels.size() >= sceneMaxObjects::maxCubeMappedModels)
-    throw std::runtime_error("Max number of space models reached");
-
-  return cubeMappedModels.emplace_back(textureManager, borrowTarget, modelPath,
-                                       imagePaths);
-}
-
-Skybox& Scene::loadSkybox(const std::vector<std::filesystem::path>& filePaths) {
-  if (skyboxes.size() >= sceneMaxObjects::maxSkyboxes)
-    throw std::runtime_error("Max number of skyboxes reached");
-
-  return skyboxes.emplace_back(textureManager, filePaths);
-}
-
-Skybox& Scene::loadSkybox(const Skybox& borrowTarget,
-                          const std::vector<std::filesystem::path>& filePaths) {
-  if (skyboxes.size() >= sceneMaxObjects::maxSkyboxes)
-    throw std::runtime_error("Max number of skyboxes reached");
-
-  return skyboxes.emplace_back(textureManager, borrowTarget, filePaths);
 }
 
 InstancedModel& Scene::loadInstancedModel(
@@ -79,7 +45,7 @@ InstancedModel& Scene::loadInstancedModel(
     const std::filesystem::path& positionsPath, float minSize, float maxSize,
     unsigned int numPositions) {
   if (instancedModels.size() >= sceneMaxObjects::maxInstancedModels)
-    throw std::runtime_error{"Max number of instanced models reached"};
+    throw std::runtime_error{"Max number of instanced models reached!"};
 
   return instancedModels.emplace_back(textureManager, modelPath, positionsPath,
                                       minSize, maxSize, numPositions);
@@ -90,11 +56,59 @@ InstancedModel& Scene::loadInstancedModel(
     const std::filesystem::path& positionsPath, float minSize, float maxSize,
     unsigned int numPositions) {
   if (instancedModels.size() >= sceneMaxObjects::maxInstancedModels)
-    throw std::runtime_error{"Max number of instanced models reached"};
+    throw std::runtime_error{"Max number of instanced models reached!"};
 
   return instancedModels.emplace_back(textureManager, borrowTarget, modelPath,
                                       positionsPath, minSize, maxSize,
                                       numPositions);
+}
+
+CubeMappedModel& Scene::loadCubeMappedModel(
+    const std::filesystem::path& modelPath,
+    const std::vector<std::filesystem::path>& imagePaths) {
+  if (cubeMappedModels.size() >= sceneMaxObjects::maxCubeMappedModels)
+    throw std::runtime_error("Max number of space models reached!");
+
+  return cubeMappedModels.emplace_back(textureManager, modelPath, imagePaths);
+}
+
+CubeMappedModel& Scene::loadCubeMappedModel(
+    const CubeMappedModel& borrowTarget,
+    const std::filesystem::path& modelPath) {
+  if (cubeMappedModels.size() >= sceneMaxObjects::maxCubeMappedModels)
+    throw std::runtime_error("Max number of space models reached!");
+
+  return cubeMappedModels.emplace_back(textureManager, borrowTarget, modelPath);
+}
+
+Terrain& Scene::loadTerrain(const std::filesystem::path& modelPath) {
+  if (terrains.size() >= sceneMaxObjects::maxTerrains)
+    throw std::runtime_error("Max number of terrains reached!");
+
+  return terrains.emplace_back(textureManager, modelPath);
+}
+
+Terrain& Scene::loadTerrain(const Model& borrowTarget,
+                            const std::filesystem::path& modelPath) {
+  if (terrains.size() >= sceneMaxObjects::maxTerrains)
+    throw std::runtime_error("Max number of terrains reached!");
+
+  return terrains.emplace_back(textureManager, borrowTarget, modelPath);
+}
+
+Skybox& Scene::loadSkybox(const std::vector<std::filesystem::path>& filePaths) {
+  if (skyboxes.size() >= sceneMaxObjects::maxSkyboxes)
+    throw std::runtime_error("Max number of skyboxes reached!");
+
+  return skyboxes.emplace_back(textureManager, filePaths);
+}
+
+Skybox& Scene::loadSkybox(const Skybox& borrowTarget,
+                          const std::vector<std::filesystem::path>& filePaths) {
+  if (skyboxes.size() >= sceneMaxObjects::maxSkyboxes)
+    throw std::runtime_error("Max number of skyboxes reached!");
+
+  return skyboxes.emplace_back(textureManager, borrowTarget, filePaths);
 }
 
 Transform& Scene::getObjectTransform(const std::string& key) {

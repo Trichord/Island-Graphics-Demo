@@ -27,22 +27,12 @@ class Model : public Renderable {
    */
   void render(unsigned int globalMSAA) override;
   bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
-                      const glm::mat4& modelMatrix,
-                      const glm::vec3& cameraPos) override;
+                      const glm::mat4& modelMatrix, const glm::vec3& cameraPos,
+                      const float cullDistanceScale) override;
 
   ModelHandle getModelHandle();
 
  protected:
-  struct MaterialIndicies {
-    int albedoImageIndex, aoMetallicRoughnessImageIndex, normalImageIndex;
-
-    MaterialIndicies(int alb = -1, int metRough = -1, int norm = -1,
-                     int ao = -1)
-        : albedoImageIndex(alb),
-          aoMetallicRoughnessImageIndex(metRough),
-          normalImageIndex(norm) {};
-  };
-
   ModelHandle handle{0};
   TextureManager& texManager;
   const std::vector<Material>& textureSet;
