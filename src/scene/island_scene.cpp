@@ -16,7 +16,7 @@ void IslandScene::addAllModelsToScene() {
   auto& island = loadTerrain("./res/models/island/island.gltf");
   addObjectToScene(island, DIRECTIONAL_PBR);
 
-    // Dead tree
+  // Dead tree
   auto& deadTree = loadModel("./res/models/dead_tree/dead_tree.gltf");
   addObjectToScene(deadTree, DIRECTIONAL_PBR,
                    Transform(DEAD_TREE_POS, glm::vec3{1.0f}, 45.0f));

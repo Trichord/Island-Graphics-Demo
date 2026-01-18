@@ -1,6 +1,6 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v4.5.48",
+		"generator":"Khronos glTF Blender I/O v5.0.21",
 		"version":"2.0"
 	},
 	"scene":0,
@@ -58,8 +58,8 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"FLowerAtlas_2_Color",
-			"uri":"textures/FLowerAtlas_2_Color.png"
+			"name":"flower",
+			"uri":"textures/flower.png"
 		}
 	],
 	"accessors":[
