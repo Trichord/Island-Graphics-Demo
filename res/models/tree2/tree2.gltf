@@ -41,15 +41,9 @@
 				}
 			},
 			"name":"Bark_Mat",
-			"normalTexture":{
-				"index":0
-			},
-			"occlusionTexture":{
-				"index":1
-			},
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
-					"index":2
+					"index":0
 				},
 				"metallicFactor":0,
 				"metallicRoughnessTexture":{
@@ -66,16 +60,13 @@
 				}
 			},
 			"name":"Cluster_Mat",
-			"normalTexture":{
-				"index":3
-			},
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
-					"index":4
+					"index":2
 				},
 				"metallicFactor":0,
 				"metallicRoughnessTexture":{
-					"index":5
+					"index":3
 				}
 			}
 		}
@@ -131,27 +122,9 @@
 		{
 			"sampler":0,
 			"source":3
-		},
-		{
-			"sampler":0,
-			"source":4
-		},
-		{
-			"sampler":0,
-			"source":5
 		}
 	],
 	"images":[
-		{
-			"mimeType":"image/png",
-			"name":"Image_4",
-			"uri":"textures/Image_4.png"
-		},
-		{
-			"mimeType":"image/png",
-			"name":"Image_3",
-			"uri":"textures/Image_3.png"
-		},
 		{
 			"mimeType":"image/png",
 			"name":"Image_2",
@@ -159,8 +132,8 @@
 		},
 		{
 			"mimeType":"image/png",
-			"name":"Image_7",
-			"uri":"textures/Image_7.png"
+			"name":"Image_3",
+			"uri":"textures/Image_3.png"
 		},
 		{
 			"mimeType":"image/png",

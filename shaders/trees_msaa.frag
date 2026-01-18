@@ -4,23 +4,25 @@ out vec4 fragColor;
 
 uniform sampler2D albedoMap;
 uniform sampler2D occlusionRoughMetalMap;
-uniform sampler2D normalMap;
 uniform vec3 ambientLight;
+uniform vec3 lightColor;
+uniform vec3 lightDir;
 uniform float gamma;
+uniform float mipScale;
+uniform float alphaCutoff;
 
 const float INVERSE_PI = 0.31830988618;
-const float mipScale = 0.25;
-const float alphaCutoff = 0.5;
 
-//Bright mid-day sun
-const vec3 lightColor = vec3(1.0, 0.95, 0.9);
+layout (std140) uniform matrices {
+	layout (offset = 0) mat4 viewMatrix;
+	layout (offset = 64) mat4 projectionViewMatrix;
+	layout (offset = 128) vec4 cameraPosition;
+};
 
-//Positions in tangent view space
 in VS_OUT {
-	vec3 cameraPos;
-	vec3 lightDir;
 	vec3 fragPos;
 	vec2 texCoords;
+	vec3 normal;
 } fs_in;
 
 //Burely diffuse (unrolled)
@@ -51,22 +53,35 @@ const float e = 0.14;
 return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
+//Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
+float CalcMipLevel(vec2 texture_coord){
+    vec2 dx = dFdx(texture_coord);
+    vec2 dy = dFdy(texture_coord);
+    float delta_max_sqr = max(dot(dx, dx), dot(dy, dy));
+                
+    return max(0.0, 0.5 * log2(delta_max_sqr));
+}
+
 void main() {
 	//material properties, remap normal from [0, 1] to [-1, 1]
 	vec4 albedo = texture(albedoMap, fs_in.texCoords);
-	vec3 normal = texture(normalMap, fs_in.texCoords).rgb * 2.0 - 1.0; 
+	vec3 normal = normalize(fs_in.normal);
 	vec3 occlusionRoughMetalMap = texture(occlusionRoughMetalMap, fs_in.texCoords).rgb;
 	float ao = occlusionRoughMetalMap.r;
 	float roughness = occlusionRoughMetalMap.g;
 	float metallic = occlusionRoughMetalMap.b;
 
-	// Rescale alpha by partial derivative. Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
+	//Scale alpha by mip level
+    vec2 texSize = vec2(textureSize(albedoMap, 0)); // Level 0 size
+    albedo.a *= 1 + max(0, CalcMipLevel(fs_in.texCoords * texSize)) * mipScale;
+
+	// Rescale alpha by partial derivative. Credit: Ben Golus
     albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
 
 	//vectors
 	vec3 N = normalize(normal);
-	vec3 V = normalize(fs_in.cameraPos -fs_in.fragPos);
-	vec3 L = normalize(-fs_in.lightDir);
+	vec3 V = normalize(cameraPosition.xyz - fs_in.fragPos);
+	vec3 L = normalize(-lightDir);
 	vec3 H = normalize(L + V);
 	
 	//dot products

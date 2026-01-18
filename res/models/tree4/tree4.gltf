@@ -34,16 +34,10 @@
 					"specularFactor":0.12677262723445892
 				}
 			},
-			"name":"Bark_Mat",
-			"normalTexture":{
-				"index":0
-			},
-			"occlusionTexture":{
-				"index":1
-			},
+			"name":"Bark_Mat.002",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
-					"index":2
+					"index":0
 				},
 				"metallicFactor":0,
 				"metallicRoughnessTexture":{
@@ -59,20 +53,14 @@
 					"specularFactor":0.155915766954422
 				}
 			},
-			"name":"Cluster_Mat",
-			"normalTexture":{
-				"index":3
-			},
-			"occlusionTexture":{
-				"index":4
-			},
+			"name":"Cluster_Mat.002",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
-					"index":5
+					"index":2
 				},
 				"metallicFactor":0,
 				"metallicRoughnessTexture":{
-					"index":4
+					"index":3
 				}
 			}
 		}
@@ -128,21 +116,13 @@
 		{
 			"sampler":0,
 			"source":3
-		},
-		{
-			"sampler":0,
-			"source":4
-		},
-		{
-			"sampler":0,
-			"source":5
 		}
 	],
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"Image_4",
-			"uri":"textures/Image_4.png"
+			"name":"Image_2",
+			"uri":"textures/Image_2.png"
 		},
 		{
 			"mimeType":"image/png",
@@ -151,23 +131,13 @@
 		},
 		{
 			"mimeType":"image/png",
-			"name":"Image_2",
-			"uri":"textures/Image_2.png"
-		},
-		{
-			"mimeType":"image/png",
-			"name":"Image_7",
-			"uri":"textures/Image_7.png"
+			"name":"Image_5",
+			"uri":"textures/Image_5.png"
 		},
 		{
 			"mimeType":"image/png",
 			"name":"Image_6",
 			"uri":"textures/Image_6.png"
-		},
-		{
-			"mimeType":"image/png",
-			"name":"Image_5",
-			"uri":"textures/Image_5.png"
 		}
 	],
 	"accessors":[
