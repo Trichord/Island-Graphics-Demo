@@ -88,11 +88,11 @@ void Application::createWindow(
   int height{graphicsSettings.screenHeight};
 
   if (graphicsSettings.fullscreen)
-    window = glfwCreateWindow(width, height, "Island Tech Demo",
+    window = glfwCreateWindow(width, height, "Island Graphics Demo",
                               glfwGetPrimaryMonitor(), nullptr);
 
   else
-    window = glfwCreateWindow(width, height, "Island Tech Demo", NULL, NULL);
+    window = glfwCreateWindow(width, height, "Island Graphics Demo", NULL, NULL);
 
   if (!window) {
     std::cout << "Failed to create GLFW window" << std::endl;
