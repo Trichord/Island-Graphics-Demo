@@ -15,12 +15,7 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"VioletFlower_2",
-			"translation":[
-				-0.31498831510543823,
-				-0.2031623274087906,
-				0.9635605812072754
-			]
+			"name":"VioletFlower_2"
 		}
 	],
 	"materials":[
