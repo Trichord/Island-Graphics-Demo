@@ -1,15 +1,14 @@
 #version 460 core
 
-const vec3 lightColor = vec3(1.0, 0.95, 0.9);
-const float alphaCutoff = 0.5;
-const float mipScale = 0.25;
-
 out vec4 fragColor;
 
 uniform sampler2D albedoMap;
 uniform vec3 ambientLight;
 uniform vec3 lightDir;
+uniform vec3 lightColor;
 uniform float gamma;
+uniform float mipScale;
+uniform float alphaCutoff;
 
 in vec2 texCoords;
 in vec3 normal;
@@ -25,10 +24,23 @@ const float e = 0.14;
 return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
+//Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
+float CalcMipLevel(vec2 texture_coord){
+    vec2 dx = dFdx(texture_coord);
+    vec2 dy = dFdy(texture_coord);
+    float delta_max_sqr = max(dot(dx, dx), dot(dy, dy));
+                
+    return max(0.0, 0.5 * log2(delta_max_sqr));
+}
+
 void main() {
     vec4 albedo = texture(albedoMap, texCoords);
 
-    // Rescale alpha by partial derivative. Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
+	//Scale alpha by mip level 0
+    vec2 texSize = vec2(textureSize(albedoMap, 0));
+    albedo.a *= 1 + max(0, CalcMipLevel(texCoords * texSize)) * mipScale;
+
+	// Rescale alpha by partial derivative. Credit: Ben Golus
     albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
 
     if(albedo.a < 0.1)

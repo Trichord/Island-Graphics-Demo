@@ -14,10 +14,9 @@ layout (std140) uniform matrices {
 };
 
 out VS_OUT {
-	vec3 cameraPos;
-	vec3 lightDir;
 	vec3 fragPos;
 	vec2 texCoords;
+	vec3 normal;
 } vs_out;
 
 const float minVertexHeight = 0.05;
@@ -26,7 +25,6 @@ const float maxVertexHeight = 17.0;
 uniform float time;
 uniform float windStrength;
 uniform vec3 windDirection;
-uniform vec3 lightDir;
 
 vec4 centerPos = aTransform[3];
 
@@ -50,17 +48,9 @@ void main() {
 	//Shave off padding from mat4
 	mat3 normalMatrix = mat3(aNormalMatrix);
 
-	//TBN matrix for normal map.  Transpose maps world -> tangent
-	vec3 T = normalize(normalMatrix * aTangent.xyz);
-	vec3 N = normalize(normalMatrix * aNormal);
-	T = normalize(T - dot(T, N) * N); 
-	vec3 B = normalize(cross(N, T) * aTangent.w);
-	mat3 TBN = transpose(mat3(T, B, N));
-
 	vs_out.texCoords = aTexCoords;
-	vs_out.fragPos = TBN * (aTransform * vec4(aPos, 1.0)).xyz;
-	vs_out.lightDir = TBN * lightDir;
-	vs_out.cameraPos = TBN * cameraPosition.xyz;
+	vs_out.fragPos = vec3(aTransform * vec4(aPos, 1.0)).xyz;
+	vs_out.normal = normalize(normalMatrix * aNormal);
 
 	vec3 windTranslation = calcWindTranslation(time, windDirection, windStrength);
 	float mask = smoothstep(minVertexHeight, maxVertexHeight, aPos.y);
