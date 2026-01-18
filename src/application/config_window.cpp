@@ -64,7 +64,7 @@ bool ConfigWindow::createWindow() {
       ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
   window = glfwCreateWindow(
       (int)(GUIWidth * windowScale), (int)(GUIHeight * windowScale),
-      "Island Tech Demo - Display Settings", nullptr, nullptr);
+      "Island Graphics Demo - Display Settings", nullptr, nullptr);
 
   if (!window) return false;
 
@@ -155,7 +155,7 @@ bool ConfigWindow::renderImGui(GraphicsSettings& settings) {
     ImGui::SetNextWindowPos(windowUpperLeft, ImGuiCond_Always);
 
     // Dear ImGUI window
-    ImGui::Begin("Island Tech Demo - Display Settings", NULL,
+    ImGui::Begin("Island Graphics Demo - Display Settings", NULL,
                  ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
                      ImGuiWindowFlags_NoTitleBar);
 
