@@ -21,19 +21,6 @@ void IslandScene::addAllModelsToScene() {
   addObjectToScene(deadTree, DIRECTIONAL_PBR,
                    Transform(DEAD_TREE_POS, glm::vec3{1.0f}, 45.0f));
 
-  // Flight helmet
-  auto& helmet = loadModel("./res/models/flight_helmet/FlightHelmet.gltf");
-  addObjectToScene(helmet, POINT_PBR,
-                   Transform(FLIGHT_HELMET_POS, glm::vec3(3.0f), 180.0f,
-                             glm::vec3(0.0f, 1.0f, 0.0f)));
-
-  // Lightbulb-
-  auto& lightbulb = loadModel("./res/models/lightbulb/lightbulb.gltf");
-  addObjectToScene(lightbulb, LIGHT_SOURCE,
-                   Transform(LIGHTBULB_POS, glm::vec3(1.0f), 90.0f,
-                             glm::vec3(1.0f, 0.0f, 0.0f)),
-                   "lightbulb");
-
   std::vector<std::filesystem::path> spaceBoxPaths{
       "./res//Textures/nebula/right.png", "./res//Textures/nebula/left.png",
       "./res//Textures/nebula/top.png",   "./res//Textures/nebula/bottom.png",
@@ -92,22 +79,11 @@ void IslandScene::addAllModelsToScene() {
   auto& tree2 = loadInstancedModel(tree1, "./res/models/tree3/tree3.gltf",
                                    "./res/tree2.txt", 0.8f, 1.125f, 67);
   addObjectToScene(tree2, TREES);
-
-  /*
-  // Noble trees
-  auto& nobleFirTree =
-      loadInstancedModel(tree1, "./res/models/noblefir/noblefir.gltf",
-                         "./res/noble_firs.txt", 0.7f, 1.2f, 55);
-  addObjectToScene(nobleFirTree, TREES);
-  */
 }
 
 void IslandScene::addAllLightsToScene() {
   // Normalized approximation of sun direction in skybox
   globalLightSource = glm::vec3{-0.36669f, -0.731219f, -0.575202f};
-
-  // Right next to the flight helmet
-  addLightToScene(pointLights, PointLight{LIGHTBULB_POS}, "circlingLight");
 }
 
 void IslandScene::setupCamera() { camera = glm::vec3{0.0f, 0.0f, 30.0f}; }

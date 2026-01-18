@@ -167,26 +167,9 @@ void Application::addGlfwUserParam(Scene& scene) {
 }
 
 void Application::onUpdate(Scene& scene, float deltaTime) {
-  // Rotate the fancy space dodecahedron
+  // Rotate the fancy space model
   auto& spaceModel = scene.getObjectTransform("spaceModel");
   spaceModel.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});
-
-  // Move the light around the flight helmet
-  auto& circlingLight =
-      static_cast<PointLight&>(scene.getNamedLight("circlingLight"));
-
-  glm::vec3 newPos;
-  const float radius{1.25f};
-  float time{(float)glfwGetTime()};
-
-  newPos.x = LIGHTBULB_POS.x + glm::sin(time * 0.5f) * radius;
-  newPos.z = LIGHTBULB_POS.z + glm::cos(time * 0.5f) * radius;
-  newPos.y = LIGHTBULB_POS.y;
-
-  circlingLight.setPosition(newPos);
-
-  Transform& lightTransform{scene.getObjectTransform("lightbulb")};
-  lightTransform.setAbsolutePosition(newPos);
 }
 
 void mouse_callback(GLFWwindow* window, double xPos, double yPos) {

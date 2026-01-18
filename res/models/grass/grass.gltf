@@ -15,14 +15,14 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"Object_12"
+			"name":"Object_12.008"
 		}
 	],
 	"materials":[
 		{
 			"alphaMode":"BLEND",
 			"doubleSided":true,
-			"name":"Grass_Material.001",
+			"name":"Grass_Material",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":0
@@ -33,7 +33,7 @@
 	],
 	"meshes":[
 		{
-			"name":"Object_4.001",
+			"name":"Object_4.010",
 			"primitives":[
 				{
 					"attributes":{
@@ -66,85 +66,85 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":84,
+			"count":76,
 			"max":[
-				2.2395033836364746,
-				1.1716361045837402,
-				2.3754165172576904
+				1.7897653579711914,
+				1.3580913543701172,
+				2.2600598335266113
 			],
 			"min":[
-				-1.6117373704910278,
-				-4.110283384761715e-07,
-				-1.594314455986023
+				-1.8564720153808594,
+				-0.0035890936851501465,
+				-1.8013074398040771
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":84,
+			"count":76,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":84,
+			"count":76,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":84,
+			"count":76,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":4,
 			"componentType":5126,
-			"count":84,
+			"count":76,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":5,
 			"componentType":5123,
-			"count":168,
+			"count":84,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":1008,
+			"byteLength":912,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1008,
-			"byteOffset":1008,
+			"byteLength":912,
+			"byteOffset":912,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":672,
-			"byteOffset":2016,
+			"byteLength":608,
+			"byteOffset":1824,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":672,
-			"byteOffset":2688,
+			"byteLength":608,
+			"byteOffset":2432,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1344,
-			"byteOffset":3360,
+			"byteLength":1216,
+			"byteOffset":3040,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":336,
-			"byteOffset":4704,
+			"byteLength":168,
+			"byteOffset":4256,
 			"target":34963
 		}
 	],
@@ -156,7 +156,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":5040,
+			"byteLength":4424,
 			"uri":"grass.bin"
 		}
 	]
