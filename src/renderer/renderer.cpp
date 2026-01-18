@@ -86,7 +86,7 @@ void Renderer::updateUBO(Scene& scene) {
 
   /*
  // Culling test
-glm::vec3 position{15.0f, 5.0f, 15.0f};
+glm::vec3 position{15.0f, 20.0f, -75.0f};
 glm::vec3 front{0.0f, 0.0f, 1.0f};
 glm::vec3 up{0.0f, 1.0f, 0.0f};
 glm::mat4 viewMatrix{glm::lookAt(position, position + front, up)};
@@ -99,6 +99,7 @@ uboData.viewMatrix = viewMatrix;
 uboData.viewProjectionMatrix = projectionMatrix * viewMatrix;
 uboData.cameraPosition = glm::vec4{position, 0.0f};
 //End Culling Test
+
 */
 
   void* uboPointer{
@@ -140,8 +141,6 @@ void Renderer::loadShaders() {
                                           "./shaders/directional_PBR.frag"});
   shaders.emplace(REFLECTIVE, Shader{"./shaders/reflective.vert",
                                      "./shaders/reflective.frag"});
-  shaders.emplace(LIGHT_SOURCE, Shader{"./shaders/light_source.vert",
-                                       "./shaders/light_source.frag"});
   shaders.emplace(SKYBOX,
                   Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"});
 }
@@ -168,8 +167,13 @@ void Renderer::updateShaderUniforms(Scene& scene) {
   bool dirUpdated{globalLight.directionHasUpdated()};
 
   std::vector<PointLight>& pointLights{scene.getPointLights()};
-  glm::vec3 pointPos{pointLights[0].getPosition()};
-  const bool posUpdated{pointLights[0].positionHasUpdated()};
+
+  bool posUpdated{false};
+  glm::vec3 pointPos{0.0f};
+  if (!pointLights.empty()) {
+    pointPos = pointLights[0].getPosition();
+    posUpdated = pointLights[0].positionHasUpdated();
+  }
 
   // Set uniforms
   for (auto& [shaderType, shader] : shaders) {
