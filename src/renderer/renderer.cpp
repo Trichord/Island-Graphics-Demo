@@ -19,9 +19,16 @@
 // Normalized wind direction, east southeast with a slight downward angle
 constexpr glm::vec3 windDir{0.892079f, -0.101373f, 0.440362f};
 constexpr glm::vec3 ambientLight{0.15f};
+
 // Bright midday sun
 constexpr glm::vec3 lightColor{1.0f, 0.95f, 0.9f};
-constexpr float grassCullDistance{0.29f};
+
+// Scale mipmaps and alpha cutoff for foliage
+constexpr float mipScale{0.25f};
+constexpr float alphaCutoff{0.5f};
+
+//Culling range for grass
+constexpr float grassCullDistance{0.4f};
 
 Renderer::Renderer(const ConfigWindow::GraphicsSettings& settings)
     : graphicsSettings{settings} {
@@ -158,6 +165,9 @@ void Renderer::setupShader(Shader& shader) {
 
   shader.setFloat("windStrength", 0.07f);
   shader.setVec3("windDirection", windDir);
+
+  shader.setFloat("mipScale", mipScale);
+  shader.setFloat("alphaCutoff", alphaCutoff);
 
   shader.setFloat("gamma", graphicsSettings.gamma);
 }

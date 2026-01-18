@@ -43,9 +43,7 @@ vec3 calcWindTranslation(float timeStamp, vec3 windDir, float windStr){
 
 void main() {
 	texCoords = aTexCoords; 
-
-	mat3 unpaddedNormalMatrix = mat3(aNormalMatrix);
-	normal = unpaddedNormalMatrix * aNormal;
+	normal =  mat3(aNormalMatrix) * aNormal;
 
 	vec4 worldPos = aTransform * vec4(aPos, 1.0);
 
