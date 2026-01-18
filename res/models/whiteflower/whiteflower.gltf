@@ -1,6 +1,6 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v4.5.48",
+		"generator":"Khronos glTF Blender I/O v5.0.21",
 		"version":"2.0"
 	},
 	"scene":0,
@@ -15,7 +15,12 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"VioletFlower_2"
+			"name":"VioletFlower_2",
+			"translation":[
+				-0.31498831510543823,
+				-0.2031623274087906,
+				0.9635605812072754
+			]
 		}
 	],
 	"materials":[
@@ -58,8 +63,8 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"FlowerAtlas_1_Color",
-			"uri":"textures/FlowerAtlas_1_Color.png"
+			"name":"FlowerAtlas_1",
+			"uri":"textures/FlowerAtlas_1.png"
 		}
 	],
 	"accessors":[
