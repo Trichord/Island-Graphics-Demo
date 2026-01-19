@@ -1,32 +1,31 @@
 #include "island_scene.h"
-#include "texture_manager.h"
 
-#include <functional>
+#include <filesystem>
+#include <vector>
 
-#include "model.h"
+#include "glm/glm.hpp"
 #include "object_positions.h"
+#include "scene.h"
+#include "shader_types.h"
+#include "texture_manager.h"
+#include "transform.h"
 
-IslandScene::IslandScene(TextureManager& textureManager) : Scene(textureManager) { initializeScene(); }
+IslandScene::IslandScene(TextureManager& textureManager)
+    : Scene(textureManager) {
+  initializeScene();
+}
 
 void IslandScene::addAllModelsToScene() {
   using enum ShaderType;
 
   // Main island
-  auto& island = loadModel("./res/models/island/island.gltf");
+  auto& island = loadTerrain("./res/models/island/island.gltf");
   addObjectToScene(island, DIRECTIONAL_PBR);
 
-  // Flight helmet
-  auto& helmet = loadModel("./res/models/flight_helmet/FlightHelmet.gltf");
-  addObjectToScene(helmet, POINT_PBR,
-                   Transform(FLIGHT_HELMET_POS, glm::vec3(3.0f), 180.0f,
-                             glm::vec3(0.0f, 1.0f, 0.0f)));
-
-  // Lightbulb-
-  auto& lightbulb = loadModel("./res/models/lightbulb/lightbulb.gltf");
-  addObjectToScene(lightbulb, LIGHT_SOURCE,
-                   Transform(LIGHTBULB_POS, glm::vec3(1.0f), 90.0f,
-                             glm::vec3(1.0f, 0.0f, 0.0f)),
-                   "lightbulb");
+  // Dead tree
+  auto& deadTree = loadModel("./res/models/dead_tree/dead_tree.gltf");
+  addObjectToScene(deadTree, DIRECTIONAL_PBR,
+                   Transform(DEAD_TREE_POS, glm::vec3{1.0f}, 45.0f));
 
   std::vector<std::filesystem::path> spaceBoxPaths{
       "./res//Textures/nebula/right.png", "./res//Textures/nebula/left.png",
@@ -35,9 +34,9 @@ void IslandScene::addAllModelsToScene() {
 
   // Fancy spinning space model
   auto& spaceModel =
-      loadSpaceModel("./res/models/space_model/scene.gltf", spaceBoxPaths);
-  addObjectToScene(spaceModel, REFLECTIVE,
-                   Transform(SPACE_DODECA_POS), "spaceModel");
+      loadCubeMappedModel("./res/models/space_model/scene.gltf", spaceBoxPaths);
+  addObjectToScene(spaceModel, REFLECTIVE, Transform(SPACE_DODECA_POS),
+                   "spaceModel");
 
   // Skybox
   std::vector<std::filesystem::path> skyBoxPaths{
@@ -49,21 +48,21 @@ void IslandScene::addAllModelsToScene() {
   addObjectToScene(skybox, SKYBOX);
 
   // Grass
-  auto& grass = loadQuad("./res/textures/grass.png", "./res/grass.txt",
-                         Quad::RADIAL_PATTERN, 0.3f, 0.5f, 3, 6881);
+  auto& grass = loadInstancedModel("./res/models/grass/grass.gltf",
+                                   "./res/grass.txt", 0.3f, 0.5, 292);
   addObjectToScene(grass, FLOWERS);
 
   // Dandelions
   auto& dandelions =
       loadInstancedModel("./res/models/dandelion/dandelion.gltf",
-                         "./res/dandelions.txt", 1.0f, 1.5f, 1887);
+                         "./res/dandelions.txt", 1.0f, 1.5f, 1606);
   addObjectToScene(dandelions, FLOWERS);
 
-  // Purple flowers
-  auto& purpleFlowers =
-      loadInstancedModel("./res/models/purpleflower/purpleflower.gltf",
-                         "./res/purpleflowers.txt", 0.9f, 1.1f, 256);
-  addObjectToScene(purpleFlowers, FLOWERS);
+  // Strawberry flowers
+  auto& strawberries =
+      loadInstancedModel(dandelions, "./res/models/strawberry/strawberry.gltf",
+                         "./res/strawberries.txt", 0.8f, 1.2f, 161);
+  addObjectToScene(strawberries, FLOWERS);
 
   // White flowers
   auto& whiteFlowers =
@@ -72,36 +71,41 @@ void IslandScene::addAllModelsToScene() {
   addObjectToScene(whiteFlowers, FLOWERS);
 
   // Blue flowers
-  auto& blueFlowers =
-      loadInstancedModel(whiteFlowers, "./res/models/blueflower/blueflower.gltf",
-                         "./res/blueflowers.txt", 0.9f, 1.1f, 181);
+  auto& blueFlowers = loadInstancedModel(
+      whiteFlowers, "./res/models/blueflower/blueflower.gltf",
+      "./res/blueflowers.txt", 0.9f, 1.1f, 181);
   addObjectToScene(blueFlowers, FLOWERS);
 
-  // Fir trees
-  auto& firTree = loadInstancedModel("./res/models/firtree/firtree.gltf",
-                                     "./res/fir_trees.txt", 0.7f, 1.5f, 219);
-  addObjectToScene(firTree, TREES);
+  // Purple flowers
+  auto& purpleFlowers = loadInstancedModel(
+      whiteFlowers, "./res/models/purpleflower/purpleflower.gltf",
+      "./res/purpleflowers.txt", 0.9f, 1.1f, 256);
+  addObjectToScene(purpleFlowers, FLOWERS);
 
-  // Noble trees
-  auto& nobleFirTree =
-      loadInstancedModel(firTree, "./res/models/noblefir/noblefir.gltf",
-                         "./res/noble_firs.txt", 0.7f, 1.2f, 55);
-  addObjectToScene(nobleFirTree, TREES);
+  // Tree 1
+  auto& tree1 = loadInstancedModel("./res/models/tree1/tree1.gltf",
+                                   "./res/tree1.txt", 0.8f, 1.2f, 67);
+  addObjectToScene(tree1, TREES);
 
-  // Dead trees
-  auto& deadTrees =
-      loadInstancedModel("./res/models/dead_tree/dead_tree.gltf",
-                         "./res/dead_trees.txt", 0.65f, 1.25f, 23);
-  addObjectToScene(deadTrees, TREES);
+  // Tree 2
+  auto& tree2 = loadInstancedModel(tree1, "./res/models/tree2/tree2.gltf",
+                                   "./res/tree2.txt", 0.8f, 1.125f, 9);
+  addObjectToScene(tree2, TREES);
 
+  // Tree 3
+  auto& tree3 = loadInstancedModel(tree1, "./res/models/tree3/tree3.gltf",
+                                   "./res/tree3.txt", 0.85f, 1.3f, 29);
+  addObjectToScene(tree3, TREES);
+
+  // Tree 4
+  auto& tree4 = loadInstancedModel(tree1, "./res/models/tree4/tree4.gltf",
+                                   "./res/tree4.txt", 0.9f, 1.3f, 69);
+  addObjectToScene(tree4, TREES);
 }
 
 void IslandScene::addAllLightsToScene() {
   // Normalized approximation of sun direction in skybox
   globalLightSource = glm::vec3{-0.36669f, -0.731219f, -0.575202f};
-
-  // Right next to the flight helmet
-  addLightToScene(pointLights, PointLight{LIGHTBULB_POS}, "circlingLight");
 }
 
-void IslandScene::setupCamera() { camera = glm::vec3{0.0f, 3.0f, 30.0f}; }
+void IslandScene::setupCamera() { camera = glm::vec3{0.0f, 0.0f, 30.0f}; }

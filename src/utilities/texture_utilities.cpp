@@ -1,15 +1,17 @@
 #include "texture_utilities.h"
 
-#include <glad/glad.h>
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <vector>
 
-#include "config_window.h"
+#include "glad/glad.h"
+#include "image_loader.h"
 
 GLuint textureUtilities::generateTextureID(const LoadedImage& image,
-                                           Sampler sampler, bool sRGB,
-                                           bool anisotropic) {
+                                           Sampler sampler,
+                                           TextureConfig config,
+                                           bool globalAnsioEnabled) {
   GLuint textureID{0};
 
   if (image.data) {
@@ -26,10 +28,10 @@ GLuint textureUtilities::generateTextureID(const LoadedImage& image,
       internalFormat = GL_RG8;
     } else if (nrChannels == 3) {
       imageFormat = GL_RGB;
-      internalFormat = sRGB ? GL_SRGB8 : GL_RGB8;
+      internalFormat = config.sRGBRequested ? GL_SRGB8 : GL_RGB8;
     } else if (nrChannels == 4) {
       imageFormat = GL_RGBA;
-      internalFormat = sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+      internalFormat = config.sRGBRequested ? GL_SRGB8_ALPHA8 : GL_RGBA8;
     }
 
     // Max mipmap
@@ -51,10 +53,9 @@ GLuint textureUtilities::generateTextureID(const LoadedImage& image,
     glTextureParameteri(textureID, GL_TEXTURE_MIN_FILTER, sampler.minFilter);
     glTextureParameteri(textureID, GL_TEXTURE_MAG_FILTER, sampler.magFilter);
 
-    if (anisotropic)
-      glTextureParameterf(
-          textureID, GL_TEXTURE_MAX_ANISOTROPY,
-          ConfigWindow::globalGraphicsSettings.anisotropicFiltering);
+    if (globalAnsioEnabled)
+      glTextureParameterf(textureID, GL_TEXTURE_MAX_ANISOTROPY,
+                          config.anisoLevel);
   }
 
   return textureID;
