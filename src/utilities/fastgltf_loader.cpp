@@ -1,8 +1,12 @@
 #include "fastgltf_loader.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "aabb.h"
@@ -10,7 +14,9 @@
 #include "fastgltf/glm_element_traits.hpp"
 #include "fastgltf/tools.hpp"
 #include "fastgltf/types.hpp"
+#include "glm/glm.hpp"
 #include "primitive.h"
+#include "texture_utilities.h"
 
 std::string fastgltfErrorToString(fastgltf::Error error) {
   switch (error) {

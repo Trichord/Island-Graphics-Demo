@@ -1,9 +1,11 @@
 #pragma once
 
+#include <array>
 #include <filesystem>
 #include <vector>
 
 #include "aabb.h"
+#include "glm/glm.hpp"
 #include "primitive.h"
 #include "renderable.h"
 #include "texture_manager.h"

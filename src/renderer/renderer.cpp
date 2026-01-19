@@ -4,12 +4,15 @@
 #include <cstring>
 #include <iostream>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "camera.h"
 #include "config_window.h"
 #include "directional_light.h"
-#include "glad/glad.h"
+#include "gl_context.h"
 #include "glm/glm.hpp"
+#include "point_light.h"
 #include "renderable.h"
 #include "scene.h"
 #include "shader.h"
@@ -27,7 +30,7 @@ constexpr glm::vec3 lightColor{1.0f, 0.95f, 0.9f};
 constexpr float mipScale{0.25f};
 constexpr float alphaCutoff{0.5f};
 
-//Culling range for grass
+// Culling range for grass
 constexpr float grassCullDistance{0.4f};
 
 Renderer::Renderer(const ConfigWindow::GraphicsSettings& settings)

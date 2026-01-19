@@ -7,11 +7,13 @@
 #include <random>
 #include <unordered_map>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "fastgltf/types.hpp"
 #include "fastgltf_loader.h"
 #include "glad/glad.h"
+#include "image_loader.h"
 #include "texture_utilities.h"
 #include "thread_pool.h"
 

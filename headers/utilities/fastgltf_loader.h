@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+#include <utility>
 #include <vector>
 
 #include "fastgltf/types.hpp"

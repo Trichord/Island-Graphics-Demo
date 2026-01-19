@@ -1,8 +1,14 @@
 #include "island_scene.h"
 
-#include "model.h"
+#include <filesystem>
+#include <vector>
+
+#include "glm/glm.hpp"
 #include "object_positions.h"
+#include "scene.h"
+#include "shader_types.h"
 #include "texture_manager.h"
+#include "transform.h"
 
 IslandScene::IslandScene(TextureManager& textureManager)
     : Scene(textureManager) {
@@ -53,8 +59,9 @@ void IslandScene::addAllModelsToScene() {
   addObjectToScene(dandelions, FLOWERS);
 
   // Strawberry flowers
-  auto& strawberries = loadInstancedModel(dandelions, "./res/models/strawberry/strawberry.gltf",
-                     "./res/strawberries.txt", 0.8f, 1.2f, 161);
+  auto& strawberries =
+      loadInstancedModel(dandelions, "./res/models/strawberry/strawberry.gltf",
+                         "./res/strawberries.txt", 0.8f, 1.2f, 161);
   addObjectToScene(strawberries, FLOWERS);
 
   // White flowers
@@ -69,10 +76,10 @@ void IslandScene::addAllModelsToScene() {
       "./res/blueflowers.txt", 0.9f, 1.1f, 181);
   addObjectToScene(blueFlowers, FLOWERS);
 
-    // Purple flowers
+  // Purple flowers
   auto& purpleFlowers = loadInstancedModel(
       whiteFlowers, "./res/models/purpleflower/purpleflower.gltf",
-                         "./res/purpleflowers.txt", 0.9f, 1.1f, 256);
+      "./res/purpleflowers.txt", 0.9f, 1.1f, 256);
   addObjectToScene(purpleFlowers, FLOWERS);
 
   // Tree 1
@@ -85,13 +92,13 @@ void IslandScene::addAllModelsToScene() {
                                    "./res/tree2.txt", 0.8f, 1.125f, 9);
   addObjectToScene(tree2, TREES);
 
-  //Tree 3
+  // Tree 3
   auto& tree3 = loadInstancedModel(tree1, "./res/models/tree3/tree3.gltf",
                                    "./res/tree3.txt", 0.85f, 1.3f, 29);
   addObjectToScene(tree3, TREES);
 
-  //Tree 4
-    auto& tree4 = loadInstancedModel(tree1, "./res/models/tree4/tree4.gltf",
+  // Tree 4
+  auto& tree4 = loadInstancedModel(tree1, "./res/models/tree4/tree4.gltf",
                                    "./res/tree4.txt", 0.9f, 1.3f, 69);
   addObjectToScene(tree4, TREES);
 }
