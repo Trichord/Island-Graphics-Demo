@@ -34,7 +34,7 @@
 	],
 	"meshes":[
 		{
-			"name":"Plane.003",
+			"name":"Plane.004",
 			"primitives":[
 				{
 					"attributes":{
@@ -58,8 +58,8 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"FlowerAtlas_1",
-			"uri":"textures/FlowerAtlas_1.png"
+			"name":"flower_atlas",
+			"uri":"textures/flower_atlas.png"
 		}
 	],
 	"accessors":[

@@ -34,7 +34,7 @@
 	],
 	"meshes":[
 		{
-			"name":"Plane.001",
+			"name":"Plane.002",
 			"primitives":[
 				{
 					"attributes":{
@@ -58,8 +58,8 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"flower",
-			"uri":"textures/flower.png"
+			"name":"flower_atlas",
+			"uri":"textures/flower_atlas.png"
 		}
 	],
 	"accessors":[
@@ -69,13 +69,13 @@
 			"count":424,
 			"max":[
 				0.07556991279125214,
-				0.2503795325756073,
-				0.1050204187631607
+				0.2496686428785324,
+				0.09153785556554794
 			],
 			"min":[
 				-0.06466285139322281,
-				-0.0004068240523338318,
-				-0.030625881627202034
+				-0.0001845879596658051,
+				-0.04193972051143646
 			],
 			"type":"VEC3"
 		},
