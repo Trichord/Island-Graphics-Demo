@@ -6,7 +6,6 @@ layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
 layout (location = 4) in mat4 aTransform;
 layout (location = 8) in mat4 aNormalMatrix;
-layout (location = 12) in vec3 centerPos;
 
 layout (std140) uniform matrices {
 	layout (offset = 0) mat4 viewMatrix;
@@ -17,12 +16,16 @@ layout (std140) uniform matrices {
 out vec2 texCoords;
 out vec3 normal;
 
+const float minVertexHeight = 0.001;
+const float maxVertexHeight = 1.0;
+
 uniform float time;
 uniform float windStrength;
 uniform vec3 windDirection;
 
-float random(vec2 st)
-{
+vec4 centerPos = aTransform[3];
+
+float random(vec2 st) {
     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
 }
 
@@ -32,6 +35,7 @@ vec3 calcWindTranslation(float timeStamp, vec3 windDir, float windStr){
 	float time1 = sin(timeStamp + random(centerPos.xz) + vertexOffset);
 	float time2 = cos(timeStamp + random(centerPos.xz * 1.337));
 
+	// Remap waves from [-1, 1] to [-0.05, 0.95] 
 	float wave = (time1 * 0.5 + 0.45) * (time2 * 0.5 + 0.45);
 
 	return windDir * wave * windStr;
@@ -39,15 +43,13 @@ vec3 calcWindTranslation(float timeStamp, vec3 windDir, float windStr){
 
 void main() {
 	texCoords = aTexCoords; 
-
-	mat3 unpaddedNormalMatrix = mat3(aNormalMatrix);
-	normal = unpaddedNormalMatrix * aNormal;
+	normal =  mat3(aNormalMatrix) * aNormal;
 
 	vec4 worldPos = aTransform * vec4(aPos, 1.0);
 
 	vec3 windTranslation = calcWindTranslation(time, windDirection, windStrength);
 
-	float mask = smoothstep(0.001, 1.0, aPos.y);
+	float mask = smoothstep(minVertexHeight, maxVertexHeight, aPos.y);
 	windTranslation *= mask;
 
     gl_Position = projectionViewMatrix * vec4(worldPos.xyz + windTranslation, 1.0);

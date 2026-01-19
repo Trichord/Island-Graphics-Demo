@@ -14,16 +14,17 @@ layout (std140) uniform matrices {
 };
 
 out VS_OUT {
-	vec3 cameraPos;
-	vec3 lightDir;
 	vec3 fragPos;
 	vec2 texCoords;
+	vec3 normal;
 } vs_out;
+
+const float minVertexHeight = 0.05;
+const float maxVertexHeight = 17.0;
 
 uniform float time;
 uniform float windStrength;
 uniform vec3 windDirection;
-uniform vec3 lightDir;
 
 vec4 centerPos = aTransform[3];
 
@@ -32,11 +33,12 @@ float random(vec2 st){
 }
 
 vec3 calcWindTranslation(float timeStamp, vec3 windDir, float windStr){
-	float vertexOffset = random(aTransform[0].xy) * 0.7;
+	float seedValue = random(aTransform[0].xy) * 0.7;
 	
-	float time1 = sin(timeStamp + random(centerPos.yx) + vertexOffset);
+	float time1 = sin(timeStamp + random(centerPos.yx) + seedValue);
 	float time2 = cos(timeStamp + random(centerPos.yx * 1.337));
 
+	// Remap waves from [-1, 1] to [-0.05, 0.95] 
 	float wave = (time1 * 0.5 + 0.45) * (time2 * 0.5 + 0.45);
 
 	return windDir * wave * windStr;
@@ -46,20 +48,12 @@ void main() {
 	//Shave off padding from mat4
 	mat3 normalMatrix = mat3(aNormalMatrix);
 
-	//TBN matrix for normal map.  Transpose maps world -> tangent
-	vec3 T = normalize(normalMatrix * aTangent.xyz);
-	vec3 N = normalize(normalMatrix * aNormal);
-	T = normalize(T - dot(T, N) * N); 
-	vec3 B = normalize(cross(N, T) * aTangent.w);
-	mat3 TBN = transpose(mat3(T, B, N));
-
 	vs_out.texCoords = aTexCoords;
-	vs_out.fragPos = TBN * (aTransform * vec4(aPos, 1.0)).xyz;
-	vs_out.lightDir = TBN * lightDir;
-	vs_out.cameraPos = TBN * cameraPosition.xyz;
+	vs_out.fragPos = vec3(aTransform * vec4(aPos, 1.0)).xyz;
+	vs_out.normal = normalize(normalMatrix * aNormal);
 
 	vec3 windTranslation = calcWindTranslation(time, windDirection, windStrength);
-	float mask = smoothstep(0.05, 17.0, aPos.y);
+	float mask = smoothstep(minVertexHeight, maxVertexHeight, aPos.y);
 	windTranslation *= mask;
 
 	//Exaggerate movement of tree

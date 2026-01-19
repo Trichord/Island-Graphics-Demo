@@ -1,15 +1,18 @@
 #include "model.h"
 
-#include <glad/glad.h>
-
-#include <fastgltf/types.hpp>
+#include <algorithm>
+#include <array>
 #include <filesystem>
+#include <limits>
+#include <utility>
 #include <vector>
 
+#include "aabb.h"
+#include "fastgltf/types.hpp"
 #include "fastgltf_loader.h"
-#include "image_loader.h"
+#include "glad/glad.h"
+#include "glm/glm.hpp"
 #include "primitive.h"
-#include "texture_utilities.h"
 #include "texture_manager.h"
 
 Model::Model(TextureManager& textureManager, const std::filesystem::path& path)
@@ -17,6 +20,7 @@ Model::Model(TextureManager& textureManager, const std::filesystem::path& path)
       texManager{textureManager},
       textureSet{textureManager.acquireUniqueTextureSet(handle)} {
   loadModel(path, false);
+  calculateAABB();
 }
 
 Model::Model(TextureManager& textureManager, const Model& borrowTarget,
@@ -25,13 +29,14 @@ Model::Model(TextureManager& textureManager, const Model& borrowTarget,
       texManager{textureManager},
       textureSet{textureManager.borrowTextureSet(borrowTarget.handle)} {
   loadModel(path, true);
+  calculateAABB();
 }
 
 Model::Model(Model&& other) noexcept
-    : meshes{std::move(other.meshes)},
-      handle{other.handle},
+    : handle{other.handle},
       texManager{other.texManager},
-      textureSet{other.textureSet} {
+      textureSet{other.textureSet},
+      meshes{std::move(other.meshes)} {
   other.handle = 0;
 }
 
@@ -39,32 +44,45 @@ Model::~Model() {
   if (handle) texManager.releaseModel(handle);
 }
 
-void Model::render() {
-  int lastMaterialIndex{-1};
+void Model::drawPrimitive(const Primitive& primitive) {
+  glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0);
+}
+
+void Model::render(unsigned int globalMSAA) {
+  std::size_t lastMaterialIndex{0};
+  bool alphaEnabled{false};
+  bool needsAlpha{false};
+  bool materialBound{false};
 
   for (const Primitive::Mesh& mesh : meshes) {
+    if (!mesh.isVisible) continue;
     for (const Primitive& primitive : mesh.primitives) {
-      int materialIndex{primitive.getMaterialIndex()};
+      needsAlpha = primitive.getAlphaMode() != fastgltf::AlphaMode::Opaque;
 
-      if (materialIndex != lastMaterialIndex && materialIndex != -1 &&
-          textureSet.size()) {
-        //Avoid rebinding
-        lastMaterialIndex = materialIndex;
-        
-        const TextureSet& textures{textureSet[materialIndex]};
-        
-        if (textures.albedo) glBindTextureUnit(0, textures.albedo);
+      if (primitive.materialsExist()) {
+        std::size_t materialIndex{primitive.getMaterialIndex()};
 
-        if (textures.occlusionRoughnessMetallic)
-          glBindTextureUnit(1, textures.occlusionRoughnessMetallic);
+        // Switch materials
+        if (materialIndex != lastMaterialIndex || !materialBound) {
+          lastMaterialIndex = materialIndex;
+          materialBound = true;
+          bindTextures(textureSet[materialIndex]);
+        }
+      }
 
-        if (textures.normal) glBindTextureUnit(2, textures.normal);
+      // Per-primitive alpha mode
+      if (needsAlpha != alphaEnabled) {
+        setAlphaMode(globalMSAA, needsAlpha);
+        alphaEnabled = needsAlpha;
       }
 
       glBindVertexArray(primitive.getVAO());
-      glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT,
-                     0);
+      drawPrimitive(primitive);
     }
+  }
+
+  if (alphaEnabled) {
+    setAlphaMode(globalMSAA, false);
   }
 }
 
@@ -80,3 +98,80 @@ void Model::loadModel(const std::filesystem::path& path, bool borrowed) {
 }
 
 ModelHandle Model::getModelHandle() { return handle; }
+
+void Model::bindTextures(const Material& materials) {
+  if (materials.albedo) glBindTextureUnit(0, materials.albedo);
+
+  if (materials.occlusionRoughnessMetallic)
+    glBindTextureUnit(1, materials.occlusionRoughnessMetallic);
+
+  if (materials.normal) glBindTextureUnit(2, materials.normal);
+
+  if (materials.cubemap) glBindTextureUnit(3, materials.cubemap);
+}
+
+void Model::setAlphaMode(unsigned int globalMSAA, bool needsAlpha) {
+  if (needsAlpha) {
+    glDisable(GL_CULL_FACE);
+    if (globalMSAA) glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+  } else {
+    glEnable(GL_CULL_FACE);
+    if (globalMSAA) glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+  }
+}
+
+void Model::assignMaterialIndex(std::size_t newIndex) {
+  for (auto& mesh : meshes)
+    for (auto& primitive : mesh.primitives)
+      primitive.setMaterialIndex(newIndex);
+}
+
+bool Model::hasMaterials() const {
+  for (const auto& mesh : meshes)
+    for (const auto& primitive : mesh.primitives)
+      if (primitive.materialsExist()) return true;
+
+  return false;
+}
+
+void Model::calculateAABB() {
+  float minX{std::numeric_limits<float>::infinity()};
+  float minY{std::numeric_limits<float>::infinity()};
+  float minZ{std::numeric_limits<float>::infinity()};
+  float maxX{-std::numeric_limits<float>::infinity()};
+  float maxY{-std::numeric_limits<float>::infinity()};
+  float maxZ{-std::numeric_limits<float>::infinity()};
+
+  for (const auto& mesh : meshes)
+    for (const auto& primitive : mesh.primitives) {
+      const AABB& primAABB{primitive.getAABB()};
+
+      const glm::vec3 center{primAABB.getCenter()};
+      const glm::vec3 extent{primAABB.getExtent()};
+      const glm::vec3 aabbMin{center - extent};
+      const glm::vec3 aabbMax{center + extent};
+
+      minX = std::min(aabbMin.x, minX);
+      minY = std::min(aabbMin.y, minY);
+      minZ = std::min(aabbMin.z, minZ);
+
+      maxX = std::max(aabbMax.x, maxX);
+      maxY = std::max(aabbMax.y, maxY);
+      maxZ = std::max(aabbMax.z, maxZ);
+    }
+
+  aabb = AABB{minX, minY, minZ, maxX, maxY, maxZ};
+}
+
+bool Model::performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
+                           const glm::mat4& modelMatrix,
+                           const glm::vec3& cameraPos,
+                           const float cullDistanceScale) {
+  bool visible{false};
+
+  if (aabb.intersects(frustumPlanes, modelMatrix)) {
+    visible = true;
+    for (auto& mesh : meshes) mesh.isVisible = true;
+  }
+  return visible;
+}

@@ -1,14 +1,22 @@
 #include "fastgltf_loader.h"
 
-#include <fastgltf/core.hpp>
-#include <fastgltf/glm_element_traits.hpp>
-#include <fastgltf/tools.hpp>
-#include <fastgltf/types.hpp>
+#include <algorithm>
+#include <cstdint>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
+#include <string>
+#include <utility>
 #include <vector>
 
+#include "aabb.h"
+#include "fastgltf/core.hpp"
+#include "fastgltf/glm_element_traits.hpp"
+#include "fastgltf/tools.hpp"
+#include "fastgltf/types.hpp"
+#include "glm/glm.hpp"
 #include "primitive.h"
+#include "texture_utilities.h"
 
 std::string fastgltfErrorToString(fastgltf::Error error) {
   switch (error) {
@@ -47,13 +55,13 @@ std::string fastgltfErrorToString(fastgltf::Error error) {
   }
 }
 
-fastgltf::Asset fastgltfLoader::loadAsset(std::filesystem::path path) {
+fastgltf::Asset fastgltfLoader::loadAsset(const std::filesystem::path& path) {
   static fastgltf::Parser parser;
   auto data = fastgltf::GltfDataBuffer::FromPath(path);
 
   if (data.error() != fastgltf::Error::None) {
-    std::cerr << "FastGLTF error loading from " << path << std::endl;
-    std::cerr << fastgltfErrorToString(data.error()) << std::endl;
+    std::cerr << "FastGLTF error loading from " << path << std::endl
+              << fastgltfErrorToString(data.error()) << std::endl;
     return fastgltf::Asset{};
   }
 
@@ -72,11 +80,11 @@ std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(
     const fastgltf::Asset& asset) {
   std::vector<Primitive::Mesh> meshes;
 
-  for (const fastgltf::Mesh& gltfMesh : asset.meshes) {
+  for (const auto& gltfMesh : asset.meshes) {
     Primitive::Mesh mesh;
     mesh.primitives.reserve(gltfMesh.primitives.size());
 
-    for (const fastgltf::Primitive& gltfPrimitive : gltfMesh.primitives) {
+    for (const auto& gltfPrimitive : gltfMesh.primitives) {
       std::vector<Primitive::Vertex> vertices;
       std::vector<std::uint32_t> indices;
 
@@ -141,14 +149,41 @@ std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(
       }
 
       // Check if there are any materials at all
-      unsigned int materialIndex = 0;
-      if (gltfPrimitive.materialIndex.has_value())
-        materialIndex =
-            static_cast<unsigned int>(gltfPrimitive.materialIndex.value());
+      bool hasMaterials{false};
+      std::size_t materialIndex{0};
+      fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
+
+      if (gltfPrimitive.materialIndex.has_value() && !asset.images.empty() &&
+          !asset.materials.empty()) {
+        hasMaterials = true;
+        materialIndex = gltfPrimitive.materialIndex.value();
+        alphaMode = asset.materials[materialIndex].alphaMode;
+      }
+
+      // Create AABB
+      float minX{std::numeric_limits<float>::infinity()};
+      float minY{std::numeric_limits<float>::infinity()};
+      float minZ{std::numeric_limits<float>::infinity()};
+      float maxX{-std::numeric_limits<float>::infinity()};
+      float maxY{-std::numeric_limits<float>::infinity()};
+      float maxZ{-std::numeric_limits<float>::infinity()};
+
+      for (const auto& vertex : vertices) {
+        minX = std::min(vertex.position.x, minX);
+        minY = std::min(vertex.position.y, minY);
+        minZ = std::min(vertex.position.z, minZ);
+
+        maxX = std::max(vertex.position.x, maxX);
+        maxY = std::max(vertex.position.y, maxY);
+        maxZ = std::max(vertex.position.z, maxZ);
+      }
+
+      AABB aabb{minX, minY, minZ, maxX, maxY, maxZ};
 
       // Build the primitive
       mesh.primitives.emplace_back(std::move(vertices), std::move(indices),
-                                   materialIndex);
+                                   std::move(aabb), hasMaterials, materialIndex,
+                                   alphaMode);
     }
 
     // Add the mesh
@@ -159,7 +194,7 @@ std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(
 }
 
 std::vector<std::filesystem::path> fastgltfLoader::getURIs(
-    const fastgltf::Asset& asset, const std::filesystem::path parentPath) {
+    const fastgltf::Asset& asset, const std::filesystem::path& parentPath) {
   std::vector<std::filesystem::path> URIpaths;
   URIpaths.reserve(asset.images.size());
 

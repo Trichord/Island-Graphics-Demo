@@ -1,13 +1,14 @@
 #include "point_light.h"
 
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
+#include "light.h"
 
 PointLight::PointLight(const glm::vec3& newPosition, const glm::vec3& newColor)
     : position{newPosition}, Light{newColor} {}
 
-const glm::vec3& PointLight::getColor() const { return color; }
+glm::vec3 PointLight::getColor() const { return color; }
 
-const glm::vec3& PointLight::getPosition() const { return position; }
+glm::vec3 PointLight::getPosition() const { return position; }
 
 void PointLight::setPosition(const glm::vec3& newPosition) {
   position = newPosition;

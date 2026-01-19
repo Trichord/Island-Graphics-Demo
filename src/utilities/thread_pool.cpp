@@ -1,10 +1,12 @@
 #include "thread_pool.h"
 
-#include <condition_variable>
+#include <algorithm>
 #include <functional>
 #include <mutex>
 #include <queue>
+#include <stdexcept>
 #include <thread>
+#include <utility>
 
 ThreadPool::ThreadPool(unsigned int desiredThreadCount) : stop{false} {
   unsigned int threadsAvailable{std::thread::hardware_concurrency()};
