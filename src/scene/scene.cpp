@@ -1,16 +1,23 @@
 #include "scene.h"
 
+#include <filesystem>
 #include <iostream>
 #include <map>
 #include <stdexcept>
 #include <vector>
 
+#include "cube_mapped_model.h"
 #include "directional_light.h"
+#include "glm/glm.hpp"
+#include "instanced_model.h"
 #include "light.h"
 #include "model.h"
 #include "point_light.h"
+#include "renderable.h"
 #include "shader_types.h"
 #include "skybox.h"
+#include "terrain.h"
+#include "texture_manager.h"
 #include "transform.h"
 
 Scene::Scene(TextureManager& texManager) : textureManager{texManager} {

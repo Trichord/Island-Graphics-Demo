@@ -2,10 +2,11 @@
 
 #include <iostream>
 
+#include "camera.h"
 #include "config_window.h"
 #include "gl_context.h"
+#include "glm/glm.hpp"
 #include "island_scene.h"
-#include "object_positions.h"
 #include "renderer.h"
 #include "scene.h"
 
@@ -92,7 +93,8 @@ void Application::createWindow(
                               glfwGetPrimaryMonitor(), nullptr);
 
   else
-    window = glfwCreateWindow(width, height, "Island Graphics Demo", NULL, NULL);
+    window =
+        glfwCreateWindow(width, height, "Island Graphics Demo", NULL, NULL);
 
   if (!window) {
     std::cout << "Failed to create GLFW window" << std::endl;

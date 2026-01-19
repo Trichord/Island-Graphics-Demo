@@ -2,10 +2,12 @@
 
 #include <array>
 #include <fstream>
+#include <ios>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "glad/glad.h"
 #include "glm/glm.hpp"
@@ -178,7 +180,7 @@ GLint Shader::getCachedLocation(const std::string& name) {
   GLint location{glGetUniformLocation(ID, name.c_str())};
   uniformLocations.emplace(name, location);
 
-  #ifndef NDEBUG
+#ifndef NDEBUG
   if (location == -1)
     std::cout << "Shader ID: " << ID << ", unknown uniform : " << name
               << std::endl;

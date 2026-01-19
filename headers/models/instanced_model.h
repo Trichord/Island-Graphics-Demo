@@ -1,10 +1,14 @@
 #pragma once
 
+#include <array>
 #include <filesystem>
+#include <vector>
 
+#include "aabb.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "model.h"
+#include "primitive.h"
 #include "texture_manager.h"
 
 class InstancedModel : public Model {

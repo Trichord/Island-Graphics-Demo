@@ -1,5 +1,9 @@
 #include "terrain.h"
 
+#include <array>
+
+#include "glm/glm.hpp"
+
 bool Terrain::performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
                              const glm::mat4& modelMatrix,
                              const glm::vec3& cameraPos,

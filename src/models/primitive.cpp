@@ -3,9 +3,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <utility>
 #include <vector>
 
 #include "aabb.h"
+#include "fastgltf/types.hpp"
 #include "glad/glad.h"
 
 Primitive::Primitive(std::vector<Vertex>&& vertices_,
