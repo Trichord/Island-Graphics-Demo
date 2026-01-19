@@ -8,20 +8,21 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <memory>
 
 #include "camera.h"
+#include "cube_mapped_model.h"
 #include "directional_light.h"
+#include "glm/glm.hpp"
 #include "instanced_model.h"
+#include "light.h"
 #include "model.h"
 #include "point_light.h"
-#include "quad.h"
 #include "renderable.h"
 #include "shader_types.h"
 #include "skybox.h"
-#include "space_model.h"
-#include "transform.h"
+#include "terrain.h"
 #include "texture_manager.h"
+#include "transform.h"
 
 /*
  * Any storage container (Models, lights, etc.) must guarantee that their
@@ -33,11 +34,11 @@
 
 namespace sceneMaxObjects {
 inline constexpr int maxModels{50};
-inline constexpr int maxSpaceModels{10};
-inline constexpr int maxSkyboxes{10};
-inline constexpr int maxQuadModels{10};
-inline constexpr int maxLights{5};
 inline constexpr int maxInstancedModels{25};
+inline constexpr int maxCubeMappedModels{10};
+inline constexpr int maxTerrains{5};
+inline constexpr int maxSkyboxes{2};
+inline constexpr int maxLights{5};
 }  // namespace sceneMaxObjects
 
 class Scene {
@@ -55,6 +56,8 @@ class Scene {
   Transform& getObjectTransform(const std::string& key);
   Light& getNamedLight(const std::string& key);
   DirectionalLight& getGlobalLightSource();
+  glm::vec3 getAmbientLight() const;
+  void setAmbientLight(const glm::vec3& ambient);
 
  protected:
   TextureManager& textureManager;
@@ -63,51 +66,50 @@ class Scene {
   std::unordered_map<std::string, std::reference_wrapper<Transform>>
       namedTransforms;
   std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights;
+
   std::vector<Model> models;
-  std::vector<SpaceModel> spaceModels;
+  std::vector<CubeMappedModel> cubeMappedModels;
   std::vector<Skybox> skyboxes;
-  std::vector<Quad> quads;
   std::vector<InstancedModel> instancedModels;
   std::vector<PointLight> pointLights;
+  std::vector<Terrain> terrains;
 
   DirectionalLight globalLightSource;
+  glm::vec3 ambientLight{0.2f};
 
   virtual void addAllModelsToScene() = 0;
   virtual void addAllLightsToScene() = 0;
   virtual void setupCamera() = 0;
 
   void initializeScene();
+
   Model& loadModel(const std::filesystem::path& filepath);
   Model& loadModel(const Model& borrowTarget,
                    const std::filesystem::path& filepath);
-  SpaceModel& loadSpaceModel(
-      const std::filesystem::path& modelPath,
-      const std::vector<std::filesystem::path>& imagePaths);
-  SpaceModel& loadSpaceModel(
-      const SpaceModel& borrowTarget, const std::filesystem::path& modelPath,
-      const std::vector<std::filesystem::path>& imagePaths);
-  Skybox& loadSkybox(const std::vector<std::filesystem::path>& filePaths);
-  Skybox& loadSkybox(const Skybox& borrowTarget,
-                     const std::vector<std::filesystem::path>& filePaths);
-  Quad& loadQuad(const std::filesystem::path& texturePath,
-                 const std::filesystem::path& positionsPath,
-                 Quad::QuadPattern pattern, float minSize = 1.0f,
-                 float maxSize = 1.0f, unsigned int density = 1,
-                 unsigned int numPositions = 0);
-  Quad& loadQuad(const Quad& borrowTarget,
-                 const std::filesystem::path& texturePath,
-                 const std::filesystem::path& positionsPath,
-                 Quad::QuadPattern pattern, float minSize = 1.0f,
-                 float maxSize = 1.0f, unsigned int density = 1,
-                 unsigned int numPositions = 0);
+
   InstancedModel& loadInstancedModel(const std::filesystem::path& modelPath,
                                      const std::filesystem::path& positionsPath,
                                      float minSize = 1.0f, float maxSize = 1.0f,
                                      unsigned int numPositions = 0);
-  InstancedModel& loadInstancedModel(const InstancedModel& borrowTarget, const std::filesystem::path& modelPath,
+  InstancedModel& loadInstancedModel(const InstancedModel& borrowTarget,
+                                     const std::filesystem::path& modelPath,
                                      const std::filesystem::path& positionsPath,
                                      float minSize = 1.0f, float maxSize = 1.0f,
                                      unsigned int numPositions = 0);
+
+  CubeMappedModel& loadCubeMappedModel(
+      const std::filesystem::path& modelPath,
+      const std::vector<std::filesystem::path>& imagePaths);
+  CubeMappedModel& loadCubeMappedModel(const CubeMappedModel& borrowTarget,
+                                       const std::filesystem::path& modelPath);
+
+  Terrain& loadTerrain(const std::filesystem::path& modelPath);
+  Terrain& loadTerrain(const Model& borrowTarget,
+                       const std::filesystem::path& modelPath);
+
+  Skybox& loadSkybox(const std::vector<std::filesystem::path>& filePaths);
+  Skybox& loadSkybox(const Skybox& borrowTarget,
+                     const std::vector<std::filesystem::path>& filePaths);
 
   /**
    * Adds an object to the scene.  Optional: give the object a name to reference

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <glad/glad.h>
-
 #include <array>
-#include <glm/glm.hpp>
 #include <string>
 #include <unordered_map>
+
+#include "glad/glad.h"
+#include "glm/glm.hpp"
 
 /* Owns program ID, no copying */
 

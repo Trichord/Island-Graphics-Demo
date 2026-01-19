@@ -1,15 +1,17 @@
 #include "shader.h"
 
-#include <glad/glad.h>
-
 #include <array>
 #include <fstream>
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include <ios>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <utility>
+
+#include "glad/glad.h"
+#include "glm/glm.hpp"
+#include "glm/gtc/type_ptr.hpp"
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath,
                const char* geometryPath) {
@@ -162,11 +164,13 @@ void Shader::setUniformBlock(const std::string& name, unsigned int index) {
   GLuint blockID{glGetUniformBlockIndex(ID, name.c_str())};
   uniformLocations.emplace(name, blockID);
 
-  if (blockID != -1)
-    glUniformBlockBinding(ID, blockID, index);
+  if (blockID != -1) glUniformBlockBinding(ID, blockID, index);
+
+#ifndef NDEBUG
   else
     std::cerr << "ShaderID: " << ID << ", unknown uniform block : " << name
               << std::endl;
+#endif  // DEBUG
 }
 
 GLint Shader::getCachedLocation(const std::string& name) {
@@ -176,9 +180,11 @@ GLint Shader::getCachedLocation(const std::string& name) {
   GLint location{glGetUniformLocation(ID, name.c_str())};
   uniformLocations.emplace(name, location);
 
+#ifndef NDEBUG
   if (location == -1)
     std::cout << "Shader ID: " << ID << ", unknown uniform : " << name
               << std::endl;
+#endif  // DEBUG
 
   return location;
 }

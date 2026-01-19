@@ -2,12 +2,12 @@
 
 #include "glad/glad.h"
 #include "thread_pool.h"
+#include "texture_utilities.h"
 
 #include <unordered_map>
 #include <unordered_set>
 #include <queue>
 #include <variant>
-#include <utility>
 #include <vector>
 #include <cstdint>
 #include <fastgltf/types.hpp>
@@ -15,7 +15,15 @@
 
 typedef uint64_t ModelHandle;
 
-struct TextureSet {
+/**
+* @details
+* OpenGL Texture Units:
+* 0 - Albedo
+* 1 - Occlusion, Roughness, Metallic
+* 2 - Normal map
+* 3 - Cubemap
+*/
+struct Material {
   GLuint albedo{0};
   GLuint occlusionRoughnessMetallic{0};
   GLuint normal{0};
@@ -24,25 +32,28 @@ struct TextureSet {
 
 class TextureManager {
  public:
+  void setAnisoLevel(float anisoLevel);
   void queueModelTextureSet(const ModelHandle handle, fastgltf::Asset&& asset,
                             const std::filesystem::path& parentPath);
   void queueBaseImageTextureSet(const ModelHandle handle,
-                                std::filesystem::path texturePath, bool sRGB = true, bool aniso = true);
+                                std::filesystem::path texturePath, bool sRGB = true, bool anisoRequested = true);
   void queueCubemapTextureSet(const ModelHandle handle,
                               std::vector<std::filesystem::path> imagePaths,
                               const std::filesystem::path& parentPath = "./",
                               bool sRGB = true);
-  const std::vector<TextureSet>& acquireUniqueTextureSet(
+  const std::vector<Material>& acquireUniqueTextureSet(
       ModelHandle modelHandle) const;
-  const std::vector<TextureSet>& borrowTextureSet(ModelHandle other);
+  const std::vector<Material>& borrowTextureSet(ModelHandle other);
   void releaseModel(ModelHandle modelHandle);
   void processTextureQueue();
   ModelHandle assignModelHandle();
 
  private:
+  float anisoLevel{0.0f};
+  bool globalAnisoEnabled{false};
   // Each entry in the vector corresponds to a material index
   struct TextureEntry {
-    std::vector<TextureSet> textureSets;
+    std::vector<Material> materials;
     std::unordered_set<GLuint> textureHandles;
     int refCount{0};
   };
@@ -55,7 +66,7 @@ class TextureManager {
     ModelHandle modelHandle{0};
     std::filesystem::path parentPath{std::filesystem::current_path()};
     bool sRGB{true};
-    bool aniso{true};
+    bool requestAniso{true};
   };
 
   std::unordered_map<ModelHandle, TextureEntry> textureCache;
@@ -65,7 +76,7 @@ class TextureManager {
                          ModelHandle handle, std::filesystem::path parentPath);
   void genTexIDFromImage(ThreadPool& threadPool, ModelHandle handle,
                          const std::filesystem::path& imagePath,
-                         bool sRGB = true, bool aniso = true);
+                         TextureConfig textureConfig);
   void genCubemapTexID(ThreadPool& threadPool, ModelHandle handle,
                        const std::vector<std::filesystem::path>& imagePaths, bool sRGB);
 };

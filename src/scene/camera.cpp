@@ -1,10 +1,11 @@
 #include "camera.h"
 
+#include <array>
 #include <cmath>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
-#include "config_window.h"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_access.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 Camera::Camera() : projectionMatrix{createProjectionMatrix()} {
   updateCameraVectors();
@@ -49,6 +50,15 @@ const glm::mat4& Camera::getViewMatrixNoTranslation() {
   }
 
   return viewMatrixNoTranslation;
+}
+
+const glm::mat4& Camera::getViewProjectionMatrix() {
+  if (dirtyMatrices) {
+    updateCameraMatrices();
+    dirtyMatrices = false;
+  }
+
+  return viewProjectionMatrix;
 }
 
 void Camera::processKeyboard(CameraMovement direction, float deltaTime) {
@@ -117,14 +127,57 @@ void Camera::updateCameraVectors() {
 void Camera::updateCameraMatrices() {
   viewMatrix = glm::lookAt(position, position + front, up);
   viewMatrixNoTranslation = glm::mat4{glm::mat3{viewMatrix}};
+  viewProjectionMatrix = projectionMatrix * viewMatrix;
 }
 
 const glm::mat4& Camera::getProjectionMatrix() { return projectionMatrix; }
 
 glm::mat4 Camera::createProjectionMatrix() {
-  return glm::perspective(
-      glm::radians(defaultCameraZoom),
-      (float)ConfigWindow::globalGraphicsSettings.screenWidth /
-          (float)ConfigWindow::globalGraphicsSettings.screenHeight,
-      defaultCameraNearPlane, defaultCameraFarPlane);
+  return glm::perspective(glm::radians(defaultCameraZoom), aspectRatio,
+                          defaultCameraNearPlane, defaultCameraFarPlane);
+}
+
+void normalizePlane(glm::vec4& vec) {
+  float length = glm::length(glm::vec3{vec});
+  vec /= length;
+}
+
+const std::array<glm::vec4, 6>& Camera::getFrustumPlanes() {
+  if (dirtyMatrices) {
+    updateCameraMatrices();
+    dirtyMatrices = false;
+  }
+
+  const glm::vec4 row0{glm::row(viewProjectionMatrix, 0)};
+  const glm::vec4 row1{glm::row(viewProjectionMatrix, 1)};
+  const glm::vec4 row2{glm::row(viewProjectionMatrix, 2)};
+  const glm::vec4 row3{glm::row(viewProjectionMatrix, 3)};
+
+  // Left
+  frustumPlanes[0] = row3 + row0;
+
+  // Right
+  frustumPlanes[1] = row3 - row0;
+
+  // Top
+  frustumPlanes[2] = row3 - row1;
+
+  // Bottom
+  frustumPlanes[3] = row3 + row1;
+
+  // Near
+  frustumPlanes[4] = row3 + row2;
+
+  // Far
+  frustumPlanes[5] = row3 - row2;
+
+  for (auto& vec : frustumPlanes) normalizePlane(vec);
+
+  return frustumPlanes;
+}
+
+void Camera::setAspectRatio(float ratio) {
+  aspectRatio = ratio;
+  projectionMatrix = createProjectionMatrix();
+  dirtyMatrices = true;
 }

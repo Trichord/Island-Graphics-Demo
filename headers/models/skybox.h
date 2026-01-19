@@ -1,13 +1,15 @@
 #pragma once
 
+#include <array>
 #include <filesystem>
 #include <vector>
 
-#include "cube_mapped_model.h"
 #include "glad/glad.h"
+#include "glm/glm.hpp"
+#include "renderable.h"
 #include "texture_manager.h"
 
-class Skybox : public CubeMappedModel {
+class Skybox : public Renderable {
  public:
   Skybox() = delete;
   Skybox(TextureManager& textureManager,
@@ -20,13 +22,19 @@ class Skybox : public CubeMappedModel {
   Skybox& operator=(Skybox&& other) = delete;
   ~Skybox();
 
-  void render() override;
+  void render(unsigned int globalMSAA) override;
+  bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
+                      const glm::mat4& modelMatrix, const glm::vec3& cameraPos,
+                      const float cullDistanceScale) override;
   ModelHandle getModelHandle();
 
  private:
   GLuint VAO{0};
   GLuint VBO{0};
   GLuint EBO{0};
+  ModelHandle handle{0};
+  TextureManager& texManager;
+  const std::vector<Material>& textureSet;
 
   inline static const float vertices[]{-1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f,
                                        1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f,

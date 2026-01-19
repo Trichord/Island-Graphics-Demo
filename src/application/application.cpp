@@ -1,30 +1,37 @@
 #include "application.h"
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
 #include <iostream>
 
+#include "camera.h"
 #include "config_window.h"
+#include "gl_context.h"
+#include "glm/glm.hpp"
 #include "island_scene.h"
-#include "object_positions.h"
 #include "renderer.h"
 #include "scene.h"
-#include "thread_pool.h"
-#include "texture_manager.h"
 
 void Application::run() {
-  if (!configWindow.launchSettingsWindow()) return;
+  ConfigWindow configWindow;
+  ConfigWindow::GraphicsSettings graphicsSettings;
 
-  createWindow();
+  if (!configWindow.launchSettingsWindow(graphicsSettings)) return;
+
+  createWindow(graphicsSettings);
   if (!window) return;
 
-  createOpenGLViewport();
+  createOpenGLViewport(graphicsSettings);
   registerCallbacks();
 
   IslandScene islandScene(textureManager);
-  Renderer renderer(ConfigWindow::globalGraphicsSettings.screenWidth,
-                    ConfigWindow::globalGraphicsSettings.screenHeight);
+  islandScene.camera.setAspectRatio(
+      static_cast<float>(graphicsSettings.screenWidth) /
+      static_cast<float>(graphicsSettings.screenHeight));
+
+  if (graphicsSettings.anisotropicFiltering)
+    textureManager.setAnisoLevel(
+        static_cast<float>(graphicsSettings.anisotropicFiltering));
+
+  Renderer renderer(graphicsSettings);
 
   addGlfwUserParam(islandScene);
 
@@ -65,26 +72,29 @@ void Application::run() {
   return;
 }
 
-void Application::createWindow() {
+void Application::createWindow(
+    const ConfigWindow::GraphicsSettings& graphicsSettings) {
   glfwInit();
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+  glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 
-  unsigned int msaa{ConfigWindow::globalGraphicsSettings.msaa};
-  glfwWindowHint(GLFW_SAMPLES, msaa);
+  if (graphicsSettings.msaa)
+    glfwWindowHint(GLFW_SAMPLES, graphicsSettings.msaa);
 
-  unsigned int width{ConfigWindow::globalGraphicsSettings.screenWidth};
-  unsigned int height{ConfigWindow::globalGraphicsSettings.screenHeight};
+  int width{graphicsSettings.screenWidth};
+  int height{graphicsSettings.screenHeight};
 
-  if (ConfigWindow::globalGraphicsSettings.fullscreen)
-    window = glfwCreateWindow(width, height, "OpenGL Demo",
+  if (graphicsSettings.fullscreen)
+    window = glfwCreateWindow(width, height, "Island Graphics Demo",
                               glfwGetPrimaryMonitor(), nullptr);
 
   else
-    window = glfwCreateWindow(width, height, "OpenGL Demo", NULL, NULL);
+    window =
+        glfwCreateWindow(width, height, "Island Graphics Demo", NULL, NULL);
 
   if (!window) {
     std::cout << "Failed to create GLFW window" << std::endl;
@@ -93,31 +103,32 @@ void Application::createWindow() {
 
   glfwMakeContextCurrent(window);
 
-  if (ConfigWindow::globalGraphicsSettings.vsync)
+  if (graphicsSettings.vsync)
     glfwSwapInterval(1);
 
   else
     glfwSwapInterval(0);
 }
 
-void Application::createOpenGLViewport() {
+void Application::createOpenGLViewport(
+    const ConfigWindow::GraphicsSettings& graphicsSettings) {
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     std::cout << "Failed to initialize GLAD" << std::endl;
     glfwTerminate();
     return;
   }
 
-  unsigned int width{ConfigWindow::globalGraphicsSettings.screenWidth};
-  unsigned int height{ConfigWindow::globalGraphicsSettings.screenHeight};
-  unsigned int msaa{ConfigWindow::globalGraphicsSettings.msaa};
+  GLsizei width{static_cast<GLsizei>(graphicsSettings.screenWidth)};
+  GLsizei height{static_cast<GLsizei>(graphicsSettings.screenHeight)};
 
   glViewport(0, 0, width, height);
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glEnable(GL_FRAMEBUFFER_SRGB);
-  glEnable(GL_MULTISAMPLE);
   glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+  if (graphicsSettings.msaa) glEnable(GL_MULTISAMPLE);
 }
 
 void Application::processInput(Scene& scene) {
@@ -158,26 +169,9 @@ void Application::addGlfwUserParam(Scene& scene) {
 }
 
 void Application::onUpdate(Scene& scene, float deltaTime) {
-  // Rotate the fancy space dodecahedron
+  // Rotate the fancy space model
   auto& spaceModel = scene.getObjectTransform("spaceModel");
   spaceModel.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});
-
-  // Move the light around the flight helmet
-  auto& circlingLight =
-      static_cast<PointLight&>(scene.getNamedLight("circlingLight"));
-
-  glm::vec3 newPos;
-  const float radius{1.25f};
-  float time{(float)glfwGetTime()};
-
-  newPos.x = LIGHTBULB_POS.x + glm::sin(time * 0.5f) * radius;
-  newPos.z = LIGHTBULB_POS.z + glm::cos(time * 0.5f) * radius;
-  newPos.y = LIGHTBULB_POS.y;
-
-  circlingLight.setPosition(newPos);
-
-  Transform& lightTransform{scene.getObjectTransform("lightbulb")};
-  lightTransform.setAbsolutePosition(newPos);
 }
 
 void mouse_callback(GLFWwindow* window, double xPos, double yPos) {

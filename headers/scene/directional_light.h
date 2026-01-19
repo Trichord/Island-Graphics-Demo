@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
 
 #include "light.h"
 
@@ -9,9 +9,9 @@ class DirectionalLight : public Light {
   DirectionalLight() = default;
   DirectionalLight(const glm::vec3& newDirection,
                    const glm::vec3& newColor = glm::vec3(1.0f));
-  const glm::vec3& getColor() const override;
-  const glm::vec3& getDirection() const;
-  void setDirection(glm::vec3& newDirection);
+  glm::vec3 getColor() const override;
+  glm::vec3 getDirection() const;
+  void setDirection(const glm::vec3& newDirection);
   bool directionHasUpdated();
 
  private:

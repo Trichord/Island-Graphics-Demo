@@ -1,17 +1,25 @@
 #include "primitive.h"
 
-#include <glad/glad.h>
-
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <utility>
 #include <vector>
 
-Primitive::Primitive(std::vector<Vertex>&& verts,
-                     std::vector<std::uint32_t>&& inds, int matIndex)
-    : materialIndex{matIndex},
-      vertices{std::move(verts)},
-      indices{std::move(inds)} {
+#include "aabb.h"
+#include "fastgltf/types.hpp"
+#include "glad/glad.h"
+
+Primitive::Primitive(std::vector<Vertex>&& vertices_,
+                     std::vector<std::uint32_t>&& indices_, AABB&& aabb_,
+                     bool hasMaterials_, std::size_t materialIndex_,
+                     fastgltf::AlphaMode alphaMode_)
+    : vertices{std::move(vertices_)},
+      indices{std::move(indices_)},
+      aabb{aabb_},
+      hasMaterials{hasMaterials_},
+      materialIndex{materialIndex_},
+      alphaMode{alphaMode_} {
   setupPrimitiveBuffers();
 }
 
@@ -20,7 +28,10 @@ Primitive::Primitive(Primitive&& other) noexcept
   VAO = other.VAO;
   VBO = other.VBO;
   EBO = other.EBO;
+  hasMaterials = other.hasMaterials;
   materialIndex = other.materialIndex;
+  alphaMode = other.alphaMode;
+  aabb = other.aabb;
 
   other.EBO = 0;
   other.VBO = 0;
@@ -38,7 +49,9 @@ Primitive& Primitive::operator=(Primitive&& other) noexcept {
     VAO = other.VAO;
     VBO = other.VBO;
     EBO = other.EBO;
+    hasMaterials = other.hasMaterials;
     materialIndex = other.materialIndex;
+    alphaMode = other.alphaMode;
 
     other.EBO = 0;
     other.VBO = 0;
@@ -60,14 +73,25 @@ GLsizei Primitive::getIndicesSize() const {
   return static_cast<GLsizei>(indices.size());
 }
 
-int Primitive::getMaterialIndex() const { return materialIndex; }
+std::size_t Primitive::getMaterialIndex() const { return materialIndex; }
+
+fastgltf::AlphaMode Primitive::getAlphaMode() const { return alphaMode; }
+
+const AABB& Primitive::getAABB() const { return aabb; }
+
+bool Primitive::materialsExist() const { return hasMaterials; }
+
+void Primitive::setMaterialIndex(std::size_t newIndex) {
+  materialIndex = newIndex;
+  hasMaterials = true;
+}
 
 /* Vertex attribute layout:
-* 0 - position (vec3)
-* 1 - normal (vec3)
-* 2 - tangent (vec4)
-* 3 - texture coordinates (vec2)
-*/
+ * 0 - position (vec3)
+ * 1 - normal (vec3)
+ * 2 - tangent (vec4)
+ * 3 - texture coordinates (vec2)
+ */
 void Primitive::setupPrimitiveBuffers() {
   if (!vertices.size() || !indices.size()) {
     std::cout << "Error: missing either vertices or indices in mesh"
@@ -107,4 +131,8 @@ void Primitive::setupPrimitiveBuffers() {
   glVertexArrayAttribBinding(VAO, 1, 0);
   glVertexArrayAttribBinding(VAO, 2, 0);
   glVertexArrayAttribBinding(VAO, 3, 0);
+}
+
+const std::vector<Primitive::Vertex>& Primitive::getVertices() const {
+  return vertices;
 }

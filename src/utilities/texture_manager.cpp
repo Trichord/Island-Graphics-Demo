@@ -1,21 +1,21 @@
 #include "texture_manager.h"
-#include "glad/glad.h"
-#include "thread_pool.h"
-#include "model.h"
-#include "fastgltf_loader.h"
-#include "texture_utilities.h"
 
-#include <unordered_map>
-#include <stddef.h>
-#include <vector>
 #include <cstdint>
-#include <utility>
-#include <fastgltf/types.hpp>
 #include <filesystem>
-#include <unordered_set>
-#include <random>
-#include <limits>
 #include <iostream>
+#include <limits>
+#include <random>
+#include <unordered_map>
+#include <utility>
+#include <variant>
+#include <vector>
+
+#include "fastgltf/types.hpp"
+#include "fastgltf_loader.h"
+#include "glad/glad.h"
+#include "image_loader.h"
+#include "texture_utilities.h"
+#include "thread_pool.h"
 
 constexpr unsigned int desiredThreadCount{6u};
 
@@ -27,9 +27,9 @@ void TextureManager::queueModelTextureSet(
 
 void TextureManager::queueBaseImageTextureSet(const ModelHandle handle,
                                               std::filesystem::path texturePath,
-                                              bool sRGB, bool aniso) {
+                                              bool sRGB, bool anisoRequested) {
   textureCreationQueue.emplace(std::move(texturePath), handle, "./", sRGB,
-                               aniso);
+                               anisoRequested);
 }
 
 void TextureManager::queueCubemapTextureSet(
@@ -39,17 +39,17 @@ void TextureManager::queueCubemapTextureSet(
 }
 
 // TODO: add default purple texture for missing texturesets
-const std::vector<TextureSet>& TextureManager::acquireUniqueTextureSet(
+const std::vector<Material>& TextureManager::acquireUniqueTextureSet(
     ModelHandle modelHandle) const {
   auto textureSetIter = textureCache.find(modelHandle);
 
   if (textureSetIter == textureCache.end()) {
     std::cerr << "model handle not found" << std::endl;
-    static const std::vector<TextureSet> empty;
+    static const std::vector<Material> empty;
     return empty;
   }
 
-  return textureSetIter->second.textureSets;
+  return textureSetIter->second.materials;
 }
 
 void TextureManager::releaseModel(ModelHandle handle) {
@@ -97,10 +97,14 @@ void TextureManager::processTextureQueue() {
                         std::get<fastgltf::Asset>(queueElement.source),
                         queueElement.modelHandle, queueElement.parentPath);
 
-    else if (std::holds_alternative<std::filesystem::path>(queueElement.source))
+    else if (std::holds_alternative<std::filesystem::path>(
+                 queueElement.source)) {
+      TextureConfig config{queueElement.sRGB, queueElement.requestAniso,
+                           anisoLevel};
       genTexIDFromImage(threadPool, queueElement.modelHandle,
                         std::get<std::filesystem::path>(queueElement.source),
-                        queueElement.sRGB, queueElement.aniso);
+                        config);
+    }
 
     else if (std::holds_alternative<std::vector<std::filesystem::path>>(
                  queueElement.source))
@@ -119,7 +123,11 @@ void TextureManager::genTexIDFromAsset(ThreadPool& threadPool,
                                        std::filesystem::path parentPath) {
   // Return not found
   auto handleIter = textureCache.find(handle);
-  if (handleIter == textureCache.end()) return;
+  if (handleIter == textureCache.end()) {
+    std::cerr << "ERROR: Handle " << handle << " not found for model "
+              << parentPath << std::endl;
+    return;
+  }
 
   // Get raw image data
   std::vector<std::filesystem::path> texturePaths{
@@ -130,29 +138,31 @@ void TextureManager::genTexIDFromAsset(ThreadPool& threadPool,
   // Create key and resize
   TextureEntry& entry{handleIter->second};
   ++entry.refCount;
-  entry.textureSets.resize(asset.materials.size());
+  entry.materials.resize(asset.materials.size());
 
   // Create map to avoid duplicate images
   std::unordered_map<unsigned int, GLuint> processedImageIndices;
 
   // Helper function
   auto getOrCreateTextureID = [&](const fastgltf::TextureInfo& textureInfo,
-                                  bool sRGB) {
+                                  bool sRGBRequested, bool anisoRequested) {
     auto [imageIndex, sampler] =
         fastgltfLoader::getTextureInfo(asset, textureInfo);
 
     auto [iter, inserted] = processedImageIndices.try_emplace(imageIndex, 0);
 
     if (inserted) {
+      TextureConfig config{sRGBRequested, anisoRequested, anisoLevel};
+
       iter->second = textureUtilities::generateTextureID(
-          rawTextureData[imageIndex], sampler, sRGB);
+          rawTextureData[imageIndex], sampler, config, globalAnisoEnabled);
       entry.textureHandles.insert(iter->second);
     }
 
     return iter->second;
   };
 
-  auto& textureVec = entry.textureSets;
+  auto& textureVec = entry.materials;
 
   // Process all materials in the gltf asset
   for (size_t i{0}; i < asset.materials.size(); ++i) {
@@ -160,19 +170,19 @@ void TextureManager::genTexIDFromAsset(ThreadPool& threadPool,
 
     if (material.pbrData.baseColorTexture.has_value()) {
       auto& albedo = material.pbrData.baseColorTexture.value();
-      textureVec[i].albedo = getOrCreateTextureID(albedo, true);
+      textureVec[i].albedo = getOrCreateTextureID(albedo, true, true);
     }
 
     if (material.pbrData.metallicRoughnessTexture.has_value()) {
       auto& metallicRoughnessTexture =
           material.pbrData.metallicRoughnessTexture.value();
       textureVec[i].occlusionRoughnessMetallic =
-          getOrCreateTextureID(metallicRoughnessTexture, false);
+          getOrCreateTextureID(metallicRoughnessTexture, false, false);
     }
 
     if (material.normalTexture.has_value()) {
       auto& normalTexture = material.normalTexture.value();
-      textureVec[i].normal = getOrCreateTextureID(normalTexture, false);
+      textureVec[i].normal = getOrCreateTextureID(normalTexture, false, false);
     }
   }
 }
@@ -180,25 +190,25 @@ void TextureManager::genTexIDFromAsset(ThreadPool& threadPool,
 void TextureManager::genTexIDFromImage(ThreadPool& threadPool,
                                        ModelHandle handle,
                                        const std::filesystem::path& imagePath,
-                                       bool sRGB, bool aniso) {
+                                       TextureConfig textureConfig) {
   auto handleIter = textureCache.find(handle);
 
   if (handleIter == textureCache.end()) return;
 
   ++handleIter->second.refCount;
-  handleIter->second.textureSets.resize(1);
+  handleIter->second.materials.resize(1);
 
   ImageLoader imageLoader{threadPool, imagePath};
   std::vector<LoadedImage> imageData{imageLoader.getImageData()};
 
+  Sampler textureSampler{GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR, GL_CLAMP_TO_EDGE,
+                         GL_CLAMP_TO_EDGE};
+
   if (imageData.size()) {
     GLuint texID{textureUtilities::generateTextureID(
-        imageData[0],
-        Sampler{GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR, GL_CLAMP_TO_EDGE,
-                GL_CLAMP_TO_EDGE},
-        sRGB, aniso)};
+        imageData[0], textureSampler, textureConfig, globalAnisoEnabled)};
 
-    handleIter->second.textureSets[0].albedo = texID;
+    handleIter->second.materials[0].albedo = texID;
     handleIter->second.textureHandles.insert(texID);
   }
 }
@@ -211,28 +221,33 @@ void TextureManager::genCubemapTexID(
   if (handleIter == textureCache.end()) return;
 
   ++handleIter->second.refCount;
-  handleIter->second.textureSets.resize(1);
+  handleIter->second.materials.resize(1);
 
   ImageLoader imageLoader{threadPool, imagePaths};
   std::vector<LoadedImage> loadedImages{imageLoader.getImageData()};
 
   GLuint texID{textureUtilities::generateCubemapTextureID(loadedImages, sRGB)};
 
-  handleIter->second.textureSets[0].cubemap = texID;
+  handleIter->second.materials[0].cubemap = texID;
   handleIter->second.textureHandles.insert(texID);
 }
 
-const std::vector<TextureSet>& TextureManager::borrowTextureSet(
+const std::vector<Material>& TextureManager::borrowTextureSet(
     ModelHandle other) {
   auto textureSetIter = textureCache.find(other);
 
   if (textureSetIter == textureCache.end()) {
     std::cerr << "model handle not found" << std::endl;
-    static const std::vector<TextureSet> empty;
+    static const std::vector<Material> empty;
     return empty;
   }
 
   ++textureSetIter->second.refCount;
 
-  return textureSetIter->second.textureSets;
+  return textureSetIter->second.materials;
+}
+
+void TextureManager::setAnisoLevel(float level) {
+  globalAnisoEnabled = true;
+  anisoLevel = level;
 }
