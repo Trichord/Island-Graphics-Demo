@@ -3,8 +3,10 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <vector>
 
 #include "glad/glad.h"
+#include "image_loader.h"
 
 GLuint textureUtilities::generateTextureID(const LoadedImage& image,
                                            Sampler sampler,

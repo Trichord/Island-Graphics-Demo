@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <vector>
 
+#include "model.h"
 #include "texture_manager.h"
 
 CubeMappedModel::CubeMappedModel(

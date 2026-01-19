@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <vector>
+
 #include "glad/glad.h"
 #include "image_loader.h"
 

@@ -1,5 +1,7 @@
 #include "aabb.h"
 
+#include <array>
+
 #include "glm/glm.hpp"
 
 AABB::AABB(float minX, float minY, float minZ, float maxX, float maxY,

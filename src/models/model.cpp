@@ -1,13 +1,17 @@
 #include "model.h"
 
 #include <algorithm>
+#include <array>
 #include <filesystem>
 #include <limits>
+#include <utility>
 #include <vector>
 
+#include "aabb.h"
 #include "fastgltf/types.hpp"
 #include "fastgltf_loader.h"
 #include "glad/glad.h"
+#include "glm/glm.hpp"
 #include "primitive.h"
 #include "texture_manager.h"
 

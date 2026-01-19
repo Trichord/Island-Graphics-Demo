@@ -1,14 +1,20 @@
 #include "instanced_model.h"
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <iterator>
 #include <random>
+#include <utility>
 
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "model.h"
+#include "primitive.h"
 #include "texture_manager.h"
 
 InstancedModel::InstancedModel(TextureManager& textureManager,

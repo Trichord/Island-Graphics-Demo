@@ -1,6 +1,7 @@
 #include "directional_light.h"
 
 #include "glm/glm.hpp"
+#include "light.h"
 
 DirectionalLight::DirectionalLight(const glm::vec3& newDirection,
                                    const glm::vec3& newColor)

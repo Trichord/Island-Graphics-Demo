@@ -1,8 +1,11 @@
 #include "skybox.h"
 
+#include <array>
+#include <filesystem>
 #include <vector>
 
 #include "glad/glad.h"
+#include "glm/glm.hpp"
 #include "texture_manager.h"
 
 Skybox::Skybox(TextureManager& textureManager,
