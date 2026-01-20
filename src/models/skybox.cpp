@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <vector>
 
+#include "gl_state.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "texture_manager.h"
@@ -12,8 +13,8 @@ Skybox::Skybox(TextureManager& textureManager,
                const std::vector<std::filesystem::path>& imagePaths)
     : handle{textureManager.assignModelHandle()},
       texManager{textureManager},
-      textureSet{textureManager.acquireUniqueTextureSet(handle)} {
-  textureManager.queueCubemapTextureSet(handle, imagePaths, "./");
+      materials{textureManager.acquireUniqueTextureSet(handle)} {
+  textureManager.queueCubeMap(handle, imagePaths, "./");
   setupBuffers();
 }
 
@@ -21,12 +22,12 @@ Skybox::Skybox(TextureManager& textureManager, const Skybox& borrowTarget,
                const std::vector<std::filesystem::path>& imagePaths)
     : handle{borrowTarget.handle},
       texManager{textureManager},
-      textureSet{textureManager.borrowTextureSet(borrowTarget.handle)} {
+      materials{textureManager.borrowTextureSet(borrowTarget.handle)} {
   setupBuffers();
 }
 
 Skybox::Skybox(Skybox&& other) noexcept
-    : textureSet{other.textureSet},
+    : materials{other.materials},
       handle{other.handle},
       texManager{other.texManager},
       VAO{other.VAO},
@@ -43,10 +44,10 @@ Skybox::~Skybox() {
   if (handle) texManager.releaseModel(handle);
 }
 
-void Skybox::render(unsigned int globalMSAA) {
+void Skybox::render(GLState& glState) {
   glDepthFunc(GL_LEQUAL);
 
-  if (!textureSet.empty()) glBindTextureUnit(3, textureSet[0].cubemap);
+  if (!materials.empty()) glBindTextureUnit(3, materials[0].cubemap);
 
   glBindVertexArray(VAO);
   glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);

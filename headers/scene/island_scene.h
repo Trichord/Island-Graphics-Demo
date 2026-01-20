@@ -1,5 +1,6 @@
 #pragma once
 
+#include "config_window.h"
 #include "scene.h"
 #include "texture_manager.h"
 
@@ -7,8 +8,13 @@
 
 class IslandScene : public Scene {
  public:
-  IslandScene(TextureManager& textureManager);
+  IslandScene(TextureManager& _textureManager,
+              const ConfigWindow::GraphicsSettings& graphicsSettings);
+
+  void initializeScene(
+      const ConfigWindow::GraphicsSettings& graphicsSettings) override;
   void addAllModelsToScene() override;
   void addAllLightsToScene() override;
-  void setupCamera() override;
+  void setupCamera(
+      const ConfigWindow::GraphicsSettings& graphicsSettings) override;
 };

@@ -10,6 +10,7 @@
 #include "aabb.h"
 #include "fastgltf/types.hpp"
 #include "fastgltf_loader.h"
+#include "gl_state.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "primitive.h"
@@ -18,7 +19,7 @@
 Model::Model(TextureManager& textureManager, const std::filesystem::path& path)
     : handle{textureManager.assignModelHandle()},
       texManager{textureManager},
-      textureSet{textureManager.acquireUniqueTextureSet(handle)} {
+      materials{textureManager.acquireUniqueTextureSet(handle)} {
   loadModel(path, false);
   calculateAABB();
 }
@@ -27,7 +28,7 @@ Model::Model(TextureManager& textureManager, const Model& borrowTarget,
              const std::filesystem::path& path)
     : handle{borrowTarget.handle},
       texManager{textureManager},
-      textureSet{textureManager.borrowTextureSet(borrowTarget.handle)} {
+      materials{textureManager.borrowTextureSet(borrowTarget.handle)} {
   loadModel(path, true);
   calculateAABB();
 }
@@ -35,7 +36,7 @@ Model::Model(TextureManager& textureManager, const Model& borrowTarget,
 Model::Model(Model&& other) noexcept
     : handle{other.handle},
       texManager{other.texManager},
-      textureSet{other.textureSet},
+      materials{other.materials},
       meshes{std::move(other.meshes)} {
   other.handle = 0;
 }
@@ -48,16 +49,15 @@ void Model::drawPrimitive(const Primitive& primitive) {
   glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0);
 }
 
-void Model::render(unsigned int globalMSAA) {
+void Model::render(GLState& glState) {
   std::size_t lastMaterialIndex{0};
-  bool alphaEnabled{false};
-  bool needsAlpha{false};
   bool materialBound{false};
 
   for (const Primitive::Mesh& mesh : meshes) {
     if (!mesh.isVisible) continue;
     for (const Primitive& primitive : mesh.primitives) {
-      needsAlpha = primitive.getAlphaMode() != fastgltf::AlphaMode::Opaque;
+      glState.setAlphaMode(primitive.getAlphaMode() !=
+                           fastgltf::AlphaMode::Opaque);
 
       if (primitive.materialsExist()) {
         std::size_t materialIndex{primitive.getMaterialIndex()};
@@ -66,14 +66,8 @@ void Model::render(unsigned int globalMSAA) {
         if (materialIndex != lastMaterialIndex || !materialBound) {
           lastMaterialIndex = materialIndex;
           materialBound = true;
-          bindTextures(textureSet[materialIndex]);
+          bindTextures(glState, materials[materialIndex]);
         }
-      }
-
-      // Per-primitive alpha mode
-      if (needsAlpha != alphaEnabled) {
-        setAlphaMode(globalMSAA, needsAlpha);
-        alphaEnabled = needsAlpha;
       }
 
       glBindVertexArray(primitive.getVAO());
@@ -81,9 +75,20 @@ void Model::render(unsigned int globalMSAA) {
     }
   }
 
-  if (alphaEnabled) {
-    setAlphaMode(globalMSAA, false);
-  }
+  glState.setAlphaMode(false);
+}
+
+void Model::bindTextures(GLState& glState, const Material& materials) {
+  using enum MaterialSlots;
+
+  if (materials.albedo) glState.bindTexture(ALBEDO, materials.albedo);
+
+  if (materials.occlusionRoughnessMetallic)
+    glState.bindTexture(ARM, materials.occlusionRoughnessMetallic);
+
+  if (materials.normal) glState.bindTexture(NORMAL, materials.normal);
+
+  if (materials.cubemap) glState.bindTexture(CUBEMAP, materials.cubemap);
 }
 
 void Model::loadModel(const std::filesystem::path& path, bool borrowed) {
@@ -93,32 +98,11 @@ void Model::loadModel(const std::filesystem::path& path, bool borrowed) {
   meshes = fastgltfLoader::loadMeshes(asset);
 
   if (!borrowed)
-    texManager.queueModelTextureSet(handle, std::move(asset),
-                                    path.parent_path());
+    texManager.queueModelMaterials(handle, std::move(asset),
+                                   path.parent_path());
 }
 
 ModelHandle Model::getModelHandle() { return handle; }
-
-void Model::bindTextures(const Material& materials) {
-  if (materials.albedo) glBindTextureUnit(0, materials.albedo);
-
-  if (materials.occlusionRoughnessMetallic)
-    glBindTextureUnit(1, materials.occlusionRoughnessMetallic);
-
-  if (materials.normal) glBindTextureUnit(2, materials.normal);
-
-  if (materials.cubemap) glBindTextureUnit(3, materials.cubemap);
-}
-
-void Model::setAlphaMode(unsigned int globalMSAA, bool needsAlpha) {
-  if (needsAlpha) {
-    glDisable(GL_CULL_FACE);
-    if (globalMSAA) glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-  } else {
-    glEnable(GL_CULL_FACE);
-    if (globalMSAA) glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-  }
-}
 
 void Model::assignMaterialIndex(std::size_t newIndex) {
   for (auto& mesh : meshes)
