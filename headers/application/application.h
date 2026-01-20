@@ -63,7 +63,6 @@ class Application {
   float lastFrame{0.0f};
   float currentFrame{0.0f};
   GLFWwindow* window{nullptr};
-  TextureManager textureManager;
 
   /**
    * @brief Creates a GLFW window.  Display settings from the config window are

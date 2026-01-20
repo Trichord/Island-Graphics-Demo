@@ -22,16 +22,9 @@ void Application::run() {
   createOpenGLViewport(graphicsSettings);
   registerCallbacks();
 
-  IslandScene islandScene(textureManager);
-  islandScene.camera.setAspectRatio(
-      static_cast<float>(graphicsSettings.screenWidth) /
-      static_cast<float>(graphicsSettings.screenHeight));
-
-  if (graphicsSettings.anisotropicFiltering)
-    textureManager.setAnisoLevel(
-        static_cast<float>(graphicsSettings.anisotropicFiltering));
-
   Renderer renderer(graphicsSettings);
+
+  IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
 
   addGlfwUserParam(islandScene);
 
