@@ -110,6 +110,11 @@ bool Camera::hasUpdated() {
 
 const glm::vec3& Camera::getPosition() const { return position; }
 
+void Camera::setPosition(const glm::vec3&& newPosition) {
+  position = newPosition;
+  dirtyMatrices = true;
+}
+
 // calculates the front vector from the Camera's (updated) Euler angles
 void Camera::updateCameraVectors() {
   float cosPitchRad{glm::cos(glm::radians(pitch))};

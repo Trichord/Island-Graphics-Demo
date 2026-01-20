@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <vector>
 
+#include "gl_state.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "renderable.h"
@@ -22,7 +23,7 @@ class Skybox : public Renderable {
   Skybox& operator=(Skybox&& other) = delete;
   ~Skybox();
 
-  void render(unsigned int globalMSAA) override;
+  void render(GLState& glState) override;
   bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
                       const glm::mat4& modelMatrix, const glm::vec3& cameraPos,
                       const float cullDistanceScale) override;
@@ -34,7 +35,7 @@ class Skybox : public Renderable {
   GLuint EBO{0};
   ModelHandle handle{0};
   TextureManager& texManager;
-  const std::vector<Material>& textureSet;
+  const std::vector<Material>& materials;
 
   inline static const float vertices[]{-1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f,
                                        1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f,

@@ -10,7 +10,7 @@ CubeMappedModel::CubeMappedModel(
     TextureManager& textureManager, const std::filesystem::path& modelPath,
     const std::vector<std::filesystem::path>& imagePaths)
     : Model{textureManager, modelPath} {
-  textureManager.queueCubemapTextureSet(handle, imagePaths, "./");
+  textureManager.queueCubeMap(handle, imagePaths, "./");
   if (!hasMaterials()) assignMaterialIndex(0);
 }
 

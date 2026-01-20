@@ -1,6 +1,5 @@
 #pragma once
 
-#include <filesystem>
 #include <functional>
 #include <map>
 #include <optional>
@@ -10,18 +9,14 @@
 #include <vector>
 
 #include "camera.h"
-#include "cube_mapped_model.h"
+#include "config_window.h"
 #include "directional_light.h"
 #include "glm/glm.hpp"
-#include "instanced_model.h"
 #include "light.h"
-#include "model.h"
 #include "point_light.h"
 #include "renderable.h"
+#include "scene_resources.h"
 #include "shader_types.h"
-#include "skybox.h"
-#include "terrain.h"
-#include "texture_manager.h"
 #include "transform.h"
 
 /*
@@ -33,11 +28,6 @@
  */
 
 namespace sceneMaxObjects {
-inline constexpr int maxModels{50};
-inline constexpr int maxInstancedModels{25};
-inline constexpr int maxCubeMappedModels{10};
-inline constexpr int maxTerrains{5};
-inline constexpr int maxSkyboxes{2};
 inline constexpr int maxLights{5};
 }  // namespace sceneMaxObjects
 
@@ -48,68 +38,35 @@ class Scene {
   Scene& operator=(const Scene&) = delete;
   Scene(Scene&& other) noexcept = default;
   Scene& operator=(Scene&& other) noexcept = default;
+  virtual ~Scene() = default;
 
   Camera camera;
-
-  std::map<ShaderType, std::vector<RenderableObject>>& getSceneObjects();
-  std::vector<PointLight>& getPointLights();
-  Transform& getObjectTransform(const std::string& key);
-  Light& getNamedLight(const std::string& key);
-  DirectionalLight& getGlobalLightSource();
+  
   glm::vec3 getAmbientLight() const;
+  DirectionalLight& getGlobalLightSource();
+  std::vector<PointLight>& getPointLights();
+  Light& getNamedLight(const std::string& key);
   void setAmbientLight(const glm::vec3& ambient);
+  Transform& getObjectTransform(const std::string& key);
+  std::map<ShaderType, std::vector<RenderableObject>>& getSceneObjects();
 
  protected:
-  TextureManager& textureManager;
-
+  glm::vec3 ambientLight{0.2f};
+  SceneResources sceneResources;
+  DirectionalLight globalLightSource;
+  std::vector<PointLight> pointLights;
   std::map<ShaderType, std::vector<RenderableObject>> sceneObjects;
+  std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights;
   std::unordered_map<std::string, std::reference_wrapper<Transform>>
       namedTransforms;
-  std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights;
-
-  std::vector<Model> models;
-  std::vector<CubeMappedModel> cubeMappedModels;
-  std::vector<Skybox> skyboxes;
-  std::vector<InstancedModel> instancedModels;
-  std::vector<PointLight> pointLights;
-  std::vector<Terrain> terrains;
-
-  DirectionalLight globalLightSource;
-  glm::vec3 ambientLight{0.2f};
-
+  
   virtual void addAllModelsToScene() = 0;
   virtual void addAllLightsToScene() = 0;
-  virtual void setupCamera() = 0;
+  virtual void setupCamera(
+      const ConfigWindow::GraphicsSettings& graphicsSettings) = 0;
 
-  void initializeScene();
-
-  Model& loadModel(const std::filesystem::path& filepath);
-  Model& loadModel(const Model& borrowTarget,
-                   const std::filesystem::path& filepath);
-
-  InstancedModel& loadInstancedModel(const std::filesystem::path& modelPath,
-                                     const std::filesystem::path& positionsPath,
-                                     float minSize = 1.0f, float maxSize = 1.0f,
-                                     unsigned int numPositions = 0);
-  InstancedModel& loadInstancedModel(const InstancedModel& borrowTarget,
-                                     const std::filesystem::path& modelPath,
-                                     const std::filesystem::path& positionsPath,
-                                     float minSize = 1.0f, float maxSize = 1.0f,
-                                     unsigned int numPositions = 0);
-
-  CubeMappedModel& loadCubeMappedModel(
-      const std::filesystem::path& modelPath,
-      const std::vector<std::filesystem::path>& imagePaths);
-  CubeMappedModel& loadCubeMappedModel(const CubeMappedModel& borrowTarget,
-                                       const std::filesystem::path& modelPath);
-
-  Terrain& loadTerrain(const std::filesystem::path& modelPath);
-  Terrain& loadTerrain(const Model& borrowTarget,
-                       const std::filesystem::path& modelPath);
-
-  Skybox& loadSkybox(const std::vector<std::filesystem::path>& filePaths);
-  Skybox& loadSkybox(const Skybox& borrowTarget,
-                     const std::vector<std::filesystem::path>& filePaths);
+  virtual void initializeScene(
+      const ConfigWindow::GraphicsSettings& graphicsSettings) = 0;
 
   /**
    * Adds an object to the scene.  Optional: give the object a name to reference

@@ -33,11 +33,9 @@ struct Material {
 class TextureManager {
  public:
   void setAnisoLevel(float anisoLevel);
-  void queueModelTextureSet(const ModelHandle handle, fastgltf::Asset&& asset,
+  void queueModelMaterials(const ModelHandle handle, fastgltf::Asset&& asset,
                             const std::filesystem::path& parentPath);
-  void queueBaseImageTextureSet(const ModelHandle handle,
-                                std::filesystem::path texturePath, bool sRGB = true, bool anisoRequested = true);
-  void queueCubemapTextureSet(const ModelHandle handle,
+  void queueCubeMap(const ModelHandle handle,
                               std::vector<std::filesystem::path> imagePaths,
                               const std::filesystem::path& parentPath = "./",
                               bool sRGB = true);

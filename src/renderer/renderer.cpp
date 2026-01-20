@@ -2,7 +2,6 @@
 
 #include <array>
 #include <cstring>
-#include <iostream>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -34,21 +33,21 @@ constexpr float alphaCutoff{0.5f};
 constexpr float grassCullDistance{0.4f};
 
 Renderer::Renderer(const ConfigWindow::GraphicsSettings& settings)
-    : graphicsSettings{settings} {
+    : graphicsSettings{settings}, glState{settings.msaa != 0} {
+  setupTextureManager();
   setupUBO();
-
-  std::cout << "Loading Shaders...";
   loadShaders();
-  std::cout << " Done." << std::endl;
 
   for (auto& [_, shader] : shaders) setupShader(shader);
 }
 
 Renderer::Renderer(Renderer&& other) noexcept
-    : graphicsSettings{other.graphicsSettings},
-      shaders{std::move(other.shaders)},
+    : UBO{other.UBO},
       uboData{std::move(other.uboData)},
-      UBO{other.UBO} {
+      shaders{std::move(other.shaders)},
+      graphicsSettings{other.graphicsSettings},
+      textureManager{std::move(other.textureManager)},
+      glState{std::move(other.glState)} {
   other.UBO = 0;
 }
 
@@ -84,7 +83,7 @@ void Renderer::renderScene(Scene& scene) {
       }
 
       // Draw it
-      object.renderable.get().render(graphicsSettings.msaa);
+      object.renderable.get().render(glState);
     }
   }
 }
@@ -93,24 +92,6 @@ void Renderer::updateUBO(Scene& scene) {
   uboData.viewMatrix = scene.camera.getViewMatrix();
   uboData.viewProjectionMatrix = scene.camera.getViewProjectionMatrix();
   uboData.cameraPosition = glm::vec4{scene.camera.getPosition(), 0.0f};
-
-  /*
- // Culling test
-glm::vec3 position{15.0f, 20.0f, -75.0f};
-glm::vec3 front{0.0f, 0.0f, 1.0f};
-glm::vec3 up{0.0f, 1.0f, 0.0f};
-glm::mat4 viewMatrix{glm::lookAt(position, position + front, up)};
-glm::mat4 projectionMatrix{glm::perspective(
-   glm::radians(defaultCameraZoom),
-   2560.0f / 1440.0f,
-   defaultCameraNearPlane, defaultCameraFarPlane)};
-
-uboData.viewMatrix = viewMatrix;
-uboData.viewProjectionMatrix = projectionMatrix * viewMatrix;
-uboData.cameraPosition = glm::vec4{position, 0.0f};
-//End Culling Test
-
-*/
 
   void* uboPointer{
       glMapNamedBufferRange(UBO, 0, sizeof(PackedUBOData),
@@ -128,6 +109,12 @@ void Renderer::setupUBO() {
                        GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
 
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, UBO);
+}
+
+void Renderer::setupTextureManager() {
+  if (graphicsSettings.anisotropicFiltering)
+    textureManager.setAnisoLevel(
+        static_cast<float>(graphicsSettings.anisotropicFiltering));
 }
 
 void Renderer::loadShaders() {
@@ -228,3 +215,5 @@ void Renderer::cullRenderables(Scene& scene) {
           shaderType == FLOWERS ? grassCullDistance : 1.0f);
     }
 }
+
+TextureManager& Renderer::getTextureManager() { return textureManager; }

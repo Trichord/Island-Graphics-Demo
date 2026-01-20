@@ -19,20 +19,13 @@
 
 constexpr unsigned int desiredThreadCount{6u};
 
-void TextureManager::queueModelTextureSet(
+void TextureManager::queueModelMaterials(
     const ModelHandle handle, fastgltf::Asset&& asset,
     const std::filesystem::path& parentPath) {
   textureCreationQueue.emplace(std::move(asset), handle, parentPath);
 }
 
-void TextureManager::queueBaseImageTextureSet(const ModelHandle handle,
-                                              std::filesystem::path texturePath,
-                                              bool sRGB, bool anisoRequested) {
-  textureCreationQueue.emplace(std::move(texturePath), handle, "./", sRGB,
-                               anisoRequested);
-}
-
-void TextureManager::queueCubemapTextureSet(
+void TextureManager::queueCubeMap(
     const ModelHandle handle, std::vector<std::filesystem::path> imagePaths,
     const std::filesystem::path& parentPath, bool sRGB) {
   textureCreationQueue.emplace(std::move(imagePaths), handle, parentPath, sRGB);
