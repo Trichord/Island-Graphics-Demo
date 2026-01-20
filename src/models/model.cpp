@@ -15,6 +15,7 @@
 #include "glm/glm.hpp"
 #include "primitive.h"
 #include "texture_manager.h"
+#include "material_slots.h"
 
 Model::Model(TextureManager& textureManager, const std::filesystem::path& path)
     : handle{textureManager.assignModelHandle()},
@@ -79,7 +80,7 @@ void Model::render(GLState& glState) {
 }
 
 void Model::bindTextures(GLState& glState, const Material& materials) {
-  using enum MaterialSlots;
+  using enum MaterialSlot;
 
   if (materials.albedo) glState.bindTexture(ALBEDO, materials.albedo);
 

@@ -7,6 +7,7 @@
 #include "gl_state.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
+#include "material_slots.h"
 #include "texture_manager.h"
 
 Skybox::Skybox(TextureManager& textureManager,
@@ -47,7 +48,8 @@ Skybox::~Skybox() {
 void Skybox::render(GLState& glState) {
   glDepthFunc(GL_LEQUAL);
 
-  if (!materials.empty()) glBindTextureUnit(3, materials[0].cubemap);
+  if (!materials.empty())
+    glState.bindTexture(MaterialSlot::CUBEMAP, materials[0].cubemap);
 
   glBindVertexArray(VAO);
   glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);

@@ -36,12 +36,6 @@ class Model : public Renderable {
   ModelHandle getModelHandle();
 
  protected:
-     enum MaterialSlots {
-         ALBEDO,
-         ARM,
-         NORMAL,
-         CUBEMAP
-  };
   ModelHandle handle{0};
   TextureManager& texManager;
   const std::vector<Material>& materials;
