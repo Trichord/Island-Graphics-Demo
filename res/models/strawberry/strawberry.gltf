@@ -58,15 +58,15 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"Image_0",
-			"uri":"textures/Image_0.png"
+			"name":"flower_atlas",
+			"uri":"textures/flower_atlas.png"
 		}
 	],
 	"accessors":[
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":72,
+			"count":74,
 			"max":[
 				0.20384688675403595,
 				0.11184924095869064,
@@ -82,19 +82,19 @@
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":72,
+			"count":74,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":72,
+			"count":74,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":72,
+			"count":74,
 			"type":"VEC4"
 		},
 		{
@@ -107,32 +107,32 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":864,
+			"byteLength":888,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":864,
-			"byteOffset":864,
+			"byteLength":888,
+			"byteOffset":888,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":576,
-			"byteOffset":1728,
+			"byteLength":592,
+			"byteOffset":1776,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1152,
-			"byteOffset":2304,
+			"byteLength":1184,
+			"byteOffset":2368,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":216,
-			"byteOffset":3456,
+			"byteOffset":3552,
 			"target":34963
 		}
 	],
@@ -144,7 +144,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":3672,
+			"byteLength":3768,
 			"uri":"strawberry.bin"
 		}
 	]

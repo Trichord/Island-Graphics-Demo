@@ -58,8 +58,8 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"Dandelion_Clover_strawberry_diffuse",
-			"uri":"textures/Dandelion_Clover_strawberry_diffuse.png"
+			"name":"flower_atlas",
+			"uri":"textures/flower_atlas.png"
 		}
 	],
 	"accessors":[
