@@ -68,18 +68,6 @@ void IslandScene::addAllModelsToScene() {
       "./res/models/grass/grass.gltf", "./res/grass.txt", 0.3f, 0.5, 292);
   addObjectToScene(grass, FLOWERS);
 
-  // Dandelions
-  auto& dandelions = sceneResources.loadInstancedModel(
-      "./res/models/dandelion/dandelion.gltf", "./res/dandelions.txt", 1.0f,
-      1.5f, 1606);
-  addObjectToScene(dandelions, FLOWERS);
-
-  // Strawberry flowers
-  auto& strawberries = sceneResources.loadInstancedModel(
-      dandelions, "./res/models/strawberry/strawberry.gltf",
-      "./res/strawberries.txt", 0.8f, 1.2f, 161);
-  addObjectToScene(strawberries, FLOWERS);
-
   // White flowers
   auto& whiteFlowers = sceneResources.loadInstancedModel(
       "./res/models/whiteflower/whiteflower.gltf", "./res/whiteflowers.txt",
@@ -97,6 +85,18 @@ void IslandScene::addAllModelsToScene() {
       whiteFlowers, "./res/models/purpleflower/purpleflower.gltf",
       "./res/purpleflowers.txt", 0.9f, 1.1f, 256);
   addObjectToScene(purpleFlowers, FLOWERS);
+
+  // Dandelions
+  auto& dandelions = sceneResources.loadInstancedModel(
+      whiteFlowers, "./res/models/dandelion/dandelion.gltf",
+      "./res/dandelions.txt", 1.0f, 1.5f, 1606);
+  addObjectToScene(dandelions, FLOWERS);
+
+  // Strawberry flowers
+  auto& strawberries = sceneResources.loadInstancedModel(
+      whiteFlowers, "./res/models/strawberry/strawberry.gltf",
+      "./res/strawberries.txt", 0.8f, 1.2f, 161);
+  addObjectToScene(strawberries, FLOWERS);
 
   // Tree 1
   auto& tree1 = sceneResources.loadInstancedModel(

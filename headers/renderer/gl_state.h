@@ -15,6 +15,5 @@ class GLState {
   bool alphaEnabled{false};
   const bool globalMSAAEnabled{false};
 
-  GLint maxTextureUnits;
   std::vector<GLuint> textureUnits;
 };
