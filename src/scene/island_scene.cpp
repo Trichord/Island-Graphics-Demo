@@ -53,15 +53,17 @@ void IslandScene::addAllModelsToScene() {
       "./res/models/space_model/scene.gltf", spaceBoxPaths);
   addObjectToScene(spaceModel, REFLECTIVE, Transform(SPACE_DODECA_POS),
                    "spaceModel");
-
+  /*
   // Skybox
   std::vector<std::filesystem::path> skyBoxPaths{
       "./res/textures/skybox/right.png", "./res/textures/skybox/left.png",
       "./res/textures/skybox/top.png",   "./res/textures/skybox/bottom.png",
       "./res/textures/skybox/front.png", "./res/textures/skybox/back.png"};
 
-  sceneResources.loadSkybox(skyBoxPaths);
-
+  auto& skybox = sceneResources.loadCubeMappedModel(
+      "./res/models/cube/cube.gltf", skyBoxPaths);
+  addObjectToScene(skybox, SKYBOX);
+  */
   // Grass
   auto& grass = sceneResources.loadInstancedModel(
       "./res/models/grass/grass.gltf", "./res/grass.txt", 0.3f, 0.5, 292);

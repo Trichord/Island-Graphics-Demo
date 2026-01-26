@@ -6,7 +6,6 @@
 #include "glad/glad.h"
 #include "instance_data.h"
 #include "model.h"
-#include "renderable.h"
 #include "texture_manager.h"
 
 class InstancedModel : public Model {
@@ -31,7 +30,7 @@ class InstancedModel : public Model {
   void sortInstances() override;
   void resetVisibility() override;
   std::size_t getInstanceCount() const override;
-  std::optional<std::span<InstanceData>> getInstanceData() override;
+  std::span<InstanceData> getInstanceData() override;
 
  private:
   std::vector<InstanceData> instances;

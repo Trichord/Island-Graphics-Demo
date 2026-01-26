@@ -6,7 +6,6 @@
 #include "cube_mapped_model.h"
 #include "instanced_model.h"
 #include "model.h"
-#include "skybox.h"
 #include "terrain.h"
 #include "texture_manager.h"
 
@@ -38,11 +37,7 @@ class SceneResources {
   Terrain& loadTerrain(const Model& borrowTarget,
                        const std::filesystem::path& modelPath);
 
-  void loadSkybox(const std::vector<std::filesystem::path>& filePaths);
-  void loadSkybox(const Skybox& borrowTarget);
-
   TextureManager& getTextureManager();
-  const Skybox* getSkybox() const;
 
  private:
   TextureManager& textureManager;
@@ -50,5 +45,4 @@ class SceneResources {
   std::vector<CubeMappedModel> cubeMappedModels;
   std::vector<InstancedModel> instancedModels;
   std::vector<Terrain> terrains;
-  std::unique_ptr<Skybox> skybox;
 };

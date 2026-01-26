@@ -34,9 +34,6 @@ constexpr float alphaCutoff{0.5f};
 // Culling range for grass
 constexpr float grassCullDistance{0.4f};
 
-// Reduce frequency of sway
-constexpr float flowerSwaySpeed{0.5f};
-
 Renderer::Renderer(const ConfigWindow::GraphicsSettings& settings)
     : graphicsSettings{settings}, glState{settings.msaa != 0} {
   setupTextureManager();
@@ -58,7 +55,7 @@ Renderer::Renderer(Renderer&& other) noexcept
 
 void Renderer::renderScene(Scene& scene) {
   updateShaderUniforms(scene);
-  cullRenderables(scene, true);
+  //cullRenderables(scene, true);
   renderPrePass(scene);
   cullRenderables(scene, false);
   renderPass(scene);
@@ -156,28 +153,14 @@ void Renderer::updateShaderUniforms(Scene& scene) {
 
   // Set uniforms
   for (auto& [shaderType, shader] : shaders) {
-    switch (shaderType) {
-      using enum ShaderType;
-      case DIRECTIONAL_PBR:
-        if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
-        break;
+    using enum ShaderType;
+    if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
+    if (posUpdated) shader.setVec3("lightPosition", pointPos);
 
-      case TREES:
-      case FLOWERS:
-        shader.setFloat("time", (float)glfwGetTime() * flowerSwaySpeed);
-        if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
-        break;
-
-      case POINT_PBR:
-        if (posUpdated) shader.setVec3("lightPosition", pointPos);
-        break;
-
-      case ShaderType::SKYBOX:
-        shader.setMat4("viewProjectionNoTranslation",
-                       scene.camera.getProjectionMatrix() *
-                           scene.camera.getViewMatrixNoTranslation());
-        break;
-    }
+    shader.setFloat("time", (float)glfwGetTime());
+    shader.setMat4("viewProjectionNoTranslation",
+                   scene.camera.getProjectionMatrix() *
+                       scene.camera.getViewMatrixNoTranslation());
   }
 }
 
@@ -231,7 +214,7 @@ void Renderer::renderPass(Scene& scene) {
 
           glBindVertexArray(primitive.getVAO());
 
-          if (renderableObject.getInstanceData()) {
+          if (!renderableObject.getInstanceData().empty()) {
             glDrawElementsInstanced(
                 GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0,
                 static_cast<GLsizei>(renderableObject.getInstanceCount()));
@@ -254,12 +237,10 @@ void Renderer::cullRenderables(Scene& scene, bool prePass) {
   for (auto& [shaderType, objectList] : scene.getSceneObjects())
     for (auto& object : objectList) {
       using enum ShaderType;
-      if (!object.isVisible) continue;
-
-      if (shaderType == SKYBOX) continue;
+      if (!object.isVisible || shaderType == SKYBOX) continue;
 
       // Models
-      if (!object.renderable.get().getInstanceData().has_value())
+      if (object.renderable.get().getInstanceData().empty())
         cullModel(object, frustumPlanes, prePass);
 
       // Terrain
@@ -288,53 +269,38 @@ void Renderer::bindTextures(const Material& materials) {
 
 TextureManager& Renderer::getTextureManager() { return textureManager; }
 
-void Renderer::cullModel(RenderableObject& object,
+void Renderer::cullModel(RenderableObject& renderable,
                          const std::array<glm::vec4, 6>& frustumPlanes,
                          bool prePass) {
-  // Single near plane test
+  const glm::vec4 nearPlane{frustumPlanes[4]};
+  const glm::mat4& modelMatrix = renderable.transform.getModelMatrix();
+  auto& object = renderable.renderable.get();
+  const AABB& aabb = object.getAABB();
+
   if (prePass)
-    object.isVisible = object.renderable.get().getAABB().intersectsSinglePlane(
-        frustumPlanes[4], object.transform.getModelMatrix());
-  // Full frustum test
+    renderable.isVisible = aabb.intersectsSinglePlane(nearPlane, modelMatrix);
   else
-    object.isVisible = object.renderable.get().getAABB().intersects(
-        frustumPlanes, object.transform.getModelMatrix());
+    renderable.isVisible = aabb.intersects(frustumPlanes, modelMatrix);
 }
 
-void Renderer::cullInstanced(RenderableObject& object,
+void Renderer::cullInstanced(RenderableObject& renderable,
                              const glm::vec3& cameraPos,
                              const std::array<glm::vec4, 6>& frustumPlanes,
                              bool prePass) {
-  // Near + (far - near) * scale
-  const float cullDistance{frustumPlanes[4].w +
-                           (frustumPlanes[5].w - frustumPlanes[4].w) *
-                               grassCullDistance};
+  float nearDistance{frustumPlanes[4].w};
+  float farDistance{frustumPlanes[5].w};
 
-  auto instancesMaybe = object.renderable.get().getInstanceData();
+  const float cullDistance{nearDistance +
+                           (farDistance - nearDistance) * grassCullDistance};
 
-  if (instancesMaybe.has_value()) {
-    auto& instances = instancesMaybe.value();
+  auto& object = renderable.renderable.get();
+  std::span<InstanceData> instances = object.getInstanceData();
 
-    for (auto& instance : instances) {
+  for (auto& instance : instances) {
+    if (prePass) {
       const float objToCamera{glm::length(cameraPos - instance.position)};
 
-      if (!prePass) {
-        if (!instance.isVisible) continue;
-
-        instance.isVisible =
-            instance.worldAABB.intersectsWorldSpace(frustumPlanes);
-
-        if (instance.isVisible) {
-          double xDist{instance.position.x - cameraPos.x};
-          double zDist{instance.position.z - cameraPos.z};
-
-          instance.sortKey = xDist * xDist + zDist * zDist;
-
-          object.isVisible = true;
-        }
-        continue;
-      }
-
+      // Outside of distance based culling
       if (objToCamera > cullDistance) {
         instance.isVisible = false;
         continue;
@@ -343,15 +309,24 @@ void Renderer::cullInstanced(RenderableObject& object,
       // Cull by single plane
       instance.isVisible =
           instance.worldAABB.intersectsWorldSinglePlane(frustumPlanes[4]);
-      double xDist{instance.position.x - cameraPos.x};
-      double zDist{instance.position.z - cameraPos.z};
+    } else {
+      // Skips rejections from prepass
+      if (!instance.isVisible) continue;
 
-      instance.sortKey = xDist * xDist + zDist * zDist;
-
-      if (instance.isVisible) object.isVisible = true;
+      // Full frustum test
+      instance.isVisible =
+          instance.worldAABB.intersectsWorldSpace(frustumPlanes);
     }
+
+    if (!instance.isVisible) continue;
+
+    double xDist{instance.position.x - cameraPos.x};
+    double zDist{instance.position.z - cameraPos.z};
+    instance.sortKey = xDist * xDist + zDist * zDist;
+    renderable.isVisible = true;
   }
-  if (object.isVisible) object.renderable.get().sortInstances();
+
+  if (renderable.isVisible) object.sortInstances();
 }
 
 void Renderer::cullTerrain(RenderableObject& object,
@@ -381,6 +356,7 @@ void Renderer::resetVisibility(Scene& scene) {
 }
 
 void Renderer::renderSkybox(Scene& scene) {
+  /*
   const auto& skybox{scene.getSkybox()};
 
   if (skybox) {
@@ -397,4 +373,5 @@ void Renderer::renderSkybox(Scene& scene) {
     skybox->render();
     glDepthFunc(GL_LESS);
   }
+  */
 }

@@ -50,10 +50,10 @@ class Renderer {
   void updateShaderUniforms(Scene& scene);
   void bindTextures(const Material& materials);
   void cullRenderables(Scene& scene, bool prePass);
-  void cullInstanced(RenderableObject& object, const glm::vec3& cameraPos,
+  void cullInstanced(RenderableObject& renderable, const glm::vec3& cameraPos,
                      const std::array<glm::vec4, 6>& frustumPlanes, bool prePass);
-  void cullModel(RenderableObject& object,
+  void cullModel(RenderableObject& renderable,
                  const std::array<glm::vec4, 6>& frustumPlanes, bool prePass);
-  void cullTerrain(RenderableObject& object,
+  void cullTerrain(RenderableObject& renderable,
                         const std::array<glm::vec4, 6>& frustumPlanes);
 };

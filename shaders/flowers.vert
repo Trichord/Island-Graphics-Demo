@@ -18,6 +18,7 @@ out vec3 normal;
 
 const float minVertexHeight = 0.001;
 const float maxVertexHeight = 1.0;
+const float swaySpeed = 0.5;
 
 uniform float time;
 uniform float windStrength;
@@ -47,7 +48,7 @@ void main() {
 
 	vec4 worldPos = aTransform * vec4(aPos, 1.0);
 
-	vec3 windTranslation = calcWindTranslation(time, windDirection, windStrength);
+	vec3 windTranslation = calcWindTranslation(time * swaySpeed, windDirection, windStrength);
 
 	float mask = smoothstep(minVertexHeight, maxVertexHeight, aPos.y);
 	windTranslation *= mask;
