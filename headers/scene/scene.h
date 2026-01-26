@@ -17,6 +17,7 @@
 #include "renderable.h"
 #include "scene_resources.h"
 #include "shader_types.h"
+#include "skybox.h"
 #include "transform.h"
 
 /*
@@ -41,7 +42,8 @@ class Scene {
   virtual ~Scene() = default;
 
   Camera camera;
-  
+
+  const Skybox* getSkybox() const;
   glm::vec3 getAmbientLight() const;
   DirectionalLight& getGlobalLightSource();
   std::vector<PointLight>& getPointLights();
@@ -59,7 +61,7 @@ class Scene {
   std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights;
   std::unordered_map<std::string, std::reference_wrapper<Transform>>
       namedTransforms;
-  
+
   virtual void addAllModelsToScene() = 0;
   virtual void addAllLightsToScene() = 0;
   virtual void setupCamera(

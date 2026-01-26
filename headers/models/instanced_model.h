@@ -1,14 +1,12 @@
 #pragma once
 
-#include <array>
 #include <filesystem>
 #include <vector>
 
-#include "aabb.h"
 #include "glad/glad.h"
-#include "glm/glm.hpp"
+#include "instance_data.h"
 #include "model.h"
-#include "primitive.h"
+#include "renderable.h"
 #include "texture_manager.h"
 
 class InstancedModel : public Model {
@@ -30,26 +28,17 @@ class InstancedModel : public Model {
   InstancedModel& operator=(InstancedModel&& other) = delete;
   ~InstancedModel();
 
-  bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
-                      const glm::mat4& modelMatrix, const glm::vec3& cameraPos,
-                      const float cullDistanceScale) override;
+  void sortInstances() override;
+  void resetVisibility() override;
+  std::size_t getInstanceCount() const override;
+  std::optional<std::span<InstanceData>> getInstanceData() override;
 
  private:
-  struct InstanceData {
-    glm::mat4 modelMatrix{1.0f};
-    glm::mat4 normalMatrix{1.0f};
-    glm::vec3 position{0.0f};
-    AABB worldAABB;
-    bool isVisible{false};
-    double sortKey{0.0f};
-  };
-
   std::vector<InstanceData> instances;
   std::size_t visibleInstances{0};
 
   GLuint instancesVBO{0};
 
-  void drawPrimitive(const Primitive& primative) override;
   void loadPositions(const std::filesystem::path& positionsPath,
                      unsigned int numPositions);
   void setupInstancedBuffers();

@@ -1,35 +1,25 @@
 #include "skybox.h"
 
-#include <array>
 #include <filesystem>
 #include <vector>
 
-#include "gl_state.h"
 #include "glad/glad.h"
-#include "glm/glm.hpp"
-#include "material_slots.h"
 #include "texture_manager.h"
 
 Skybox::Skybox(TextureManager& textureManager,
                const std::vector<std::filesystem::path>& imagePaths)
-    : handle{textureManager.assignModelHandle()},
-      texManager{textureManager},
-      materials{textureManager.acquireUniqueTextureSet(handle)} {
+    : handle{textureManager.assignModelHandle()}, texManager{&textureManager} {
   textureManager.queueCubeMap(handle, imagePaths, "./");
   setupBuffers();
 }
 
-Skybox::Skybox(TextureManager& textureManager, const Skybox& borrowTarget,
-               const std::vector<std::filesystem::path>& imagePaths)
-    : handle{borrowTarget.handle},
-      texManager{textureManager},
-      materials{textureManager.borrowTextureSet(borrowTarget.handle)} {
+Skybox::Skybox(TextureManager& textureManager, const Skybox& borrowTarget)
+    : handle{borrowTarget.handle}, texManager{&textureManager} {
   setupBuffers();
 }
 
 Skybox::Skybox(Skybox&& other) noexcept
-    : materials{other.materials},
-      handle{other.handle},
+    : handle{other.handle},
       texManager{other.texManager},
       VAO{other.VAO},
       VBO{other.VBO},
@@ -42,19 +32,12 @@ Skybox::Skybox(Skybox&& other) noexcept
 
 Skybox::~Skybox() {
   deleteBuffers();
-  if (handle) texManager.releaseModel(handle);
+  if (handle) texManager->releaseModel(handle);
 }
 
-void Skybox::render(GLState& glState) {
-  glDepthFunc(GL_LEQUAL);
-
-  if (!materials.empty())
-    glState.bindTexture(MaterialSlot::CUBEMAP, materials[0].cubemap);
-
+void Skybox::render() const {
   glBindVertexArray(VAO);
   glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-
-  glDepthFunc(GL_LESS);
 }
 
 void Skybox::setupBuffers() {
@@ -82,9 +65,4 @@ void Skybox::deleteBuffers() {
   glDeleteVertexArrays(1, &VAO);
 }
 
-bool Skybox::performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
-                            const glm::mat4& modelMatrix,
-                            const glm::vec3& cameraPos,
-                            const float cullDistanceScale) {
-  return true;
-}
+ModelHandle Skybox::getModelHandle() const { return handle; }

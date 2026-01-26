@@ -1,17 +1,25 @@
 #pragma once
 
-#include <array>
 #include <functional>
+#include <optional>
+#include <span>
 
-#include "glm/glm.hpp"
-#include "gl_state.h"
+#include "aabb.h"
+#include "primitive.h"
+#include "texture_manager.h"
 #include "transform.h"
+#include "instance_data.h"
 
 class Renderable {
  public:
-  virtual void render(GLState& glState) = 0;
-  virtual bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
-                              const glm::mat4& modelMatrix, const glm::vec3& cameraPos, const float cullDistanceScale) = 0;
+  virtual AABB& getAABB() = 0;
+  virtual void sortInstances() = 0;
+  virtual void resetVisibility() = 0;
+  virtual std::size_t getInstanceCount() const = 0;
+  virtual std::span<Primitive::Mesh> getMeshes() = 0;
+  virtual const ModelHandle getModelHandle() const = 0;
+  virtual bool perMeshCulling() const { return false; };
+  virtual std::optional<std::span<InstanceData>> getInstanceData() = 0;
   virtual ~Renderable() = default;
 };
 

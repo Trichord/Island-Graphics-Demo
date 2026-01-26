@@ -30,7 +30,7 @@ class Primitive {
 
   struct Mesh {
     std::vector<Primitive> primitives;
-    bool isVisible{false};
+    bool isVisible{true};
   };
 
   Primitive() = default;
