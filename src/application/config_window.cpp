@@ -11,9 +11,9 @@
 #include "texture_utilities.h"
 
 namespace {
-constexpr unsigned int GUIWidth{1024u};
-constexpr unsigned int GUIHeight{576u};
-constexpr unsigned int numColumns{2u};
+constexpr int GUIWidth{1024};
+constexpr int GUIHeight{576};
+constexpr int numColumns{2};
 constexpr float baseFontSize = 22.0f;
 }  // namespace
 
@@ -62,30 +62,19 @@ bool ConfigWindow::createWindow() {
   // Create window with graphics context
   float windowScale{
       ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
-  window = glfwCreateWindow(
-      (int)(GUIWidth * windowScale), (int)(GUIHeight * windowScale),
-      "Island Graphics Demo - Display Settings", nullptr, nullptr);
+  window = glfwCreateWindow(static_cast<int>(GUIWidth * windowScale),
+                            static_cast<int>(GUIHeight * windowScale),
+                            "Island Graphics Demo - Display Settings", nullptr,
+                            nullptr);
 
   if (!window) return false;
-
-  // Center window
-  ImVec2 windowCenter = {GUIWidth / 2, GUIHeight / 2};
-  int xPos{0};
-  int yPos{0};
-  int width{0};
-  int height{0};
-
-  glfwGetMonitorWorkarea(glfwGetPrimaryMonitor(), &xPos, &yPos, &width,
-                         &height);
-
-  int centerX{static_cast<int>(width / 2 - windowCenter.x)};
-  int centerY{static_cast<int>(height / 2 - windowCenter.y)};
-
-  glfwSetWindowPos(window, centerX, centerY);
 
   // Make current context
   glfwMakeContextCurrent(window);
   glfwSwapInterval(1);
+
+  // Refocus
+  glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
 
   return true;
 }
@@ -124,35 +113,23 @@ void ConfigWindow::setupImGui() {
 bool ConfigWindow::renderImGui(GraphicsSettings& settings) {
   bool settingsConfirmed{false};
 
-  // GLFW window scale
-  float windowScale{
-      ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
-
-  // GLFW window position
-  int xPos{0};
-  int yPos{0};
-  glfwGetWindowPos(window, &xPos, &yPos);
-
-  // Dear ImGUI window size
-  ImVec2 guiSize{GUIWidth * windowScale, GUIHeight * windowScale};
-  ImVec2 windowUpperLeft{0.0f, 0.0f};
-
   // Loop until settings are confirmed
   while (!glfwWindowShouldClose(window)) {
-    // Sleep if minimized
-    if (glfwGetWindowAttrib(window, GLFW_ICONIFIED)) {
-      ImGui_ImplGlfw_Sleep(10);
-      continue;
-    }
-
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    // Set position and size
-    ImGui::SetNextWindowSize(guiSize, ImGuiCond_Always);
-    ImGui::SetNextWindowPos(windowUpperLeft, ImGuiCond_Always);
+    ImGuiViewport* imGuiViewPort{ImGui::GetMainViewport()};
+
+    // Size
+    float dpi{imGuiViewPort->DpiScale};
+    ImGui::SetNextWindowSize(ImVec2{GUIWidth * dpi, GUIHeight * dpi},
+                             ImGuiCond_Always);
+
+    // Center
+    ImVec2 imguiCenter{imGuiViewPort->GetCenter()};
+    ImGui::SetNextWindowPos(imguiCenter, ImGuiCond_Always, ImVec2{0.5f, 0.5f});
 
     // Dear ImGUI window
     ImGui::Begin("Island Graphics Demo - Display Settings", NULL,
