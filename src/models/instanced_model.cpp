@@ -209,7 +209,7 @@ void InstancedModel::sortInstances() {
   glUnmapNamedBuffer(instancesVBO);
 }
 
-std::optional<std::span<InstanceData>> InstancedModel::getInstanceData() {
+std::span<InstanceData> InstancedModel::getInstanceData() {
   return instances;
 }
 

@@ -17,7 +17,6 @@
 #include "renderable.h"
 #include "scene_resources.h"
 #include "shader_types.h"
-#include "skybox.h"
 #include "transform.h"
 
 /*
@@ -43,7 +42,6 @@ class Scene {
 
   Camera camera;
 
-  const Skybox* getSkybox() const;
   glm::vec3 getAmbientLight() const;
   DirectionalLight& getGlobalLightSource();
   std::vector<PointLight>& getPointLights();
@@ -74,7 +72,7 @@ class Scene {
    * Adds an object to the scene.  Optional: give the object a name to reference
    * it in Application's onUpdate()
    * @param modelRef A reference to the model after its been loaded
-   * using Scene's loading functions (e.g. loadModel, loadSkybox)
+   * using Scene's loading functions (e.g. loadModel, loadInstacedModel)
    * @param shaderType The shader this model will be rendered with
    * @param transform The position / rotation / scale transform applied to the
    * object
