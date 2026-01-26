@@ -3,6 +3,7 @@
 #include <array>
 #include <string>
 #include <unordered_map>
+#include <filesystem>
 
 #include "glad/glad.h"
 #include "glm/glm.hpp"
@@ -15,8 +16,9 @@ class Shader {
   GLuint ID{0};
 
   Shader() = default;
-  Shader(const char* vertexPath, const char* fragmentPath,
-         const char* geometryPath = NULL);
+  Shader(const std::filesystem::path& vertexPath,
+         const std::filesystem::path& fragmentPath,
+         const std::filesystem::path& geometryPath = {});
   Shader(const Shader&) = delete;
   Shader& operator=(const Shader&) = delete;
   Shader(Shader&& other) noexcept;
@@ -44,5 +46,5 @@ class Shader {
   std::unordered_map<std::string, GLint> uniformLocations;
 
   GLint getCachedLocation(const std::string& name);
-  GLuint createShaderID(GLenum type, const char* path);
+  GLuint createShaderID(GLenum type, const std::filesystem::path& path);
 };

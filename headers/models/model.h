@@ -1,15 +1,15 @@
 #pragma once
 
-#include <array>
 #include <filesystem>
+#include <optional>
+#include <span>
 #include <vector>
 
 #include "aabb.h"
-#include "glm/glm.hpp"
+#include "instance_data.h"
 #include "primitive.h"
 #include "renderable.h"
 #include "texture_manager.h"
-#include "gl_state.h"
 
 class Model : public Renderable {
  public:
@@ -28,24 +28,23 @@ class Model : public Renderable {
    * @details Draws each primitive in the mesh. Binds albdeo, ambient occlusion,
    *  metallic, roughness, and normal map textures, if the model has them.
    */
-  void render(GLState& glState) override;
-  bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
-                      const glm::mat4& modelMatrix, const glm::vec3& cameraPos,
-                      const float cullDistanceScale) override;
 
-  ModelHandle getModelHandle();
+  AABB& getAABB() override;
+  void sortInstances() override;
+  void resetVisibility() override;
+  std::size_t getInstanceCount() const override;
+  std::span<Primitive::Mesh> getMeshes() override;
+  const ModelHandle getModelHandle() const override;
+  std::optional<std::span<InstanceData>> getInstanceData() override;
 
  protected:
   ModelHandle handle{0};
-  TextureManager& texManager;
-  const std::vector<Material>& materials;
+  TextureManager* texManager{nullptr};
   std::vector<Primitive::Mesh> meshes;
   AABB aabb;
 
   void loadModel(const std::filesystem::path& path, bool borrowed);
   void calculateAABB();
-  void bindTextures(GLState& glState, const Material& materials);
-  virtual void drawPrimitive(const Primitive& primitive);
   void assignMaterialIndex(std::size_t newIndex);
   bool hasMaterials() const;
 };

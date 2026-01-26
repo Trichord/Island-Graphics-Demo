@@ -22,7 +22,6 @@ class Renderer {
 
   void renderScene(Scene& scene);
   void updateUBO(Scene& scene);
-  void cullRenderables(Scene& scene);
   TextureManager& getTextureManager();
 
  private:
@@ -40,9 +39,21 @@ class Renderer {
   TextureManager textureManager;
   GLState glState;
 
-  void setupTextureManager();
   void setupUBO();
   void loadShaders();
+  void setupTextureManager();
+  void renderPass(Scene& scene);
+  void renderPrePass(Scene& scene);
   void setupShader(Shader& shader);
+  void resetVisibility(Scene& scene);
+  void renderSkybox(Scene& scene);
   void updateShaderUniforms(Scene& scene);
+  void bindTextures(const Material& materials);
+  void cullRenderables(Scene& scene, bool prePass);
+  void cullInstanced(RenderableObject& object, const glm::vec3& cameraPos,
+                     const std::array<glm::vec4, 6>& frustumPlanes, bool prePass);
+  void cullModel(RenderableObject& object,
+                 const std::array<glm::vec4, 6>& frustumPlanes, bool prePass);
+  void cullTerrain(RenderableObject& object,
+                        const std::array<glm::vec4, 6>& frustumPlanes);
 };

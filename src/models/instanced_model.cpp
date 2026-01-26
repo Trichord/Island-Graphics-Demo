@@ -53,12 +53,6 @@ InstancedModel::InstancedModel(InstancedModel&& other) noexcept
 
 InstancedModel::~InstancedModel() { deleteBuffers(); }
 
-void InstancedModel::drawPrimitive(const Primitive& primitive) {
-  glDrawElementsInstanced(GL_TRIANGLES, primitive.getIndicesSize(),
-                          GL_UNSIGNED_INT, 0,
-                          static_cast<GLsizei>(visibleInstances));
-}
-
 void InstancedModel::loadPositions(const std::filesystem::path& positionsPath,
                                    unsigned int numPositions) {
   float x{0.0f};
@@ -80,6 +74,8 @@ void InstancedModel::loadPositions(const std::filesystem::path& positionsPath,
   if (instances.size() != numPositions && numPositions != 0)
     std::cout << positionsPath << " expected " << numPositions << " allocated "
               << instances.size() << std::endl;
+
+  visibleInstances = instances.size();
 }
 
 void InstancedModel::generateInstanceMatrices(float minSize, float maxSize) {
@@ -185,64 +181,46 @@ void InstancedModel::setupInstancedBuffers() {
 
 void InstancedModel::deleteBuffers() { glDeleteBuffers(1, &instancesVBO); }
 
-bool InstancedModel::performCulling(
-    const std::array<glm::vec4, 6>& frustumPlanes, const glm::mat4& modelMatrix,
-    const glm::vec3& cameraPos, const float cullDistanceScale) {
-  bool visible{false};
+// Sorts visible instances, updating count if necessary
+void InstancedModel::sortInstances() {
+  // Move visible instances to front of vector
+  auto iter = std::partition(
+     /// instances.begin(), instances.end(),
+      instances.begin(), instances.begin() + visibleInstances,
+      [](const InstanceData& instance) { return instance.isVisible; });
+  visibleInstances = std::distance(instances.begin(), iter);
 
-  // Near + (far - near) * scale
-  const float cullDistance{frustumPlanes[4].w +
-                           (frustumPlanes[5].w - frustumPlanes[4].w) *
-                               cullDistanceScale};
+  if (!visibleInstances) return;
 
-  for (auto& instance : instances) {
-    if (cullDistanceScale < 1.0f) {
-      const float objToCamera{glm::length(cameraPos - instance.position)};
+  // Sort front to back for speed on depth testing, over proper alpha blending
+  std::sort(instances.begin(), instances.begin() + visibleInstances,
+            [](const InstanceData& a, const InstanceData& b) {
+              return a.sortKey < b.sortKey;
+            });
 
-      if (objToCamera > cullDistance) {
-        instance.isVisible = false;
-        continue;
-      }
-    }
+  // Update GPU side
+  void* bufferPtr{glMapNamedBufferRange(
+      instancesVBO, 0, visibleInstances * sizeof(InstanceData),
+      GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT)};
 
-    if (instance.isVisible =
-            instance.worldAABB.intersectsWorldSpace(frustumPlanes)) {
-      double xDist{instance.position.x - cameraPos.x};
-      double zDist{instance.position.z - cameraPos.z};
+  std::memcpy(bufferPtr, instances.data(),
+              visibleInstances * sizeof(InstanceData));
 
-      instance.sortKey = xDist * xDist + zDist * zDist;
+  glUnmapNamedBuffer(instancesVBO);
+}
 
-      visible = true;
-    }
-  }
+std::optional<std::span<InstanceData>> InstancedModel::getInstanceData() {
+  return instances;
+}
 
-  if (visible) {
-    // Move visible instances to front of vector
-    auto iter = std::partition(
-        instances.begin(), instances.end(),
-        [](const InstanceData& instance) { return instance.isVisible; });
-    visibleInstances = std::distance(instances.begin(), iter);
+std::size_t InstancedModel::getInstanceCount() const {
+  return visibleInstances;
+}
 
-    // Sort front to back for speed on depth testing, over proper alpha blending
-    std::sort(instances.begin(), instances.begin() + visibleInstances,
-              [](const InstanceData& a, const InstanceData& b) {
-                return a.sortKey < b.sortKey;
-              });
-
-    // Update GPU side
-    void* bufferPtr{glMapNamedBufferRange(
-        instancesVBO, 0, visibleInstances * sizeof(InstanceData),
-        GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT)};
-
-    std::memcpy(bufferPtr, instances.data(),
-                visibleInstances * sizeof(InstanceData));
-
-    glUnmapNamedBuffer(instancesVBO);
-
-  } else
-    visibleInstances = 0;
-
-  for (auto& mesh : meshes) mesh.isVisible = visible;
-
-  return visible;
+void InstancedModel::resetVisibility() {
+  Model::resetVisibility();
+  visibleInstances = instances.size();
+  
+  for (auto& instance : instances)
+    instance.isVisible = true;
 }

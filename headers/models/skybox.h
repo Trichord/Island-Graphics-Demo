@@ -1,41 +1,34 @@
 #pragma once
 
-#include <array>
 #include <filesystem>
 #include <vector>
 
-#include "gl_state.h"
 #include "glad/glad.h"
-#include "glm/glm.hpp"
-#include "renderable.h"
+#include "primitive.h"
 #include "texture_manager.h"
 
-class Skybox : public Renderable {
+class Skybox {
  public:
   Skybox() = delete;
   Skybox(TextureManager& textureManager,
          const std::vector<std::filesystem::path>& imagePaths);
-  Skybox(TextureManager& textureManager, const Skybox& borrowTarget,
-         const std::vector<std::filesystem::path>& imagePaths);
+  Skybox(TextureManager& textureManager, const Skybox& borrowTarget);
   Skybox(const Skybox&) = delete;
   Skybox& operator=(const Skybox&) = delete;
   Skybox(Skybox&& other) noexcept;
   Skybox& operator=(Skybox&& other) = delete;
   ~Skybox();
 
-  void render(GLState& glState) override;
-  bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
-                      const glm::mat4& modelMatrix, const glm::vec3& cameraPos,
-                      const float cullDistanceScale) override;
-  ModelHandle getModelHandle();
+  void render() const;
+  ModelHandle getModelHandle() const;
 
  private:
   GLuint VAO{0};
   GLuint VBO{0};
   GLuint EBO{0};
   ModelHandle handle{0};
-  TextureManager& texManager;
-  const std::vector<Material>& materials;
+  TextureManager* texManager{nullptr};
+  std::vector<Primitive::Mesh> meshes;
 
   inline static const float vertices[]{-1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f,
                                        1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  -1.0f,

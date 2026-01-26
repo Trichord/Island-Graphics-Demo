@@ -7,7 +7,6 @@
 #include "config_window.h"
 #include "gl_context.h"
 #include "scene.h"
-#include "texture_manager.h"
 
 /**
  * GLFW window resize callback. Receives the new size of the framebuffer
