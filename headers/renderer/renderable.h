@@ -19,7 +19,7 @@ class Renderable {
   virtual std::span<Primitive::Mesh> getMeshes() = 0;
   virtual const ModelHandle getModelHandle() const = 0;
   virtual bool perMeshCulling() const { return false; };
-  virtual std::optional<std::span<InstanceData>> getInstanceData() = 0;
+  virtual std::span<InstanceData> getInstanceData() = 0;
   virtual ~Renderable() = default;
 };
 

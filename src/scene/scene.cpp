@@ -38,7 +38,3 @@ glm::vec3 Scene::getAmbientLight() const { return ambientLight; }
 void Scene::setAmbientLight(const glm::vec3& ambient) {
   ambientLight = ambient;
 }
-
-const Skybox* Scene::getSkybox() const {
-  return sceneResources.getSkybox();
-}

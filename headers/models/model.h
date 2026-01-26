@@ -35,11 +35,11 @@ class Model : public Renderable {
   std::size_t getInstanceCount() const override;
   std::span<Primitive::Mesh> getMeshes() override;
   const ModelHandle getModelHandle() const override;
-  std::optional<std::span<InstanceData>> getInstanceData() override;
+  std::span<InstanceData> getInstanceData() override;
 
  protected:
   ModelHandle handle{0};
-  TextureManager* texManager{nullptr};
+  TextureManager& texManager;
   std::vector<Primitive::Mesh> meshes;
   AABB aabb;
 
