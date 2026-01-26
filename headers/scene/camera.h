@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+
 #include "glm/glm.hpp"
 
 inline constexpr float defaultCameraYaw{90.0f};
@@ -16,11 +17,9 @@ enum class CameraMovement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
 class Camera {
  public:
   Camera();
-  Camera(glm::vec3 pos,
-         glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f),
+  Camera(glm::vec3 pos, glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f),
          float y = defaultCameraYaw, float p = defaultCameraPitch);
-  Camera(float posX,
-         float posY, float posZ, float upX, float upY, float upZ,
+  Camera(float posX, float posY, float posZ, float upX, float upY, float upZ,
          float yaw, float pitch);
 
   const glm::mat4& getViewMatrix();
@@ -54,6 +53,8 @@ class Camera {
   glm::mat4 viewMatrixNoTranslation{1.0f};
   glm::mat4 projectionMatrix{1.0f};
   glm::mat4 viewProjectionMatrix{1.0f};
+
+  // Left, Right, Top, Bottom, Near, Far
   std::array<glm::vec4, 6> frustumPlanes;
 
   glm::mat4 createProjectionMatrix();

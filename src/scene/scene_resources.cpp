@@ -15,14 +15,13 @@ inline constexpr int maxModels{50};
 inline constexpr int maxInstancedModels{25};
 inline constexpr int maxCubeMappedModels{10};
 inline constexpr int maxTerrains{5};
-inline constexpr int maxSkyboxes{2};
 
 SceneResources::SceneResources(TextureManager& _textureManager)
     : textureManager{_textureManager} {
   models.reserve(maxModels);
   instancedModels.reserve(maxInstancedModels);
   cubeMappedModels.reserve(maxCubeMappedModels);
-  skyboxes.reserve(maxSkyboxes);
+  terrains.reserve(maxTerrains);
 }
 
 TextureManager& SceneResources::getTextureManager() { return textureManager; }
@@ -98,19 +97,14 @@ Terrain& SceneResources::loadTerrain(const Model& borrowTarget,
   return terrains.emplace_back(textureManager, borrowTarget, modelPath);
 }
 
-Skybox& SceneResources::loadSkybox(
+void SceneResources::loadSkybox(
     const std::vector<std::filesystem::path>& filePaths) {
-  if (skyboxes.size() >= maxSkyboxes)
-    throw std::runtime_error("Max number of skyboxes reached!");
-
-  return skyboxes.emplace_back(textureManager, filePaths);
+  skybox = std::make_unique<Skybox>(textureManager, filePaths);
 }
 
-Skybox& SceneResources::loadSkybox(
-    const Skybox& borrowTarget,
-    const std::vector<std::filesystem::path>& filePaths) {
-  if (skyboxes.size() >= maxSkyboxes)
-    throw std::runtime_error("Max number of skyboxes reached!");
-
-  return skyboxes.emplace_back(textureManager, borrowTarget, filePaths);
+void SceneResources::loadSkybox(
+    const Skybox& borrowTarget) {
+  skybox = std::make_unique<Skybox>(textureManager, borrowTarget);
 }
+
+const Skybox* SceneResources::getSkybox() const { return skybox.get(); }

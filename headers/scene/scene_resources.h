@@ -38,17 +38,17 @@ class SceneResources {
   Terrain& loadTerrain(const Model& borrowTarget,
                        const std::filesystem::path& modelPath);
 
-  Skybox& loadSkybox(const std::vector<std::filesystem::path>& filePaths);
-  Skybox& loadSkybox(const Skybox& borrowTarget,
-                     const std::vector<std::filesystem::path>& filePaths);
+  void loadSkybox(const std::vector<std::filesystem::path>& filePaths);
+  void loadSkybox(const Skybox& borrowTarget);
 
   TextureManager& getTextureManager();
+  const Skybox* getSkybox() const;
 
  private:
   TextureManager& textureManager;
   std::vector<Model> models;
   std::vector<CubeMappedModel> cubeMappedModels;
-  std::vector<Skybox> skyboxes;
   std::vector<InstancedModel> instancedModels;
   std::vector<Terrain> terrains;
+  std::unique_ptr<Skybox> skybox;
 };

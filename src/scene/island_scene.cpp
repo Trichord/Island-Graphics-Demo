@@ -60,8 +60,7 @@ void IslandScene::addAllModelsToScene() {
       "./res/textures/skybox/top.png",   "./res/textures/skybox/bottom.png",
       "./res/textures/skybox/front.png", "./res/textures/skybox/back.png"};
 
-  auto& skybox = sceneResources.loadSkybox(skyBoxPaths);
-  addObjectToScene(skybox, SKYBOX);
+  sceneResources.loadSkybox(skyBoxPaths);
 
   // Grass
   auto& grass = sceneResources.loadInstancedModel(

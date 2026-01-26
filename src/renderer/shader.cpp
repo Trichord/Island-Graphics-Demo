@@ -13,8 +13,9 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-Shader::Shader(const char* vertexPath, const char* fragmentPath,
-               const char* geometryPath) {
+Shader::Shader(const std::filesystem::path& vertexPath,
+               const std::filesystem::path& fragmentPath,
+               const std::filesystem::path& geometryPath) {
   GLuint vertexShaderID{0};
   GLuint fragmentShaderID{0};
   GLuint geometryShaderID{0};
@@ -165,12 +166,6 @@ void Shader::setUniformBlock(const std::string& name, unsigned int index) {
   uniformLocations.emplace(name, blockID);
 
   if (blockID != -1) glUniformBlockBinding(ID, blockID, index);
-
-#ifndef NDEBUG
-  else
-    std::cerr << "ShaderID: " << ID << ", unknown uniform block : " << name
-              << std::endl;
-#endif  // DEBUG
 }
 
 GLint Shader::getCachedLocation(const std::string& name) {
@@ -180,69 +175,62 @@ GLint Shader::getCachedLocation(const std::string& name) {
   GLint location{glGetUniformLocation(ID, name.c_str())};
   uniformLocations.emplace(name, location);
 
-#ifndef NDEBUG
-  if (location == -1)
-    std::cout << "Shader ID: " << ID << ", unknown uniform : " << name
-              << std::endl;
-#endif  // DEBUG
-
   return location;
 }
 
-GLuint Shader::createShaderID(GLenum type, const char* path) {
-  if (!path) return 0;
+GLuint Shader::createShaderID(GLenum type, const std::filesystem::path& path) {
+  if (path.empty()) return 0;
 
-  std::string code;
-  std::ifstream shaderFile;
-
-  // Ensure ifstream objects can throw exceptions
-  shaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+  std::string fileContents;
 
   try {
-    shaderFile.open(path);
+    std::ifstream fileStream{path};
+    fileStream.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
-    std::stringstream shaderStream;
-
-    // Read file buffer contents into stream
-    shaderStream << shaderFile.rdbuf();
-    shaderFile.close();
-
-    // convert stream to string
-    code = shaderStream.str();
+    fileContents = std::string{std::istreambuf_iterator<char>{fileStream},
+                               std::istreambuf_iterator<char>{}};
   }
 
-  catch (std::ifstream::failure& e) {
-    std::cerr << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ::" << e.what()
-              << std::endl;
+  catch (const std::ifstream::failure& e) {
+    std::cerr << "ERROR: shader file not successfully read!" << std::endl
+              << e.what() << std::endl;
     return 0;
   }
 
-  unsigned int shaderCodeID{0};
+  GLuint shaderID{0};
   int success{0};
-  const char* shaderCode{code.c_str()};
+  const char* shaderCode{fileContents.c_str()};
 
-  shaderCodeID = glCreateShader(type);
-  glShaderSource(shaderCodeID, 1, &shaderCode, NULL);
-  glCompileShader(shaderCodeID);
-  glGetShaderiv(shaderCodeID, GL_COMPILE_STATUS, &success);
+  shaderID = glCreateShader(type);
+  glShaderSource(shaderID, 1, &shaderCode, nullptr);
+  glCompileShader(shaderID);
+  glGetShaderiv(shaderID, GL_COMPILE_STATUS, &success);
 
   if (!success) {
-    glGetShaderInfoLog(shaderCodeID, 512, NULL, infoLog.data());
+    glGetShaderInfoLog(shaderID, 512, nullptr, infoLog.data());
 
     std::string shaderTypeString;
 
-    if (type == GL_VERTEX_SHADER)
-      shaderTypeString = "GL_VERTEX_SHADER";
-    else if (type == GL_FRAGMENT_SHADER)
-      shaderTypeString = "GL_FRAGMENT_SHADER";
-    else if (type == GL_GEOMETRY_SHADER)
-      shaderTypeString = "GL_GEOMETRY_SHADER";
+    switch (type) {
+      case GL_VERTEX_SHADER:
+        shaderTypeString = "GL_VERTEX_SHADER";
+        break;
+      case GL_FRAGMENT_SHADER:
+        shaderTypeString = "GL_FRAGMENT_SHADER";
+        break;
+      case GL_GEOMETRY_SHADER:
+        shaderTypeString = "GL_GEOMETRY_SHADER";
+        break;
+      default:
+        shaderTypeString = "UNKNOWN_SHADER_TYPE";
+    }
 
-    std::cerr << "ERROR::SHADER_TYPE_" << shaderTypeString
-              << "::COMPILATION_FAILED" << std::endl
+    std::cerr << "ERROR: shader type " << shaderTypeString << " at "
+              << path.filename() << " compilation failed" << std::endl
               << infoLog.data() << std::endl;
-    glDeleteShader(shaderCodeID);
+    glDeleteShader(shaderID);
+    return 0;
   }
 
-  return shaderCodeID;
+  return shaderID;
 }

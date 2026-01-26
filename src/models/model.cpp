@@ -1,7 +1,6 @@
 #include "model.h"
 
 #include <algorithm>
-#include <array>
 #include <filesystem>
 #include <limits>
 #include <utility>
@@ -10,26 +9,19 @@
 #include "aabb.h"
 #include "fastgltf/types.hpp"
 #include "fastgltf_loader.h"
-#include "gl_state.h"
-#include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "primitive.h"
 #include "texture_manager.h"
-#include "material_slots.h"
 
 Model::Model(TextureManager& textureManager, const std::filesystem::path& path)
-    : handle{textureManager.assignModelHandle()},
-      texManager{textureManager},
-      materials{textureManager.acquireUniqueTextureSet(handle)} {
+    : handle{textureManager.assignModelHandle()}, texManager{&textureManager} {
   loadModel(path, false);
   calculateAABB();
 }
 
 Model::Model(TextureManager& textureManager, const Model& borrowTarget,
              const std::filesystem::path& path)
-    : handle{borrowTarget.handle},
-      texManager{textureManager},
-      materials{textureManager.borrowTextureSet(borrowTarget.handle)} {
+    : handle{borrowTarget.handle}, texManager{&textureManager} {
   loadModel(path, true);
   calculateAABB();
 }
@@ -37,60 +29,24 @@ Model::Model(TextureManager& textureManager, const Model& borrowTarget,
 Model::Model(Model&& other) noexcept
     : handle{other.handle},
       texManager{other.texManager},
-      materials{other.materials},
-      meshes{std::move(other.meshes)} {
+      meshes{std::move(other.meshes)},
+      aabb{std::move(other.aabb)} {
   other.handle = 0;
 }
 
 Model::~Model() {
-  if (handle) texManager.releaseModel(handle);
+  if (handle) texManager->releaseModel(handle);
 }
 
-void Model::drawPrimitive(const Primitive& primitive) {
-  glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0);
+AABB& Model::getAABB() { return aabb; }
+
+std::span<Primitive::Mesh> Model::getMeshes() { return meshes; }
+
+std::optional<std::span<InstanceData>> Model::getInstanceData() {
+  return std::nullopt;
 }
 
-void Model::render(GLState& glState) {
-  std::size_t lastMaterialIndex{0};
-  bool materialBound{false};
-
-  for (const Primitive::Mesh& mesh : meshes) {
-    if (!mesh.isVisible) continue;
-    for (const Primitive& primitive : mesh.primitives) {
-      glState.setAlphaMode(primitive.getAlphaMode() !=
-                           fastgltf::AlphaMode::Opaque);
-
-      if (primitive.materialsExist()) {
-        std::size_t materialIndex{primitive.getMaterialIndex()};
-
-        // Switch materials
-        if (materialIndex != lastMaterialIndex || !materialBound) {
-          lastMaterialIndex = materialIndex;
-          materialBound = true;
-          bindTextures(glState, materials[materialIndex]);
-        }
-      }
-
-      glBindVertexArray(primitive.getVAO());
-      drawPrimitive(primitive);
-    }
-  }
-
-  glState.setAlphaMode(false);
-}
-
-void Model::bindTextures(GLState& glState, const Material& materials) {
-  using enum MaterialSlot;
-
-  if (materials.albedo) glState.bindTexture(ALBEDO, materials.albedo);
-
-  if (materials.occlusionRoughnessMetallic)
-    glState.bindTexture(ARM, materials.occlusionRoughnessMetallic);
-
-  if (materials.normal) glState.bindTexture(NORMAL, materials.normal);
-
-  if (materials.cubemap) glState.bindTexture(CUBEMAP, materials.cubemap);
-}
+std::size_t Model::getInstanceCount() const { return 0; }
 
 void Model::loadModel(const std::filesystem::path& path, bool borrowed) {
   fastgltf::Asset asset = fastgltfLoader::loadAsset(path);
@@ -99,11 +55,11 @@ void Model::loadModel(const std::filesystem::path& path, bool borrowed) {
   meshes = fastgltfLoader::loadMeshes(asset);
 
   if (!borrowed)
-    texManager.queueModelMaterials(handle, std::move(asset),
-                                   path.parent_path());
+    texManager->queueModelMaterials(handle, std::move(asset),
+                                    path.parent_path());
 }
 
-ModelHandle Model::getModelHandle() { return handle; }
+const ModelHandle Model::getModelHandle() const { return handle; }
 
 void Model::assignMaterialIndex(std::size_t newIndex) {
   for (auto& mesh : meshes)
@@ -148,15 +104,8 @@ void Model::calculateAABB() {
   aabb = AABB{minX, minY, minZ, maxX, maxY, maxZ};
 }
 
-bool Model::performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
-                           const glm::mat4& modelMatrix,
-                           const glm::vec3& cameraPos,
-                           const float cullDistanceScale) {
-  bool visible{false};
+void Model::sortInstances() { return; }
 
-  if (aabb.intersects(frustumPlanes, modelMatrix)) {
-    visible = true;
-    for (auto& mesh : meshes) mesh.isVisible = true;
-  }
-  return visible;
+void Model::resetVisibility() {
+  for (auto& mesh : meshes) mesh.isVisible = true;
 }
