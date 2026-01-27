@@ -13,3 +13,7 @@ enum class ShaderType {
   LIGHT_SOURCE,
   SKYBOX
 };
+
+enum class CullStrategy { NONE, MODEL, INSTANCED, INSTANCED_DISTANCE, BY_MESH };
+
+CullStrategy getCullStrategy(ShaderType shader);

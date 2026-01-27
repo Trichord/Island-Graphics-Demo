@@ -32,10 +32,11 @@ void IslandScene::initializeScene(
 
 void IslandScene::addAllModelsToScene() {
   using enum ShaderType;
+  using enum CullStrategy;
 
   // Main island
   auto& island = sceneResources.loadTerrain("./res/models/island/island.gltf");
-  addObjectToScene(island, DIRECTIONAL_PBR);
+  addObjectToScene(island, DIRECTIONAL_PBR, Transform{}, std::nullopt, BY_MESH);
 
   // Dead tree
   auto& deadTree =
@@ -53,7 +54,7 @@ void IslandScene::addAllModelsToScene() {
       "./res/models/space_model/scene.gltf", spaceBoxPaths);
   addObjectToScene(spaceModel, REFLECTIVE, Transform(SPACE_DODECA_POS),
                    "spaceModel");
-  /*
+
   // Skybox
   std::vector<std::filesystem::path> skyBoxPaths{
       "./res/textures/skybox/right.png", "./res/textures/skybox/left.png",
@@ -63,7 +64,7 @@ void IslandScene::addAllModelsToScene() {
   auto& skybox = sceneResources.loadCubeMappedModel(
       "./res/models/cube/cube.gltf", skyBoxPaths);
   addObjectToScene(skybox, SKYBOX);
-  */
+
   // Grass
   auto& grass = sceneResources.loadInstancedModel(
       "./res/models/grass/grass.gltf", "./res/grass.txt", 0.3f, 0.5, 292);

@@ -48,14 +48,14 @@ class Scene {
   Light& getNamedLight(const std::string& key);
   void setAmbientLight(const glm::vec3& ambient);
   Transform& getObjectTransform(const std::string& key);
-  std::map<ShaderType, std::vector<RenderableObject>>& getSceneObjects();
+  std::map<ShaderType, std::vector<Renderable>>& getSceneObjects();
 
  protected:
   glm::vec3 ambientLight{0.2f};
   SceneResources sceneResources;
   DirectionalLight globalLightSource;
   std::vector<PointLight> pointLights;
-  std::map<ShaderType, std::vector<RenderableObject>> sceneObjects;
+  std::map<ShaderType, std::vector<Renderable>> sceneObjects;
   std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights;
   std::unordered_map<std::string, std::reference_wrapper<Transform>>
       namedTransforms;
@@ -78,11 +78,15 @@ class Scene {
    * object
    */
   template <typename T>
-  void addObjectToScene(T& modelRef, ShaderType shaderType,
-                        Transform&& transform = Transform{},
-                        const std::optional<std::string> name = std::nullopt) {
+  void addObjectToScene(
+      T& modelRef, ShaderType shaderType, Transform&& transform = Transform{},
+      const std::optional<std::string> name = std::nullopt,
+      const std::optional<CullStrategy> overrideStrategy = std::nullopt) {
+    CullStrategy strategy{
+        overrideStrategy.value_or(getCullStrategy(shaderType))};
+
     sceneObjects[shaderType].emplace_back(
-        RenderableObject{std::ref(modelRef), transform});
+        Renderable{std::ref(modelRef), transform, strategy});
 
     if (name.has_value())
       namedTransforms.emplace(
