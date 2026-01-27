@@ -25,9 +25,10 @@ void TextureManager::queueModelMaterials(
   textureCreationQueue.emplace(std::move(asset), handle, parentPath);
 }
 
-void TextureManager::queueCubeMap(
-    const ModelHandle handle, std::vector<std::filesystem::path> imagePaths,
-    const std::filesystem::path& parentPath, bool sRGB) {
+void TextureManager::queueCubeMap(const ModelHandle handle,
+                                  std::vector<std::filesystem::path> imagePaths,
+                                  const std::filesystem::path& parentPath,
+                                  bool sRGB) {
   textureCreationQueue.emplace(std::move(imagePaths), handle, parentPath, sRGB);
 }
 

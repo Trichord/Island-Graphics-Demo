@@ -48,7 +48,7 @@ void Application::run() {
     if (islandScene.camera.hasUpdated()) renderer.updateUBO(islandScene);
 
     // Update scene objects
-    onUpdate(islandScene, deltaTime);
+    onUpdate(islandScene);
 
     // Draw
     renderer.renderScene(islandScene);
@@ -161,7 +161,7 @@ void Application::addGlfwUserParam(Scene& scene) {
   glfwSetWindowUserPointer(window, &scene);
 }
 
-void Application::onUpdate(Scene& scene, float deltaTime) {
+void Application::onUpdate(Scene& scene) {
   // Rotate the fancy space model
   auto& spaceModel = scene.getObjectTransform("spaceModel");
   spaceModel.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});

@@ -11,7 +11,7 @@
 #include "renderable.h"
 #include "texture_manager.h"
 
-class Model : public Renderable {
+class Model : public RenderableObject {
  public:
   Model(TextureManager& textureManager, const std::filesystem::path& path);
   Model(TextureManager& textureManager, const Model& borrowTarget,

@@ -17,7 +17,7 @@ Scene::Scene(TextureManager& textureManager) : sceneResources{textureManager} {
   pointLights.reserve(sceneMaxObjects::maxLights);
 }
 
-std::map<ShaderType, std::vector<RenderableObject>>& Scene::getSceneObjects() {
+std::map<ShaderType, std::vector<Renderable>>& Scene::getSceneObjects() {
   return sceneObjects;
 }
 
