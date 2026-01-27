@@ -9,6 +9,7 @@ constexpr GLuint maxTextureUnits{16u};
 GLState::GLState(bool globalMSAA) : globalMSAAEnabled{globalMSAA} {
   textureUnits.resize(maxTextureUnits);
 }
+
 void GLState::bindTexture(GLuint unit, GLuint id) {
   if (unit >= maxTextureUnits)
     throw std::runtime_error("Max texture units exceeded.");
@@ -18,6 +19,7 @@ void GLState::bindTexture(GLuint unit, GLuint id) {
   glBindTextureUnit(unit, id);
   textureUnits[unit] = id;
 }
+
 void GLState::setAlphaMode(bool enable) {
   if (enable == alphaEnabled) return;
 

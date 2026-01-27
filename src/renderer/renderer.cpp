@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstring>
+#include <iostream>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -54,19 +55,23 @@ Renderer::Renderer(Renderer&& other) noexcept
 }
 
 void Renderer::renderScene(Scene& scene) {
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
   updateShaderUniforms(scene);
-  //cullRenderables(scene, true);
-  renderPrePass(scene);
-  cullRenderables(scene, false);
-  renderPass(scene);
+
   resetVisibility(scene);
+  cullRenderables(scene);
+
+  renderPrePass(scene);
+  renderAllSceneObjects(scene);
+  renderSkybox(scene);
 }
 
 void Renderer::updateUBO(Scene& scene) {
   uboData.viewMatrix = scene.camera.getViewMatrix();
   uboData.viewProjectionMatrix = scene.camera.getViewProjectionMatrix();
   uboData.cameraPosition = glm::vec4{scene.camera.getPosition(), 0.0f};
-
+ 
   void* uboPointer{
       glMapNamedBufferRange(UBO, 0, sizeof(PackedUBOData),
                             GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT)};
@@ -152,7 +157,7 @@ void Renderer::updateShaderUniforms(Scene& scene) {
   }
 
   // Set uniforms
-  for (auto& [shaderType, shader] : shaders) {
+  for (auto& [_, shader] : shaders) {
     using enum ShaderType;
     if (dirUpdated) shader.setVec3("lightDir", globalLight.getDirection());
     if (posUpdated) shader.setVec3("lightPosition", pointPos);
@@ -166,91 +171,41 @@ void Renderer::updateShaderUniforms(Scene& scene) {
 
 void Renderer::renderPrePass(Scene& scene) {}
 
-void Renderer::renderPass(Scene& scene) {
-  using enum ShaderType;
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  // For each shader type in the scene
-  for (auto& [shaderType, objectList] : scene.getSceneObjects()) {
-    if (objectList.empty() || shaderType == SKYBOX) continue;
-
-    Shader& shader{shaders.at(shaderType)};
-    shader.use();
-
-    // For each object of that shader type
-    for (auto& object : objectList) {
-      if (!object.isVisible) continue;
-
-      glm::mat4 modelMatrix{object.transform.getModelMatrix()};
-      glm::mat3 normalMatrix{object.transform.getNormalMatrix()};
-
-      shader.setMat4("modelMatrix", modelMatrix);
-      shader.setMat3("normalMatrix", normalMatrix);
-
-      // Draw it
-      auto& renderableObject{object.renderable.get()};
-      std::size_t lastMaterialIndex{0};
-      bool materialBound{false};
-      const auto materials{textureManager.acquireUniqueTextureSet(
-          renderableObject.getModelHandle())};
-
-      for (const Primitive::Mesh& mesh : renderableObject.getMeshes()) {
-        if (!mesh.isVisible) continue;
-
-        for (const Primitive& primitive : mesh.primitives) {
-          glState.setAlphaMode(primitive.getAlphaMode() !=
-                               fastgltf::AlphaMode::Opaque);
-
-          if (primitive.materialsExist()) {
-            std::size_t materialIndex{primitive.getMaterialIndex()};
-
-            // Switch materials
-            if (materialIndex != lastMaterialIndex || !materialBound) {
-              lastMaterialIndex = materialIndex;
-              materialBound = true;
-              bindTextures(materials[materialIndex]);
-            }
-          }
-
-          glBindVertexArray(primitive.getVAO());
-
-          if (!renderableObject.getInstanceData().empty()) {
-            glDrawElementsInstanced(
-                GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0,
-                static_cast<GLsizei>(renderableObject.getInstanceCount()));
-          } else
-            glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(),
-                           GL_UNSIGNED_INT, 0);
-        }
-      }
-      glState.setAlphaMode(false);
-    }
-  }
-  renderSkybox(scene);
-}
-
-// Skips anything rejected in prepass
-void Renderer::cullRenderables(Scene& scene, bool prePass) {
+void Renderer::cullRenderables(Scene& scene) {
   const std::array<glm::vec4, 6>& frustumPlanes{
       scene.camera.getFrustumPlanes()};
 
   for (auto& [shaderType, objectList] : scene.getSceneObjects())
     for (auto& object : objectList) {
-      using enum ShaderType;
-      if (!object.isVisible || shaderType == SKYBOX) continue;
+      using enum CullStrategy;
 
-      // Models
-      if (object.renderable.get().getInstanceData().empty())
-        cullModel(object, frustumPlanes, prePass);
+      CullStrategy strat{object.cullStrategy};
 
-      // Terrain
-      else if (object.renderable.get().perMeshCulling())
-        cullTerrain(object, frustumPlanes);
+      switch (strat) {
+        case MODEL:
+          cullModel(object, frustumPlanes);
+          break;
 
-      // Instanced, only cull grass & flowers in prepass
-      else
-        cullInstanced(object, scene.camera.getPosition(), frustumPlanes,
-                      prePass && shaderType == FLOWERS);
+        case BY_MESH:
+          cullByMesh(object, frustumPlanes);
+          break;
+
+        case INSTANCED:
+          cullInstanced(object, scene.camera.getPosition(), frustumPlanes,
+                        false);
+          break;
+
+        case INSTANCED_DISTANCE:
+          cullInstanced(object, scene.camera.getPosition(), frustumPlanes,
+                        true);
+          break;
+
+        case NONE:
+          break;
+
+        default:
+          cullModel(object, frustumPlanes);
+      }
     }
 }
 
@@ -269,109 +224,167 @@ void Renderer::bindTextures(const Material& materials) {
 
 TextureManager& Renderer::getTextureManager() { return textureManager; }
 
-void Renderer::cullModel(RenderableObject& renderable,
-                         const std::array<glm::vec4, 6>& frustumPlanes,
-                         bool prePass) {
-  const glm::vec4 nearPlane{frustumPlanes[4]};
+void Renderer::cullModel(Renderable& renderable,
+                         const std::array<glm::vec4, 6>& frustumPlanes) {
   const glm::mat4& modelMatrix = renderable.transform.getModelMatrix();
-  auto& object = renderable.renderable.get();
+  auto& object = renderable.object.get();
   const AABB& aabb = object.getAABB();
 
-  if (prePass)
-    renderable.isVisible = aabb.intersectsSinglePlane(nearPlane, modelMatrix);
-  else
-    renderable.isVisible = aabb.intersects(frustumPlanes, modelMatrix);
+  renderable.isVisible = aabb.intersects(frustumPlanes, modelMatrix);
 }
 
-void Renderer::cullInstanced(RenderableObject& renderable,
-                             const glm::vec3& cameraPos,
+void Renderer::cullInstanced(Renderable& renderable, const glm::vec3& cameraPos,
                              const std::array<glm::vec4, 6>& frustumPlanes,
-                             bool prePass) {
+                             bool cullByDistance) {
   float nearDistance{frustumPlanes[4].w};
   float farDistance{frustumPlanes[5].w};
+  bool anyVisible{false};
 
   const float cullDistance{nearDistance +
                            (farDistance - nearDistance) * grassCullDistance};
 
-  auto& object = renderable.renderable.get();
+  auto& object = renderable.object.get();
   std::span<InstanceData> instances = object.getInstanceData();
 
   for (auto& instance : instances) {
-    if (prePass) {
-      const float objToCamera{glm::length(cameraPos - instance.position)};
+    const float objToCamera{glm::length(cameraPos - instance.position)};
 
-      // Outside of distance based culling
-      if (objToCamera > cullDistance) {
-        instance.isVisible = false;
-        continue;
-      }
-
-      // Cull by single plane
-      instance.isVisible =
-          instance.worldAABB.intersectsWorldSinglePlane(frustumPlanes[4]);
-    } else {
-      // Skips rejections from prepass
-      if (!instance.isVisible) continue;
-
-      // Full frustum test
-      instance.isVisible =
-          instance.worldAABB.intersectsWorldSpace(frustumPlanes);
+    // Outside of distance based culling
+    if (cullByDistance && objToCamera > cullDistance) {
+      instance.isVisible = false;
+      continue;
     }
 
-    if (!instance.isVisible) continue;
-
-    double xDist{instance.position.x - cameraPos.x};
-    double zDist{instance.position.z - cameraPos.z};
-    instance.sortKey = xDist * xDist + zDist * zDist;
-    renderable.isVisible = true;
+    instance.isVisible = instance.worldAABB.intersectsWorldSpace(frustumPlanes);
+    if (instance.isVisible) {
+      anyVisible = true;
+      double xDist{instance.position.x - cameraPos.x};
+      double zDist{instance.position.z - cameraPos.z};
+      instance.sortKey = xDist * xDist + zDist * zDist;
+      renderable.isVisible = true;
+    }
   }
 
-  if (renderable.isVisible) object.sortInstances();
+  renderable.isVisible = anyVisible;
+
+  if (anyVisible) object.sortInstances();
 }
 
-void Renderer::cullTerrain(RenderableObject& object,
-                           const std::array<glm::vec4, 6>& frustumPlanes) {
+void Renderer::cullByMesh(Renderable& renderable,
+                          const std::array<glm::vec4, 6>& frustumPlanes) {
   bool visible{false};
 
-  for (auto& mesh : object.renderable.get().getMeshes()) {
+  for (auto& mesh : renderable.object.get().getMeshes()) {
     for (const auto& primitive : mesh.primitives) {
-      if (primitive.getAABB().intersects(frustumPlanes,
-                                         object.transform.getModelMatrix())) {
+      if (primitive.getAABB().intersects(
+              frustumPlanes, renderable.transform.getModelMatrix())) {
         mesh.isVisible = true;
         visible = true;
         break;
-      }
+      } else
+        mesh.isVisible = false;
     }
   }
 
-  object.isVisible = visible;
+  renderable.isVisible = visible;
 }
 
 void Renderer::resetVisibility(Scene& scene) {
   for (auto& [_, objectList] : scene.getSceneObjects())
-    for (auto& object : objectList) {
-      object.isVisible = true;
-      object.renderable.get().resetVisibility();
+    for (auto& renderable : objectList) {
+      renderable.isVisible = true;
+      renderable.object.get().resetVisibility();
     }
 }
 
 void Renderer::renderSkybox(Scene& scene) {
-  /*
-  const auto& skybox{scene.getSkybox()};
+  using enum ShaderType;
+  auto& skyboxes = scene.getSceneObjects()[SKYBOX];
 
-  if (skybox) {
-    using enum MaterialSlot;
-    using enum ShaderType;
-    shaders.at(SKYBOX).use();
+  if (skyboxes.empty()) return;
 
-    const auto& materials{
-        textureManager.acquireUniqueTextureSet(skybox->getModelHandle())};
+  glDepthFunc(GL_LEQUAL);
 
-    if (!materials.empty()) glState.bindTexture(CUBEMAP, materials[0].cubemap);
+  for (auto& renderable : skyboxes) {
+    auto& skybox = renderable.object.get();
 
-    glDepthFunc(GL_LEQUAL);
-    skybox->render();
-    glDepthFunc(GL_LESS);
+    const std::vector<Material>& materials{
+        textureManager.acquireUniqueTextureSet(skybox.getModelHandle())};
+
+    if (!materials.empty()) bindTextures(materials[0]);
+
+    for (auto& mesh : skybox.getMeshes())
+      for (auto& primitive : mesh.primitives) {
+        glBindVertexArray(primitive.getVAO());
+        glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(),
+                       GL_UNSIGNED_INT, 0);
+      }
   }
-  */
+
+  glDepthFunc(GL_LESS);
+}
+
+void Renderer::renderAllSceneObjects(Scene& scene) {
+  using enum ShaderType;
+
+  // For each shader type in the scene
+  for (auto& [shaderType, objectList] : scene.getSceneObjects()) {
+    if (objectList.empty()) continue;
+
+    Shader& shader{shaders.at(shaderType)};
+    shader.use();
+
+    // For each object of that shader type
+    for (auto& renderable : objectList) {
+      if (!renderable.isVisible) continue;
+
+      glm::mat4 modelMatrix{renderable.transform.getModelMatrix()};
+      glm::mat3 normalMatrix{renderable.transform.getNormalMatrix()};
+
+      shader.setMat4("modelMatrix", modelMatrix);
+      shader.setMat3("normalMatrix", normalMatrix);
+
+      // Draw it
+      auto& object = renderable.object.get();
+      renderObject(object);
+    }
+  }
+}
+
+void Renderer::renderObject(RenderableObject& object) {
+  std::size_t lastMaterialIndex{0};
+  bool materialBound{false};
+  const auto materials{
+      textureManager.acquireUniqueTextureSet(object.getModelHandle())};
+
+  for (const Primitive::Mesh& mesh : object.getMeshes()) {
+    if (!mesh.isVisible) continue;
+
+    for (const Primitive& primitive : mesh.primitives) {
+      glState.setAlphaMode(primitive.getAlphaMode() !=
+                           fastgltf::AlphaMode::Opaque);
+
+      if (primitive.materialsExist()) {
+        std::size_t materialIndex{primitive.getMaterialIndex()};
+
+        // Switch materials
+        if (materialIndex != lastMaterialIndex || !materialBound) {
+          lastMaterialIndex = materialIndex;
+          materialBound = true;
+          bindTextures(materials[materialIndex]);
+        }
+      }
+
+      glBindVertexArray(primitive.getVAO());
+
+      if (object.getInstanceData().empty()) {
+        glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(),
+                       GL_UNSIGNED_INT, 0);
+      } else
+        glDrawElementsInstanced(
+            GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0,
+            static_cast<GLsizei>(object.getInstanceCount()));
+    }
+  }
+  glState.setAlphaMode(false);
 }

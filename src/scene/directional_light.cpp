@@ -5,7 +5,7 @@
 
 DirectionalLight::DirectionalLight(const glm::vec3& newDirection,
                                    const glm::vec3& newColor)
-    : direction{newDirection}, Light{newColor} {}
+    : Light{newColor}, direction{newDirection} {}
 
 glm::vec3 DirectionalLight::getColor() const { return color; }
 

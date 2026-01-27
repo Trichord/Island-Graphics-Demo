@@ -1,16 +1,16 @@
 #pragma once
 
 #include <functional>
-#include <optional>
 #include <span>
 
 #include "aabb.h"
+#include "instance_data.h"
 #include "primitive.h"
+#include "shader_types.h"
 #include "texture_manager.h"
 #include "transform.h"
-#include "instance_data.h"
 
-class Renderable {
+class RenderableObject {
  public:
   virtual AABB& getAABB() = 0;
   virtual void sortInstances() = 0;
@@ -20,11 +20,12 @@ class Renderable {
   virtual const ModelHandle getModelHandle() const = 0;
   virtual bool perMeshCulling() const { return false; };
   virtual std::span<InstanceData> getInstanceData() = 0;
-  virtual ~Renderable() = default;
+  virtual ~RenderableObject() = default;
 };
 
-struct RenderableObject {
-  std::reference_wrapper<Renderable> renderable;
+struct Renderable {
+  std::reference_wrapper<RenderableObject> object;
   Transform transform;
-  bool isVisible{false};
+  CullStrategy cullStrategy{CullStrategy::MODEL};
+  bool isVisible{true};
 };

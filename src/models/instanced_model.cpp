@@ -45,8 +45,9 @@ InstancedModel::InstancedModel(TextureManager& textureManager,
 
 InstancedModel::InstancedModel(InstancedModel&& other) noexcept
     : Model{std::move(other)} {
-  instancesVBO = other.instancesVBO;
   instances = std::move(other.instances);
+  visibleInstances = std::move(other.visibleInstances);
+  instancesVBO = other.instancesVBO;
 
   other.instancesVBO = 0;
 }
@@ -185,8 +186,7 @@ void InstancedModel::deleteBuffers() { glDeleteBuffers(1, &instancesVBO); }
 void InstancedModel::sortInstances() {
   // Move visible instances to front of vector
   auto iter = std::partition(
-     /// instances.begin(), instances.end(),
-      instances.begin(), instances.begin() + visibleInstances,
+      instances.begin(), instances.end(),
       [](const InstanceData& instance) { return instance.isVisible; });
   visibleInstances = std::distance(instances.begin(), iter);
 
@@ -209,9 +209,7 @@ void InstancedModel::sortInstances() {
   glUnmapNamedBuffer(instancesVBO);
 }
 
-std::span<InstanceData> InstancedModel::getInstanceData() {
-  return instances;
-}
+std::span<InstanceData> InstancedModel::getInstanceData() { return instances; }
 
 std::size_t InstancedModel::getInstanceCount() const {
   return visibleInstances;
@@ -220,7 +218,6 @@ std::size_t InstancedModel::getInstanceCount() const {
 void InstancedModel::resetVisibility() {
   Model::resetVisibility();
   visibleInstances = instances.size();
-  
-  for (auto& instance : instances)
-    instance.isVisible = true;
+
+  for (auto& instance : instances) instance.isVisible = true;
 }

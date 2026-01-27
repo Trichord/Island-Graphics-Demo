@@ -42,18 +42,20 @@ class Renderer {
   void setupUBO();
   void loadShaders();
   void setupTextureManager();
-  void renderPass(Scene& scene);
   void renderPrePass(Scene& scene);
   void setupShader(Shader& shader);
   void resetVisibility(Scene& scene);
   void renderSkybox(Scene& scene);
   void updateShaderUniforms(Scene& scene);
   void bindTextures(const Material& materials);
-  void cullRenderables(Scene& scene, bool prePass);
-  void cullInstanced(RenderableObject& renderable, const glm::vec3& cameraPos,
-                     const std::array<glm::vec4, 6>& frustumPlanes, bool prePass);
-  void cullModel(RenderableObject& renderable,
-                 const std::array<glm::vec4, 6>& frustumPlanes, bool prePass);
-  void cullTerrain(RenderableObject& renderable,
-                        const std::array<glm::vec4, 6>& frustumPlanes);
+  void cullRenderables(Scene& scene);
+  void cullInstanced(Renderable& renderable, const glm::vec3& cameraPos,
+                     const std::array<glm::vec4, 6>& frustumPlanes,
+                     bool cullByDistance);
+  void cullModel(Renderable& renderable,
+                 const std::array<glm::vec4, 6>& frustumPlanes);
+  void cullByMesh(Renderable& renderable,
+                   const std::array<glm::vec4, 6>& frustumPlanes);
+  void renderAllSceneObjects(Scene& scene);
+  void renderObject(RenderableObject& renderable);
 };

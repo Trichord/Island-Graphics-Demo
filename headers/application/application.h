@@ -103,5 +103,5 @@ class Application {
    * @param scene The target scene to be updated.
    * @param deltaTime The time elapsed since the last frame.
    */
-  void onUpdate(Scene& scene, float deltaTime);
+  void onUpdate(Scene& scene);
 };

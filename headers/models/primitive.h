@@ -62,7 +62,7 @@ class Primitive {
   AABB aabb;
   bool hasMaterials{false};
   std::size_t materialIndex{0};
-  fastgltf::AlphaMode alphaMode;
+  fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
 
   void setupPrimitiveBuffers();
 };

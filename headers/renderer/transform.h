@@ -27,11 +27,11 @@ class Transform {
   glm::vec3 getRotation() const;
 
  private:
-  glm::vec3 position;
-  glm::vec3 scale;
-  glm::mat4 modelMatrix;
-  glm::mat3 normalMatrix;
-  glm::quat quaternion;
+  glm::vec3 position{1.0f};
+  glm::vec3 scale{1.0f};
+  glm::mat4 modelMatrix{1.0f};
+  glm::mat3 normalMatrix{1.0f};
+  glm::quat quaternion{1.0f, 0.0f, 0.0f, 0.0f};
 
   void rebuildModelMatrix();
   bool isDirty{true};
