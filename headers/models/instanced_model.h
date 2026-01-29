@@ -27,10 +27,10 @@ class InstancedModel : public Model {
   InstancedModel& operator=(InstancedModel&& other) = delete;
   ~InstancedModel();
 
-  void sortInstances() override;
   void resetVisibility() override;
   std::size_t getInstanceCount() const override;
   std::span<InstanceData> getInstanceData() override;
+  void setVisibleInstanceCount(std::size_t newSize) override;
 
  private:
   std::vector<InstanceData> instances;

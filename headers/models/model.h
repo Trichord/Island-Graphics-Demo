@@ -11,7 +11,7 @@
 #include "renderable.h"
 #include "texture_manager.h"
 
-class Model : public RenderableObject {
+class Model : public Renderable {
  public:
   Model(TextureManager& textureManager, const std::filesystem::path& path);
   Model(TextureManager& textureManager, const Model& borrowTarget,
@@ -30,12 +30,12 @@ class Model : public RenderableObject {
    */
 
   AABB& getAABB() override;
-  void sortInstances() override;
   void resetVisibility() override;
   std::size_t getInstanceCount() const override;
   std::span<Primitive::Mesh> getMeshes() override;
   const ModelHandle getModelHandle() const override;
   std::span<InstanceData> getInstanceData() override;
+  void setVisibleInstanceCount(std::size_t newSize) override;
 
  protected:
   ModelHandle handle{0};

@@ -102,8 +102,8 @@ void Model::calculateAABB() {
   aabb = AABB{minX, minY, minZ, maxX, maxY, maxZ};
 }
 
-void Model::sortInstances() { return; }
-
 void Model::resetVisibility() {
   for (auto& mesh : meshes) mesh.isVisible = true;
 }
+
+void Model::setVisibleInstanceCount(std::size_t newSize) { return; }
