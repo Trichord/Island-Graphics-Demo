@@ -48,14 +48,14 @@ class Scene {
   Light& getNamedLight(const std::string& key);
   void setAmbientLight(const glm::vec3& ambient);
   Transform& getObjectTransform(const std::string& key);
-  std::map<ShaderType, std::vector<Renderable>>& getSceneObjects();
+  std::map<ShaderType, std::vector<RenderableData>>& getSceneObjects();
 
  protected:
   glm::vec3 ambientLight{0.2f};
   SceneResources sceneResources;
   DirectionalLight globalLightSource;
   std::vector<PointLight> pointLights;
-  std::map<ShaderType, std::vector<Renderable>> sceneObjects;
+  std::map<ShaderType, std::vector<RenderableData>> sceneObjects;
   std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights;
   std::unordered_map<std::string, std::reference_wrapper<Transform>>
       namedTransforms;
@@ -86,7 +86,7 @@ class Scene {
         overrideStrategy.value_or(getCullStrategy(shaderType))};
 
     sceneObjects[shaderType].emplace_back(
-        Renderable{std::ref(modelRef), transform, strategy});
+        RenderableData{std::ref(modelRef), transform, strategy});
 
     if (name.has_value())
       namedTransforms.emplace(

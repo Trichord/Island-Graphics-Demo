@@ -27,7 +27,7 @@ InstancedModel::InstancedModel(TextureManager& textureManager,
   loadPositions(positionsPath, numPositions);
   generateInstanceMatrices(minSize, maxSize);
   generateWorldAABBs();
-  setupInstancedBuffers();
+  //setupInstancedBuffers();
 }
 
 InstancedModel::InstancedModel(TextureManager& textureManager,
@@ -40,7 +40,7 @@ InstancedModel::InstancedModel(TextureManager& textureManager,
   loadPositions(positionsPath, numPositions);
   generateInstanceMatrices(minSize, maxSize);
   generateWorldAABBs();
-  setupInstancedBuffers();
+ // setupInstancedBuffers();
 }
 
 InstancedModel::InstancedModel(InstancedModel&& other) noexcept
@@ -120,6 +120,7 @@ void InstancedModel::generateWorldAABBs() {
 }
 
 void InstancedModel::setupInstancedBuffers() {
+  /*
   glCreateBuffers(1, &instancesVBO);
   glNamedBufferStorage(
       instancesVBO, instances.size() * sizeof(InstanceData), instances.data(),
@@ -178,36 +179,10 @@ void InstancedModel::setupInstancedBuffers() {
       glVertexArrayBindingDivisor(VAO, 1, 1);
     }
   }
+  */
 }
 
 void InstancedModel::deleteBuffers() { glDeleteBuffers(1, &instancesVBO); }
-
-// Sorts visible instances, updating count if necessary
-void InstancedModel::sortInstances() {
-  // Move visible instances to front of vector
-  auto iter = std::partition(
-      instances.begin(), instances.end(),
-      [](const InstanceData& instance) { return instance.isVisible; });
-  visibleInstances = std::distance(instances.begin(), iter);
-
-  if (!visibleInstances) return;
-
-  // Sort front to back for speed on depth testing, over proper alpha blending
-  std::sort(instances.begin(), instances.begin() + visibleInstances,
-            [](const InstanceData& a, const InstanceData& b) {
-              return a.sortKey < b.sortKey;
-            });
-
-  // Update GPU side
-  void* bufferPtr{glMapNamedBufferRange(
-      instancesVBO, 0, visibleInstances * sizeof(InstanceData),
-      GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT)};
-
-  std::memcpy(bufferPtr, instances.data(),
-              visibleInstances * sizeof(InstanceData));
-
-  glUnmapNamedBuffer(instancesVBO);
-}
 
 std::span<InstanceData> InstancedModel::getInstanceData() { return instances; }
 
@@ -220,4 +195,8 @@ void InstancedModel::resetVisibility() {
   visibleInstances = instances.size();
 
   for (auto& instance : instances) instance.isVisible = true;
+}
+
+void InstancedModel::setVisibleInstanceCount(std::size_t updatedCount) {
+  visibleInstances = updatedCount;
 }

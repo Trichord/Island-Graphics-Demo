@@ -26,9 +26,10 @@ void Application::run() {
 
   IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
 
-  addGlfwUserParam(islandScene);
+  renderer.initializeBuffers(islandScene);
+  renderer.updateBuffers(islandScene);
 
-  renderer.updateUBO(islandScene);
+  addGlfwUserParam(islandScene);
 
   // Average FPS
   double totalTime{0};
@@ -45,7 +46,7 @@ void Application::run() {
     framesRendered++;
 
     // Update GPU shared buffer if camera has moved
-    if (islandScene.camera.hasUpdated()) renderer.updateUBO(islandScene);
+    if (islandScene.camera.hasUpdated()) renderer.updateBuffers(islandScene);
 
     // Update scene objects
     onUpdate(islandScene);
