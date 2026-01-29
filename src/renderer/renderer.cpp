@@ -1,11 +1,12 @@
 #include "renderer.h"
 
+#include <algorithm>
 #include <array>
 #include <cstring>
-#include <iostream>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include "camera.h"
 #include "config_window.h"
@@ -38,7 +39,6 @@ constexpr float grassCullDistance{0.4f};
 Renderer::Renderer(const ConfigWindow::GraphicsSettings& settings)
     : graphicsSettings{settings}, glState{settings.msaa != 0} {
   setupTextureManager();
-  setupUBO();
   loadShaders();
 
   for (auto& [_, shader] : shaders) setupShader(shader);
@@ -54,6 +54,8 @@ Renderer::Renderer(Renderer&& other) noexcept
   other.UBO = 0;
 }
 
+Renderer::~Renderer() { deleteBuffers(); }
+
 void Renderer::renderScene(Scene& scene) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -67,27 +69,12 @@ void Renderer::renderScene(Scene& scene) {
   renderSkybox(scene);
 }
 
-void Renderer::updateUBO(Scene& scene) {
+void Renderer::updateBuffers(Scene& scene) {
   uboData.viewMatrix = scene.camera.getViewMatrix();
   uboData.viewProjectionMatrix = scene.camera.getViewProjectionMatrix();
   uboData.cameraPosition = glm::vec4{scene.camera.getPosition(), 0.0f};
- 
-  void* uboPointer{
-      glMapNamedBufferRange(UBO, 0, sizeof(PackedUBOData),
-                            GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT)};
 
-  std::memcpy(uboPointer, &uboData, sizeof(PackedUBOData));
-
-  glUnmapNamedBuffer(UBO);
-}
-
-void Renderer::setupUBO() {
-  glCreateBuffers(1, &UBO);
-
-  glNamedBufferStorage(UBO, sizeof(PackedUBOData), nullptr,
-                       GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
-
-  glBindBufferBase(GL_UNIFORM_BUFFER, 0, UBO);
+  std::memcpy(uboPtr, &uboData, sizeof(PackedUBOData));
 }
 
 void Renderer::setupTextureManager() {
@@ -224,7 +211,7 @@ void Renderer::bindTextures(const Material& materials) {
 
 TextureManager& Renderer::getTextureManager() { return textureManager; }
 
-void Renderer::cullModel(Renderable& renderable,
+void Renderer::cullModel(RenderableData& renderable,
                          const std::array<glm::vec4, 6>& frustumPlanes) {
   const glm::mat4& modelMatrix = renderable.transform.getModelMatrix();
   auto& object = renderable.object.get();
@@ -233,7 +220,8 @@ void Renderer::cullModel(Renderable& renderable,
   renderable.isVisible = aabb.intersects(frustumPlanes, modelMatrix);
 }
 
-void Renderer::cullInstanced(Renderable& renderable, const glm::vec3& cameraPos,
+void Renderer::cullInstanced(RenderableData& renderable,
+                             const glm::vec3& cameraPos,
                              const std::array<glm::vec4, 6>& frustumPlanes,
                              bool cullByDistance) {
   float nearDistance{frustumPlanes[4].w};
@@ -267,26 +255,25 @@ void Renderer::cullInstanced(Renderable& renderable, const glm::vec3& cameraPos,
 
   renderable.isVisible = anyVisible;
 
-  if (anyVisible) object.sortInstances();
+  if (anyVisible) updateSSBO(object);
 }
 
-void Renderer::cullByMesh(Renderable& renderable,
+void Renderer::cullByMesh(RenderableData& renderable,
                           const std::array<glm::vec4, 6>& frustumPlanes) {
-  bool visible{false};
+  renderable.isVisible = false;
 
   for (auto& mesh : renderable.object.get().getMeshes()) {
+    mesh.isVisible = false;
+
     for (const auto& primitive : mesh.primitives) {
       if (primitive.getAABB().intersects(
               frustumPlanes, renderable.transform.getModelMatrix())) {
         mesh.isVisible = true;
-        visible = true;
+        renderable.isVisible = true;
         break;
-      } else
-        mesh.isVisible = false;
+      }
     }
   }
-
-  renderable.isVisible = visible;
 }
 
 void Renderer::resetVisibility(Scene& scene) {
@@ -302,6 +289,9 @@ void Renderer::renderSkybox(Scene& scene) {
   auto& skyboxes = scene.getSceneObjects()[SKYBOX];
 
   if (skyboxes.empty()) return;
+
+  Shader& skyboxShader{shaders.at(SKYBOX)};
+  skyboxShader.use();
 
   glDepthFunc(GL_LEQUAL);
 
@@ -329,7 +319,7 @@ void Renderer::renderAllSceneObjects(Scene& scene) {
 
   // For each shader type in the scene
   for (auto& [shaderType, objectList] : scene.getSceneObjects()) {
-    if (objectList.empty()) continue;
+    if (objectList.empty() || shaderType == SKYBOX) continue;
 
     Shader& shader{shaders.at(shaderType)};
     shader.use();
@@ -351,7 +341,7 @@ void Renderer::renderAllSceneObjects(Scene& scene) {
   }
 }
 
-void Renderer::renderObject(RenderableObject& object) {
+void Renderer::renderObject(Renderable& object) {
   std::size_t lastMaterialIndex{0};
   bool materialBound{false};
   const auto materials{
@@ -377,14 +367,125 @@ void Renderer::renderObject(RenderableObject& object) {
 
       glBindVertexArray(primitive.getVAO());
 
-      if (object.getInstanceData().empty()) {
+      if (object.getInstanceCount()) {
+        GLuint offset{ssboOffsets.at(object.getModelHandle())};
+        GLsizei instanceCount{static_cast<GLsizei>(object.getInstanceCount())};
+
+        glDrawElementsInstancedBaseInstance(
+            GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0,
+            instanceCount, offset);
+      }
+
+      else
         glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(),
                        GL_UNSIGNED_INT, 0);
-      } else
-        glDrawElementsInstanced(
-            GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0,
-            static_cast<GLsizei>(object.getInstanceCount()));
     }
   }
   glState.setAlphaMode(false);
+}
+
+void Renderer::updateSSBO(Renderable& object) {
+
+  auto instances = object.getInstanceData();
+  // Move visible instances to front of vector
+  auto iter = std::partition(
+      instances.begin(), instances.end(),
+      [](const InstanceData& instance) { return instance.isVisible; });
+
+  size_t instanceCount =
+      static_cast<size_t>(std::distance(instances.begin(), iter));
+
+  object.setVisibleInstanceCount(instanceCount);
+
+  // Sort front to back for speed on depth testing, over proper alpha blending
+  std::sort(instances.begin(), instances.begin() + instanceCount,
+            [](const InstanceData& a, const InstanceData& b) {
+              return a.sortKey < b.sortKey;
+            });
+
+  // Send visible instances to the GPU
+  std::vector<SSBOData> ssboData;
+  ssboData.reserve(instanceCount);
+
+  for (std::size_t i{0}; i < instanceCount; ++i)
+    ssboData.emplace_back(instances[i].modelMatrix, instances[i].normalMatrix);
+
+  GLuint offset{ssboOffsets.at(object.getModelHandle())};
+
+  std::memcpy(&ssboPtr[offset], ssboData.data(),
+              instanceCount * sizeof(SSBOData));
+}
+
+void Renderer::initializeBuffers(Scene& scene) {
+  // UBO
+  glCreateBuffers(1, &UBO);
+
+  glNamedBufferStorage(UBO, sizeof(PackedUBOData), nullptr,
+                       GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT |
+                           GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+
+  glBindBufferBase(GL_UNIFORM_BUFFER, 0, UBO);
+
+  uboPtr = glMapNamedBufferRange(UBO, 0, sizeof(PackedUBOData),
+                                 GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT |
+                                     GL_MAP_COHERENT_BIT |
+                                     GL_MAP_INVALIDATE_BUFFER_BIT);
+
+  // SSBO
+  glCreateBuffers(1, &SSBO);
+  std::size_t numInstances{0};
+
+  // Find total number of all instances across all scene objects
+  for (auto& [_, objects] : scene.getSceneObjects())
+    for (auto& renderable : objects)
+      numInstances += renderable.object.get().getInstanceData().size();
+
+  glNamedBufferStorage(SSBO, numInstances * sizeof(SSBOData), nullptr,
+                       GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT |
+                           GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, SSBO);
+
+  void* voidSSBOPtr{glMapNamedBufferRange(
+      SSBO, 0, numInstances * sizeof(SSBOData),
+      GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT |
+          GL_MAP_INVALIDATE_BUFFER_BIT)};
+
+  ssboPtr = static_cast<SSBOData*>(voidSSBOPtr);
+
+  populateSSBO(scene);
+}
+
+void Renderer::populateSSBO(Scene& scene) {
+  GLuint offset{0};
+
+  for (auto& [_, objects] : scene.getSceneObjects())
+    for (auto& renderable : objects) {
+      auto& object = renderable.object.get();
+
+      if (!object.getInstanceCount()) continue;
+
+      // Keep track of where each model's start position is in the SSBO. Even
+      // with sorting and changing instance count, the starting offset into the
+      // SSBO will never change.
+      ssboOffsets.emplace(object.getModelHandle(), offset);
+
+      std::vector<SSBOData> ssboData;
+      ssboData.reserve(object.getInstanceData().size());
+
+      // Build and copy
+      for (auto& instance : object.getInstanceData())
+        ssboData.emplace_back(instance.modelMatrix, instance.normalMatrix);
+
+      memcpy(&ssboPtr[offset], ssboData.data(),
+             ssboData.size() * sizeof(SSBOData));
+      offset += static_cast<GLuint>(ssboData.size());
+    }
+}
+
+void Renderer::deleteBuffers() {
+  glUnmapNamedBuffer(UBO);
+  glUnmapNamedBuffer(SSBO);
+  glDeleteBuffers(1, &UBO);
+  glDeleteBuffers(1, &SSBO);
 }
