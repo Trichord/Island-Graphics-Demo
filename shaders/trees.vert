@@ -29,6 +29,7 @@ out VS_OUT {
 const float minVertexHeight = 0.05;
 const float maxVertexHeight = 17.0;
 
+uniform int index;
 uniform float time;
 uniform float windStrength;
 uniform vec3 windDirection;
@@ -50,8 +51,8 @@ vec3 calcWindTranslation(mat4 transform, float timeStamp, vec3 windDir, float wi
 	return windDir * wave * windStr;
 }
 void main() {
-	mat4 modelMatrix = instances[gl_InstanceID].modelMatrix;
-	mat3 normalMatrix = mat3(instances[gl_InstanceID].normalMatrix);
+	mat4 modelMatrix = instances[index + gl_InstanceID].modelMatrix;
+	mat3 normalMatrix = mat3(instances[index + gl_InstanceID].normalMatrix);
 	vs_out.texCoords = aTexCoords;
 
 	vs_out.fragPos = vec3(modelMatrix * vec4(aPos, 1.0)).xyz;
