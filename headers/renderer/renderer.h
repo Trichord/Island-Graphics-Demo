@@ -47,9 +47,8 @@ class Renderer {
   const ConfigWindow::GraphicsSettings graphicsSettings;
   TextureManager textureManager;
   GLState glState;
-  void* uboPtr{nullptr};
-  SSBOData* ssboPtr{nullptr};
   std::unordered_map<ModelHandle, GLuint> ssboOffsets;
+  std::vector<SSBOData> ssboData;
 
   void loadShaders();
   void setupTextureManager();

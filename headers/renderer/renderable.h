@@ -16,6 +16,7 @@ class Renderable {
   virtual void resetVisibility() = 0;
   virtual std::size_t getInstanceCount() const = 0;
   virtual std::span<Primitive::Mesh> getMeshes() = 0;
+  virtual const ModelHandle getMaterialID() const = 0;
   virtual const ModelHandle getModelHandle() const = 0;
   virtual bool perMeshCulling() const { return false; };
   virtual std::span<InstanceData> getInstanceData() = 0;

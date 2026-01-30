@@ -27,6 +27,7 @@ const float minVertexHeight = 0.001;
 const float maxVertexHeight = 1.0;
 const float swaySpeed = 0.5;
 
+uniform int index;
 uniform float time;
 uniform float windStrength;
 uniform vec3 windDirection;
@@ -49,9 +50,10 @@ vec3 calcWindTranslation(mat4 transform, float timeStamp, vec3 windDir, float wi
 }
 
 void main() {
-	mat4 modelMatrix = instances[gl_InstanceID].modelMatrix;
-	mat3 normalMatrix = mat3(instances[gl_InstanceID].normalMatrix);
-	texCoords = aTexCoords; 
+	mat4 modelMatrix = instances[index + gl_InstanceID].modelMatrix;
+	mat3 normalMatrix = mat3(instances[index + gl_InstanceID].normalMatrix);
+	texCoords = aTexCoords;
+	normal = aNormal * normalMatrix;
 
 	vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
 

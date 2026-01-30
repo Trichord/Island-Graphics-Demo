@@ -20,8 +20,12 @@ void GLState::bindTexture(GLuint unit, GLuint id) {
   textureUnits[unit] = id;
 }
 
-void GLState::setAlphaMode(bool enable) {
-  if (enable == alphaEnabled) return;
+void GLState::setAlphaMode(fastgltf::AlphaMode mode) {
+  bool enable{mode == fastgltf::AlphaMode::Blend ||
+              mode == fastgltf::AlphaMode::Mask};
+
+  if (enable == alphaEnabled)
+    return;
 
   if (enable) {
     glDisable(GL_CULL_FACE);

@@ -63,19 +63,11 @@ void TextureManager::releaseModel(ModelHandle handle) {
 }
 
 ModelHandle TextureManager::assignModelHandle() {
-  static std::random_device rd;
-  static std::mt19937 mt(rd());
-  constexpr uint64_t maxValue{std::numeric_limits<uint64_t>::max()};
+  static int nextHandle{0};
 
-  static std::uniform_int_distribution<uint64_t> rndHandleRange{1, maxValue};
+  textureCache.emplace(nextHandle, TextureEntry{});
 
-  uint64_t handle{rndHandleRange(mt)};
-
-  while (textureCache.contains(handle)) handle = rndHandleRange(mt);
-
-  textureCache.emplace(handle, TextureEntry{});
-
-  return handle;
+  return nextHandle++;
 }
 
 void TextureManager::processTextureQueue() {
