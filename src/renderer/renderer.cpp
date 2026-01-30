@@ -3,10 +3,10 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <iostream>
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include <iostream>
 
 #include "camera.h"
 #include "config_window.h"
@@ -64,6 +64,9 @@ void Renderer::renderScene(Scene& scene) {
   resetVisibility(scene);
   cullRenderables(scene);
 
+  glNamedBufferSubData(SSBO, 0, ssboData.size() * sizeof(SSBOData),
+                       ssboData.data());
+
   renderPrePass(scene);
   renderAllSceneObjects(scene);
   renderSkybox(scene);
@@ -74,7 +77,7 @@ void Renderer::updateBuffers(Scene& scene) {
   uboData.viewProjectionMatrix = scene.camera.getViewProjectionMatrix();
   uboData.cameraPosition = glm::vec4{scene.camera.getPosition(), 0.0f};
 
-  std::memcpy(uboPtr, &uboData, sizeof(PackedUBOData));
+  glNamedBufferSubData(UBO, 0, sizeof(PackedUBOData), &uboData);
 }
 
 void Renderer::setupTextureManager() {
@@ -334,6 +337,10 @@ void Renderer::renderAllSceneObjects(Scene& scene) {
       shader.setMat4("modelMatrix", modelMatrix);
       shader.setMat3("normalMatrix", normalMatrix);
 
+      auto& obj = renderable.object.get();
+      if (ssboOffsets.find(obj.getModelHandle()) != ssboOffsets.end())
+        shader.setInt("index", ssboOffsets.at(obj.getModelHandle()));
+
       // Draw it
       auto& object = renderable.object.get();
       renderObject(object);
@@ -345,14 +352,13 @@ void Renderer::renderObject(Renderable& object) {
   std::size_t lastMaterialIndex{0};
   bool materialBound{false};
   const auto materials{
-      textureManager.acquireUniqueTextureSet(object.getModelHandle())};
+      textureManager.acquireUniqueTextureSet(object.getMaterialID())};
 
   for (const Primitive::Mesh& mesh : object.getMeshes()) {
     if (!mesh.isVisible) continue;
 
     for (const Primitive& primitive : mesh.primitives) {
-      glState.setAlphaMode(primitive.getAlphaMode() !=
-                           fastgltf::AlphaMode::Opaque);
+      glState.setAlphaMode(primitive.getAlphaMode());
 
       if (primitive.materialsExist()) {
         std::size_t materialIndex{primitive.getMaterialIndex()};
@@ -370,10 +376,8 @@ void Renderer::renderObject(Renderable& object) {
       if (object.getInstanceCount()) {
         GLuint offset{ssboOffsets.at(object.getModelHandle())};
         GLsizei instanceCount{static_cast<GLsizei>(object.getInstanceCount())};
-
-        glDrawElementsInstancedBaseInstance(
-            GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0,
-            instanceCount, offset);
+        glDrawElementsInstanced(GL_TRIANGLES, primitive.getIndicesSize(),
+                                GL_UNSIGNED_INT, 0, instanceCount);
       }
 
       else
@@ -381,11 +385,9 @@ void Renderer::renderObject(Renderable& object) {
                        GL_UNSIGNED_INT, 0);
     }
   }
-  glState.setAlphaMode(false);
 }
 
 void Renderer::updateSSBO(Renderable& object) {
-
   auto instances = object.getInstanceData();
   // Move visible instances to front of vector
   auto iter = std::partition(
@@ -403,33 +405,22 @@ void Renderer::updateSSBO(Renderable& object) {
               return a.sortKey < b.sortKey;
             });
 
-  // Send visible instances to the GPU
-  std::vector<SSBOData> ssboData;
-  ssboData.reserve(instanceCount);
+  std::size_t offset{ssboOffsets.at(object.getModelHandle())};
 
-  for (std::size_t i{0}; i < instanceCount; ++i)
-    ssboData.emplace_back(instances[i].modelMatrix, instances[i].normalMatrix);
-
-  GLuint offset{ssboOffsets.at(object.getModelHandle())};
-
-  std::memcpy(&ssboPtr[offset], ssboData.data(),
-              instanceCount * sizeof(SSBOData));
-}
+  for (std::size_t i{0}; i < instanceCount; ++i){
+    ssboData[offset + i].modelMatrix = instances[i].modelMatrix;
+    ssboData[offset + i].normalMatrix = instances[i].normalMatrix;
+  }
+ }
 
 void Renderer::initializeBuffers(Scene& scene) {
   // UBO
   glCreateBuffers(1, &UBO);
 
   glNamedBufferStorage(UBO, sizeof(PackedUBOData), nullptr,
-                       GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT |
-                           GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+                       GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT);
 
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, UBO);
-
-  uboPtr = glMapNamedBufferRange(UBO, 0, sizeof(PackedUBOData),
-                                 GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT |
-                                     GL_MAP_COHERENT_BIT |
-                                     GL_MAP_INVALIDATE_BUFFER_BIT);
 
   // SSBO
   glCreateBuffers(1, &SSBO);
@@ -440,18 +431,12 @@ void Renderer::initializeBuffers(Scene& scene) {
     for (auto& renderable : objects)
       numInstances += renderable.object.get().getInstanceData().size();
 
+  ssboData.reserve(numInstances);
+
   glNamedBufferStorage(SSBO, numInstances * sizeof(SSBOData), nullptr,
-                       GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT |
-                           GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+                       GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
 
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, SSBO);
-
-  void* voidSSBOPtr{glMapNamedBufferRange(
-      SSBO, 0, numInstances * sizeof(SSBOData),
-      GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT |
-          GL_MAP_INVALIDATE_BUFFER_BIT)};
-
-  ssboPtr = static_cast<SSBOData*>(voidSSBOPtr);
 
   populateSSBO(scene);
 }
@@ -470,16 +455,11 @@ void Renderer::populateSSBO(Scene& scene) {
       // SSBO will never change.
       ssboOffsets.emplace(object.getModelHandle(), offset);
 
-      std::vector<SSBOData> ssboData;
-      ssboData.reserve(object.getInstanceData().size());
-
-      // Build and copy
+      // Build and track each instance's offset into the buffer
       for (auto& instance : object.getInstanceData())
         ssboData.emplace_back(instance.modelMatrix, instance.normalMatrix);
 
-      memcpy(&ssboPtr[offset], ssboData.data(),
-             ssboData.size() * sizeof(SSBOData));
-      offset += static_cast<GLuint>(ssboData.size());
+      offset += static_cast<GLuint>(object.getInstanceData().size());
     }
 }
 

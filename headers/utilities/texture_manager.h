@@ -13,7 +13,7 @@
 #include <fastgltf/types.hpp>
 #include <filesystem>
 
-typedef uint64_t ModelHandle;
+typedef int ModelHandle;
 
 struct Material {
   GLuint albedo{0};

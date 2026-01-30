@@ -14,14 +14,18 @@
 #include "texture_manager.h"
 
 Model::Model(TextureManager& textureManager, const std::filesystem::path& path)
-    : handle{textureManager.assignModelHandle()}, texManager{textureManager} {
+    : handle{textureManager.assignModelHandle()},
+      borrowedHandle{0},
+      texManager{textureManager} {
   loadModel(path, false);
   calculateAABB();
 }
 
 Model::Model(TextureManager& textureManager, const Model& borrowTarget,
              const std::filesystem::path& path)
-    : handle{borrowTarget.handle}, texManager{textureManager} {
+    : handle{textureManager.assignModelHandle()},
+      borrowedHandle{borrowTarget.handle},
+      texManager{textureManager} {
   loadModel(path, true);
   calculateAABB();
 }
@@ -36,6 +40,7 @@ Model::Model(Model&& other) noexcept
 
 Model::~Model() {
   if (handle) texManager.releaseModel(handle);
+  if (borrowedHandle) texManager.releaseModel(borrowedHandle);
 }
 
 AABB& Model::getAABB() { return aabb; }
@@ -107,3 +112,10 @@ void Model::resetVisibility() {
 }
 
 void Model::setVisibleInstanceCount(std::size_t newSize) { return; }
+
+const ModelHandle Model::getMaterialID() const {
+  if (borrowedHandle)
+    return borrowedHandle;
+  else
+    return handle;
+}
