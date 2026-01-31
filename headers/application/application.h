@@ -15,7 +15,7 @@
  * @param width The new width, in pixels, of the framebuffer.
  * @param height The new height, in pixels, of the framebuffer.
  */
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
 /**
  * GLFW mouse callback. Recieves updated cursor coordinates.
@@ -24,7 +24,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
  * @param xPos The new x-coordinate, in screen coordinates, of the cursor.
  * @param yPos The new y-coordinate, in screen coordinates, of the cursor.
  */
-void mouse_callback(GLFWwindow* window, double xPos, double yPos);
+void mouse_callback(GLFWwindow *window, double xPos, double yPos);
 
 /**
  * GLFW key callback, triggered when a keyboard button is pressed, repeated or
@@ -37,8 +37,7 @@ void mouse_callback(GLFWwindow* window, double xPos, double yPos);
  * GLFW_REPEAT
  * @param mods Bit field describing which modifier keys were held down.
  */
-void keyCallback(GLFWwindow* window, int key, int scancode, int action,
-                 int mods);
+void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
 inline float lastMouseX{0.0f};
 inline float lastMouseY{0.0f};
@@ -48,60 +47,60 @@ inline float lastMouseY{0.0f};
  *
  * Also initializes OpenGL and passes settings from the config window to OpenGL.
  */
-class Application {
- public:
-  Application() = default;
-  Application(const Application&) = delete;
-  Application& operator=(const Application&) = delete;
-  Application(Application&& other) = delete;
-  Application& operator=(Application&& other) = delete;
-  void run();
+class Application
+{
+  public:
+    Application() = default;
+    Application(const Application &) = delete;
+    Application &operator=(const Application &) = delete;
+    Application(Application &&other) = delete;
+    Application &operator=(Application &&other) = delete;
+    void run();
 
- private:
-  float deltaTime{0.0f};
-  float lastFrame{0.0f};
-  float currentFrame{0.0f};
-  GLFWwindow* window{nullptr};
+  private:
+    float deltaTime{0.0f};
+    float lastFrame{0.0f};
+    float currentFrame{0.0f};
+    GLFWwindow *window{nullptr};
 
-  /**
-   * @brief Creates a GLFW window.  Display settings from the config window are
-   * passed to GLFW here.
-   */
-  void createWindow(const ConfigWindow::GraphicsSettings& graphicsSettings);
+    /**
+     * @brief Creates a GLFW window.  Display settings from the config window are
+     * passed to GLFW here.
+     */
+    void createWindow(const ConfigWindow::GraphicsSettings &graphicsSettings);
 
-  /**
-   * @brief Checks for GLFW key presses and passes info to the scene.
-   *
-   * @param scene The target scene.
-   */
-  void processInput(Scene& scene);
+    /**
+     * @brief Checks for GLFW key presses and passes info to the scene.
+     *
+     * @param scene The target scene.
+     */
+    void processInput(Scene &scene);
 
-  /**
-   * @brief Registers OpenGL function pointers, creates an OpenGL viewport, and
-   * optionally sets MSAA.
-   */
-  void createOpenGLViewport(
-      const ConfigWindow::GraphicsSettings& graphicsSettings);
+    /**
+     * @brief Registers OpenGL function pointers, creates an OpenGL viewport, and
+     * optionally sets MSAA.
+     */
+    void createOpenGLViewport(const ConfigWindow::GraphicsSettings &graphicsSettings);
 
-  /**
-   * @brief Registers GLFW callbacks.  Mouse callback is seperate and should be
-   * registered last with centerMouse()
-   */
-  void registerCallbacks();
+    /**
+     * @brief Registers GLFW callbacks.  Mouse callback is seperate and should be
+     * registered last with centerMouse()
+     */
+    void registerCallbacks();
 
-  /**
-   * @brief Registers a scene with GLFW to be used with GLFW's built in
-   * call-backs.
-   *
-   * @param scene The target scene to be processed by GLFW.
-   */
-  void addGlfwUserParam(Scene& scene);
+    /**
+     * @brief Registers a scene with GLFW to be used with GLFW's built in
+     * call-backs.
+     *
+     * @param scene The target scene to be processed by GLFW.
+     */
+    void addGlfwUserParam(Scene &scene);
 
-  /**
-   * @brief Per-frame update logic.
-   *
-   * @param scene The target scene to be updated.
-   * @param deltaTime The time elapsed since the last frame.
-   */
-  void onUpdate(Scene& scene);
+    /**
+     * @brief Per-frame update logic.
+     *
+     * @param scene The target scene to be updated.
+     * @param deltaTime The time elapsed since the last frame.
+     */
+    void onUpdate(Scene &scene);
 };

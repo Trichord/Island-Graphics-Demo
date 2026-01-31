@@ -1,26 +1,28 @@
 #include "shader_types.h"
 
-CullStrategy getCullStrategy(ShaderType shader) {
-  using enum ShaderType;
-  using enum CullStrategy;
+CullStrategy getCullStrategy(ShaderType shader)
+{
+    using enum ShaderType;
+    using enum CullStrategy;
 
-  switch (shader) {
+    switch (shader)
+    {
     case DIRECTIONAL_PBR:
     case POINT_PBR:
     case REFLECTIVE:
     case LIGHT_SOURCE:
-      return MODEL;
+        return MODEL;
 
     case FLOWERS:
-      return INSTANCED_DISTANCE;
+        return INSTANCED_DISTANCE;
 
     case TREES:
-      return INSTANCED;
+        return INSTANCED;
 
     case SKYBOX:
-      return NONE;
+        return NONE;
 
     default:
-      return MODEL;
-  }
+        return MODEL;
+    }
 }

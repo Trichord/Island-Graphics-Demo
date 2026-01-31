@@ -28,6 +28,7 @@ out VS_OUT {
 
 const float minVertexHeight = 0.05;
 const float maxVertexHeight = 17.0;
+const float swaySpeed = 0.5;
 
 uniform int index;
 uniform float time;
@@ -58,7 +59,7 @@ void main() {
 	vs_out.fragPos = vec3(modelMatrix * vec4(aPos, 1.0)).xyz;
 	vs_out.normal = normalize(normalMatrix * aNormal);
 
-	vec3 windTranslation = calcWindTranslation(modelMatrix, time, windDirection, windStrength);
+	vec3 windTranslation = calcWindTranslation(modelMatrix, time * swaySpeed, windDirection, windStrength);
 	float mask = smoothstep(minVertexHeight, maxVertexHeight, aPos.y);
 	windTranslation *= mask;
 
