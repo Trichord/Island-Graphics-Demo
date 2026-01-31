@@ -53,7 +53,7 @@ void main() {
 	mat4 modelMatrix = instances[index + gl_InstanceID].modelMatrix;
 	mat3 normalMatrix = mat3(instances[index + gl_InstanceID].normalMatrix);
 	texCoords = aTexCoords;
-	normal = aNormal * normalMatrix;
+	normal = normalize(normalMatrix * aNormal);
 
 	vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
 

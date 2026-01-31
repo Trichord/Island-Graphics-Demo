@@ -1,9 +1,7 @@
 #include "renderer.h"
 
 #include <algorithm>
-#include <array>
-#include <cstring>
-#include <iostream>
+#include <iterator>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -13,12 +11,14 @@
 #include "directional_light.h"
 #include "gl_context.h"
 #include "glm/glm.hpp"
+#include "instance_data.h"
 #include "material_slots.h"
 #include "point_light.h"
 #include "renderable.h"
 #include "scene.h"
 #include "shader.h"
 #include "shader_types.h"
+#include "texture_manager.h"
 #include "transform.h"
 
 // Normalized wind direction, east southeast with a slight downward angle
@@ -32,9 +32,6 @@ constexpr glm::vec3 lightColor{1.0f, 0.95f, 0.9f};
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.25f};
 constexpr float alphaCutoff{0.5f};
-
-// Culling range for grass
-constexpr float grassCullDistance{0.4f};
 
 Renderer::Renderer(const ConfigWindow::GraphicsSettings& settings)
     : graphicsSettings{settings}, glState{settings.msaa != 0} {
@@ -161,44 +158,6 @@ void Renderer::updateShaderUniforms(Scene& scene) {
 
 void Renderer::renderPrePass(Scene& scene) {}
 
-void Renderer::cullRenderables(Scene& scene) {
-  const std::array<glm::vec4, 6>& frustumPlanes{
-      scene.camera.getFrustumPlanes()};
-
-  for (auto& [shaderType, objectList] : scene.getSceneObjects())
-    for (auto& object : objectList) {
-      using enum CullStrategy;
-
-      CullStrategy strat{object.cullStrategy};
-
-      switch (strat) {
-        case MODEL:
-          cullModel(object, frustumPlanes);
-          break;
-
-        case BY_MESH:
-          cullByMesh(object, frustumPlanes);
-          break;
-
-        case INSTANCED:
-          cullInstanced(object, scene.camera.getPosition(), frustumPlanes,
-                        false);
-          break;
-
-        case INSTANCED_DISTANCE:
-          cullInstanced(object, scene.camera.getPosition(), frustumPlanes,
-                        true);
-          break;
-
-        case NONE:
-          break;
-
-        default:
-          cullModel(object, frustumPlanes);
-      }
-    }
-}
-
 void Renderer::bindTextures(const Material& materials) {
   using enum MaterialSlot;
 
@@ -213,71 +172,6 @@ void Renderer::bindTextures(const Material& materials) {
 }
 
 TextureManager& Renderer::getTextureManager() { return textureManager; }
-
-void Renderer::cullModel(RenderableData& renderable,
-                         const std::array<glm::vec4, 6>& frustumPlanes) {
-  const glm::mat4& modelMatrix = renderable.transform.getModelMatrix();
-  auto& object = renderable.object.get();
-  const AABB& aabb = object.getAABB();
-
-  renderable.isVisible = aabb.intersects(frustumPlanes, modelMatrix);
-}
-
-void Renderer::cullInstanced(RenderableData& renderable,
-                             const glm::vec3& cameraPos,
-                             const std::array<glm::vec4, 6>& frustumPlanes,
-                             bool cullByDistance) {
-  float nearDistance{frustumPlanes[4].w};
-  float farDistance{frustumPlanes[5].w};
-  bool anyVisible{false};
-
-  const float cullDistance{nearDistance +
-                           (farDistance - nearDistance) * grassCullDistance};
-
-  auto& object = renderable.object.get();
-  std::span<InstanceData> instances = object.getInstanceData();
-
-  for (auto& instance : instances) {
-    const float objToCamera{glm::length(cameraPos - instance.position)};
-
-    // Outside of distance based culling
-    if (cullByDistance && objToCamera > cullDistance) {
-      instance.isVisible = false;
-      continue;
-    }
-
-    instance.isVisible = instance.worldAABB.intersectsWorldSpace(frustumPlanes);
-    if (instance.isVisible) {
-      anyVisible = true;
-      double xDist{instance.position.x - cameraPos.x};
-      double zDist{instance.position.z - cameraPos.z};
-      instance.sortKey = xDist * xDist + zDist * zDist;
-      renderable.isVisible = true;
-    }
-  }
-
-  renderable.isVisible = anyVisible;
-
-  if (anyVisible) updateSSBO(object);
-}
-
-void Renderer::cullByMesh(RenderableData& renderable,
-                          const std::array<glm::vec4, 6>& frustumPlanes) {
-  renderable.isVisible = false;
-
-  for (auto& mesh : renderable.object.get().getMeshes()) {
-    mesh.isVisible = false;
-
-    for (const auto& primitive : mesh.primitives) {
-      if (primitive.getAABB().intersects(
-              frustumPlanes, renderable.transform.getModelMatrix())) {
-        mesh.isVisible = true;
-        renderable.isVisible = true;
-        break;
-      }
-    }
-  }
-}
 
 void Renderer::resetVisibility(Scene& scene) {
   for (auto& [_, objectList] : scene.getSceneObjects())
@@ -407,18 +301,18 @@ void Renderer::updateSSBO(Renderable& object) {
 
   std::size_t offset{ssboOffsets.at(object.getModelHandle())};
 
-  for (std::size_t i{0}; i < instanceCount; ++i){
+  for (std::size_t i{0}; i < instanceCount; ++i) {
     ssboData[offset + i].modelMatrix = instances[i].modelMatrix;
     ssboData[offset + i].normalMatrix = instances[i].normalMatrix;
   }
- }
+}
 
 void Renderer::initializeBuffers(Scene& scene) {
   // UBO
   glCreateBuffers(1, &UBO);
 
   glNamedBufferStorage(UBO, sizeof(PackedUBOData), nullptr,
-                       GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT);
+                       GL_DYNAMIC_STORAGE_BIT);
 
   glBindBufferBase(GL_UNIFORM_BUFFER, 0, UBO);
 
@@ -427,14 +321,14 @@ void Renderer::initializeBuffers(Scene& scene) {
   std::size_t numInstances{0};
 
   // Find total number of all instances across all scene objects
-  for (auto& [_, objects] : scene.getSceneObjects())
-    for (auto& renderable : objects)
+  for (auto& [_, objectList] : scene.getSceneObjects())
+    for (auto& renderable : objectList)
       numInstances += renderable.object.get().getInstanceData().size();
 
   ssboData.reserve(numInstances);
 
   glNamedBufferStorage(SSBO, numInstances * sizeof(SSBOData), nullptr,
-                       GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
+                       GL_DYNAMIC_STORAGE_BIT);
 
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, SSBO);
 
@@ -444,8 +338,8 @@ void Renderer::initializeBuffers(Scene& scene) {
 void Renderer::populateSSBO(Scene& scene) {
   GLuint offset{0};
 
-  for (auto& [_, objects] : scene.getSceneObjects())
-    for (auto& renderable : objects) {
+  for (auto& [_, objectList] : scene.getSceneObjects())
+    for (auto& renderable : objectList) {
       auto& object = renderable.object.get();
 
       if (!object.getInstanceCount()) continue;
@@ -464,8 +358,6 @@ void Renderer::populateSSBO(Scene& scene) {
 }
 
 void Renderer::deleteBuffers() {
-  glUnmapNamedBuffer(UBO);
-  glUnmapNamedBuffer(SSBO);
   glDeleteBuffers(1, &UBO);
   glDeleteBuffers(1, &SSBO);
 }
