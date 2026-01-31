@@ -6,36 +6,44 @@
 
 constexpr GLuint maxTextureUnits{16u};
 
-GLState::GLState(bool globalMSAA) : globalMSAAEnabled{globalMSAA} {
-  textureUnits.resize(maxTextureUnits);
+GLState::GLState(bool globalMSAA) : globalMSAAEnabled{globalMSAA}
+{
+    textureUnits.resize(maxTextureUnits);
 }
 
-void GLState::bindTexture(GLuint unit, GLuint id) {
-  if (unit >= maxTextureUnits)
-    throw std::runtime_error("Max texture units exceeded.");
+void GLState::bindTexture(GLuint unit, GLuint id)
+{
+    if (unit >= maxTextureUnits)
+        throw std::runtime_error("Max texture units exceeded.");
 
-  if (textureUnits[unit] == id) return;
+    if (textureUnits[unit] == id)
+        return;
 
-  glBindTextureUnit(unit, id);
-  textureUnits[unit] = id;
+    glBindTextureUnit(unit, id);
+    textureUnits[unit] = id;
 }
 
-void GLState::setAlphaMode(fastgltf::AlphaMode mode) {
-  bool enable{mode == fastgltf::AlphaMode::Blend ||
-              mode == fastgltf::AlphaMode::Mask};
+void GLState::setAlphaMode(fastgltf::AlphaMode mode)
+{
+    bool enable{mode == fastgltf::AlphaMode::Blend || mode == fastgltf::AlphaMode::Mask};
 
-  if (enable == alphaEnabled)
-    return;
+    if (enable == alphaEnabled)
+        return;
 
-  if (enable) {
-    glDisable(GL_CULL_FACE);
-    alphaEnabled = true;
+    if (enable)
+    {
+        glDisable(GL_CULL_FACE);
+        alphaEnabled = true;
 
-    if (globalMSAAEnabled) glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-  } else {
-    glEnable(GL_CULL_FACE);
-    alphaEnabled = false;
+        if (globalMSAAEnabled)
+            glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    }
+    else
+    {
+        glEnable(GL_CULL_FACE);
+        alphaEnabled = false;
 
-    if (globalMSAAEnabled) glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-  }
+        if (globalMSAAEnabled)
+            glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+    }
 }
