@@ -11,64 +11,64 @@
 #include "shader_types.h"
 #include "texture_manager.h"
 
-class Renderer {
- public:
-  Renderer() = delete;
-  Renderer(const ConfigWindow::GraphicsSettings& graphicsSettings);
-  Renderer(const Renderer&) = delete;
-  Renderer& operator=(const Renderer&) = delete;
-  Renderer(Renderer&& other) noexcept;
-  Renderer& operator=(Renderer&& other) = delete;
-  ~Renderer();
+class Renderer
+{
+  public:
+    Renderer() = delete;
+    Renderer(const ConfigWindow::GraphicsSettings &graphicsSettings);
+    Renderer(const Renderer &) = delete;
+    Renderer &operator=(const Renderer &) = delete;
+    Renderer(Renderer &&other) noexcept;
+    Renderer &operator=(Renderer &&other) = delete;
+    ~Renderer();
 
-  void renderScene(Scene& scene);
-  void updateBuffers(Scene& scene);
-  void initializeBuffers(Scene& scene);
-  TextureManager& getTextureManager();
+    void renderScene(Scene &scene);
+    void updateBuffers(Scene &scene);
+    void initializeBuffers(Scene &scene);
+    TextureManager &getTextureManager();
 
- private:
-  // Packed UBO data holds everything we want to share with all shaders
-  struct PackedUBOData {
-    glm::mat4 viewMatrix{1.0f};
-    glm::mat4 viewProjectionMatrix{1.0f};
-    glm::vec4 cameraPosition{0.0f};
-  };
+  private:
+    // Packed UBO data holds everything we want to share with all shaders
+    struct PackedUBOData
+    {
+        glm::mat4 viewMatrix{1.0f};
+        glm::mat4 viewProjectionMatrix{1.0f};
+        glm::vec4 cameraPosition{0.0f};
+    };
 
-  struct SSBOData {
-    glm::mat4 modelMatrix{1.0f};
-    glm::mat4 normalMatrix{1.0f};
-  };
+    struct SSBOData
+    {
+        glm::mat4 modelMatrix{1.0f};
+        glm::mat4 normalMatrix{1.0f};
+    };
 
-  GLuint UBO{0};
-  GLuint SSBO{0};
-  PackedUBOData uboData;
-  SSBOData ssboInstancesData;
-  std::unordered_map<ShaderType, Shader> shaders;
-  const ConfigWindow::GraphicsSettings graphicsSettings;
-  TextureManager textureManager;
-  GLState glState;
-  std::unordered_map<ModelHandle, GLuint> ssboOffsets;
-  std::vector<SSBOData> ssboData;
+    GLuint UBO{0};
+    GLuint SSBO{0};
+    PackedUBOData uboData;
+    SSBOData ssboInstancesData;
+    std::unordered_map<ShaderType, Shader> shaders;
+    const ConfigWindow::GraphicsSettings graphicsSettings;
+    TextureManager textureManager;
+    GLState glState;
+    std::unordered_map<ModelHandle, GLuint> ssboOffsets;
+    std::vector<SSBOData> ssboData;
 
-  void loadShaders();
-  void setupTextureManager();
-  void renderPrePass(Scene& scene);
-  void setupShader(Shader& shader);
-  void resetVisibility(Scene& scene);
-  void renderSkybox(Scene& scene);
-  void updateShaderUniforms(Scene& scene);
-  void bindTextures(const Material& materials);
-  void cullRenderables(Scene& scene);
-  void cullInstanced(RenderableData& renderable, const glm::vec3& cameraPos,
-                     const std::array<glm::vec4, 6>& frustumPlanes,
-                     bool cullByDistance);
-  void cullModel(RenderableData& renderable,
-                 const std::array<glm::vec4, 6>& frustumPlanes);
-  void cullByMesh(RenderableData& renderable,
-                  const std::array<glm::vec4, 6>& frustumPlanes);
-  void renderAllSceneObjects(Scene& scene);
-  void renderObject(Renderable& object);
-  void updateSSBO(Renderable& object);
-  void populateSSBO(Scene& scene);
-  void deleteBuffers();
+    void loadShaders();
+    void setupTextureManager();
+    void renderPrePass(Scene &scene);
+    void setupShader(Shader &shader);
+    void resetVisibility(Scene &scene);
+    void renderSkybox(Scene &scene);
+    void updateShaderUniforms(Scene &scene);
+    void bindTextures(const Material &materials);
+    void cullRenderables(Scene &scene);
+    void cullInstanced(RenderableData &renderable, const glm::vec3 &cameraPos,
+                       const std::array<glm::vec4, 6> &frustumPlanes, bool cullByDistance);
+    void cullModel(RenderableData &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
+    void cullByMesh(RenderableData &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
+    void renderAllSceneObjects(Scene &scene);
+    void renderObject(Renderable &object);
+    void updateSSBO(Renderable &object);
+    void populateSSBO(Scene &scene);
+    void deleteBuffers();
 };

@@ -1,3 +1,6 @@
 #include "terrain.h"
 
-bool Terrain::perMeshCulling() const { return true; }
+bool Terrain::perMeshCulling() const
+{
+    return true;
+}
