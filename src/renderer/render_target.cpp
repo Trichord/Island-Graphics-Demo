@@ -36,16 +36,23 @@ RenderTarget::RenderTarget(int screenWidth, int screenHeight, float scale, bool 
         // Attach
         glNamedFramebufferTexture(FBO, GL_DEPTH_ATTACHMENT, depthMapTextureID, 0);
     }
+    else
+    {
+        glCreateRenderbuffers(1, &depthRBO);
+        glNamedRenderbufferStorage(depthRBO, GL_DEPTH_COMPONENT24, width, height);
+        glNamedFramebufferRenderbuffer(FBO, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRBO);
+    }
 
     if (glCheckNamedFramebufferStatus(FBO, GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cerr << "ERROR: failed to create framebuffer" << std::endl;
 }
 
 RenderTarget::RenderTarget(RenderTarget &&other) noexcept
-    : width{other.width}, height{other.height}, FBO{other.FBO}, colorTextureID{other.colorTextureID},
-      depthMapTextureID{other.depthMapTextureID}
+    : width{other.width}, height{other.height}, FBO{other.FBO}, depthRBO{other.depthRBO},
+      colorTextureID{other.colorTextureID}, depthMapTextureID{other.depthMapTextureID}
 {
     other.FBO = 0;
+    other.depthRBO = 0;
     other.colorTextureID = 0;
     other.depthMapTextureID = 0;
 }
@@ -59,10 +66,12 @@ RenderTarget &RenderTarget::operator=(RenderTarget &&other) noexcept
         width = other.width;
         height = other.height;
         FBO = other.FBO;
+        depthRBO = other.depthRBO;
         colorTextureID = other.colorTextureID;
         depthMapTextureID = other.depthMapTextureID;
 
         other.FBO = 0;
+        other.depthRBO = 0;
         other.colorTextureID = 0;
         other.depthMapTextureID = 0;
     }
@@ -78,6 +87,7 @@ RenderTarget::~RenderTarget()
 void RenderTarget::bind()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+    glViewport(0, 0, width, height);
 }
 
 void RenderTarget::unbind()
@@ -111,7 +121,11 @@ void RenderTarget::clear(bool color, bool depth)
 void RenderTarget::deleteResources()
 {
     glDeleteTextures(1, &colorTextureID);
+
     if (depthMapTextureID)
         glDeleteTextures(1, &depthMapTextureID);
+    if (depthRBO)
+        glDeleteRenderbuffers(1, &depthRBO);
+
     glDeleteFramebuffers(1, &FBO);
 }

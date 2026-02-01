@@ -3,7 +3,7 @@
 out vec4 fragColor;
 
 uniform sampler2D albedoMap;
-uniform sampler2D occlusionRoughMetalMap;
+uniform sampler2D armMap;
 uniform sampler2D normalMap;
 uniform vec3 ambientLight;
 uniform vec3 lightColor;
@@ -85,7 +85,7 @@ void main() {
 	//material properties, remap normal from [0, 1] to [-1, 1]
 	vec4 albedo = texture(albedoMap, fs_in.texCoords);
 	vec3 normal = texture(normalMap, fs_in.texCoords).rgb * 2.0 - 1.0; 
-	vec3 occlusionRoughMetalMap = texture(occlusionRoughMetalMap, fs_in.texCoords).rgb;
+	vec3 armMap = texture(armMap, fs_in.texCoords).rgb;
 
 	//vectors
 	vec3 N = normalize(normal);
@@ -99,9 +99,9 @@ void main() {
 	float NdotH = max(dot(N, H), 0.0);
 	float HdotV = max(dot(H, V), 0.0);
 
-	float ao = occlusionRoughMetalMap.r;
-	float roughness = occlusionRoughMetalMap.g;
-	float metallic = occlusionRoughMetalMap.b;
+	float ao = armMap.r;
+	float roughness = armMap.g;
+	float metallic = armMap.b;
 
 	//Fresnel-Shlick base reflectivity
 	vec3 F0 = vec3(0.04);

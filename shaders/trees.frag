@@ -3,7 +3,7 @@
 out vec4 fragColor;
 
 uniform sampler2D albedoMap;
-uniform sampler2D occlusionRoughMetalMap;
+uniform sampler2D armMap;
 uniform vec3 ambientLight;
 uniform vec3 lightColor;
 uniform vec3 lightDir;
@@ -21,8 +21,8 @@ layout (std140) uniform matrices {
 
 in VS_OUT {
 	vec3 fragPos;
-	vec2 texCoords;
 	vec3 normal;
+	vec2 texCoords;
 } fs_in;
 
 //Burely diffuse (unrolled)
@@ -66,10 +66,10 @@ void main() {
 	//material properties, remap normal from [0, 1] to [-1, 1]
 	vec4 albedo = texture(albedoMap, fs_in.texCoords);
 	vec3 normal = normalize(fs_in.normal);
-	vec3 occlusionRoughMetalMap = texture(occlusionRoughMetalMap, fs_in.texCoords).rgb;
-	float ao = occlusionRoughMetalMap.r;
-	float roughness = occlusionRoughMetalMap.g;
-	float metallic = occlusionRoughMetalMap.b;
+	vec3 armMap = texture(armMap, fs_in.texCoords).rgb;
+	float ao = armMap.r;
+	float roughness = armMap.g;
+	float metallic = armMap.b;
 
 	//Scale alpha by mip level 0
     vec2 texSize = vec2(textureSize(albedoMap, 0));
@@ -78,7 +78,7 @@ void main() {
 	// Rescale alpha by partial derivative. Credit: Ben Golus
     albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
 
-	if(albedo.a < 0.1)
+	if (albedo.a < 0.1)
 		discard;
   
 	//vectors

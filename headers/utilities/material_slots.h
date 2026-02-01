@@ -6,5 +6,8 @@ enum MaterialSlot
     ALBEDO,
     ARM,
     NORMAL,
-    CUBEMAP
+    CUBEMAP,
+    REFLECTION,
+    REFRACTION,
+    DEPTH
 };
