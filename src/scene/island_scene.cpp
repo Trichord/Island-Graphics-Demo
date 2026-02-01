@@ -106,6 +106,10 @@ void IslandScene::addAllModelsToScene()
     auto &tree4 =
         sceneResources.loadInstancedModel(tree1, "./res/models/tree4/tree4.gltf", "./res/tree4.txt", 0.9f, 1.3f, 69);
     addObjectToScene(tree4, TREES);
+
+    // Water
+    auto &water = sceneResources.loadModel("./res/models/water/water.gltf");
+    addObjectToScene(water, WATER);
 }
 
 void IslandScene::addAllLightsToScene()

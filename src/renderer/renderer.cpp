@@ -34,7 +34,9 @@ constexpr float mipScale{0.25f};
 constexpr float alphaCutoff{0.5f};
 
 Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings)
-    : graphicsSettings{settings}, glState{settings.msaa != 0}
+    : reflectionFBO{settings.screenWidth, settings.screenHeight},
+      refractionFBO{settings.screenWidth, settings.screenHeight}, glState{settings.msaa != 0},
+      graphicsSettings{settings}
 {
     setupTextureManager();
     loadShaders();
@@ -44,11 +46,14 @@ Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings)
 }
 
 Renderer::Renderer(Renderer &&other) noexcept
-    : UBO{other.UBO}, uboData{std::move(other.uboData)}, shaders{std::move(other.shaders)},
-      graphicsSettings{other.graphicsSettings}, textureManager{std::move(other.textureManager)},
-      glState{std::move(other.glState)}
+    : UBO{other.UBO}, uboData{other.uboData}, reflectionFBO{std::move(other.reflectionFBO)},
+      refractionFBO{std::move(other.refractionFBO)}, SSBO{other.SSBO}, ssboData{std::move(other.ssboData)},
+      ssboOffsets{std::move(other.ssboOffsets)}, glState{std::move(other.glState)},
+      textureManager{std::move(other.textureManager)}, shaders{std::move(other.shaders)},
+      graphicsSettings{other.graphicsSettings}
 {
     other.UBO = 0;
+    other.SSBO = 0;
 }
 
 Renderer::~Renderer()
@@ -95,17 +100,24 @@ void Renderer::loadShaders()
     {
         shaders.emplace(FLOWERS, Shader{"./shaders/flowers.vert", "./shaders/flowers_msaa.frag"});
         shaders.emplace(TREES, Shader{"./shaders/trees.vert", "./shaders/trees_msaa.frag"});
+        shaders.emplace(BLINN_PREPASS, Shader{"./shaders/blinn_prepass.vert", "./shaders/blinn_prepass_msaa.frag"});
+        shaders.emplace(BLINN_PREPASS_INSTANCED,
+                        Shader{"./shaders/blinn_prepass_instanced.vert", "./shaders/blinn_prepass_msaa.frag"});
     }
     else
     {
         shaders.emplace(FLOWERS, Shader{"./shaders/flowers.vert", "./shaders/flowers.frag"});
         shaders.emplace(TREES, Shader{"./shaders/trees.vert", "./shaders/trees.frag"});
+        shaders.emplace(BLINN_PREPASS, Shader{"./shaders/blinn_prepass.vert", "./shaders/blinn_prepass.frag"});
+        shaders.emplace(BLINN_PREPASS_INSTANCED,
+                        Shader{"./shaders/blinn_prepass_instanced.vert", "./shaders/blinn_prepass.frag"});
     }
 
     shaders.emplace(POINT_PBR, Shader{"./shaders/point_PBR.vert", "./shaders/point_PBR.frag"});
     shaders.emplace(DIRECTIONAL_PBR, Shader{"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"});
     shaders.emplace(REFLECTIVE, Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"});
     shaders.emplace(SKYBOX, Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"});
+    shaders.emplace(WATER, Shader{"./shaders/water.vert", "./shaders/water.frag"});
 }
 
 void Renderer::setupShader(Shader &shader)
@@ -115,9 +127,12 @@ void Renderer::setupShader(Shader &shader)
     shader.setUniformBlock("matrices", 0);
 
     shader.setInt("albedoMap", ALBEDO);
-    shader.setInt("occlusionRoughMetalMap", ARM);
+    shader.setInt("armMap", ARM);
     shader.setInt("normalMap", NORMAL);
     shader.setInt("cubeMap", CUBEMAP);
+    shader.setInt("reflectionMap", REFLECTION);
+    shader.setInt("refractionMap", REFRACTION);
+    shader.setInt("depthMap", DEPTH);
 
     shader.setVec3("ambientLight", ambientLight);
     shader.setVec3("lightColor", lightColor);
@@ -163,6 +178,7 @@ void Renderer::updateShaderUniforms(Scene &scene)
 
 void Renderer::renderPrePass(Scene &scene)
 {
+    glEnable(GL_CLIP_DISTANCE0);
 }
 
 void Renderer::bindTextures(const Material &materials)
