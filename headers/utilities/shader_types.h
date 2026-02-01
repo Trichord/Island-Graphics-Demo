@@ -6,12 +6,15 @@
 
 enum class ShaderType
 {
+    BLINN_PREPASS,
+    BLINN_PREPASS_INSTANCED,
     FLOWERS,
     TREES,
     DIRECTIONAL_PBR,
     POINT_PBR,
     REFLECTIVE,
     LIGHT_SOURCE,
+    WATER,
     SKYBOX
 };
 

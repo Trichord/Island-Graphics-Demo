@@ -11,19 +11,21 @@ layout (std140) uniform matrices {
 	layout (offset = 128) vec4 cameraPosition;
 };
 
-struct instanceData{
-mat4 modelMatrix;
-mat4 normalMatrix;
+struct instanceData
+{
+	mat4 modelMatrix;
+	mat4 normalMatrix;
 };
 
-layout(binding = 0, std430) readonly buffer ssbo {
+layout(binding = 0, std430) readonly buffer ssbo 
+{
     instanceData instances[];
 };
 
 out VS_OUT {
 	vec3 fragPos;
-	vec2 texCoords;
 	vec3 normal;
+	vec2 texCoords;
 } vs_out;
 
 const float minVertexHeight = 0.05;
@@ -35,11 +37,13 @@ uniform float time;
 uniform float windStrength;
 uniform vec3 windDirection;
 
-float random(vec2 st){
+float random(vec2 st)
+{
     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
 }
 
-vec3 calcWindTranslation(mat4 transform, float timeStamp, vec3 windDir, float windStr){
+vec3 calcWindTranslation(mat4 transform, float timeStamp, vec3 windDir, float windStr)
+{
 	vec3 centerPos = transform[3].xyz;
 	float vertexOffset = random(transform[0].xy) * 0.7;
 	
@@ -51,7 +55,9 @@ vec3 calcWindTranslation(mat4 transform, float timeStamp, vec3 windDir, float wi
 
 	return windDir * wave * windStr;
 }
-void main() {
+
+void main() 
+{
 	mat4 modelMatrix = instances[index + gl_InstanceID].modelMatrix;
 	mat3 normalMatrix = mat3(instances[index + gl_InstanceID].normalMatrix);
 	vs_out.texCoords = aTexCoords;

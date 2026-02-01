@@ -6,6 +6,7 @@
 #include "gl_state.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
+#include "render_target.h"
 #include "scene.h"
 #include "shader.h"
 #include "shader_types.h"
@@ -15,7 +16,7 @@ class Renderer
 {
   public:
     Renderer() = delete;
-    Renderer(const ConfigWindow::GraphicsSettings &graphicsSettings);
+    explicit Renderer(const ConfigWindow::GraphicsSettings &graphicsSettings);
     Renderer(const Renderer &) = delete;
     Renderer &operator=(const Renderer &) = delete;
     Renderer(Renderer &&other) noexcept;
@@ -42,16 +43,24 @@ class Renderer
         glm::mat4 normalMatrix{1.0f};
     };
 
+    // UBO
     GLuint UBO{0};
-    GLuint SSBO{0};
     PackedUBOData uboData;
-    SSBOData ssboInstancesData;
+
+    // Framebuffers
+    RenderTarget reflectionFBO;
+    RenderTarget refractionFBO;
+
+    // SSBO
+    GLuint SSBO{0};
+    std::vector<SSBOData> ssboData;
+    std::unordered_map<ModelHandle, GLuint> ssboOffsets;
+
+    // Owned objects
+    GLState glState;
+    TextureManager textureManager;
     std::unordered_map<ShaderType, Shader> shaders;
     const ConfigWindow::GraphicsSettings graphicsSettings;
-    TextureManager textureManager;
-    GLState glState;
-    std::unordered_map<ModelHandle, GLuint> ssboOffsets;
-    std::vector<SSBOData> ssboData;
 
     void loadShaders();
     void setupTextureManager();

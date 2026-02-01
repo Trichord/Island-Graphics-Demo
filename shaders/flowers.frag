@@ -43,7 +43,7 @@ void main() {
 	// Rescale alpha by partial derivative. Credit: Ben Golus
     albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
 
-    if(albedo.a < 0.1)
+    if (albedo.a < 0.1)
         discard;
 
     //Flip normal if 2D quad is facing away
