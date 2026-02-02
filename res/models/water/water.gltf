@@ -20,7 +20,6 @@
 	],
 	"materials":[
 		{
-			"alphaMode":"BLEND",
 			"doubleSided":true,
 			"name":"water",
 			"normalTexture":{
@@ -69,9 +68,9 @@
 	],
 	"images":[
 		{
-			"mimeType":"image/jpeg",
+			"mimeType":"image/png",
 			"name":"water-normal",
-			"uri":"textures/water-normal.jpg"
+			"uri":"textures/water-normal.png"
 		},
 		{
 			"mimeType":"image/png",
@@ -85,14 +84,14 @@
 			"componentType":5126,
 			"count":4,
 			"max":[
-				142.10829162597656,
-				-4.755757808685303,
-				143.7594757080078
+				12.19158935546875,
+				0,
+				12.19158935546875
 			],
 			"min":[
-				117.72511291503906,
-				-4.755757808685303,
-				119.37629699707031
+				-12.19158935546875,
+				0,
+				-12.19158935546875
 			],
 			"type":"VEC3"
 		},

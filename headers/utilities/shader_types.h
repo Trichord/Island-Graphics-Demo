@@ -18,7 +18,7 @@ enum class ShaderType
     SKYBOX
 };
 
-enum class CullStrategy
+enum class CullType
 {
     NONE,
     MODEL,
@@ -26,5 +26,3 @@ enum class CullStrategy
     INSTANCED_DISTANCE,
     BY_MESH
 };
-
-CullStrategy getCullStrategy(ShaderType shader);

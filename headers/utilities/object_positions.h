@@ -9,3 +9,5 @@ static const inline glm::vec3 LIGHTBULB_POS{0.0f, 0.55f, 50.0f};
 static const inline glm::vec3 SPACE_DODECA_POS{-21.0f, 13.0f, -48.0f};
 
 static const inline glm::vec3 DEAD_TREE_POS{196.050476f, 0.230483f, 150.725922f};
+
+static const inline glm::vec3 POND_WATER_POS{129.9f, -4.76f, 131.6f};

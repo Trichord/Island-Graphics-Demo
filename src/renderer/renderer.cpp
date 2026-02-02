@@ -1,6 +1,7 @@
 #include "renderer.h"
 
 #include <algorithm>
+#include <iostream>
 #include <iterator>
 #include <unordered_map>
 #include <utility>
@@ -34,7 +35,7 @@ constexpr float mipScale{0.25f};
 constexpr float alphaCutoff{0.5f};
 
 Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings)
-    : reflectionFBO{settings.screenWidth, settings.screenHeight},
+    : reflectionFBO{settings.screenWidth, settings.screenHeight, false},
       refractionFBO{settings.screenWidth, settings.screenHeight}, glState{settings.msaa != 0},
       graphicsSettings{settings}
 {
@@ -100,17 +101,12 @@ void Renderer::loadShaders()
     {
         shaders.emplace(FLOWERS, Shader{"./shaders/flowers.vert", "./shaders/flowers_msaa.frag"});
         shaders.emplace(TREES, Shader{"./shaders/trees.vert", "./shaders/trees_msaa.frag"});
-        shaders.emplace(BLINN_PREPASS, Shader{"./shaders/blinn_prepass.vert", "./shaders/blinn_prepass_msaa.frag"});
-        shaders.emplace(BLINN_PREPASS_INSTANCED,
-                        Shader{"./shaders/blinn_prepass_instanced.vert", "./shaders/blinn_prepass_msaa.frag"});
     }
     else
     {
         shaders.emplace(FLOWERS, Shader{"./shaders/flowers.vert", "./shaders/flowers.frag"});
         shaders.emplace(TREES, Shader{"./shaders/trees.vert", "./shaders/trees.frag"});
-        shaders.emplace(BLINN_PREPASS, Shader{"./shaders/blinn_prepass.vert", "./shaders/blinn_prepass.frag"});
-        shaders.emplace(BLINN_PREPASS_INSTANCED,
-                        Shader{"./shaders/blinn_prepass_instanced.vert", "./shaders/blinn_prepass.frag"});
+
     }
 
     shaders.emplace(POINT_PBR, Shader{"./shaders/point_PBR.vert", "./shaders/point_PBR.frag"});
@@ -118,6 +114,9 @@ void Renderer::loadShaders()
     shaders.emplace(REFLECTIVE, Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"});
     shaders.emplace(SKYBOX, Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"});
     shaders.emplace(WATER, Shader{"./shaders/water.vert", "./shaders/water.frag"});
+    shaders.emplace(BLINN_PREPASS, Shader{"./shaders/blinn_prepass.vert", "./shaders/blinn_prepass.frag"});
+    shaders.emplace(BLINN_PREPASS_INSTANCED,
+                    Shader{"./shaders/blinn_prepass_instanced.vert", "./shaders/blinn_prepass.frag"});
 }
 
 void Renderer::setupShader(Shader &shader)
@@ -179,6 +178,111 @@ void Renderer::updateShaderUniforms(Scene &scene)
 void Renderer::renderPrePass(Scene &scene)
 {
     glEnable(GL_CLIP_DISTANCE0);
+
+    using enum ShaderType;
+
+    auto &prepassShader = shaders.at(BLINN_PREPASS);
+    auto &instancedPrepassShader = shaders.at(BLINN_PREPASS_INSTANCED);
+
+    std::vector<RenderableInstance *> instanced;
+    std::vector<RenderableInstance *> regular;
+
+    // Split all scene objects into either instanced or regular models
+    for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
+    {
+        if (objectList.empty() || shaderType == SKYBOX || shaderType == WATER)
+            continue;
+
+        for (auto &renderable : objectList)
+        {
+            if (!renderable.properties.isVisible)
+                continue;
+
+            auto &object = renderable.object.get();
+
+            if (renderable.properties.isInstanced())
+                instanced.emplace_back(&renderable);
+            else
+                regular.emplace_back(&renderable);
+        }
+    }
+
+    // Helper method for rendering all the scene objects
+    auto prePassHelper = [&](Shader &shader, std::vector<RenderableInstance *> &renderables, bool isInstanced) {
+        for (auto *renderable : renderables)
+        {
+            auto &obj = renderable->object.get();
+
+            glm::mat4 modelMatrix{renderable->properties.transform.getModelMatrix()};
+            glm::mat3 normalMatrix{renderable->properties.transform.getNormalMatrix()};
+
+            shader.setMat4("modelMatrix", modelMatrix);
+            shader.setMat3("normalMatrix", normalMatrix);
+
+            if (isInstanced)
+                shader.setInt("index", ssboOffsets.at(obj.getModelHandle()));
+
+            auto &object = renderable->object.get();
+            renderObject(object);
+        }
+    };
+
+    // Get water plane
+    auto &waters = scene.getRenderablesByShader()[WATER];
+    if (waters.empty())
+        return;
+
+    // Note - currently only have render targets for one water plane
+    for (auto &waterPlane : waters)
+    {
+        if (!waterPlane.properties.isVisible)
+            continue;
+   
+        // Move camera below water and flip pitch
+        Camera &camera{scene.camera};
+        float waterHeight{waterPlane.properties.transform.getPosition().y};
+        float cameraHeight{2 * (camera.getPosition().y - waterHeight)};
+        camera.setPosition(camera.getPosition() + glm::vec3{0.0f, -cameraHeight, 0.0f});
+        camera.invertPitch();
+        updateBuffers(scene);
+
+        // Reflection pass
+        reflectionFBO.bind();
+        reflectionFBO.clear();
+
+        prepassShader.use();
+        prepassShader.setVec4("plane", glm::vec4{0, 1.0, 0, -waterHeight});
+        prePassHelper(prepassShader, regular, false);
+        instancedPrepassShader.use();
+        instancedPrepassShader.setVec4("plane", glm::vec4{0, 1.0, 0, -waterHeight});
+        prePassHelper(instancedPrepassShader, instanced, true);
+        renderSkybox(scene);
+
+        // Refraction pass
+        camera.setPosition(camera.getPosition() + glm::vec3{0.0f, cameraHeight, 0.0f});
+        camera.invertPitch();
+        updateBuffers(scene);
+
+        refractionFBO.bind();
+        refractionFBO.clear();
+
+        prepassShader.use();
+        prepassShader.setVec4("plane", glm::vec4{0, -1.0, 0, waterHeight});
+        prePassHelper(prepassShader, regular, false);
+        instancedPrepassShader.use();
+        instancedPrepassShader.setVec4("plane", glm::vec4{0, -1.0, 0, waterHeight});
+        prePassHelper(instancedPrepassShader, instanced, true);
+    }
+
+    glDisable(GL_CLIP_DISTANCE0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, graphicsSettings.screenWidth, graphicsSettings.screenHeight);
+
+    // Textures
+    reflectionFBO.generateMipMaps();
+    glState.bindTexture(REFLECTION, reflectionFBO.getColorTextureID());
+    glState.bindTexture(DEPTH, refractionFBO.getDepthMapTextureID());
+    glState.bindTexture(REFRACTION, refractionFBO.getColorTextureID());
 }
 
 void Renderer::bindTextures(const Material &materials)
@@ -205,10 +309,10 @@ TextureManager &Renderer::getTextureManager()
 
 void Renderer::resetVisibility(Scene &scene)
 {
-    for (auto &[_, objectList] : scene.getSceneObjects())
+    for (auto &[_, objectList] : scene.getRenderablesByShader())
         for (auto &renderable : objectList)
         {
-            renderable.isVisible = true;
+            renderable.properties.isVisible = true;
             renderable.object.get().resetVisibility();
         }
 }
@@ -216,7 +320,7 @@ void Renderer::resetVisibility(Scene &scene)
 void Renderer::renderSkybox(Scene &scene)
 {
     using enum ShaderType;
-    auto &skyboxes = scene.getSceneObjects()[SKYBOX];
+    auto &skyboxes = scene.getRenderablesByShader()[SKYBOX];
 
     if (skyboxes.empty())
         return;
@@ -246,12 +350,12 @@ void Renderer::renderSkybox(Scene &scene)
     glDepthFunc(GL_LESS);
 }
 
+// Render objects, grouped by shader type
 void Renderer::renderAllSceneObjects(Scene &scene)
 {
     using enum ShaderType;
 
-    // For each shader type in the scene
-    for (auto &[shaderType, objectList] : scene.getSceneObjects())
+    for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
     {
         if (objectList.empty() || shaderType == SKYBOX)
             continue;
@@ -259,24 +363,22 @@ void Renderer::renderAllSceneObjects(Scene &scene)
         Shader &shader{shaders.at(shaderType)};
         shader.use();
 
-        // For each object of that shader type
         for (auto &renderable : objectList)
         {
-            if (!renderable.isVisible)
+            if (!renderable.properties.isVisible)
                 continue;
 
-            glm::mat4 modelMatrix{renderable.transform.getModelMatrix()};
-            glm::mat3 normalMatrix{renderable.transform.getNormalMatrix()};
+            glm::mat4 modelMatrix{renderable.properties.transform.getModelMatrix()};
+            glm::mat3 normalMatrix{renderable.properties.transform.getNormalMatrix()};
 
             shader.setMat4("modelMatrix", modelMatrix);
             shader.setMat3("normalMatrix", normalMatrix);
 
-            auto &obj = renderable.object.get();
-            if (ssboOffsets.find(obj.getModelHandle()) != ssboOffsets.end())
-                shader.setInt("index", ssboOffsets.at(obj.getModelHandle()));
+            auto &object = renderable.object.get();
+            if (auto iter = ssboOffsets.find(object.getModelHandle()); iter != ssboOffsets.end())
+                shader.setInt("index", iter->second);
 
             // Draw it
-            auto &object = renderable.object.get();
             renderObject(object);
         }
     }
@@ -301,7 +403,7 @@ void Renderer::renderObject(Renderable &object)
             {
                 std::size_t materialIndex{primitive.getMaterialIndex()};
 
-                // Switch materials
+                // Switch materials only if they've changed
                 if (materialIndex != lastMaterialIndex || !materialBound)
                 {
                     lastMaterialIndex = materialIndex;
@@ -363,7 +465,7 @@ void Renderer::initializeBuffers(Scene &scene)
     std::size_t numInstances{0};
 
     // Find total number of all instances across all scene objects
-    for (auto &[_, objectList] : scene.getSceneObjects())
+    for (auto &[_, objectList] : scene.getRenderablesByShader())
         for (auto &renderable : objectList)
             numInstances += renderable.object.get().getInstanceData().size();
 
@@ -380,7 +482,7 @@ void Renderer::populateSSBO(Scene &scene)
 {
     GLuint offset{0};
 
-    for (auto &[_, objectList] : scene.getSceneObjects())
+    for (auto &[_, objectList] : scene.getRenderablesByShader())
         for (auto &renderable : objectList)
         {
             auto &object = renderable.object.get();

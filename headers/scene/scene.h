@@ -50,14 +50,14 @@ class Scene
     Light &getNamedLight(const std::string &key);
     void setAmbientLight(const glm::vec3 &ambient);
     Transform &getObjectTransform(const std::string &key);
-    std::map<ShaderType, std::vector<RenderableData>> &getSceneObjects();
+    std::map<ShaderType, std::vector<RenderableInstance>> &getRenderablesByShader();
 
   protected:
     glm::vec3 ambientLight{0.2f};
     SceneResources sceneResources;
     DirectionalLight globalLightSource;
     std::vector<PointLight> pointLights;
-    std::map<ShaderType, std::vector<RenderableData>> sceneObjects;
+    std::map<ShaderType, std::vector<RenderableInstance>> sceneRenderables;
     std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights;
     std::unordered_map<std::string, std::reference_wrapper<Transform>> namedTransforms;
 
@@ -68,25 +68,17 @@ class Scene
     virtual void initializeScene(const ConfigWindow::GraphicsSettings &graphicsSettings) = 0;
 
     /**
-     * Adds an object to the scene.  Optional: give the object a name to reference
+     * @brief Adds an object to the scene.  Optional: give the object a name to reference
      * it in Application's onUpdate()
-     * @param modelRef A reference to the model after its been loaded
-     * using Scene's loading functions (e.g. loadModel, loadInstacedModel)
-     * @param shaderType The shader this model will be rendered with
-     * @param transform The position / rotation / scale transform applied to the
-     * object
      */
     template <typename T>
-    void addObjectToScene(T &modelRef, ShaderType shaderType, Transform &&transform = Transform{},
-                          const std::optional<std::string> name = std::nullopt,
-                          const std::optional<CullStrategy> overrideStrategy = std::nullopt)
+    void addObjectToScene(T &modelRef, ShaderType shaderType, ObjectProperties properties = {},
+                          const std::optional<std::string> name = std::nullopt)
     {
-        CullStrategy strategy{overrideStrategy.value_or(getCullStrategy(shaderType))};
-
-        sceneObjects[shaderType].emplace_back(RenderableData{std::ref(modelRef), transform, strategy});
+        sceneRenderables[shaderType].emplace_back(RenderableInstance{std::ref(modelRef), std::move(properties)});
 
         if (name.has_value())
-            namedTransforms.emplace(name.value(), std::ref(sceneObjects[shaderType].back().transform));
+            namedTransforms.emplace(name.value(), std::ref(sceneRenderables[shaderType].back().properties.transform));
     }
 
     /**

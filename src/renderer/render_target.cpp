@@ -4,7 +4,7 @@
 #include <cmath>
 #include <iostream>
 
-RenderTarget::RenderTarget(int screenWidth, int screenHeight, float scale, bool depthMapTexture)
+RenderTarget::RenderTarget(int screenWidth, int screenHeight, bool depthMapTexture, float scale)
     : width{static_cast<int>(screenWidth * scale)}, height{static_cast<int>(screenHeight * scale)}
 {
     // Mipmaps

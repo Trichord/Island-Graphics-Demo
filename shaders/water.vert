@@ -12,8 +12,9 @@ layout (std140) uniform matrices
 
 out VS_OUT 
 {
-	vec3 fragPos;
 	vec2 texCoords;
+	vec3 fragPos;
+	vec4 clipSpace;
 } vs_out;
 
 uniform mat4 modelMatrix;
@@ -22,6 +23,7 @@ void main ()
 {
 	vs_out.texCoords = aTexCoords;
 	vs_out.fragPos = (modelMatrix * vec4(aPos, 1.0)).xyz;
-	
-	gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0);
+	vs_out.clipSpace = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0);
+
+	gl_Position = vs_out.clipSpace;
 }

@@ -7,10 +7,10 @@
 #include "config_window.h"
 #include "glm/glm.hpp"
 #include "object_positions.h"
+#include "renderable.h"
 #include "scene.h"
 #include "shader_types.h"
 #include "texture_manager.h"
-#include "transform.h"
 
 IslandScene::IslandScene(TextureManager &textureManager, const ConfigWindow::GraphicsSettings &graphicsSettings)
     : Scene(textureManager)
@@ -33,15 +33,16 @@ void IslandScene::initializeScene(const ConfigWindow::GraphicsSettings &graphics
 void IslandScene::addAllModelsToScene()
 {
     using enum ShaderType;
-    using enum CullStrategy;
+    using enum CullType;
+    using enum RenderType;
 
     // Main island
     auto &island = sceneResources.loadTerrain("./res/models/island/island.gltf");
-    addObjectToScene(island, DIRECTIONAL_PBR, Transform{}, std::nullopt, BY_MESH);
+    addObjectToScene(island, DIRECTIONAL_PBR, {.cullType = BY_MESH});
 
     // Dead tree
     auto &deadTree = sceneResources.loadModel("./res/models/dead_tree/dead_tree.gltf");
-    addObjectToScene(deadTree, DIRECTIONAL_PBR, Transform(DEAD_TREE_POS, glm::vec3{1.0f}, 45.0f));
+    addObjectToScene(deadTree, DIRECTIONAL_PBR, {.transform = {DEAD_TREE_POS, glm::vec3{1.0f}, 45.0f}});
 
     std::vector<std::filesystem::path> spaceBoxPaths{
         "./res//Textures/nebula/right.png",  "./res//Textures/nebula/left.png",  "./res//Textures/nebula/top.png",
@@ -49,7 +50,7 @@ void IslandScene::addAllModelsToScene()
 
     // Fancy spinning space model
     auto &spaceModel = sceneResources.loadCubeMappedModel("./res/models/space_model/scene.gltf", spaceBoxPaths);
-    addObjectToScene(spaceModel, REFLECTIVE, Transform(SPACE_DODECA_POS), "spaceModel");
+    addObjectToScene(spaceModel, REFLECTIVE, {.transform = {SPACE_DODECA_POS}}, "spaceModel");
 
     // Skybox
     std::vector<std::filesystem::path> skyBoxPaths{
@@ -61,55 +62,56 @@ void IslandScene::addAllModelsToScene()
 
     // Grass
     auto &grass = sceneResources.loadInstancedModel("./res/models/grass/grass.gltf", "./res/grass.txt", 0.3f, 0.5, 292);
-    addObjectToScene(grass, FLOWERS);
+    addObjectToScene(grass, FLOWERS, {.cullType = INSTANCED_DISTANCE});
 
     // White flowers
     auto &whiteFlowers = sceneResources.loadInstancedModel("./res/models/whiteflower/whiteflower.gltf",
                                                            "./res/whiteflowers.txt", 0.9f, 1.1f, 371);
-    addObjectToScene(whiteFlowers, FLOWERS);
+    addObjectToScene(whiteFlowers, FLOWERS, {.cullType = INSTANCED_DISTANCE});
 
     // Blue flowers
     auto &blueFlowers = sceneResources.loadInstancedModel(whiteFlowers, "./res/models/blueflower/blueflower.gltf",
                                                           "./res/blueflowers.txt", 0.9f, 1.1f, 181);
-    addObjectToScene(blueFlowers, FLOWERS);
+    addObjectToScene(blueFlowers, FLOWERS, {.cullType = INSTANCED_DISTANCE});
 
     // Purple flowers
     auto &purpleFlowers = sceneResources.loadInstancedModel(whiteFlowers, "./res/models/purpleflower/purpleflower.gltf",
                                                             "./res/purpleflowers.txt", 0.9f, 1.1f, 256);
-    addObjectToScene(purpleFlowers, FLOWERS);
+    addObjectToScene(purpleFlowers, FLOWERS, {.cullType = INSTANCED_DISTANCE});
 
     // Dandelions
     auto &dandelions = sceneResources.loadInstancedModel(whiteFlowers, "./res/models/dandelion/dandelion.gltf",
                                                          "./res/dandelions.txt", 1.0f, 1.5f, 1606);
-    addObjectToScene(dandelions, FLOWERS);
+    addObjectToScene(dandelions, FLOWERS, {.cullType = INSTANCED_DISTANCE});
 
     // Strawberry flowers
     auto &strawberries = sceneResources.loadInstancedModel(whiteFlowers, "./res/models/strawberry/strawberry.gltf",
                                                            "./res/strawberries.txt", 0.8f, 1.2f, 161);
-    addObjectToScene(strawberries, FLOWERS);
+    addObjectToScene(strawberries, FLOWERS, {.cullType = INSTANCED_DISTANCE});
 
     // Tree 1
     auto &tree1 = sceneResources.loadInstancedModel("./res/models/tree1/tree1.gltf", "./res/tree1.txt", 0.8f, 1.2f, 67);
-    addObjectToScene(tree1, TREES);
+    addObjectToScene(tree1, TREES, {.cullType = INSTANCED});
 
     // Tree 2
     auto &tree2 =
         sceneResources.loadInstancedModel(tree1, "./res/models/tree2/tree2.gltf", "./res/tree2.txt", 0.8f, 1.125f, 9);
-    addObjectToScene(tree2, TREES);
+    addObjectToScene(tree2, TREES, {.cullType = INSTANCED});
 
     // Tree 3
     auto &tree3 =
         sceneResources.loadInstancedModel(tree1, "./res/models/tree3/tree3.gltf", "./res/tree3.txt", 0.85f, 1.3f, 29);
-    addObjectToScene(tree3, TREES);
+    addObjectToScene(tree3, TREES, {.cullType = INSTANCED});
 
     // Tree 4
     auto &tree4 =
         sceneResources.loadInstancedModel(tree1, "./res/models/tree4/tree4.gltf", "./res/tree4.txt", 0.9f, 1.3f, 69);
-    addObjectToScene(tree4, TREES);
+    addObjectToScene(tree4, TREES, {.cullType = INSTANCED});
 
     // Water
     auto &water = sceneResources.loadModel("./res/models/water/water.gltf");
-    addObjectToScene(water, WATER);
+    // addObjectToScene(water, WATER, Transform{POND_WATER_POS});
+    addObjectToScene(water, WATER, {.transform = {POND_WATER_POS}, .renderType = WATER_PLANAR});
 }
 
 void IslandScene::addAllLightsToScene()

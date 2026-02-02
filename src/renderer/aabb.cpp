@@ -62,12 +62,53 @@ bool AABB::intersectsSinglePlane(const glm::vec4 &plane, const glm::mat4 &modelM
     return d + r >= -plane.w;
 }
 
-bool AABB::intersectsWorldSinglePlane(const glm::vec4 &plane) const
+bool AABB::intersectsWorldSpaceSinglePlane(const glm::vec4 &plane) const
 {
     float d{glm::dot(center, glm::vec3{plane})};
     float r{glm::dot(extent, glm::vec3{glm::abs(plane)})};
 
     return d + r >= -plane.w;
+}
+
+bool AABB::intersectsIgnoreTopPlane(const std::array<glm::vec4, 6> &planes, const glm::mat4 &modelMatrix) const
+{
+    glm::mat3 RS{glm::mat3{modelMatrix}};
+    glm::mat3 absRS{glm::abs(RS[0]), glm::abs(RS[1]), glm::abs(RS[2])};
+
+    glm::vec3 worldCenter{modelMatrix * glm::vec4(center, 1.0f)};
+    glm::vec3 worldExtent{absRS * extent};
+
+    // Left, Right, Top, Bottom, Near, Far
+    for (int i{0}; i < planes.size(); ++i)
+    {
+        if (i == 2)
+            continue;
+
+        float d{glm::dot(worldCenter, glm::vec3{planes[i]})};
+        float r{glm::dot(worldExtent, glm::vec3{glm::abs(planes[i])})};
+
+        if (d + r < -planes[i].w)
+            return false;
+    }
+
+    return true;
+}
+
+bool AABB::intersectsWorldSpaceIgnoreTopPlane(const std::array<glm::vec4, 6> &planes) const
+{
+    for (int i{0}; i < planes.size(); ++i)
+    {
+        if (i == 2)
+            continue;
+
+        float d{glm::dot(center, glm::vec3{planes[i]})};
+        float r{glm::dot(extent, glm::vec3{glm::abs(planes[i])})};
+
+        if (d + r < -planes[i].w)
+            return false;
+    }
+
+    return true;
 }
 
 void AABB::resize(float scale)
