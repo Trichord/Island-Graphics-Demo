@@ -65,22 +65,26 @@ const glm::mat4 &Camera::getViewProjectionMatrix()
     return viewProjectionMatrix;
 }
 
-void Camera::processKeyboard(CameraMovement direction, float deltaTime)
+void Camera::processKeyboard(CameraMovement direction, float deltaTime, bool sprint)
 {
+    constexpr float cameraSprintSpeed{2.0f};
     using enum CameraMovement;
+
+    float velocityBoost{sprint ? cameraSprintSpeed : 1.0f}; 
+
     float velocity{movementSpeed * deltaTime};
     if (direction == FORWARD)
-        position += front * velocity;
+        position += front * velocity * velocityBoost;
     if (direction == BACKWARD)
-        position -= front * velocity;
+        position -= front * velocity * velocityBoost;
     if (direction == LEFT)
-        position -= right * velocity;
+        position -= right * velocity * velocityBoost;
     if (direction == RIGHT)
-        position += right * velocity;
+        position += right * velocity * velocityBoost;
     if (direction == UP)
-        position += worldUp * velocity;
+        position += worldUp * velocity * velocityBoost;
     if (direction == DOWN)
-        position -= worldUp * velocity;
+        position -= worldUp * velocity * velocityBoost;
 
     hasChanged = true;
     dirtyMatrices = true;

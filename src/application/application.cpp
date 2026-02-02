@@ -140,23 +140,25 @@ void Application::processInput(Scene &scene)
         return;
     }
 
+    const bool sprint{glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS};
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        scene.camera.processKeyboard(FORWARD, deltaTime);
+        scene.camera.processKeyboard(FORWARD, deltaTime, sprint);
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        scene.camera.processKeyboard(BACKWARD, deltaTime);
+        scene.camera.processKeyboard(BACKWARD, deltaTime, sprint);
 
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        scene.camera.processKeyboard(LEFT, deltaTime);
+        scene.camera.processKeyboard(LEFT, deltaTime, sprint);
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        scene.camera.processKeyboard(RIGHT, deltaTime);
+        scene.camera.processKeyboard(RIGHT, deltaTime, sprint);
 
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        scene.camera.processKeyboard(UP, deltaTime);
+        scene.camera.processKeyboard(UP, deltaTime, sprint);
 
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-        scene.camera.processKeyboard(DOWN, deltaTime);
+        scene.camera.processKeyboard(DOWN, deltaTime, sprint);
 }
 
 void Application::registerCallbacks()
