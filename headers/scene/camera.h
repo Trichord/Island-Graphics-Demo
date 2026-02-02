@@ -36,7 +36,7 @@ class Camera
     const glm::mat4 &getViewProjectionMatrix();
     const std::array<glm::vec4, 6> &getFrustumPlanes();
 
-    void processKeyboard(CameraMovement direction, float deltaTime);
+    void processKeyboard(CameraMovement direction, float deltaTime, bool sprint = false);
     void processMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
     bool hasUpdated();
     const glm::vec3 &getPosition() const;
