@@ -16,7 +16,7 @@ uniform sampler2D refractionMap;
 uniform sampler2D depthMap;
 uniform vec3 lightColor;
 uniform vec3 lightDir;
-uniform float gamma;
+uniform float time;
 
 in VS_OUT 
 {
@@ -26,20 +26,34 @@ in VS_OUT
 } fs_in;
 
 const float tileFactor = 6.0;
+const float dudvStrength = 0.02;
+const float waveSpeed = 0.005;
 
 void main() 
 {
+	// dudv in [0 - 1], need it in [-1, 1]
+	vec2 dudv = texture(armMap, fs_in.texCoords).rg * 2.0 - 1.0;
+	dudv *= dudvStrength;
+
+	vec4 normalMap = texture(normalMap, fs_in.texCoords + dudv);
+
 	// Projective texture mapping
 	vec2 ndc = fs_in.clipSpace.xy / fs_in.clipSpace.w;
 	vec2 ndcTexCoords = ndc / 2.0 + 0.5;
 
-	vec2 reflectTexCoords = vec2(ndcTexCoords.x, 1.0 - ndcTexCoords.y);
-	vec2 refractTexCoords = vec2(ndcTexCoords.x, ndcTexCoords.y);
+	// Move textures by time
+	float movement = fract(time * waveSpeed);
 
+	// Reflection
+	vec2 reflectTexCoords = vec2(ndcTexCoords.x + movement, 1.0 - ndcTexCoords.y);
+	reflectTexCoords += dudv;
+	reflectTexCoords = clamp(reflectTexCoords, 0.001, 0.999);
 	
-	// dudv in [0 - 1], need it in [-1, 1]
-	vec2 dudv = texture(armMap, fs_in.texCoords).rg * 2.0 - 1.0;
-	vec4 normalMap = texture(normalMap, fs_in.texCoords + dudv);
+	 // Refraction
+	vec2 refractTexCoords = vec2(ndcTexCoords.x, ndcTexCoords.y);
+	refractTexCoords += dudv;
+	refractTexCoords = clamp(refractTexCoords, 0.001, 0.999);
+
 	vec4 reflection = texture(reflectionMap, reflectTexCoords);
 	vec4 refraction = texture(refractionMap, refractTexCoords);
 

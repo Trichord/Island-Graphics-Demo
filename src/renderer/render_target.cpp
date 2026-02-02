@@ -1,24 +1,19 @@
 #include "render_target.h"
 
-#include <algorithm>
-#include <cmath>
+#include "glad/glad.h"
 #include <iostream>
 
 RenderTarget::RenderTarget(int screenWidth, int screenHeight, bool depthMapTexture, float scale)
     : width{static_cast<int>(screenWidth * scale)}, height{static_cast<int>(screenHeight * scale)}
 {
-    // Mipmaps
-    int maxDimension = std::max(width, height);
-    int mipLevels = static_cast<int>(std::floor(std::log2(maxDimension)) + 1);
-
     glCreateFramebuffers(1, &FBO);
 
     // Color texture
     glCreateTextures(GL_TEXTURE_2D, 1, &colorTextureID);
-    glTextureStorage2D(colorTextureID, mipLevels, GL_SRGB8_ALPHA8, width, height);
+    glTextureStorage2D(colorTextureID, 1, GL_SRGB8_ALPHA8, width, height);
     glTextureParameteri(colorTextureID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTextureParameteri(colorTextureID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(colorTextureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTextureParameteri(colorTextureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTextureParameteri(colorTextureID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // Attach
