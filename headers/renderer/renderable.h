@@ -31,10 +31,30 @@ class Renderable
     virtual ~Renderable() = default;
 };
 
-struct RenderableData
+enum class RenderType
+{
+    NORMAL,
+    WATER_PLANAR,
+    WATER_CUBEMAP
+};
+
+struct ObjectProperties
+{
+    Transform transform;
+    CullType cullType{CullType::MODEL};
+    RenderType renderType{RenderType::NORMAL};
+    bool isVisible{true};
+    bool cullByMesh{false};
+
+    bool isInstanced() const
+    {
+        using enum CullType;
+        return cullType == INSTANCED || cullType == INSTANCED_DISTANCE;
+    }
+};
+
+struct RenderableInstance
 {
     std::reference_wrapper<Renderable> object;
-    Transform transform;
-    CullStrategy cullStrategy{CullStrategy::MODEL};
-    bool isVisible{true};
+    ObjectProperties properties;
 };

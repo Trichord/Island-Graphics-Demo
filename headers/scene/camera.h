@@ -42,6 +42,8 @@ class Camera
     const glm::vec3 &getPosition() const;
     void setAspectRatio(float ratio);
     void setPosition(const glm::vec3 &&newPosition);
+    void invertPitch();
+    float getPitch() const;
 
   private:
     float aspectRatio{16.0f / 9.0f};

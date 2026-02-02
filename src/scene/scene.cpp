@@ -18,9 +18,9 @@ Scene::Scene(TextureManager &textureManager) : sceneResources{textureManager}
     pointLights.reserve(sceneMaxObjects::maxLights);
 }
 
-std::map<ShaderType, std::vector<RenderableData>> &Scene::getSceneObjects()
+std::map<ShaderType, std::vector<RenderableInstance>> &Scene::getRenderablesByShader()
 {
-    return sceneObjects;
+    return sceneRenderables;
 }
 
 Transform &Scene::getObjectTransform(const std::string &key)

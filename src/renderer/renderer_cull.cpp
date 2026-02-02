@@ -15,14 +15,18 @@ constexpr float grassCullDistance{0.4f};
 
 void Renderer::cullRenderables(Scene &scene)
 {
-    const std::array<glm::vec4, 6> &frustumPlanes{scene.camera.getFrustumPlanes()};
+    Camera &camera{scene.camera};
 
-    for (auto &[shaderType, objectList] : scene.getSceneObjects())
+    const float pitch{camera.getPitch()};
+    const std::array<glm::vec4, 6> &frustumPlanes{camera.getFrustumPlanes()};
+    const bool ignoreTopPlane{pitch <= 45.0f && pitch >= -45.0f};
+
+    for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
         for (auto &object : objectList)
         {
-            using enum CullStrategy;
+            using enum CullType;
 
-            CullStrategy strat{object.cullStrategy};
+            CullType strat{object.properties.cullType};
 
             switch (strat)
             {
@@ -35,11 +39,11 @@ void Renderer::cullRenderables(Scene &scene)
                 break;
 
             case INSTANCED:
-                cullInstanced(object, scene.camera.getPosition(), frustumPlanes, false);
+                cullInstanced(object, scene.camera.getPosition(), frustumPlanes, false, ignoreTopPlane);
                 break;
 
             case INSTANCED_DISTANCE:
-                cullInstanced(object, scene.camera.getPosition(), frustumPlanes, true);
+                cullInstanced(object, scene.camera.getPosition(), frustumPlanes, true, ignoreTopPlane);
                 break;
 
             case NONE:
@@ -51,19 +55,22 @@ void Renderer::cullRenderables(Scene &scene)
         }
 }
 
-void Renderer::cullModel(RenderableData &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
+void Renderer::cullModel(RenderableInstance &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
 {
-    const glm::mat4 &modelMatrix = renderable.transform.getModelMatrix();
     auto &object = renderable.object.get();
+    auto &properties = renderable.properties;
+
+    const glm::mat4 &modelMatrix = properties.transform.getModelMatrix();
     const AABB &aabb = object.getAABB();
 
-    renderable.isVisible = aabb.intersects(frustumPlanes, modelMatrix);
+    properties.isVisible = aabb.intersects(frustumPlanes, modelMatrix);
 }
 
 // Cull by distance is represented as a fraction of the frustum length. e.g.
-// 0.5f will cull grass at half of the viewable distance
-void Renderer::cullInstanced(RenderableData &renderable, const glm::vec3 &cameraPos,
-                             const std::array<glm::vec4, 6> &frustumPlanes, bool cullByDistance)
+// 0.5f will cull grass at half of the viewable distance. For water reflections, we can ignore the top plane if the
+// camera is within [-45.0, 45.0] degrees, otherwise reflected objects get culled too early.
+void Renderer::cullInstanced(RenderableInstance &renderable, const glm::vec3 &cameraPos,
+                             const std::array<glm::vec4, 6> &frustumPlanes, bool cullByDistance, bool ignoreTopPlane)
 {
     float nearDistance{frustumPlanes[4].w};
     float farDistance{frustumPlanes[5].w};
@@ -85,37 +92,44 @@ void Renderer::cullInstanced(RenderableData &renderable, const glm::vec3 &camera
             continue;
         }
 
-        instance.isVisible = instance.worldAABB.intersectsWorldSpace(frustumPlanes);
+        if (ignoreTopPlane)
+            instance.isVisible = instance.worldAABB.intersectsWorldSpaceIgnoreTopPlane(frustumPlanes);
+        else
+            instance.isVisible = instance.worldAABB.intersectsWorldSpace(frustumPlanes);
+
         if (instance.isVisible)
         {
             anyVisible = true;
-            double xDist{instance.position.x - cameraPos.x};
-            double zDist{instance.position.z - cameraPos.z};
+            float xDist{instance.position.x - cameraPos.x};
+            float zDist{instance.position.z - cameraPos.z};
             instance.sortKey = xDist * xDist + zDist * zDist;
-            renderable.isVisible = true;
+            renderable.properties.isVisible = true;
         }
     }
 
-    renderable.isVisible = anyVisible;
+    renderable.properties.isVisible = anyVisible;
 
     if (anyVisible)
         updateSSBO(object);
 }
 
-void Renderer::cullByMesh(RenderableData &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
+void Renderer::cullByMesh(RenderableInstance &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
 {
-    renderable.isVisible = false;
+    auto &object = renderable.object.get();
+    auto &properties = renderable.properties;
 
-    for (auto &mesh : renderable.object.get().getMeshes())
+    properties.isVisible = false;
+
+    for (auto &mesh : object.getMeshes())
     {
         mesh.isVisible = false;
 
         for (const auto &primitive : mesh.primitives)
         {
-            if (primitive.getAABB().intersects(frustumPlanes, renderable.transform.getModelMatrix()))
+            if (primitive.getAABB().intersects(frustumPlanes, properties.transform.getModelMatrix()))
             {
                 mesh.isVisible = true;
-                renderable.isVisible = true;
+                properties.isVisible = true;
                 break;
             }
         }
