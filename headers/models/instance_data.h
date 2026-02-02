@@ -10,5 +10,5 @@ struct InstanceData
     glm::vec3 position{0.0f};
     AABB worldAABB;
     bool isVisible{false};
-    double sortKey{0.0f};
+    float sortKey{0.0f};
 };

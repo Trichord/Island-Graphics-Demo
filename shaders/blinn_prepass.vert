@@ -19,13 +19,17 @@ out VS_OUT
 } vs_out;
 
 uniform mat4 modelMatrix;
-uniform mat3 normalMatrix; // transpose(inverse(mat3(modelMatrix)));
+uniform mat3 normalMatrix;
+uniform vec4 plane;
 
 void main() 
 {
+	vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
+
 	vs_out.texCoords = aTexCoords;
-	vs_out.fragPos = (modelMatrix * vec4(aPos, 1.0)).xyz;
+	vs_out.fragPos = worldPos.xyz;
 	vs_out.normal = normalize(normalMatrix * aNormal);
-	
-	gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0);
+
+	gl_ClipDistance[0] = dot(worldPos, plane);
+	gl_Position = projectionViewMatrix * worldPos;
 }

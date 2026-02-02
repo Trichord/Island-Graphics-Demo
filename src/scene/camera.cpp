@@ -131,9 +131,21 @@ const glm::vec3 &Camera::getPosition() const
     return position;
 }
 
+float Camera::getPitch() const
+{
+    return pitch;
+}
+
 void Camera::setPosition(const glm::vec3 &&newPosition)
 {
     position = newPosition;
+    dirtyMatrices = true;
+}
+
+void Camera::invertPitch()
+{
+    pitch = -pitch;
+    updateCameraVectors();
     dirtyMatrices = true;
 }
 

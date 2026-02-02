@@ -7,7 +7,7 @@
 class RenderTarget
 {
   public:
-    RenderTarget(int _screenWidth, int _screenHeight, float scale = 0.5f, bool depthMapTexture = true);
+    RenderTarget(int _screenWidth, int _screenHeight, bool depthMapTexture = true, float scale = 0.5f);
     RenderTarget(const RenderTarget &other) = delete;
     RenderTarget &operator=(const RenderTarget &) = delete;
     RenderTarget(RenderTarget &&other) noexcept;
@@ -19,7 +19,7 @@ class RenderTarget
     void generateMipMaps();
     GLuint getColorTextureID();
     GLuint getDepthMapTextureID();
-    void clear(bool color, bool depth);
+    void clear(bool color = true, bool depth = true);
 
   private:
     int width{960};
