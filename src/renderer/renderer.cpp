@@ -245,6 +245,8 @@ void Renderer::renderPrePass(Scene &scene)
         if (!waterPlane.properties.isVisible)
             continue;
 
+        glFrontFace(GL_CW);
+
         // Move camera below water and flip pitch
         Camera &camera{scene.camera};
         float waterHeight{waterPlane.properties.transform.getPosition().y};
@@ -281,6 +283,7 @@ void Renderer::renderPrePass(Scene &scene)
         prePassHelper(instancedPrepassShader, instanced, true);
     }
 
+    glFrontFace(GL_CCW);
     glDisable(GL_CLIP_DISTANCE0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, graphicsSettings.screenWidth, graphicsSettings.screenHeight);
