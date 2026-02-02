@@ -106,7 +106,6 @@ void Renderer::loadShaders()
     {
         shaders.emplace(FLOWERS, Shader{"./shaders/flowers.vert", "./shaders/flowers.frag"});
         shaders.emplace(TREES, Shader{"./shaders/trees.vert", "./shaders/trees.frag"});
-
     }
 
     shaders.emplace(POINT_PBR, Shader{"./shaders/point_PBR.vert", "./shaders/point_PBR.frag"});
@@ -177,9 +176,22 @@ void Renderer::updateShaderUniforms(Scene &scene)
 
 void Renderer::renderPrePass(Scene &scene)
 {
-    glEnable(GL_CLIP_DISTANCE0);
-
     using enum ShaderType;
+    
+    auto &waters = scene.getRenderablesByShader()[WATER];
+    if (waters.empty())
+        return;
+
+    bool anyVisible{false};
+
+    for (auto &water : waters)
+        if (water.properties.isVisible)
+            anyVisible = true;
+
+    if (!anyVisible)
+        return;
+
+    glEnable(GL_CLIP_DISTANCE0);
 
     auto &prepassShader = shaders.at(BLINN_PREPASS);
     auto &instancedPrepassShader = shaders.at(BLINN_PREPASS_INSTANCED);
@@ -190,7 +202,7 @@ void Renderer::renderPrePass(Scene &scene)
     // Split all scene objects into either instanced or regular models
     for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
     {
-        if (objectList.empty() || shaderType == SKYBOX || shaderType == WATER)
+        if (objectList.empty() || shaderType == SKYBOX || shaderType == WATER || shaderType == FLOWERS)
             continue;
 
         for (auto &renderable : objectList)
@@ -227,17 +239,12 @@ void Renderer::renderPrePass(Scene &scene)
         }
     };
 
-    // Get water plane
-    auto &waters = scene.getRenderablesByShader()[WATER];
-    if (waters.empty())
-        return;
-
     // Note - currently only have render targets for one water plane
     for (auto &waterPlane : waters)
     {
         if (!waterPlane.properties.isVisible)
             continue;
-   
+
         // Move camera below water and flip pitch
         Camera &camera{scene.camera};
         float waterHeight{waterPlane.properties.transform.getPosition().y};
@@ -279,7 +286,6 @@ void Renderer::renderPrePass(Scene &scene)
     glViewport(0, 0, graphicsSettings.screenWidth, graphicsSettings.screenHeight);
 
     // Textures
-    reflectionFBO.generateMipMaps();
     glState.bindTexture(REFLECTION, reflectionFBO.getColorTextureID());
     glState.bindTexture(DEPTH, refractionFBO.getDepthMapTextureID());
     glState.bindTexture(REFRACTION, refractionFBO.getColorTextureID());
