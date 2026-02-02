@@ -61,12 +61,12 @@ void IslandScene::addAllModelsToScene()
     addObjectToScene(skybox, SKYBOX);
 
     // Grass
-    auto &grass = sceneResources.loadInstancedModel("./res/models/grass/grass.gltf", "./res/grass.txt", 0.3f, 0.5, 292);
+    auto &grass = sceneResources.loadInstancedModel("./res/models/grass/grass.gltf", "./res/grass.txt", 0.3f, 0.5, 372);
     addObjectToScene(grass, FLOWERS, {.cullType = INSTANCED_DISTANCE});
 
     // White flowers
     auto &whiteFlowers = sceneResources.loadInstancedModel("./res/models/whiteflower/whiteflower.gltf",
-                                                           "./res/whiteflowers.txt", 0.9f, 1.1f, 371);
+                                                           "./res/whiteflowers.txt", 0.9f, 1.1f, 369);
     addObjectToScene(whiteFlowers, FLOWERS, {.cullType = INSTANCED_DISTANCE});
 
     // Blue flowers
@@ -76,12 +76,12 @@ void IslandScene::addAllModelsToScene()
 
     // Purple flowers
     auto &purpleFlowers = sceneResources.loadInstancedModel(whiteFlowers, "./res/models/purpleflower/purpleflower.gltf",
-                                                            "./res/purpleflowers.txt", 0.9f, 1.1f, 256);
+                                                            "./res/purpleflowers.txt", 0.9f, 1.1f, 255);
     addObjectToScene(purpleFlowers, FLOWERS, {.cullType = INSTANCED_DISTANCE});
 
     // Dandelions
     auto &dandelions = sceneResources.loadInstancedModel(whiteFlowers, "./res/models/dandelion/dandelion.gltf",
-                                                         "./res/dandelions.txt", 1.0f, 1.5f, 1606);
+                                                         "./res/dandelions.txt", 1.0f, 1.5f, 1494);
     addObjectToScene(dandelions, FLOWERS, {.cullType = INSTANCED_DISTANCE});
 
     // Strawberry flowers
@@ -110,8 +110,8 @@ void IslandScene::addAllModelsToScene()
 
     // Water
     auto &water = sceneResources.loadModel("./res/models/water/water.gltf");
-    // addObjectToScene(water, WATER, Transform{POND_WATER_POS});
-    addObjectToScene(water, WATER, {.transform = {POND_WATER_POS}, .renderType = WATER_PLANAR});
+    addObjectToScene(water, WATER,
+                     {.transform = {POND_WATER_POS, POND_WATER_SCALE}, .renderType = WATER_PLANAR});
 }
 
 void IslandScene::addAllLightsToScene()
