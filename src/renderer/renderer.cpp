@@ -132,6 +132,9 @@ void Renderer::setupShader(Shader &shader)
     shader.setInt("refractionMap", REFRACTION);
     shader.setInt("depthMap", DEPTH);
 
+    shader.setFloat("nearPlane", defaultCameraNearPlane);
+    shader.setFloat("farPlane", defaultCameraFarPlane);
+
     shader.setVec3("ambientLight", ambientLight);
     shader.setVec3("lightColor", lightColor);
 
@@ -265,9 +268,13 @@ void Renderer::renderPrePass(Scene &scene)
         instancedPrepassShader.use();
         instancedPrepassShader.setVec4("plane", glm::vec4{0, 1.0, 0, -waterHeight});
         prePassHelper(instancedPrepassShader, instanced, true);
+        
+        glDisable(GL_CLIP_DISTANCE0);
         renderSkybox(scene);
+        glEnable(GL_CLIP_DISTANCE0);
 
         // Refraction pass
+        glFrontFace(GL_CCW);
         camera.setPosition(camera.getPosition() + glm::vec3{0.0f, cameraHeight, 0.0f});
         camera.invertPitch();
         updateBuffers(scene);
@@ -283,7 +290,6 @@ void Renderer::renderPrePass(Scene &scene)
         prePassHelper(instancedPrepassShader, instanced, true);
     }
 
-    glFrontFace(GL_CCW);
     glDisable(GL_CLIP_DISTANCE0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, graphicsSettings.screenWidth, graphicsSettings.screenHeight);
