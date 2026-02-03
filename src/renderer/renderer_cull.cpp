@@ -19,7 +19,7 @@ void Renderer::cullRenderables(Scene &scene)
 
     const float pitch{camera.getPitch()};
     const std::array<glm::vec4, 6> &frustumPlanes{camera.getFrustumPlanes()};
-    const bool ignoreTopPlane{pitch <= 45.0f && pitch >= -45.0f};
+    const bool ignoreTopPlane{pitch <= 60.0f && pitch >= -60.0f};
 
     for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
         for (auto &object : objectList)
@@ -39,11 +39,11 @@ void Renderer::cullRenderables(Scene &scene)
                 break;
 
             case INSTANCED:
-                cullInstanced(object, scene.camera.getPosition(), frustumPlanes, false, ignoreTopPlane);
+                cullInstanced(object, scene.camera.getPosition(), frustumPlanes, false, true);
                 break;
 
             case INSTANCED_DISTANCE:
-                cullInstanced(object, scene.camera.getPosition(), frustumPlanes, true, ignoreTopPlane);
+                cullInstanced(object, scene.camera.getPosition(), frustumPlanes, true, true);
                 break;
 
             case NONE:
