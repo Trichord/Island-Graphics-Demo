@@ -58,7 +58,7 @@ void IslandScene::addAllModelsToScene()
         "./res/textures/skybox/bottom.png", "./res/textures/skybox/front.png", "./res/textures/skybox/back.png"};
 
     auto &skybox = sceneResources.loadCubeMappedModel("./res/models/cube/cube.gltf", skyBoxPaths);
-    addObjectToScene(skybox, SKYBOX);
+    addObjectToScene(skybox, SKYBOX, {.cullType = NONE});
 
     // Grass
     auto &grass = sceneResources.loadInstancedModel("./res/models/grass/grass.gltf", "./res/grass.txt", 0.3f, 0.5, 372);

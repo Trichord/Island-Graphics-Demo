@@ -45,6 +45,7 @@ class Camera
     void invertPitch();
     float getPitch() const;
 
+
   private:
     float aspectRatio{16.0f / 9.0f};
     float yaw{defaultCameraYaw};
