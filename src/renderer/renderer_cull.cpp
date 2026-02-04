@@ -15,11 +15,9 @@ constexpr float grassCullDistance{0.4f};
 
 void Renderer::cullRenderables(Scene &scene)
 {
-    Camera &camera{scene.camera};
+    Camera &camera{scene.getCamera()};
 
-    const float pitch{camera.getPitch()};
     const std::array<glm::vec4, 6> &frustumPlanes{camera.getFrustumPlanes()};
-    const bool ignoreTopPlane{pitch <= 60.0f && pitch >= -60.0f};
 
     for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
         for (auto &object : objectList)
@@ -39,11 +37,11 @@ void Renderer::cullRenderables(Scene &scene)
                 break;
 
             case INSTANCED:
-                cullInstanced(object, scene.camera.getPosition(), frustumPlanes, false, true);
+                cullInstanced(object, camera.getPosition(), frustumPlanes, false);
                 break;
 
             case INSTANCED_DISTANCE:
-                cullInstanced(object, scene.camera.getPosition(), frustumPlanes, true, true);
+                cullInstanced(object, camera.getPosition(), frustumPlanes, true);
                 break;
 
             case NONE:
@@ -70,7 +68,7 @@ void Renderer::cullModel(RenderableInstance &renderable, const std::array<glm::v
 // 0.5f will cull grass at half of the viewable distance. For water reflections, we can ignore the top plane if the
 // camera is within [-45.0, 45.0] degrees, otherwise reflected objects get culled too early.
 void Renderer::cullInstanced(RenderableInstance &renderable, const glm::vec3 &cameraPos,
-                             const std::array<glm::vec4, 6> &frustumPlanes, bool cullByDistance, bool ignoreTopPlane)
+                             const std::array<glm::vec4, 6> &frustumPlanes, bool cullByDistance)
 {
     float nearDistance{frustumPlanes[4].w};
     float farDistance{frustumPlanes[5].w};
@@ -92,10 +90,7 @@ void Renderer::cullInstanced(RenderableInstance &renderable, const glm::vec3 &ca
             continue;
         }
 
-        if (ignoreTopPlane)
-            instance.isVisible = instance.worldAABB.intersectsWorldSpaceIgnoreTopPlane(frustumPlanes);
-        else
-            instance.isVisible = instance.worldAABB.intersectsWorldSpace(frustumPlanes);
+        instance.isVisible = instance.worldAABB.intersectsWorldSpace(frustumPlanes);
 
         if (instance.isVisible)
         {

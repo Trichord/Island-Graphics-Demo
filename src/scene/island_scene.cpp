@@ -34,7 +34,6 @@ void IslandScene::addAllModelsToScene()
 {
     using enum ShaderType;
     using enum CullType;
-    using enum RenderType;
 
     // Main island
     auto &island = sceneResources.loadTerrain("./res/models/island/island.gltf");
@@ -111,7 +110,7 @@ void IslandScene::addAllModelsToScene()
     // Water
     auto &water = sceneResources.loadModel("./res/models/water/water.gltf");
     addObjectToScene(water, WATER,
-                     {.transform = {POND_WATER_POS, POND_WATER_SCALE}, .renderType = WATER_PLANAR});
+                     {.transform = {POND_WATER_POS, POND_WATER_SCALE}});
 }
 
 void IslandScene::addAllLightsToScene()

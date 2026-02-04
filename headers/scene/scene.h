@@ -42,8 +42,7 @@ class Scene
     Scene &operator=(Scene &&other) noexcept = default;
     virtual ~Scene() = default;
 
-    Camera camera;
-
+    Camera &getCamera();
     glm::vec3 getAmbientLight() const;
     DirectionalLight &getGlobalLightSource();
     std::vector<PointLight> &getPointLights();
@@ -60,6 +59,7 @@ class Scene
     std::map<ShaderType, std::vector<RenderableInstance>> sceneRenderables;
     std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights;
     std::unordered_map<std::string, std::reference_wrapper<Transform>> namedTransforms;
+    Camera camera;
 
     virtual void addAllModelsToScene() = 0;
     virtual void addAllLightsToScene() = 0;

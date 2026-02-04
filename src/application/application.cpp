@@ -29,7 +29,7 @@ void Application::run()
 
     IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
 
-    renderer.initializeBuffers(islandScene);
+    renderer.initializeResources(islandScene);
     renderer.updateBuffers(islandScene);
 
     addGlfwUserParam(islandScene);
@@ -50,7 +50,7 @@ void Application::run()
         framesRendered++;
 
         // Update GPU shared buffer if camera has moved
-        if (islandScene.camera.hasUpdated())
+        if (islandScene.getCamera().hasUpdated())
             renderer.updateBuffers(islandScene);
 
         // Update scene objects
@@ -143,22 +143,22 @@ void Application::processInput(Scene &scene)
     const bool sprint{glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS};
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        scene.camera.processKeyboard(FORWARD, deltaTime, sprint);
+        scene.getCamera().processKeyboard(FORWARD, deltaTime, sprint);
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        scene.camera.processKeyboard(BACKWARD, deltaTime, sprint);
+        scene.getCamera().processKeyboard(BACKWARD, deltaTime, sprint);
 
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        scene.camera.processKeyboard(LEFT, deltaTime, sprint);
+        scene.getCamera().processKeyboard(LEFT, deltaTime, sprint);
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        scene.camera.processKeyboard(RIGHT, deltaTime, sprint);
+        scene.getCamera().processKeyboard(RIGHT, deltaTime, sprint);
 
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        scene.camera.processKeyboard(UP, deltaTime, sprint);
+        scene.getCamera().processKeyboard(UP, deltaTime, sprint);
 
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-        scene.camera.processKeyboard(DOWN, deltaTime, sprint);
+        scene.getCamera().processKeyboard(DOWN, deltaTime, sprint);
 }
 
 void Application::registerCallbacks()
@@ -201,7 +201,7 @@ void mouse_callback(GLFWwindow *window, double xPos, double yPos)
     auto scenePointer = static_cast<IslandScene *>(glfwGetWindowUserPointer(window));
 
     if (scenePointer)
-        scenePointer->camera.processMouseMovement(xOffset, yOffset, GL_TRUE);
+        scenePointer->getCamera().processMouseMovement(xOffset, yOffset, GL_TRUE);
 }
 
 // Global callbacks for GLFW

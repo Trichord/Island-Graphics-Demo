@@ -25,7 +25,7 @@ class Renderer
 
     void renderScene(Scene &scene);
     void updateBuffers(Scene &scene);
-    void initializeBuffers(Scene &scene);
+    void initializeResources(Scene &scene);
     TextureManager &getTextureManager();
 
   private:
@@ -64,7 +64,6 @@ class Renderer
 
     void loadShaders();
     void setupTextureManager();
-    void renderPrePass(Scene &scene);
     void setupShader(Shader &shader);
     void resetVisibility(Scene &scene);
     void renderSkybox(Scene &scene);
@@ -72,12 +71,12 @@ class Renderer
     void bindTextures(const Material &materials);
     void cullRenderables(Scene &scene);
     void cullInstanced(RenderableInstance &renderable, const glm::vec3 &cameraPos,
-                       const std::array<glm::vec4, 6> &frustumPlanes, bool cullByDistance, bool ignoreTopPlane);
+                       const std::array<glm::vec4, 6> &frustumPlanes, bool cullByDistance);
     void cullModel(RenderableInstance &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
     void cullByMesh(RenderableInstance &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
     void renderAllSceneObjects(Scene &scene);
-    //void renderPrepassObjects();
     void renderObject(Renderable &object);
+    void generateCubeMaps(Scene &scene);
     void updateSSBO(Renderable &object);
     void populateSSBO(Scene &scene);
     void deleteBuffers();
