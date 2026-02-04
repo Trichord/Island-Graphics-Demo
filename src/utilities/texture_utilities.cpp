@@ -109,15 +109,16 @@ GLuint textureUtilities::generateCubemapTextureID(const std::vector<LoadedImage>
     glTextureStorage2D(cubemapTextureID, mipLevels, internalFormat, imageData[0].width, imageData[0].height);
 
     for (GLuint i = 0; i < 6; ++i)
-        if (!imageData[i].data)
+        if (imageData[i].data)
+            glTextureSubImage3D(cubemapTextureID, 0, 0, 0, i, imageData[i].width, imageData[i].height, 1, imageFormat,
+                                GL_UNSIGNED_BYTE, imageData[i].data);
+
+        else
         {
             std::cerr << "Failed to load cubemap texture" << std::endl;
             glDeleteTextures(1, &cubemapTextureID);
             return 0;
         }
-        else
-            glTextureSubImage3D(cubemapTextureID, 0, 0, 0, i, imageData[i].width, imageData[i].height, 1, imageFormat,
-                                GL_UNSIGNED_BYTE, imageData[i].data);
 
     glGenerateTextureMipmap(cubemapTextureID);
 

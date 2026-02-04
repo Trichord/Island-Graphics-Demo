@@ -31,18 +31,10 @@ class Renderable
     virtual ~Renderable() = default;
 };
 
-enum class RenderType
-{
-    NORMAL,
-    WATER_PLANAR,
-    WATER_CUBEMAP
-};
-
 struct ObjectProperties
 {
     Transform transform;
     CullType cullType{CullType::MODEL};
-    RenderType renderType{RenderType::NORMAL};
     bool isVisible{true};
     bool cullByMesh{false};
 

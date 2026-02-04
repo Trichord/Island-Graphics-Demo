@@ -16,13 +16,8 @@ class AABB
     glm::vec3 getExtent() const;
 
     // Intersect methods are credit: Fabian “ryg” Giesen
-    bool intersectsSinglePlane(const glm::vec4 &plane, const glm::mat4 &modelMatrix) const;
     bool intersects(const std::array<glm::vec4, 6> &planes, const glm::mat4 &modelMatrix) const;   
-    bool intersectsIgnoreTopPlane(const std::array<glm::vec4, 6> &planes, const glm::mat4 &modelMatrix) const;
-
-    bool intersectsWorldSpaceIgnoreTopPlane(const std::array<glm::vec4, 6> &planes) const;
     bool intersectsWorldSpace(const std::array<glm::vec4, 6> &planes) const;
-    bool intersectsWorldSpaceSinglePlane(const glm::vec4 &plane) const;
 
   private:
     glm::vec3 center{0.0f};

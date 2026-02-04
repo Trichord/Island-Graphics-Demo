@@ -73,16 +73,16 @@ void Renderer::renderScene(Scene &scene)
 
     glNamedBufferSubData(SSBO, 0, ssboData.size() * sizeof(SSBOData), ssboData.data());
 
-    renderPrePass(scene);
     renderAllSceneObjects(scene);
     renderSkybox(scene);
 }
 
 void Renderer::updateBuffers(Scene &scene)
 {
-    uboData.viewMatrix = scene.camera.getViewMatrix();
-    uboData.viewProjectionMatrix = scene.camera.getViewProjectionMatrix();
-    uboData.cameraPosition = glm::vec4{scene.camera.getPosition(), 0.0f};
+    Camera &camera{scene.getCamera()};
+    uboData.viewMatrix = camera.getViewMatrix();
+    uboData.viewProjectionMatrix = camera.getViewProjectionMatrix();
+    uboData.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
 
     glNamedBufferSubData(UBO, 0, sizeof(PackedUBOData), &uboData);
 }
@@ -132,8 +132,8 @@ void Renderer::setupShader(Shader &shader)
     shader.setInt("refractionMap", REFRACTION);
     shader.setInt("depthMap", DEPTH);
 
-    shader.setFloat("nearPlane", defaultCameraNearPlane);
-    shader.setFloat("farPlane", defaultCameraFarPlane);
+    shader.setFloat("nearPlane", cameraDefaultValues::nearPlane);
+    shader.setFloat("farPlane", cameraDefaultValues::farPlane);
 
     shader.setVec3("ambientLight", ambientLight);
     shader.setVec3("lightColor", lightColor);
@@ -171,133 +171,12 @@ void Renderer::updateShaderUniforms(Scene &scene)
         if (posUpdated)
             shader.setVec3("lightPosition", pointPos);
 
+        Camera &camera{scene.getCamera()};
+
         shader.setFloat("time", (float)glfwGetTime());
         shader.setMat4("viewProjectionNoTranslation",
-                       scene.camera.getProjectionMatrix() * scene.camera.getViewMatrixNoTranslation());
+                       camera.getProjectionMatrix() * camera.getViewMatrixNoTranslation());
     }
-}
-
-void Renderer::renderPrePass(Scene &scene)
-{
-    using enum ShaderType;
-    
-    auto &waters = scene.getRenderablesByShader()[WATER];
-    if (waters.empty())
-        return;
-
-    bool anyVisible{false};
-
-    for (auto &water : waters)
-        if (water.properties.isVisible)
-            anyVisible = true;
-
-    if (!anyVisible)
-        return;
-
-    glEnable(GL_CLIP_DISTANCE0);
-
-    auto &prepassShader = shaders.at(BLINN_PREPASS);
-    auto &instancedPrepassShader = shaders.at(BLINN_PREPASS_INSTANCED);
-
-    std::vector<RenderableInstance *> instanced;
-    std::vector<RenderableInstance *> regular;
-
-    // Split all scene objects into either instanced or regular models
-    for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
-    {
-        if (objectList.empty() || shaderType == SKYBOX || shaderType == WATER || shaderType == FLOWERS)
-            continue;
-
-        for (auto &renderable : objectList)
-        {
-            if (!renderable.properties.isVisible)
-                continue;
-
-            auto &object = renderable.object.get();
-
-            if (renderable.properties.isInstanced())
-                instanced.emplace_back(&renderable);
-            else
-                regular.emplace_back(&renderable);
-        }
-    }
-
-    // Helper method for rendering all the scene objects
-    auto prePassHelper = [&](Shader &shader, std::vector<RenderableInstance *> &renderables, bool isInstanced) {
-        for (auto *renderable : renderables)
-        {
-            auto &obj = renderable->object.get();
-
-            glm::mat4 modelMatrix{renderable->properties.transform.getModelMatrix()};
-            glm::mat3 normalMatrix{renderable->properties.transform.getNormalMatrix()};
-
-            shader.setMat4("modelMatrix", modelMatrix);
-            shader.setMat3("normalMatrix", normalMatrix);
-
-            if (isInstanced)
-                shader.setInt("index", ssboOffsets.at(obj.getModelHandle()));
-
-            auto &object = renderable->object.get();
-            renderObject(object);
-        }
-    };
-
-    // Note - currently only have render targets for one water plane
-    for (auto &waterPlane : waters)
-    {
-        if (!waterPlane.properties.isVisible)
-            continue;
-
-        glFrontFace(GL_CW);
-
-        // Move camera below water and flip pitch
-        Camera &camera{scene.camera};
-        float waterHeight{waterPlane.properties.transform.getPosition().y};
-        float cameraHeight{2 * (camera.getPosition().y - waterHeight)};
-        camera.setPosition(camera.getPosition() + glm::vec3{0.0f, -cameraHeight, 0.0f});
-        camera.invertPitch();
-        updateBuffers(scene);
-
-        // Reflection pass
-        reflectionFBO.bind();
-        reflectionFBO.clear();
-
-        prepassShader.use();
-        prepassShader.setVec4("plane", glm::vec4{0, 1.0, 0, -waterHeight});
-        prePassHelper(prepassShader, regular, false);
-        instancedPrepassShader.use();
-        instancedPrepassShader.setVec4("plane", glm::vec4{0, 1.0, 0, -waterHeight});
-        prePassHelper(instancedPrepassShader, instanced, true);
-        
-        glDisable(GL_CLIP_DISTANCE0);
-        renderSkybox(scene);
-        glEnable(GL_CLIP_DISTANCE0);
-
-        // Refraction pass
-        glFrontFace(GL_CCW);
-        camera.setPosition(camera.getPosition() + glm::vec3{0.0f, cameraHeight, 0.0f});
-        camera.invertPitch();
-        updateBuffers(scene);
-
-        refractionFBO.bind();
-        refractionFBO.clear();
-
-        prepassShader.use();
-        prepassShader.setVec4("plane", glm::vec4{0, -1.0, 0, waterHeight});
-        prePassHelper(prepassShader, regular, false);
-        instancedPrepassShader.use();
-        instancedPrepassShader.setVec4("plane", glm::vec4{0, -1.0, 0, waterHeight});
-        prePassHelper(instancedPrepassShader, instanced, true);
-    }
-
-    glDisable(GL_CLIP_DISTANCE0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, graphicsSettings.screenWidth, graphicsSettings.screenHeight);
-
-    // Textures
-    glState.bindTexture(REFLECTION, reflectionFBO.getColorTextureID());
-    glState.bindTexture(DEPTH, refractionFBO.getDepthMapTextureID());
-    glState.bindTexture(REFRACTION, refractionFBO.getColorTextureID());
 }
 
 void Renderer::bindTextures(const Material &materials)
@@ -466,7 +345,7 @@ void Renderer::updateSSBO(Renderable &object)
     }
 }
 
-void Renderer::initializeBuffers(Scene &scene)
+void Renderer::initializeResources(Scene &scene)
 {
     // UBO
     glCreateBuffers(1, &UBO);
@@ -491,6 +370,31 @@ void Renderer::initializeBuffers(Scene &scene)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, SSBO);
 
     populateSSBO(scene);
+    generateCubeMaps(scene);
+}
+
+void Renderer::generateCubeMaps(Scene &scene)
+{
+    using enum ShaderType;
+    auto &waters{scene.getRenderablesByShader().at(WATER)};
+    Camera &camera{scene.getCamera()};
+
+    if (waters.empty())
+        return;
+
+    // Cube mapped textures should be filled in this order: right, left, top, bottom, front, back
+    RenderTarget rightFace(graphicsSettings.screenWidth, graphicsSettings.screenHeight, false);
+    RenderTarget leftFace(graphicsSettings.screenWidth, graphicsSettings.screenHeight, false);
+    RenderTarget topFace(graphicsSettings.screenWidth, graphicsSettings.screenHeight, false);
+    RenderTarget bottomFace(graphicsSettings.screenWidth, graphicsSettings.screenHeight, false);
+    RenderTarget frontFace(graphicsSettings.screenWidth, graphicsSettings.screenHeight, false);
+    RenderTarget backFace(graphicsSettings.screenWidth, graphicsSettings.screenHeight, false);
+
+    for (auto &waterPlane : waters)
+    {
+  
+    }
+
 }
 
 void Renderer::populateSSBO(Scene &scene)
