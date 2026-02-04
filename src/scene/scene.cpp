@@ -52,3 +52,7 @@ void Scene::setAmbientLight(const glm::vec3 &ambient)
 {
     ambientLight = ambient;
 }
+
+Camera &Scene::getCamera(){
+    return camera;
+}

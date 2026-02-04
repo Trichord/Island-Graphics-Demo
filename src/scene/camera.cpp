@@ -1,42 +1,27 @@
 #include "camera.h"
 
+#include <algorithm>
 #include <array>
-#include <cmath>
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_access.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
-Camera::Camera() : projectionMatrix{createProjectionMatrix()}
+Camera::Camera(glm::vec3 position_, float yaw, float pitch)
+    : position{position_},
+      rotationMatrix{glm::rotate(glm::mat4{1.0f}, glm::radians(yaw), glm::vec3{0.0f, 1.0f, 0.0f}) *
+                     glm::rotate(glm::mat4{1.0f}, glm::radians(pitch), glm::vec3{1.0f, 0.0f, 0.0f})},
+      projectionMatrix{glm::perspective(glm::radians(cameraDefaultValues::zoom), cameraDefaultValues::aspectRatio,
+                                        cameraDefaultValues::nearPlane, cameraDefaultValues::farPlane)},
+      viewProjectionMatrix{glm::mat4{1.0f}}, pitch_{pitch}
 {
-    updateCameraVectors();
-    dirtyMatrices = true;
-}
-
-Camera::Camera(glm::vec3 pos, glm::vec3 u, float y, float p)
-    : front{0.0f, 0.0f, -1.0f}, projectionMatrix{createProjectionMatrix()}
-{
-    position = pos;
-    worldUp = u;
-    yaw = y;
-    pitch = p;
-    updateCameraVectors();
-    dirtyMatrices = true;
-}
-
-Camera::Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float y, float p)
-    : front{0.0f, 0.0f, -1.0f}, projectionMatrix{createProjectionMatrix()}, position{posX, posY, posZ},
-      worldUp{upX, upY, upZ}, yaw{y}, pitch{p}
-{
-    updateCameraVectors();
-    dirtyMatrices = true;
 }
 
 const glm::mat4 &Camera::getViewMatrix()
 {
     if (dirtyMatrices)
     {
-        updateCameraMatrices();
+        updateMatrices();
         dirtyMatrices = false;
     }
 
@@ -47,7 +32,7 @@ const glm::mat4 &Camera::getViewMatrixNoTranslation()
 {
     if (dirtyMatrices)
     {
-        updateCameraMatrices();
+        updateMatrices();
         dirtyMatrices = false;
     }
 
@@ -58,7 +43,7 @@ const glm::mat4 &Camera::getViewProjectionMatrix()
 {
     if (dirtyMatrices)
     {
-        updateCameraMatrices();
+        updateMatrices();
         dirtyMatrices = false;
     }
 
@@ -67,12 +52,21 @@ const glm::mat4 &Camera::getViewProjectionMatrix()
 
 void Camera::processKeyboard(CameraMovement direction, float deltaTime, bool sprint)
 {
-    constexpr float cameraSprintSpeed{2.0f};
     using enum CameraMovement;
+    constexpr float cameraSprintSpeed{2.5f};
 
-    float velocityBoost{sprint ? cameraSprintSpeed : 1.0f}; 
+    if (dirtyMatrices)
+    {
+        updateMatrices();
+        dirtyMatrices = false;
+    }
 
-    float velocity{movementSpeed * deltaTime};
+    glm::vec3 right{rotationMatrix[0]};
+    glm::vec3 front{-rotationMatrix[2]};
+
+    float velocityBoost{sprint ? cameraSprintSpeed : 1.0f};
+
+    float velocity{cameraDefaultValues::speed * deltaTime};
     if (direction == FORWARD)
         position += front * velocity * velocityBoost;
     if (direction == BACKWARD)
@@ -82,9 +76,9 @@ void Camera::processKeyboard(CameraMovement direction, float deltaTime, bool spr
     if (direction == RIGHT)
         position += right * velocity * velocityBoost;
     if (direction == UP)
-        position += worldUp * velocity * velocityBoost;
+        position += cameraDefaultValues::worldUp * velocity * velocityBoost;
     if (direction == DOWN)
-        position -= worldUp * velocity * velocityBoost;
+        position -= cameraDefaultValues::worldUp * velocity * velocityBoost;
 
     hasChanged = true;
     dirtyMatrices = true;
@@ -92,29 +86,19 @@ void Camera::processKeyboard(CameraMovement direction, float deltaTime, bool spr
 
 // processes input received from a mouse input system. Expects the offset value
 // in both the x and y direction.
-void Camera::processMouseMovement(float xoffset, float yoffset, bool constrainPitch)
+void Camera::processMouseMovement(float xOffset, float yOffset, bool constrainPitch)
 {
-    xoffset *= mouseSensitivity;
-    yoffset *= mouseSensitivity;
+    xOffset *= cameraDefaultValues::sensitivity;
+    yOffset *= cameraDefaultValues::sensitivity;
+    pitch_ += yOffset;
 
-    yaw += xoffset;
-    pitch += yoffset;
-
-    // make sure that when pitch is out of bounds, screen doesn't get flipped
     if (constrainPitch)
-    {
-        if (pitch > 89.0f)
-            pitch = 89.0f;
-        if (pitch < -89.0f)
-            pitch = -89.0f;
-    }
+        pitch_ = std::clamp(pitch_, -85.0f, 85.0f);
 
-    // keep yaw from drifting
-    if (yaw < 0.0f || yaw > 360.0f)
-        yaw = std::fmod(yaw, 360.0f);
+    // pitch
+    rotationMatrix = glm::rotate(glm::mat4{1.0f}, glm::radians(-xOffset), glm::vec3{0.0f, 1.0f, 0.0f}) *
+                     glm::rotate(rotationMatrix, glm::radians(yOffset), glm::vec3{1.0f, 0.0f, 0.0f});
 
-    // update Front, Right and Up Vectors using the updated Euler angles
-    updateCameraVectors();
     hasChanged = true;
     dirtyMatrices = true;
 }
@@ -135,54 +119,22 @@ const glm::vec3 &Camera::getPosition() const
     return position;
 }
 
-float Camera::getPitch() const
-{
-    return pitch;
-}
-
 void Camera::setPosition(const glm::vec3 &&newPosition)
 {
     position = newPosition;
     dirtyMatrices = true;
 }
 
-void Camera::invertPitch()
+void Camera::updateMatrices()
 {
-    pitch = -pitch;
-    updateCameraVectors();
-    dirtyMatrices = true;
-}
-
-// calculates the front vector from the Camera's (updated) Euler angles
-void Camera::updateCameraVectors()
-{
-    float cosPitchRad{glm::cos(glm::radians(pitch))};
-    float sinPitchRad{glm::sin(glm::radians(pitch))};
-    float yawRad{glm::radians(yaw)};
-
-    glm::vec3 newFront{glm::cos(yawRad) * cosPitchRad, sinPitchRad, glm::sin(yawRad) * cosPitchRad};
-
-    front = glm::normalize(newFront);
-    right = glm::normalize(glm::cross(front, worldUp));
-    up = glm::normalize(glm::cross(right, front));
-}
-
-void Camera::updateCameraMatrices()
-{
-    viewMatrix = glm::lookAt(position, position + front, up);
-    viewMatrixNoTranslation = glm::mat4{glm::mat3{viewMatrix}};
+    viewMatrix = glm::transpose(rotationMatrix) * glm::translate(glm::mat4{1.0f}, -position);
+    viewMatrixNoTranslation = glm::transpose(rotationMatrix);
     viewProjectionMatrix = projectionMatrix * viewMatrix;
 }
 
 const glm::mat4 &Camera::getProjectionMatrix()
 {
     return projectionMatrix;
-}
-
-glm::mat4 Camera::createProjectionMatrix()
-{
-    return glm::perspective(glm::radians(defaultCameraZoom), aspectRatio, defaultCameraNearPlane,
-                            defaultCameraFarPlane);
 }
 
 void normalizePlane(glm::vec4 &vec)
@@ -195,7 +147,7 @@ const std::array<glm::vec4, 6> &Camera::getFrustumPlanes()
 {
     if (dirtyMatrices)
     {
-        updateCameraMatrices();
+        updateMatrices();
         dirtyMatrices = false;
     }
 
@@ -230,7 +182,6 @@ const std::array<glm::vec4, 6> &Camera::getFrustumPlanes()
 
 void Camera::setAspectRatio(float ratio)
 {
-    aspectRatio = ratio;
-    projectionMatrix = createProjectionMatrix();
-    dirtyMatrices = true;
+    projectionMatrix = glm::perspective(glm::radians(cameraDefaultValues::zoom), ratio, cameraDefaultValues::nearPlane,
+                                        cameraDefaultValues::farPlane);
 }

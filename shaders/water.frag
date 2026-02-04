@@ -104,14 +104,6 @@ void main()
 
 	float fresnel = fresnelSchlick(dot(N, V), 0.02);
 
-	// Right before your final fragColor line, add:
-if (reflectTexCoords.x < 0.0 || reflectTexCoords.x > 1.0 || 
-    reflectTexCoords.y < 0.0 || reflectTexCoords.y > 1.0) {
-    fragColor = vec4(1.0, 0.0, 1.0, 1.0); // Magenta
-    return;
-}
-
-
-	fragColor = vec4(mix(reflection, refraction, fresnel), waterDepth) + vec4(specHighlight, 0.0);
+	fragColor = vec4(mix(reflection, refraction, fresnel), waterDepth) + vec4(specHighlight, 0.0) + vec4(0.0, 0.075, 0.2, 0.0);
 	fragColor.a = waterTransparency;
 }
