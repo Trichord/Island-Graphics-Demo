@@ -6,7 +6,7 @@
 
 constexpr GLuint maxTextureUnits{16u};
 
-GLState::GLState(bool globalMSAA) : globalMSAAEnabled{globalMSAA}
+GLState::GLState()
 {
     textureUnits.resize(maxTextureUnits);
 }
@@ -33,17 +33,13 @@ void GLState::setAlphaMode(fastgltf::AlphaMode mode)
     if (enable)
     {
         glDisable(GL_CULL_FACE);
+        glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
         alphaEnabled = true;
-
-        if (globalMSAAEnabled)
-            glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
     }
     else
     {
         glEnable(GL_CULL_FACE);
+        glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
         alphaEnabled = false;
-
-        if (globalMSAAEnabled)
-            glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
     }
 }
