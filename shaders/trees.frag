@@ -71,16 +71,13 @@ void main() {
 	float roughness = armMap.g;
 	float metallic = armMap.b;
 
-	//Scale alpha by mip level 0
-    vec2 texSize = vec2(textureSize(albedoMap, 0));
+	//Scale alpha by mip level
+    vec2 texSize = vec2(textureSize(albedoMap, 0)); // Level 0 size
     albedo.a *= 1 + max(0, CalcMipLevel(fs_in.texCoords * texSize)) * mipScale;
 
 	// Rescale alpha by partial derivative. Credit: Ben Golus
     albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
 
-	if (albedo.a < 0.1)
-		discard;
-  
 	//vectors
 	vec3 N = normalize(normal);
 	vec3 V = normalize(cameraPosition.xyz - fs_in.fragPos);

@@ -6,15 +6,27 @@
 
 namespace cameraDefaultValues
 {
-inline constexpr float yaw{90.0f};
-inline constexpr float pitch{0.0f};
-inline constexpr float speed{5.0f};
-inline constexpr float sensitivity{0.1f};
-inline constexpr float zoom{45.0f};
-inline constexpr float nearPlane{0.1f};
-inline constexpr float farPlane{475.0f};
-inline constexpr float aspectRatio{16.0f / 9.0f};
-inline constexpr glm::vec3 worldUp{0.0f, 1.0f, 0.0f};
+constexpr float yaw{90.0f};
+constexpr float pitch{0.0f};
+constexpr float maxPitch{85.0f};
+constexpr float minPitch{-maxPitch};
+
+constexpr float speed{5.0f};
+constexpr float sensitivity{0.1f};
+constexpr float zoom{45.0f};
+
+constexpr float nearPlane{0.1f};
+constexpr float farPlane{475.0f};
+constexpr float aspectRatio{16.0f / 9.0f};
+
+constexpr glm::vec3 worldUp{0.0f, 1.0f, 0.0f};
+constexpr glm::vec3 worldDown{-worldUp};
+
+constexpr glm::vec3 worldRight{1.0f, 0.0f, 0.0f};
+constexpr glm::vec3 worldLeft{-worldRight};
+
+constexpr glm::vec3 worldFront{0.0f, 0.0f, -1.0f};
+constexpr glm::vec3 worldBack{-worldFront};
 } // namespace cameraDefaultValues
 
 enum class CameraMovement
@@ -25,6 +37,16 @@ enum class CameraMovement
     RIGHT,
     UP,
     DOWN
+};
+
+enum class WorldOrientation
+{
+    UP,
+    DOWN,
+    RIGHT,
+    LEFT,
+    FRONT,
+    BACK
 };
 
 class Camera
@@ -44,16 +66,19 @@ class Camera
     bool hasUpdated();
     const glm::vec3 &getPosition() const;
     void setPosition(const glm::vec3 &&newPosition);
+    void setPitch(float newPitch);
+    void setYaw(float newYaw);
+    void setWorldOrientation(WorldOrientation orientation);
     void setAspectRatio(float ratio);
 
   private:
+    float yaw{0.0f};
+    float pitch{0.0f};
     glm::vec3 position{0.0f};
-    glm::mat4 rotationMatrix{1.0f};
     glm::mat4 viewMatrix{1.0f};
     glm::mat4 viewMatrixNoTranslation{1.0f};
     glm::mat4 projectionMatrix{1.0f};
     glm::mat4 viewProjectionMatrix{1.0f};
-    float pitch_{0.0f};
 
     bool hasChanged{false};
     bool dirtyMatrices{true};
@@ -63,4 +88,5 @@ class Camera
                                            glm::vec4{}, glm::vec4{}, glm::vec4{}};
 
     void updateMatrices();
+    glm::vec3 createFront();
 };

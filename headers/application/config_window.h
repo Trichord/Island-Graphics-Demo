@@ -45,8 +45,8 @@ class ConfigWindow
     inline static const std::array<std::pair<int, int>, 6> resolutionTable{
         {{3840, 2160}, {2560, 1440}, {1920, 1080}, {1600, 900}, {1366, 768}, {1280, 720}}};
 
-    inline static const std::array<const char *, 4> msaaLevel{"Off", "2x", "4x", "8x"};
-    inline static const std::array<int, 4> msaaTable{0, 2, 4, 8};
+    inline static const std::array<const char *, 3> msaaLevel{"2x", "4x", "8x"};
+    inline static const std::array<int, 3> msaaTable{2, 4, 8};
     inline static const std::array<const char *, 5> anisoLevel{"Off", "2x", "4x", "8x", "16x"};
     inline static const std::array<int, 5> anisoTable{0, 2, 4, 8, 16};
 
