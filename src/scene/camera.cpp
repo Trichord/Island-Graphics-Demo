@@ -84,18 +84,14 @@ void Camera::processKeyboard(CameraMovement direction, float deltaTime, bool spr
     dirtyMatrices = true;
 }
 
-// processes input received from a mouse input system. Expects the offset value
-// in both the x and y direction.
-void Camera::processMouseMovement(float xOffset, float yOffset, bool constrainPitch)
+void Camera::processMouseMovement(float xOffset, float yOffset)
 {
     xOffset *= cameraDefaultValues::sensitivity;
     yOffset *= cameraDefaultValues::sensitivity;
     pitch_ += yOffset;
 
-    if (constrainPitch)
-        pitch_ = std::clamp(pitch_, -85.0f, 85.0f);
+    pitch_ = std::clamp(pitch_, -85.0f, 85.0f);
 
-    // pitch
     rotationMatrix = glm::rotate(glm::mat4{1.0f}, glm::radians(-xOffset), glm::vec3{0.0f, 1.0f, 0.0f}) *
                      glm::rotate(rotationMatrix, glm::radians(yOffset), glm::vec3{1.0f, 0.0f, 0.0f});
 

@@ -49,14 +49,14 @@ class Scene
     Light &getNamedLight(const std::string &key);
     void setAmbientLight(const glm::vec3 &ambient);
     Transform &getObjectTransform(const std::string &key);
-    std::map<ShaderType, std::vector<RenderableInstance>> &getRenderablesByShader();
+    std::map<ShaderType, std::vector<Renderable>> &getRenderablesByShader();
 
   protected:
     glm::vec3 ambientLight{0.2f};
     SceneResources sceneResources;
     DirectionalLight globalLightSource;
     std::vector<PointLight> pointLights;
-    std::map<ShaderType, std::vector<RenderableInstance>> sceneRenderables;
+    std::map<ShaderType, std::vector<Renderable>> sceneRenderables;
     std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights;
     std::unordered_map<std::string, std::reference_wrapper<Transform>> namedTransforms;
     Camera camera;
@@ -75,7 +75,7 @@ class Scene
     void addObjectToScene(T &modelRef, ShaderType shaderType, ObjectProperties properties = {},
                           const std::optional<std::string> name = std::nullopt)
     {
-        sceneRenderables[shaderType].emplace_back(RenderableInstance{std::ref(modelRef), std::move(properties)});
+        sceneRenderables[shaderType].emplace_back(Renderable{std::ref(modelRef), std::move(properties)});
 
         if (name.has_value())
             namedTransforms.emplace(name.value(), std::ref(sceneRenderables[shaderType].back().properties.transform));

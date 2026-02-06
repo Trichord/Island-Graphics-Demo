@@ -6,7 +6,6 @@
 #include "cube_mapped_model.h"
 #include "instanced_model.h"
 #include "model.h"
-#include "terrain.h"
 #include "texture_manager.h"
 
 class SceneResources
@@ -28,15 +27,11 @@ class SceneResources
                                          const std::vector<std::filesystem::path> &imagePaths);
     CubeMappedModel &loadCubeMappedModel(const CubeMappedModel &borrowTarget, const std::filesystem::path &modelPath);
 
-    Terrain &loadTerrain(const std::filesystem::path &modelPath);
-    Terrain &loadTerrain(const Model &borrowTarget, const std::filesystem::path &modelPath);
-
-    TextureManager &getTextureManager();
+    void loadingComplete();
 
   private:
     TextureManager &textureManager;
     std::vector<Model> models;
     std::vector<CubeMappedModel> cubeMappedModels;
     std::vector<InstancedModel> instancedModels;
-    std::vector<Terrain> terrains;
 };
