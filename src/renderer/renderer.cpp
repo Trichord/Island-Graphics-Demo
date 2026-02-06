@@ -36,8 +36,7 @@ constexpr float alphaCutoff{0.5f};
 
 Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings)
     : reflectionFBO{settings.screenWidth, settings.screenHeight, false},
-      refractionFBO{settings.screenWidth, settings.screenHeight}, glState{settings.msaa != 0},
-      graphicsSettings{settings}
+      refractionFBO{settings.screenWidth, settings.screenHeight}, graphicsSettings{settings}
 {
     setupTextureManager();
     loadShaders();
@@ -97,17 +96,8 @@ void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    if (graphicsSettings.msaa)
-    {
-        shaders.emplace(FLOWERS, Shader{"./shaders/flowers.vert", "./shaders/flowers_msaa.frag"});
-        shaders.emplace(TREES, Shader{"./shaders/trees.vert", "./shaders/trees_msaa.frag"});
-    }
-    else
-    {
-        shaders.emplace(FLOWERS, Shader{"./shaders/flowers.vert", "./shaders/flowers.frag"});
-        shaders.emplace(TREES, Shader{"./shaders/trees.vert", "./shaders/trees.frag"});
-    }
-
+    shaders.emplace(FLOWERS, Shader{"./shaders/flowers.vert", "./shaders/flowers.frag"});
+    shaders.emplace(TREES, Shader{"./shaders/trees.vert", "./shaders/trees.frag"});
     shaders.emplace(POINT_PBR, Shader{"./shaders/point_PBR.vert", "./shaders/point_PBR.frag"});
     shaders.emplace(DIRECTIONAL_PBR, Shader{"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"});
     shaders.emplace(REFLECTIVE, Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"});

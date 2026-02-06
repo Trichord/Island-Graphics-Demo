@@ -7,13 +7,10 @@
 #include "glm/gtc/matrix_access.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
-Camera::Camera(glm::vec3 position_, float yaw, float pitch)
-    : position{position_},
-      rotationMatrix{glm::rotate(glm::mat4{1.0f}, glm::radians(yaw), glm::vec3{0.0f, 1.0f, 0.0f}) *
-                     glm::rotate(glm::mat4{1.0f}, glm::radians(pitch), glm::vec3{1.0f, 0.0f, 0.0f})},
+Camera::Camera(glm::vec3 position, float yaw, float pitch)
+    : yaw{yaw}, pitch{pitch}, position{position},
       projectionMatrix{glm::perspective(glm::radians(cameraDefaultValues::zoom), cameraDefaultValues::aspectRatio,
-                                        cameraDefaultValues::nearPlane, cameraDefaultValues::farPlane)},
-      viewProjectionMatrix{glm::mat4{1.0f}}, pitch_{pitch}
+                                        cameraDefaultValues::nearPlane, cameraDefaultValues::farPlane)}
 {
 }
 
@@ -50,35 +47,71 @@ const glm::mat4 &Camera::getViewProjectionMatrix()
     return viewProjectionMatrix;
 }
 
+glm::vec3 Camera::createFront()
+{
+    float pitchRads{glm::radians(pitch)};
+    float yawRads{glm::radians(yaw)};
+    float cosPitch{glm::cos(pitchRads)};
+
+    glm::vec3 front;
+    front.x = cosPitch * glm::sin(yawRads);
+    front.y = glm::sin(pitchRads);
+    front.z = cosPitch * glm::cos(yawRads);
+
+    return front;
+}
+
 void Camera::processKeyboard(CameraMovement direction, float deltaTime, bool sprint)
 {
     using enum CameraMovement;
     constexpr float cameraSprintSpeed{2.5f};
 
-    if (dirtyMatrices)
+    float boost{sprint ? cameraSprintSpeed : 1.0f};
+    float velocity{cameraDefaultValues::speed * deltaTime * boost};
+
+    // Using local scope to minimize work
+    switch (direction)
     {
-        updateMatrices();
-        dirtyMatrices = false;
+    case FORWARD: {
+        glm::vec3 front{createFront()};
+        position += front * velocity;
     }
+    break;
 
-    glm::vec3 right{rotationMatrix[0]};
-    glm::vec3 front{-rotationMatrix[2]};
+    case BACKWARD: {
+        glm::vec3 front{createFront()};
+        position -= front * velocity;
+    }
+    break;
 
-    float velocityBoost{sprint ? cameraSprintSpeed : 1.0f};
+    case LEFT: {
+        glm::vec3 front{createFront()};
+        glm::vec3 right{glm::cross(front, cameraDefaultValues::worldUp)};
+        right = glm::normalize(right);
 
-    float velocity{cameraDefaultValues::speed * deltaTime};
-    if (direction == FORWARD)
-        position += front * velocity * velocityBoost;
-    if (direction == BACKWARD)
-        position -= front * velocity * velocityBoost;
-    if (direction == LEFT)
-        position -= right * velocity * velocityBoost;
-    if (direction == RIGHT)
-        position += right * velocity * velocityBoost;
-    if (direction == UP)
-        position += cameraDefaultValues::worldUp * velocity * velocityBoost;
-    if (direction == DOWN)
-        position -= cameraDefaultValues::worldUp * velocity * velocityBoost;
+        position -= right * velocity;
+    }
+    break;
+
+    case RIGHT: {
+        glm::vec3 front{createFront()};
+        glm::vec3 right{glm::cross(front, cameraDefaultValues::worldUp)};
+        right = glm::normalize(right);
+
+        position += right * velocity;
+    }
+    break;
+
+    case UP:
+        position += cameraDefaultValues::worldUp * velocity;
+
+        break;
+
+    case DOWN:
+        position -= cameraDefaultValues::worldUp * velocity;
+
+        break;
+    }
 
     hasChanged = true;
     dirtyMatrices = true;
@@ -86,14 +119,15 @@ void Camera::processKeyboard(CameraMovement direction, float deltaTime, bool spr
 
 void Camera::processMouseMovement(float xOffset, float yOffset)
 {
-    xOffset *= cameraDefaultValues::sensitivity;
-    yOffset *= cameraDefaultValues::sensitivity;
-    pitch_ += yOffset;
+    using namespace cameraDefaultValues;
 
-    pitch_ = std::clamp(pitch_, -85.0f, 85.0f);
+    xOffset *= sensitivity;
+    yOffset *= sensitivity;
 
-    rotationMatrix = glm::rotate(glm::mat4{1.0f}, glm::radians(-xOffset), glm::vec3{0.0f, 1.0f, 0.0f}) *
-                     glm::rotate(rotationMatrix, glm::radians(yOffset), glm::vec3{1.0f, 0.0f, 0.0f});
+    pitch += yOffset;
+    pitch = std::clamp(pitch, minPitch, maxPitch);
+
+    yaw = std::fmod(yaw - xOffset, 360.0f);
 
     hasChanged = true;
     dirtyMatrices = true;
@@ -121,10 +155,83 @@ void Camera::setPosition(const glm::vec3 &&newPosition)
     dirtyMatrices = true;
 }
 
+void Camera::setPitch(float newPitch)
+{
+    using namespace cameraDefaultValues;
+
+    pitch = std::clamp(newPitch, minPitch, maxPitch);
+}
+
+void Camera::setYaw(float newYaw)
+{
+    yaw = std::fmod(newYaw, 360.0f);
+}
+
+void Camera::setWorldOrientation(WorldOrientation orientation)
+{
+    using namespace cameraDefaultValues;
+    using enum WorldOrientation;
+
+    glm::vec3 front;
+    glm::vec3 right;
+    glm::vec3 up;
+
+    switch (orientation)
+    {
+    case UP:
+        front = worldUp;
+        right = worldRight;
+        up = worldBack;
+        break;
+
+    case DOWN:
+        front = worldDown;
+        right = worldRight;
+        up = worldFront;
+        break;
+
+    case RIGHT:
+        front = worldRight;
+        right = worldBack;
+        up = worldUp;
+        break;
+
+    case LEFT:
+        front = worldLeft;
+        right = worldFront;
+        up = worldUp;
+        break;
+
+    case FRONT:
+        front = worldFront;
+        right = worldRight;
+        up = worldUp;
+        break;
+
+    case BACK:
+        front = worldBack;
+        right = worldLeft;
+        up = worldUp;
+        break;
+    }
+
+    viewMatrix = glm::lookAt(position, position + front, up);
+    viewMatrixNoTranslation = glm::mat4{glm::mat3{viewMatrix}};
+    viewProjectionMatrix = projectionMatrix * viewMatrix;
+
+    dirtyMatrices = false;
+    hasChanged = false;
+}
+
 void Camera::updateMatrices()
 {
-    viewMatrix = glm::transpose(rotationMatrix) * glm::translate(glm::mat4{1.0f}, -position);
-    viewMatrixNoTranslation = glm::transpose(rotationMatrix);
+    glm::vec3 front{createFront()};
+    glm::vec3 right{glm::cross(front, cameraDefaultValues::worldUp)};
+    right = glm::normalize(right);
+    glm::vec3 up{glm::cross(right, front)};
+
+    viewMatrix = glm::lookAt(position, position + front, up);
+    viewMatrixNoTranslation = glm::mat4{glm::mat3{viewMatrix}};
     viewProjectionMatrix = projectionMatrix * viewMatrix;
 }
 
@@ -141,11 +248,11 @@ void normalizePlane(glm::vec4 &vec)
 
 const std::array<glm::vec4, 6> &Camera::getFrustumPlanes()
 {
-    if (dirtyMatrices)
-    {
-        updateMatrices();
-        dirtyMatrices = false;
-    }
+    if (!dirtyMatrices)
+        return frustumPlanes;
+
+    updateMatrices();
+    dirtyMatrices = false;
 
     const glm::vec4 row0{glm::row(viewProjectionMatrix, 0)};
     const glm::vec4 row1{glm::row(viewProjectionMatrix, 1)};
