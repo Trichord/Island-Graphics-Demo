@@ -11,7 +11,7 @@
 #include "renderable.h"
 #include "texture_manager.h"
 
-class Model : public Renderable
+class Model : public IRenderable
 {
   public:
     Model(TextureManager &textureManager, const std::filesystem::path &path);

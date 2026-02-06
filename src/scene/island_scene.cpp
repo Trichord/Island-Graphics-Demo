@@ -26,7 +26,7 @@ void IslandScene::initializeScene(const ConfigWindow::GraphicsSettings &graphics
     std::cout << " Done." << std::endl;
     addAllLightsToScene();
     std::cout << "Loading Textures...";
-    sceneResources.getTextureManager().processTextureQueue();
+    sceneResources.loadingComplete();
     std::cout << " Done." << std::endl;
 }
 
@@ -36,12 +36,16 @@ void IslandScene::addAllModelsToScene()
     using enum CullType;
 
     // Main island
-    auto &island = sceneResources.loadTerrain("./res/models/island/island.gltf");
+    auto &island = sceneResources.loadModel("./res/models/island/island.gltf");
     addObjectToScene(island, DIRECTIONAL_PBR, {.cullType = BY_MESH});
 
     // Dead tree
     auto &deadTree = sceneResources.loadModel("./res/models/dead_tree/dead_tree.gltf");
     addObjectToScene(deadTree, DIRECTIONAL_PBR, {.transform = {DEAD_TREE_POS, glm::vec3{1.0f}, 45.0f}});
+
+    auto &statue = sceneResources.loadModel("./res/models/statue/statue.gltf");
+    addObjectToScene(statue, DIRECTIONAL_PBR,
+                     {.transform = {STATUE_POSITION, glm::vec3{1.0f}, -65.0f, glm::vec3{0.0f, 1.0f, 0.0f}}});
 
     std::vector<std::filesystem::path> spaceBoxPaths{
         "./res//Textures/nebula/right.png",  "./res//Textures/nebula/left.png",  "./res//Textures/nebula/top.png",
@@ -109,8 +113,7 @@ void IslandScene::addAllModelsToScene()
 
     // Water
     auto &water = sceneResources.loadModel("./res/models/water/water.gltf");
-    addObjectToScene(water, WATER,
-                     {.transform = {POND_WATER_POS, POND_WATER_SCALE}});
+    addObjectToScene(water, WATER, {.transform = {POND_WATER_POS, POND_WATER_SCALE}});
 }
 
 void IslandScene::addAllLightsToScene()

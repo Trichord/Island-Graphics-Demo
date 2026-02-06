@@ -20,28 +20,28 @@ void Renderer::cullRenderables(Scene &scene)
     const std::array<glm::vec4, 6> &frustumPlanes{camera.getFrustumPlanes()};
 
     for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
-        for (auto &object : objectList)
+        for (auto &renderable : objectList)
         {
             using enum CullType;
 
-            CullType strat{object.properties.cullType};
+            CullType cull{renderable.properties.cullType};
 
-            switch (strat)
+            switch (cull)
             {
             case MODEL:
-                cullModel(object, frustumPlanes);
+                cullModel(renderable, frustumPlanes);
                 break;
 
             case BY_MESH:
-                cullByMesh(object, frustumPlanes);
+                cullByMesh(renderable, frustumPlanes);
                 break;
 
             case INSTANCED:
-                cullInstanced(object, camera.getPosition(), frustumPlanes, false);
+                cullInstanced(renderable, camera.getPosition(), frustumPlanes, false);
                 break;
 
             case INSTANCED_DISTANCE:
-                cullInstanced(object, camera.getPosition(), frustumPlanes, true);
+                cullInstanced(renderable, camera.getPosition(), frustumPlanes, true);
                 break;
 
             case NONE:
@@ -53,7 +53,7 @@ void Renderer::cullRenderables(Scene &scene)
         }
 }
 
-void Renderer::cullModel(RenderableInstance &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
+void Renderer::cullModel(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
 {
     auto &object = renderable.object.get();
     auto &properties = renderable.properties;
@@ -67,7 +67,7 @@ void Renderer::cullModel(RenderableInstance &renderable, const std::array<glm::v
 // Cull by distance is represented as a fraction of the frustum length. e.g.
 // 0.5f will cull grass at half of the viewable distance. For water reflections, we can ignore the top plane if the
 // camera is within [-45.0, 45.0] degrees, otherwise reflected objects get culled too early.
-void Renderer::cullInstanced(RenderableInstance &renderable, const glm::vec3 &cameraPos,
+void Renderer::cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
                              const std::array<glm::vec4, 6> &frustumPlanes, bool cullByDistance)
 {
     float nearDistance{frustumPlanes[4].w};
@@ -108,7 +108,7 @@ void Renderer::cullInstanced(RenderableInstance &renderable, const glm::vec3 &ca
         updateSSBO(object);
 }
 
-void Renderer::cullByMesh(RenderableInstance &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
+void Renderer::cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
 {
     auto &object = renderable.object.get();
     auto &properties = renderable.properties;

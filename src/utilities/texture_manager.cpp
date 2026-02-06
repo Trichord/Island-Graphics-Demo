@@ -32,7 +32,7 @@ void TextureManager::queueCubeMap(const ModelHandle handle, std::vector<std::fil
 }
 
 // TODO: add default purple texture for missing texturesets
-const std::vector<Material> &TextureManager::acquireUniqueTextureSet(ModelHandle modelHandle) const
+const std::vector<Material> &TextureManager::getUniqueMaterials(ModelHandle modelHandle) const
 {
     auto textureSetIter = textureCache.find(modelHandle);
 
@@ -219,7 +219,7 @@ void TextureManager::genCubemapTexID(ThreadPool &threadPool, ModelHandle handle,
     handleIter->second.textureHandles.insert(texID);
 }
 
-const std::vector<Material> &TextureManager::borrowTextureSet(ModelHandle other)
+const std::vector<Material> &TextureManager::borrowMaterials(ModelHandle other)
 {
     auto textureSetIter = textureCache.find(other);
 

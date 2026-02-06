@@ -31,8 +31,8 @@ class TextureManager
                              const std::filesystem::path &parentPath);
     void queueCubeMap(const ModelHandle handle, std::vector<std::filesystem::path> imagePaths,
                       const std::filesystem::path &parentPath = "./", bool sRGB = true);
-    const std::vector<Material> &acquireUniqueTextureSet(ModelHandle modelHandle) const;
-    const std::vector<Material> &borrowTextureSet(ModelHandle other);
+    const std::vector<Material> &getUniqueMaterials(ModelHandle modelHandle) const;
+    const std::vector<Material> &borrowMaterials(ModelHandle other);
     void releaseModel(ModelHandle modelHandle);
     void processTextureQueue();
     ModelHandle assignModelHandle();
@@ -40,7 +40,8 @@ class TextureManager
   private:
     float anisoLevel{0.0f};
     bool globalAnisoEnabled{false};
-    // Each entry in the vector corresponds to a material index
+
+    // Each entry in the vector corresponds to a gltf material index
     struct TextureEntry
     {
         std::vector<Material> materials;

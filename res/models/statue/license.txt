@@ -1,0 +1,11 @@
+Model Information:
+* title:	The Thinker by Auguste Rodin
+* source:	https://sketchfab.com/3d-models/the-thinker-by-auguste-rodin-08a1e693c9674a3292dec2298b09e0ae
+* author:	Rigsters (https://sketchfab.com/rigsters)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "The Thinker by Auguste Rodin" (https://sketchfab.com/3d-models/the-thinker-by-auguste-rodin-08a1e693c9674a3292dec2298b09e0ae) by Rigsters (https://sketchfab.com/rigsters) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

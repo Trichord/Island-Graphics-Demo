@@ -228,7 +228,7 @@ void Renderer::renderSkybox(Scene &scene)
     {
         auto &skybox = renderable.object.get();
 
-        const std::vector<Material> &materials{textureManager.acquireUniqueTextureSet(skybox.getModelHandle())};
+        const std::vector<Material> &materials{textureManager.getUniqueMaterials(skybox.getModelHandle())};
 
         if (!materials.empty())
             bindTextures(materials[0]);
@@ -278,11 +278,11 @@ void Renderer::renderAllSceneObjects(Scene &scene)
     }
 }
 
-void Renderer::renderObject(Renderable &object)
+void Renderer::renderObject(IRenderable &object)
 {
     std::size_t lastMaterialIndex{0};
     bool materialBound{false};
-    const auto materials{textureManager.acquireUniqueTextureSet(object.getMaterialID())};
+    const auto materials{textureManager.getUniqueMaterials(object.getMaterialID())};
 
     for (const Primitive::Mesh &mesh : object.getMeshes())
     {
@@ -321,7 +321,7 @@ void Renderer::renderObject(Renderable &object)
     }
 }
 
-void Renderer::updateSSBO(Renderable &object)
+void Renderer::updateSSBO(IRenderable &object)
 {
     auto instances = object.getInstanceData();
     // Move visible instances to front of vector
@@ -382,19 +382,20 @@ void Renderer::generateCubeMaps(Scene &scene)
     if (waters.empty())
         return;
 
+    int width{graphicsSettings.screenWidth};
+    int height{graphicsSettings.screenHeight};
+
     // Cube mapped textures should be filled in this order: right, left, top, bottom, front, back
-    RenderTarget rightFace(graphicsSettings.screenWidth, graphicsSettings.screenHeight, false);
-    RenderTarget leftFace(graphicsSettings.screenWidth, graphicsSettings.screenHeight, false);
-    RenderTarget topFace(graphicsSettings.screenWidth, graphicsSettings.screenHeight, false);
-    RenderTarget bottomFace(graphicsSettings.screenWidth, graphicsSettings.screenHeight, false);
-    RenderTarget frontFace(graphicsSettings.screenWidth, graphicsSettings.screenHeight, false);
-    RenderTarget backFace(graphicsSettings.screenWidth, graphicsSettings.screenHeight, false);
+    RenderTarget rightFace(width, height, false);
+    RenderTarget leftFace(width, height, false);
+    RenderTarget topFace(width, height, false);
+    RenderTarget bottomFace(width, height, false);
+    RenderTarget frontFace(width, height, false);
+    RenderTarget backFace(width, height, false);
 
     for (auto &waterPlane : waters)
     {
-  
     }
-
 }
 
 void Renderer::populateSSBO(Scene &scene)
