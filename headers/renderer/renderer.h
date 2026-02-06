@@ -70,14 +70,14 @@ class Renderer
     void updateShaderUniforms(Scene &scene);
     void bindTextures(const Material &materials);
     void cullRenderables(Scene &scene);
-    void cullInstanced(RenderableInstance &renderable, const glm::vec3 &cameraPos,
+    void cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
                        const std::array<glm::vec4, 6> &frustumPlanes, bool cullByDistance);
-    void cullModel(RenderableInstance &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
-    void cullByMesh(RenderableInstance &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
+    void cullModel(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
+    void cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
     void renderAllSceneObjects(Scene &scene);
-    void renderObject(Renderable &object);
+    void renderObject(IRenderable &object);
     void generateCubeMaps(Scene &scene);
-    void updateSSBO(Renderable &object);
+    void updateSSBO(IRenderable &object);
     void populateSSBO(Scene &scene);
     void deleteBuffers();
 };

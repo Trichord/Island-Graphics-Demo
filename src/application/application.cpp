@@ -201,7 +201,7 @@ void mouse_callback(GLFWwindow *window, double xPos, double yPos)
     auto scenePointer = static_cast<IslandScene *>(glfwGetWindowUserPointer(window));
 
     if (scenePointer)
-        scenePointer->getCamera().processMouseMovement(xOffset, yOffset, GL_TRUE);
+        scenePointer->getCamera().processMouseMovement(xOffset, yOffset);
 }
 
 // Global callbacks for GLFW

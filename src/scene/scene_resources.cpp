@@ -7,25 +7,17 @@
 #include "cube_mapped_model.h"
 #include "instanced_model.h"
 #include "model.h"
-#include "terrain.h"
 #include "texture_manager.h"
 
 inline constexpr int maxModels{50};
 inline constexpr int maxInstancedModels{25};
 inline constexpr int maxCubeMappedModels{10};
-inline constexpr int maxTerrains{5};
 
 SceneResources::SceneResources(TextureManager &_textureManager) : textureManager{_textureManager}
 {
     models.reserve(maxModels);
     instancedModels.reserve(maxInstancedModels);
     cubeMappedModels.reserve(maxCubeMappedModels);
-    terrains.reserve(maxTerrains);
-}
-
-TextureManager &SceneResources::getTextureManager()
-{
-    return textureManager;
 }
 
 Model &SceneResources::loadModel(const std::filesystem::path &filepath)
@@ -84,18 +76,7 @@ CubeMappedModel &SceneResources::loadCubeMappedModel(const CubeMappedModel &borr
     return cubeMappedModels.emplace_back(textureManager, borrowTarget, modelPath);
 }
 
-Terrain &SceneResources::loadTerrain(const std::filesystem::path &modelPath)
+void SceneResources::loadingComplete()
 {
-    if (terrains.size() >= maxTerrains)
-        throw std::runtime_error("Max number of terrains reached!");
-
-    return terrains.emplace_back(textureManager, modelPath);
-}
-
-Terrain &SceneResources::loadTerrain(const Model &borrowTarget, const std::filesystem::path &modelPath)
-{
-    if (terrains.size() >= maxTerrains)
-        throw std::runtime_error("Max number of terrains reached!");
-
-    return terrains.emplace_back(textureManager, borrowTarget, modelPath);
+    textureManager.processTextureQueue();
 }
