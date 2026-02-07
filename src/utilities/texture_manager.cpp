@@ -1,10 +1,7 @@
 #include "texture_manager.h"
 
-#include <cstdint>
 #include <filesystem>
 #include <iostream>
-#include <limits>
-#include <random>
 #include <unordered_map>
 #include <utility>
 #include <variant>
@@ -14,6 +11,7 @@
 #include "fastgltf_loader.h"
 #include "glad/glad.h"
 #include "image_loader.h"
+#include "texture_units.h"
 #include "texture_utilities.h"
 #include "thread_pool.h"
 
@@ -26,9 +24,9 @@ void TextureManager::queueModelMaterials(const ModelHandle handle, fastgltf::Ass
 }
 
 void TextureManager::queueCubeMap(const ModelHandle handle, std::vector<std::filesystem::path> imagePaths,
-                                  const std::filesystem::path &parentPath, bool sRGB)
+                                  const std::filesystem::path &parentPath, bool mipMaps, bool sRGB)
 {
-    textureCreationQueue.emplace(std::move(imagePaths), handle, parentPath, sRGB);
+    textureCreationQueue.emplace(std::move(imagePaths), handle, parentPath, mipMaps, sRGB, false);
 }
 
 // TODO: add default purple texture for missing texturesets
@@ -98,7 +96,8 @@ void TextureManager::processTextureQueue()
 
         else if (std::holds_alternative<std::vector<std::filesystem::path>>(queueElement.source))
             genCubemapTexID(threadPool, queueElement.modelHandle,
-                            std::get<std::vector<std::filesystem::path>>(queueElement.source), queueElement.sRGB);
+                            std::get<std::vector<std::filesystem::path>>(queueElement.source), queueElement.mipMaps,
+                            queueElement.sRGB);
 
         textureCreationQueue.pop();
     }
@@ -200,7 +199,7 @@ void TextureManager::genTexIDFromImage(ThreadPool &threadPool, ModelHandle handl
 }
 
 void TextureManager::genCubemapTexID(ThreadPool &threadPool, ModelHandle handle,
-                                     const std::vector<std::filesystem::path> &imagePaths, bool sRGB)
+                                     const std::vector<std::filesystem::path> &imagePaths, bool mipMaps, bool sRGB)
 {
     auto handleIter = textureCache.find(handle);
 
@@ -213,7 +212,7 @@ void TextureManager::genCubemapTexID(ThreadPool &threadPool, ModelHandle handle,
     ImageLoader imageLoader{threadPool, imagePaths};
     std::vector<LoadedImage> loadedImages{imageLoader.getImageData()};
 
-    GLuint texID{textureUtilities::generateCubemapTextureID(loadedImages, sRGB)};
+    GLuint texID{textureUtilities::generateCubemapTextureID(loadedImages, mipMaps, sRGB)};
 
     handleIter->second.materials[0].cubemap = texID;
     handleIter->second.textureHandles.insert(texID);
@@ -239,4 +238,54 @@ void TextureManager::setAnisoLevel(float level)
 {
     globalAnisoEnabled = true;
     anisoLevel = level;
+}
+
+// Assumes caller is giving up control of their texture ID
+void TextureManager::assignMaterial(ModelHandle handle, TextureUnit textureUnit, GLuint textureID, int materialIndex)
+{
+    using enum TextureUnit;
+
+    auto iter = textureCache.find(handle);
+
+    if (iter == textureCache.end())
+        return;
+
+    auto &modelMaterials{iter->second.materials};
+
+    if (materialIndex >= modelMaterials.size())
+        return;
+
+    switch (textureUnit)
+    {
+    case ALBEDO:
+        if (modelMaterials[materialIndex].albedo)
+            glDeleteTextures(1, &modelMaterials[materialIndex].albedo);
+
+        modelMaterials[materialIndex].albedo = textureID;
+        break;
+
+    case ARM:
+        if (modelMaterials[materialIndex].occlusionRoughnessMetallic)
+            glDeleteTextures(1, &modelMaterials[materialIndex].occlusionRoughnessMetallic);
+
+        modelMaterials[materialIndex].occlusionRoughnessMetallic = textureID;
+        break;
+
+    case NORMAL:
+        if (modelMaterials[materialIndex].normal)
+            glDeleteTextures(1, &modelMaterials[materialIndex].normal);
+
+        modelMaterials[materialIndex].normal = textureID;
+        break;
+
+    case CUBEMAP:
+        if (modelMaterials[materialIndex].cubemap)
+            glDeleteTextures(1, &modelMaterials[materialIndex].cubemap);
+
+        modelMaterials[materialIndex].cubemap = textureID;
+        break;
+
+    default:
+        std::cerr << "ERROR: Material not supported in Texture Manager" << std::endl;
+    }
 }

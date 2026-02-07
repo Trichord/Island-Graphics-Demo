@@ -3,12 +3,37 @@
 #include "glad/glad.h"
 #include <iostream>
 
-RenderTarget::RenderTarget(int screenWidth, int screenHeight, bool depthMapTexture, float scale)
-    : width{static_cast<int>(screenWidth * scale)}, height{static_cast<int>(screenHeight * scale)}
+RenderTarget::RenderTarget(int width, int height, int msaaLevel, bool depthMapTexture) : width{width}, height{height}
 {
     glCreateFramebuffers(1, &FBO);
 
-    // Color texture
+    if (msaaLevel)
+    {
+        // Color
+        glCreateTextures(GL_TEXTURE_2D_MULTISAMPLE, 1, &colorTextureID);
+        glTextureStorage2DMultisample(colorTextureID, msaaLevel, GL_SRGB8_ALPHA8, width, height, GL_TRUE);
+        glNamedFramebufferTexture(FBO, GL_COLOR_ATTACHMENT0, colorTextureID, 0);
+
+        if (depthMapTexture)
+        { // Depth texture
+            glCreateTextures(GL_TEXTURE_2D_MULTISAMPLE, 1, &depthMapTextureID);
+            glTextureStorage2DMultisample(depthMapTextureID, msaaLevel, GL_DEPTH_COMPONENT24, width, height, GL_TRUE);
+            glNamedFramebufferTexture(FBO, GL_DEPTH_ATTACHMENT, depthMapTextureID, 0);
+        }
+        else
+        { // Depth RBO
+            glCreateRenderbuffers(1, &depthRBO);
+            glNamedRenderbufferStorageMultisample(depthRBO, msaaLevel, GL_DEPTH_COMPONENT24, width, height);
+            glNamedFramebufferRenderbuffer(FBO, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRBO);
+        }
+
+        if (glCheckNamedFramebufferStatus(FBO, GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            std::cerr << "ERROR: failed to create framebuffer" << std::endl;
+
+        return;
+    }
+
+    // Non MSAA FBO
     glCreateTextures(GL_TEXTURE_2D, 1, &colorTextureID);
     glTextureStorage2D(colorTextureID, 1, GL_SRGB8_ALPHA8, width, height);
     glTextureParameteri(colorTextureID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -16,7 +41,6 @@ RenderTarget::RenderTarget(int screenWidth, int screenHeight, bool depthMapTextu
     glTextureParameteri(colorTextureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTextureParameteri(colorTextureID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    // Attach
     glNamedFramebufferTexture(FBO, GL_COLOR_ATTACHMENT0, colorTextureID, 0);
 
     if (depthMapTexture)
@@ -28,7 +52,6 @@ RenderTarget::RenderTarget(int screenWidth, int screenHeight, bool depthMapTextu
         glTextureParameteri(depthMapTextureID, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTextureParameteri(depthMapTextureID, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-        // Attach
         glNamedFramebufferTexture(FBO, GL_DEPTH_ATTACHMENT, depthMapTextureID, 0);
     }
     else
@@ -90,7 +113,7 @@ void RenderTarget::unbind()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-GLuint RenderTarget::getDepthMapTextureID()
+GLuint RenderTarget::getDepthMapTextureID() const
 {
     return depthMapTextureID;
 }
@@ -100,9 +123,19 @@ void RenderTarget::generateMipMaps()
     glGenerateTextureMipmap(colorTextureID);
 }
 
-GLuint RenderTarget::getColorTextureID()
+GLuint RenderTarget::getColorTextureID() const
 {
     return colorTextureID;
+}
+
+int RenderTarget::getWidth() const
+{
+    return width;
+}
+
+int RenderTarget::getHeight() const
+{
+    return height;
 }
 
 void RenderTarget::clear(bool color, bool depth)
@@ -123,4 +156,10 @@ void RenderTarget::deleteResources()
         glDeleteRenderbuffers(1, &depthRBO);
 
     glDeleteFramebuffers(1, &FBO);
+}
+
+void RenderTarget::resolveTo(const RenderTarget &target)
+{
+    glBlitNamedFramebuffer(FBO, target.FBO, 0, 0, width, height, 0, 0, target.width, target.height, GL_COLOR_BUFFER_BIT,
+                           GL_LINEAR);
 }

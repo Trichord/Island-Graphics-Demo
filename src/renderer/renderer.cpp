@@ -13,13 +13,14 @@
 #include "gl_context.h"
 #include "glm/glm.hpp"
 #include "instance_data.h"
-#include "material_slots.h"
 #include "point_light.h"
 #include "renderable.h"
 #include "scene.h"
 #include "shader.h"
 #include "shader_types.h"
 #include "texture_manager.h"
+#include "texture_units.h"
+#include "texture_utilities.h"
 #include "transform.h"
 
 // Normalized wind direction, east southeast with a slight downward angle
@@ -27,16 +28,14 @@ constexpr float windStrength{0.07f};
 constexpr glm::vec3 windDir{0.892079f, -0.101373f, 0.440362f};
 
 // Bright midday sun
-constexpr glm::vec3 ambientLight{0.15f};
+constexpr glm::vec3 ambientLight{0.2f};
 constexpr glm::vec3 lightColor{1.0f, 0.95f, 0.9f};
 
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.25f};
 constexpr float alphaCutoff{0.5f};
 
-Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings)
-    : reflectionFBO{settings.screenWidth, settings.screenHeight, false},
-      refractionFBO{settings.screenWidth, settings.screenHeight}, graphicsSettings{settings}
+Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings) : graphicsSettings{settings}
 {
     setupTextureManager();
     loadShaders();
@@ -46,8 +45,7 @@ Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings)
 }
 
 Renderer::Renderer(Renderer &&other) noexcept
-    : UBO{other.UBO}, uboData{other.uboData}, reflectionFBO{std::move(other.reflectionFBO)},
-      refractionFBO{std::move(other.refractionFBO)}, SSBO{other.SSBO}, ssboData{std::move(other.ssboData)},
+    : UBO{other.UBO}, uboData{other.uboData}, SSBO{other.SSBO}, ssboData{std::move(other.ssboData)},
       ssboOffsets{std::move(other.ssboOffsets)}, glState{std::move(other.glState)},
       textureManager{std::move(other.textureManager)}, shaders{std::move(other.shaders)},
       graphicsSettings{other.graphicsSettings}
@@ -76,11 +74,13 @@ void Renderer::renderScene(Scene &scene)
     renderSkybox(scene);
 }
 
-void Renderer::updateBuffers(Scene &scene)
+void Renderer::updateUBO(Scene &scene)
 {
     Camera &camera{scene.getCamera()};
     uboData.viewMatrix = camera.getViewMatrix();
+    uboData.projectionMatrix = camera.getProjectionMatrix();
     uboData.viewProjectionMatrix = camera.getViewProjectionMatrix();
+    uboData.inverseViewProjectMatrix = glm::inverse(uboData.viewProjectionMatrix);
     uboData.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
 
     glNamedBufferSubData(UBO, 0, sizeof(PackedUBOData), &uboData);
@@ -103,14 +103,11 @@ void Renderer::loadShaders()
     shaders.emplace(REFLECTIVE, Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"});
     shaders.emplace(SKYBOX, Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"});
     shaders.emplace(WATER, Shader{"./shaders/water.vert", "./shaders/water.frag"});
-    shaders.emplace(BLINN_PREPASS, Shader{"./shaders/blinn_prepass.vert", "./shaders/blinn_prepass.frag"});
-    shaders.emplace(BLINN_PREPASS_INSTANCED,
-                    Shader{"./shaders/blinn_prepass_instanced.vert", "./shaders/blinn_prepass.frag"});
 }
 
 void Renderer::setupShader(Shader &shader)
 {
-    using enum MaterialSlot;
+    using enum TextureUnit;
 
     shader.setUniformBlock("matrices", 0);
 
@@ -161,17 +158,13 @@ void Renderer::updateShaderUniforms(Scene &scene)
         if (posUpdated)
             shader.setVec3("lightPosition", pointPos);
 
-        Camera &camera{scene.getCamera()};
-
         shader.setFloat("time", (float)glfwGetTime());
-        shader.setMat4("viewProjectionNoTranslation",
-                       camera.getProjectionMatrix() * camera.getViewMatrixNoTranslation());
     }
 }
 
 void Renderer::bindTextures(const Material &materials)
 {
-    using enum MaterialSlot;
+    using enum TextureUnit;
 
     if (materials.albedo)
         glState.bindTexture(ALBEDO, materials.albedo);
@@ -365,27 +358,88 @@ void Renderer::initializeResources(Scene &scene)
 
 void Renderer::generateCubeMaps(Scene &scene)
 {
+    // Helper for rendering the scene
+    auto renderFace = [&](RenderTarget &target, WorldOrientation orientation, Camera &camera) {
+        camera.setWorldOrientation(orientation);
+        updateUBO(scene);
+        target.bind();
+        target.clear();
+        renderAllSceneObjects(scene);
+        renderSkybox(scene);
+    };
+
+    // For iterating cubemap faces
+    constexpr std::array<WorldOrientation, 6> faces{WorldOrientation::RIGHT, WorldOrientation::LEFT,
+                                                    WorldOrientation::UP,    WorldOrientation::DOWN,
+                                                    WorldOrientation::BACK,  WorldOrientation::FRONT};
+
     using enum ShaderType;
+
     auto &waters{scene.getRenderablesByShader().at(WATER)};
-    Camera &camera{scene.getCamera()};
 
     if (waters.empty())
         return;
 
-    int width{graphicsSettings.screenWidth};
-    int height{graphicsSettings.screenHeight};
+    Camera &camera{scene.getCamera()};
 
-    // Cube mapped textures should be filled in this order: right, left, top, bottom, front, back
-    RenderTarget rightFace(width, height, false);
-    RenderTarget leftFace(width, height, false);
-    RenderTarget topFace(width, height, false);
-    RenderTarget bottomFace(width, height, false);
-    RenderTarget frontFace(width, height, false);
-    RenderTarget backFace(width, height, false);
+    // Half size render targets for water reflections
+    int size{std::max(graphicsSettings.screenWidth, graphicsSettings.screenHeight) / 2};
+    int mipLevels = static_cast<int>(std::floor(std::log2(size)) + 1);
+
+    // Camera settings before we make it bounce around the scene
+    const glm::vec3 originalPos{camera.getPosition()};
+    float originalPitch{camera.getPitch()};
+    float originalYaw{camera.getYaw()};
+    camera.setFOV(90.0f, 1.0f);
+
+    RenderTarget cubeFace(size, size, graphicsSettings.msaa, false);
+    RenderTarget resolveTarget(size, size, 0, false);
 
     for (auto &waterPlane : waters)
     {
+        using enum WorldOrientation;
+
+        camera.setPosition(waterPlane.properties.transform.getPosition());
+
+        // Create the cubemap texture
+        GLuint cubeMapTextureID{0};
+        glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &cubeMapTextureID);
+        glTextureStorage2D(cubeMapTextureID, mipLevels, GL_SRGB8_ALPHA8, size, size);
+
+        // Copy each MSAA direction into a cubemap face
+        for (GLuint i{0}; i < 6; ++i)
+        {
+            cubeFace.clear();
+            resolveTarget.clear();
+            renderFace(cubeFace, faces[i], camera);
+            cubeFace.resolveTo(resolveTarget);
+            textureUtilities::generateCubemapFace(cubeMapTextureID, resolveTarget.getColorTextureID(), size, i);
+        }
+
+        // Texture params
+        glGenerateTextureMipmap(cubeMapTextureID);
+        glTextureParameteri(cubeMapTextureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTextureParameteri(cubeMapTextureID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTextureParameteri(cubeMapTextureID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(cubeMapTextureID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(cubeMapTextureID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+        // Assign the texture
+        auto &obj = waterPlane.object.get();
+        textureManager.assignMaterial(obj.getModelHandle(), CUBEMAP, cubeMapTextureID);
+        waterPlane.properties.isVisible = true;
     }
+
+    // Reset
+    camera.resetFOV();
+    camera.setPosition(originalPos);
+    camera.setPitch(originalPitch);
+    camera.setYaw(originalYaw);
+    updateUBO(scene);
+
+    // Restore default framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, graphicsSettings.screenWidth, graphicsSettings.screenHeight);
 }
 
 void Renderer::populateSSBO(Scene &scene)
@@ -411,6 +465,8 @@ void Renderer::populateSSBO(Scene &scene)
 
             offset += static_cast<GLuint>(object.getInstanceData().size());
         }
+
+    glNamedBufferSubData(SSBO, 0, ssboData.size() * sizeof(SSBOData), ssboData.data());
 }
 
 void Renderer::deleteBuffers()

@@ -7,7 +7,7 @@
 class RenderTarget
 {
   public:
-    RenderTarget(int _screenWidth, int _screenHeight, bool depthMapTexture = true, float scale = 0.5f);
+    RenderTarget(int width, int height, int msaaLevel, bool depthMapTexture = true);
     RenderTarget(const RenderTarget &other) = delete;
     RenderTarget &operator=(const RenderTarget &) = delete;
     RenderTarget(RenderTarget &&other) noexcept;
@@ -16,9 +16,12 @@ class RenderTarget
 
     void bind();
     void unbind();
+    int getWidth() const;
+    int getHeight() const;
     void generateMipMaps();
-    GLuint getColorTextureID();
-    GLuint getDepthMapTextureID();
+    GLuint getColorTextureID() const;
+    GLuint getDepthMapTextureID() const;
+    void resolveTo(const RenderTarget &target);
     void clear(bool color = true, bool depth = true);
 
   private:

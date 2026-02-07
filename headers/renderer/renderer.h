@@ -24,7 +24,7 @@ class Renderer
     ~Renderer();
 
     void renderScene(Scene &scene);
-    void updateBuffers(Scene &scene);
+    void updateUBO(Scene &scene);
     void initializeResources(Scene &scene);
     TextureManager &getTextureManager();
 
@@ -33,7 +33,9 @@ class Renderer
     struct PackedUBOData
     {
         glm::mat4 viewMatrix{1.0f};
+        glm::mat4 projectionMatrix{1.0f};
         glm::mat4 viewProjectionMatrix{1.0f};
+        glm::mat4 inverseViewProjectMatrix{1.0f};
         glm::vec4 cameraPosition{0.0f};
     };
 
@@ -46,10 +48,6 @@ class Renderer
     // UBO
     GLuint UBO{0};
     PackedUBOData uboData;
-
-    // Framebuffers
-    RenderTarget reflectionFBO;
-    RenderTarget refractionFBO;
 
     // SSBO
     GLuint SSBO{0};

@@ -24,7 +24,7 @@ class SceneResources
                                        float maxSize = 1.0f, unsigned int numPositions = 0);
 
     CubeMappedModel &loadCubeMappedModel(const std::filesystem::path &modelPath,
-                                         const std::vector<std::filesystem::path> &imagePaths);
+                                         const std::vector<std::filesystem::path> &imagePaths, bool skybox = false);
     CubeMappedModel &loadCubeMappedModel(const CubeMappedModel &borrowTarget, const std::filesystem::path &modelPath);
 
     void loadingComplete();
