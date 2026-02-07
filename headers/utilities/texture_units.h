@@ -1,7 +1,7 @@
 #pragma once
 
 // OpenGL texture units are bound to this enum
-enum MaterialSlot
+enum TextureUnit
 {
     ALBEDO,
     ARM,

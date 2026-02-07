@@ -2,8 +2,10 @@
 
 layout (std140) uniform matrices {
 	layout (offset = 0) mat4 viewMatrix;
-	layout (offset = 64) mat4 projectionViewMatrix;
-	layout (offset = 128) vec4 cameraPosition;
+	layout (offset = 64) mat4 projectionMatrix;
+	layout (offset = 128) mat4 projectionViewMatrix;
+	layout (offset = 192) mat4 inverseViewProjectMatrix;
+	layout (offset = 256) vec4 cameraPosition;
 };
 
 in vec3 normal;

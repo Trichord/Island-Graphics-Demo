@@ -15,8 +15,10 @@ const float INVERSE_PI = 0.31830988618;
 
 layout (std140) uniform matrices {
 	layout (offset = 0) mat4 viewMatrix;
-	layout (offset = 64) mat4 projectionViewMatrix;
-	layout (offset = 128) vec4 cameraPosition;
+	layout (offset = 64) mat4 projectionMatrix;
+	layout (offset = 128) mat4 projectionViewMatrix;
+	layout (offset = 192) mat4 inverseViewProjectMatrix;
+	layout (offset = 256) vec4 cameraPosition;
 };
 
 in VS_OUT {

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <array>
 
 #include "glad/glad.h"
 #include "image_loader.h"
@@ -25,5 +26,6 @@ struct TextureConfig
 namespace textureUtilities
 {
 GLuint generateTextureID(const LoadedImage &image, Sampler sampler, TextureConfig config, bool globalAnsioEnabled);
-GLuint generateCubemapTextureID(const std::vector<LoadedImage> &imageData, bool sRGB = true);
+GLuint generateCubemapTextureID(const std::vector<LoadedImage> &imageData, bool mipMaps, bool sRGB = true);
+void generateCubemapFace(GLuint cubeMap, GLuint texture, int size, int faceIndex);
 } // namespace textureUtilities

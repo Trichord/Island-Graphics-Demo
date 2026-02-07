@@ -13,7 +13,7 @@ class CubeMappedModel : public Model
 {
   public:
     CubeMappedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
-                    const std::vector<std::filesystem::path> &imagePaths);
+                    const std::vector<std::filesystem::path> &imagePaths, bool skybox);
     CubeMappedModel(TextureManager &textureManager, const CubeMappedModel &borrowTarget,
                     const std::filesystem::path &modelPath);
 };
