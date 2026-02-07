@@ -65,7 +65,7 @@ GLuint textureUtilities::generateTextureID(const LoadedImage &image, Sampler sam
     return textureID;
 }
 
-GLuint textureUtilities::generateCubemapTextureID(const std::vector<LoadedImage> &imageData, bool sRGB)
+GLuint textureUtilities::generateCubemapTextureID(const std::vector<LoadedImage> &imageData, bool mipMaps, bool sRGB)
 {
     if (!imageData[0].data || imageData[0].width != imageData[0].height)
     {
@@ -104,7 +104,9 @@ GLuint textureUtilities::generateCubemapTextureID(const std::vector<LoadedImage>
 
     // Max mipmap, assuming first image is same resolution as the rest
     int maxDimension = std::max(imageData[0].width, imageData[0].height);
-    int mipLevels = static_cast<int>(std::floor(std::log2(maxDimension)) + 1);
+    int totalMipLevels = static_cast<int>(std::floor(std::log2(maxDimension)) + 1);
+
+    int mipLevels = mipMaps ? totalMipLevels : 1;
 
     glTextureStorage2D(cubemapTextureID, mipLevels, internalFormat, imageData[0].width, imageData[0].height);
 
@@ -120,13 +122,25 @@ GLuint textureUtilities::generateCubemapTextureID(const std::vector<LoadedImage>
             return 0;
         }
 
-    glGenerateTextureMipmap(cubemapTextureID);
+    if (mipMaps)
+    {
+        glGenerateTextureMipmap(cubemapTextureID);
+        glTextureParameteri(cubemapTextureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    }
+    else
+        glTextureParameteri(cubemapTextureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-    glTextureParameteri(cubemapTextureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTextureParameteri(cubemapTextureID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTextureParameteri(cubemapTextureID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTextureParameteri(cubemapTextureID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTextureParameteri(cubemapTextureID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     return cubemapTextureID;
+}
+
+void textureUtilities::generateCubemapFace(GLuint cubeMap, GLuint texture, int size, int faceIndex)
+{ 
+        glCopyImageSubData(texture, GL_TEXTURE_2D, 0, 0, 0, 0, cubeMap, GL_TEXTURE_CUBE_MAP, 0, 0, 0,
+                           faceIndex,
+                           size, size, 1);
 }

@@ -59,12 +59,12 @@ InstancedModel &SceneResources::loadInstancedModel(const InstancedModel &borrowT
 }
 
 CubeMappedModel &SceneResources::loadCubeMappedModel(const std::filesystem::path &modelPath,
-                                                     const std::vector<std::filesystem::path> &imagePaths)
+                                                     const std::vector<std::filesystem::path> &imagePaths, bool skybox)
 {
     if (cubeMappedModels.size() >= maxCubeMappedModels)
         throw std::runtime_error("Max number of space models reached!");
 
-    return cubeMappedModels.emplace_back(textureManager, modelPath, imagePaths);
+    return cubeMappedModels.emplace_back(textureManager, modelPath, imagePaths, skybox);
 }
 
 CubeMappedModel &SceneResources::loadCubeMappedModel(const CubeMappedModel &borrowTarget,

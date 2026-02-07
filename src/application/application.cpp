@@ -30,7 +30,7 @@ void Application::run()
     IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
 
     renderer.initializeResources(islandScene);
-    renderer.updateBuffers(islandScene);
+    renderer.updateUBO(islandScene);
 
     addGlfwUserParam(islandScene);
 
@@ -51,7 +51,7 @@ void Application::run()
 
         // Update GPU shared buffer if camera has moved
         if (islandScene.getCamera().hasUpdated())
-            renderer.updateBuffers(islandScene);
+            renderer.updateUBO(islandScene);
 
         // Update scene objects
         onUpdate(islandScene);

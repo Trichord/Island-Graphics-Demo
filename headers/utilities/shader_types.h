@@ -6,8 +6,6 @@
 
 enum class ShaderType
 {
-    BLINN_PREPASS,
-    BLINN_PREPASS_INSTANCED,
     FLOWERS,
     TREES,
     DIRECTIONAL_PBR,

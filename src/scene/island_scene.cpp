@@ -60,7 +60,7 @@ void IslandScene::addAllModelsToScene()
         "./res/textures/skybox/right.png",  "./res/textures/skybox/left.png",  "./res/textures/skybox/top.png",
         "./res/textures/skybox/bottom.png", "./res/textures/skybox/front.png", "./res/textures/skybox/back.png"};
 
-    auto &skybox = sceneResources.loadCubeMappedModel("./res/models/cube/cube.gltf", skyBoxPaths);
+    auto &skybox = sceneResources.loadCubeMappedModel("./res/models/cube/cube.gltf", skyBoxPaths, true);
     addObjectToScene(skybox, SKYBOX, {.cullType = NONE});
 
     // Grass
@@ -125,6 +125,6 @@ void IslandScene::addAllLightsToScene()
 void IslandScene::setupCamera(const ConfigWindow::GraphicsSettings &graphicsSettings)
 {
     camera.setPosition(glm::vec3{0.0f, 0.0f, 30.0f});
-    camera.setAspectRatio(static_cast<float>(graphicsSettings.screenWidth) /
+    camera.setFOV(cameraDefaultValues::fov, static_cast<float>(graphicsSettings.screenWidth) /
                           static_cast<float>(graphicsSettings.screenHeight));
 }
