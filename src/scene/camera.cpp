@@ -76,11 +76,11 @@ void normalizePlane(glm::vec4 &vec)
 
 const std::array<glm::vec4, 6> &Camera::getFrustumPlanes()
 {
-    if (!dirtyMatrices)
-        return frustumPlanes;
-
-    updateMatrices();
-    dirtyMatrices = false;
+    if (dirtyMatrices)
+    {
+        updateMatrices();
+        dirtyMatrices = false;
+    }
 
     const glm::vec4 row0{glm::row(viewProjectionMatrix, 0)};
     const glm::vec4 row1{glm::row(viewProjectionMatrix, 1)};
