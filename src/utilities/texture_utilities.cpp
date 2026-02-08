@@ -8,7 +8,7 @@
 #include "glad/glad.h"
 #include "image_loader.h"
 
-GLuint textureUtilities::generateTextureID(const LoadedImage &image, Sampler sampler, TextureConfig config,
+GLuint textureUtilities::generateTextureID(const LoadedImage &image, Sampler sampler, TextureDetails config,
                                            bool globalAnsioEnabled)
 {
     GLuint textureID{0};
