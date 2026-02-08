@@ -15,6 +15,7 @@ uniform sampler2D normalMap;
 uniform samplerCube cubeMap;
 uniform vec3 lightColor;
 uniform vec3 lightDir;
+uniform vec3 scale;
 uniform float time;
 
 in VS_OUT 
@@ -24,7 +25,6 @@ in VS_OUT
 	vec4 clipSpace;
 } fs_in;
 
-const float tileFactor = 4.0;
 const float dudvStrength = 0.005;
 const float waveSpeed = 0.002;
 const float waterTransparency = 0.5;
@@ -39,6 +39,9 @@ void main()
 
 	// Move textures by time
 	float movement = fract(time * waveSpeed);
+
+	//Repeat texture based off model scale
+	float tileFactor = scale.x / 10.0;
 
 	// Distortion from dudv
 	vec2 d1 = vec2(fs_in.texCoords.x + movement, fs_in.texCoords.y);

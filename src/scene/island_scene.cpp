@@ -115,12 +115,11 @@ void IslandScene::addAllModelsToScene()
     addObjectToScene(tree4, TREES, {.cullType = INSTANCED});
 
     // Main pond
-    auto &pond = sceneResources.loadModel("./res/models/water/water.gltf");
+    auto &pond = sceneResources.loadModel("./res/models/water1/water.gltf");
     addObjectToScene(pond, WATER, {.transform = {POND_WATER_POS, POND_WATER_SCALE}});
-    ModelHandle pondHandle{pond.getModelHandle()};
 
     //Small starting area puddle
-    auto &puddle = sceneResources.loadModel(pondHandle, "./res/models/water/water.gltf");
+    auto &puddle = sceneResources.loadModel("./res/models/water2/water.gltf");
     addObjectToScene(puddle, WATER, {.transform = {PUDDLE_POS, PUDDLE_SCALE}});
 }
 
