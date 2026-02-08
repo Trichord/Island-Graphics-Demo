@@ -1,7 +1,6 @@
 #pragma once
 
 #include <filesystem>
-#include <optional>
 #include <span>
 #include <vector>
 
@@ -15,7 +14,7 @@ class Model : public IRenderable
 {
   public:
     Model(TextureManager &textureManager, const std::filesystem::path &path);
-    Model(TextureManager &textureManager, const Model &borrowTarget, const std::filesystem::path &path);
+    Model(TextureManager &textureManager, const ModelHandle borrowHandle, const std::filesystem::path &path);
     Model(const Model &) = delete;
     Model &operator=(const Model &) = delete;
     Model(Model &&other) noexcept;
