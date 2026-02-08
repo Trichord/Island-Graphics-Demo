@@ -250,6 +250,7 @@ void Renderer::renderAllSceneObjects(Scene &scene)
 
             shader.setMat4("modelMatrix", modelMatrix);
             shader.setMat3("normalMatrix", normalMatrix);
+            shader.setVec3("scale", renderable.properties.transform.getScale());
 
             auto &object = renderable.object.get();
             if (auto iter = ssboOffsets.find(object.getModelHandle()); iter != ssboOffsets.end())
