@@ -11,7 +11,7 @@
 class ThreadPool
 {
   public:
-    ThreadPool(unsigned int desiredThreadCount);
+    ThreadPool(unsigned int threadCount);
     ~ThreadPool();
 
     void enqueue(std::function<void()> task);
