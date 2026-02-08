@@ -10,7 +10,7 @@ CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const std::file
                                  const std::vector<std::filesystem::path> &imagePaths, bool skybox)
     : Model{textureManager, modelPath}
 {
-    textureManager.queueCubeMap(handle, imagePaths, "./", skybox);
+    textureManager.queueCubemap(handle, imagePaths, "./", skybox);
     if (!hasMaterials())
         assignMaterialIndex(0);
 }

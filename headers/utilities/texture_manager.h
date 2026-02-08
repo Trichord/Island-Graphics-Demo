@@ -1,7 +1,6 @@
 #pragma once
 
 #include "glad/glad.h"
-#include "texture_utilities.h"
 #include "thread_pool.h"
 
 #include "texture_units.h"
@@ -13,7 +12,7 @@
 #include <variant>
 #include <vector>
 
-typedef int ModelHandle;
+using ModelHandle = int;
 
 struct Material
 {
@@ -26,50 +25,56 @@ struct Material
 class TextureManager
 {
   public:
-    void setAnisoLevel(float anisoLevel);
-    void queueModelMaterials(const ModelHandle handle, fastgltf::Asset &&asset,
-                             const std::filesystem::path &parentPath);
-    void queueCubeMap(const ModelHandle handle, std::vector<std::filesystem::path> imagePaths,
-                      const std::filesystem::path &parentPath = "./", bool mipMaps = true, bool sRGB = true);
-    const std::vector<Material> &getUniqueMaterials(ModelHandle modelHandle) const;
+    ModelHandle assignHandle();
+    void releaseHandle(ModelHandle handle);
+
     const std::vector<Material> &borrowMaterials(ModelHandle other);
-    void releaseModel(ModelHandle handle);
-    void processTextureQueue();
-    ModelHandle assignModelHandle();
+    const std::vector<Material> &getUniqueMaterials(ModelHandle modelHandle) const;
     void assignMaterial(ModelHandle handle, TextureUnit textureUnit, GLuint textureID, int materialIndex = 0);
+
+    void processTextureQueue();
+    void queueCubemap(const ModelHandle handle, std::vector<std::filesystem::path> images,
+                      const std::filesystem::path &parentPath = "./", bool mipmaps = true, bool sRGB = true);
+    void queueModel(const ModelHandle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath);
+
+    void setAnisoLevel(float anisoLevel);
 
   private:
     float anisoLevel{0.0f};
     bool globalAnisoEnabled{false};
 
-    // Each entry in the vector corresponds to a gltf material index
+    // Use signature of how textures were requested to decide on texture generation strategy
+    using TextureSource = std::variant<fastgltf::Asset, std::vector<std::filesystem::path>>;
+
+    // Each entry in the vector corresponds to a gltf material index. Materials vector can contain duplicate IDs
+    // (multiple materials referencing the same texture atlas, etc.). Unordered set keeps track of which IDs need to be
+    // freed on destruction.
     struct TextureEntry
     {
-        std::vector<Material> materials;
-        std::unordered_set<GLuint> textureHandles;
         int refCount{0};
+        std::vector<Material> materials;
+        std::unordered_set<GLuint> glTextureHandles;
     };
-
-    using TextureSourceType = std::variant<fastgltf::Asset, std::filesystem::path, std::vector<std::filesystem::path>>;
 
     struct TextureQueueElement
     {
-        TextureSourceType source;
-        ModelHandle modelHandle{0};
+        TextureSource source;
+        ModelHandle handle{0};
         std::filesystem::path parentPath{std::filesystem::current_path()};
 
-        bool mipMaps{true};
+        bool mipmaps{true};
         bool sRGB{true};
-        bool requestAniso{true};
+        bool anisotropic{true};
     };
 
-    std::unordered_map<ModelHandle, TextureEntry> textureCache;
     std::queue<TextureQueueElement> textureCreationQueue;
+    std::unordered_map<ModelHandle, TextureEntry> textureCache;
 
-    void genTexIDFromAsset(ThreadPool &threadPool, fastgltf::Asset &asset, ModelHandle handle,
-                           std::filesystem::path parentPath);
-    void genTexIDFromImage(ThreadPool &threadPool, ModelHandle handle, const std::filesystem::path &imagePath,
-                           TextureConfig textureConfig);
-    void genCubemapTexID(ThreadPool &threadPool, ModelHandle handle,
-                         const std::vector<std::filesystem::path> &imagePaths, bool mipMaps, bool sRGB);
+    // From a fastgltf::asset
+    void textureFromAsset(ThreadPool &threadPool, fastgltf::Asset &asset, ModelHandle handle,
+                          std::filesystem::path parentPath);
+
+    // Create cubemap from vector of paths
+    void cubemapFromPaths(ThreadPool &threadPool, ModelHandle handle, const std::vector<std::filesystem::path> &images,
+                          bool mipMaps, bool sRGB);
 };
