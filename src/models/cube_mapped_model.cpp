@@ -15,9 +15,9 @@ CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const std::file
         assignMaterialIndex(0);
 }
 
-CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const CubeMappedModel &borrowTarget,
+CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const ModelHandle borrowHandle,
                                  const std::filesystem::path &modelPath)
-    : Model{textureManager, borrowTarget, modelPath}
+    : Model{textureManager, borrowHandle, modelPath}
 {
     if (!hasMaterials())
         assignMaterialIndex(0);

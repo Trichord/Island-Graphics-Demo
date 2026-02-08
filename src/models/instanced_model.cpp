@@ -1,12 +1,6 @@
 #include "instanced_model.h"
-
-#include <algorithm>
-#include <array>
-#include <cstddef>
-#include <cstring>
 #include <fstream>
 #include <iostream>
-#include <iterator>
 #include <random>
 #include <utility>
 
@@ -14,7 +8,6 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "model.h"
-#include "primitive.h"
 #include "texture_manager.h"
 
 InstancedModel::InstancedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
@@ -28,10 +21,10 @@ InstancedModel::InstancedModel(TextureManager &textureManager, const std::filesy
     generateWorldAABBs();
 }
 
-InstancedModel::InstancedModel(TextureManager &textureManager, const InstancedModel &borrowTarget,
+InstancedModel::InstancedModel(TextureManager &textureManager, const ModelHandle borrowHandle,
                                const std::filesystem::path &modelPath, const std::filesystem::path &positionsPath,
                                float minSize, float maxSize, unsigned int numPositions)
-    : Model{textureManager, borrowTarget, modelPath}
+    : Model{textureManager, borrowHandle, modelPath}
 {
     loadPositions(positionsPath, numPositions);
     generateInstanceMatrices(minSize, maxSize);
