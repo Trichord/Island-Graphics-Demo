@@ -20,10 +20,10 @@ Model::Model(TextureManager &textureManager, const std::filesystem::path &path)
     calculateAABB();
 }
 
-Model::Model(TextureManager &textureManager, const Model &borrowTarget, const std::filesystem::path &path)
-    : handle{textureManager.assignHandle()}, borrowedHandle{borrowTarget.handle}, texManager{textureManager}
+Model::Model(TextureManager &textureManager, const ModelHandle borrowHandle, const std::filesystem::path &path)
+    : handle{textureManager.assignHandle()}, borrowedHandle{borrowHandle}, texManager{textureManager}
 {
-    textureManager.borrowMaterials(borrowTarget.getModelHandle());
+    textureManager.borrowMaterials(borrowHandle);
     loadModel(path, true);
     calculateAABB();
 }

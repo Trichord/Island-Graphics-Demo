@@ -14,18 +14,18 @@ class SceneResources
     SceneResources(TextureManager &textureManager);
 
     Model &loadModel(const std::filesystem::path &filepath);
-    Model &loadModel(const Model &borrowTarget, const std::filesystem::path &filepath);
+    Model &loadModel(const ModelHandle borrowHandle, const std::filesystem::path &filepath);
 
     InstancedModel &loadInstancedModel(const std::filesystem::path &modelPath,
                                        const std::filesystem::path &positionsPath, float minSize = 1.0f,
                                        float maxSize = 1.0f, unsigned int numPositions = 0);
-    InstancedModel &loadInstancedModel(const InstancedModel &borrowTarget, const std::filesystem::path &modelPath,
+    InstancedModel &loadInstancedModel(const ModelHandle borrowHandle, const std::filesystem::path &modelPath,
                                        const std::filesystem::path &positionsPath, float minSize = 1.0f,
                                        float maxSize = 1.0f, unsigned int numPositions = 0);
 
     CubeMappedModel &loadCubeMappedModel(const std::filesystem::path &modelPath,
                                          const std::vector<std::filesystem::path> &imagePaths, bool skybox = false);
-    CubeMappedModel &loadCubeMappedModel(const CubeMappedModel &borrowTarget, const std::filesystem::path &modelPath);
+    CubeMappedModel &loadCubeMappedModel(const ModelHandle borrowHandle, const std::filesystem::path &modelPath);
 
     void loadingComplete();
 
