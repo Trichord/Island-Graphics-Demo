@@ -43,12 +43,12 @@ void main()
 	//Repeat texture based off model scale
 	float tileFactor = scale.x / 12.0;
 
+	// Add tiling and time based movement
+	vec2 d1 = fs_in.texCoords * tileFactor + vec2(movement, 0.0);
+	vec2 d2 = fs_in.texCoords * tileFactor + vec2(0.0, movement);
+	
 	// Distortion from dudv, remapped to [-1, 1] to sample distortion in all directions
-	vec2 d1 = vec2(fs_in.texCoords.x + movement, fs_in.texCoords.y) * tileFactor;
-	vec2 distortion1 = (texture(armMap, d1).rg * 2.0 - 1.0) * dudvStrength;
-
-	//Second dudv sample
-	vec2 d2 = vec2(fs_in.texCoords.x, fs_in.texCoords.y + movement) * tileFactor;
+	vec2 distortion1 = (texture(armMap, d1).rg * 2.0 - 1.0) * dudvStrength;	
 	vec2 distortion2 = (texture(armMap, d2).xy * 2.0 - 1.0) * dudvStrength;
 	
 	//Total distortion from dudv

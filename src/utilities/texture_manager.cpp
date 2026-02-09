@@ -30,7 +30,7 @@ void TextureManager::queueCubemap(const ModelHandle handle, std::vector<std::fil
     textureCreationQueue.emplace(std::move(imagePaths), handle, parentPath, mipMaps, sRGB, false);
 }
 
-const std::vector<Material> &TextureManager::getUniqueMaterials(ModelHandle handle) const
+const std::vector<Material> &TextureManager::getMaterials(ModelHandle handle) const
 {
     auto iter = textureCache.find(handle);
 
