@@ -25,11 +25,11 @@ in VS_OUT
 	vec4 clipSpace;
 } fs_in;
 
-const float dudvStrength = 0.005;
-const float waveSpeed = 0.002;
-const float waterTransparency = 0.5;
-const float specularDamper = 0.3;
-const vec4 waterColor = vec4(0.0, 0.08, 0.2, 0.0);
+const float dudvStrength = 0.01;
+const float waveSpeed = 0.005;
+const float specularDamper = 0.2;
+const vec4 waterColor = vec4(0.01, 0.48, 0.68, 0.0) * 0.2;
+const float waterTransparency = 0.35;
 
 void main() 
 {	
@@ -38,22 +38,26 @@ void main()
 	vec3 H = normalize(L + V);
 
 	// Move textures by time
-	float movement = fract(time * waveSpeed);
+	float movement = time * waveSpeed;
 
 	//Repeat texture based off model scale
-	float tileFactor = scale.x / 10.0;
+	float tileFactor = scale.x / 12.0;
 
-	// Distortion from dudv
-	vec2 d1 = vec2(fs_in.texCoords.x + movement, fs_in.texCoords.y);
-	vec2 distortedTexCoords = texture(armMap, d1 * tileFactor).rg * dudvStrength;
-	distortedTexCoords = fs_in.texCoords + vec2(distortedTexCoords.x, distortedTexCoords.y + movement);
+	// Distortion from dudv, remapped to [-1, 1] to sample distortion in all directions
+	vec2 d1 = vec2(fs_in.texCoords.x + movement, fs_in.texCoords.y) * tileFactor;
+	vec2 distortion1 = (texture(armMap, d1).rg * 2.0 - 1.0) * dudvStrength;
+
+	//Second dudv sample
+	vec2 d2 = vec2(fs_in.texCoords.x, fs_in.texCoords.y + movement) * tileFactor;
+	vec2 distortion2 = (texture(armMap, d2).xy * 2.0 - 1.0) * dudvStrength;
+	
+	//Total distortion from dudv
+	vec2 totalDistortion = distortion1 + distortion2;
 
 	// Normal, biased towards the sky for less choppy water. Swizzled because the plane is horizontal
-	vec3 N = texture(normalMap, distortedTexCoords * tileFactor).xyz * 2.0 - 1.0;
-	N = normalize(vec3(N.x, N.z * 1.5, -N.y));
-
-	// Mix the normal back towards the flat plane
-	N = mix(N, vec3(0.0, 1.0, 0.0), 0.75);
+	vec2 normalCoords = vec2(fs_in.texCoords * tileFactor + totalDistortion);
+	vec3 N = texture(normalMap, normalCoords).xyz * 2.0 - 1.0;
+	N = normalize(vec3(N.x, N.z, -N.y));
 
 	// Specular
 	float specular = pow(max(dot(N, H), 0.0), 32.0);
@@ -61,10 +65,13 @@ void main()
 
 	// Fresnel
 	float fresnel = 1.0 - dot(N, V);
+	fresnel = pow(fresnel, 5.0);
 
 	// Reflection 
 	vec3 reflectDir = reflect(-V, N);
 	vec3 reflection = texture(cubeMap, reflectDir).rgb;
+	
+	float alpha = mix(waterTransparency, 1.0, fresnel);
 
-	fragColor = vec4(reflection * fresnel, waterTransparency) + vec4(specHighlight, 0.0) + waterColor;
+	fragColor = vec4(reflection, alpha) + vec4(specHighlight, 0.0) + waterColor;
 }

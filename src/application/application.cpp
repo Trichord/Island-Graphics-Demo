@@ -122,13 +122,13 @@ void Application::createOpenGLViewport(const ConfigWindow::GraphicsSettings &gra
 
     glViewport(0, 0, width, height);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glEnable(GL_DEPTH_TEST);
+    
     glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);
     glEnable(GL_FRAMEBUFFER_SRGB);
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-
-    if (graphicsSettings.msaa)
-        glEnable(GL_MULTISAMPLE);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void Application::processInput(Scene &scene)

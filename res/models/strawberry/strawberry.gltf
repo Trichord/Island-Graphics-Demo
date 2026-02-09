@@ -20,7 +20,7 @@
 	],
 	"materials":[
 		{
-			"alphaMode":"BLEND",
+			"alphaMode":"MASK",
 			"doubleSided":true,
 			"name":"Dandelion_Clover_strawberry",
 			"pbrMetallicRoughness":{
