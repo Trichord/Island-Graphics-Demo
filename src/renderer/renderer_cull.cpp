@@ -9,9 +9,10 @@
 #include "renderer.h"
 #include "scene.h"
 #include "shader_types.h"
+#include "camera.h"
 
-// Culling range for grass
-constexpr float grassCullDistance{0.4f};
+// Culling at 27% of the frustum length
+constexpr float grassCullDistance{0.27f};
 
 void Renderer::cullRenderables(Scene &scene)
 {
@@ -70,8 +71,8 @@ void Renderer::cullModel(Renderable &renderable, const std::array<glm::vec4, 6> 
 void Renderer::cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
                              const std::array<glm::vec4, 6> &frustumPlanes, bool cullByDistance)
 {
-    float nearDistance{frustumPlanes[4].w};
-    float farDistance{frustumPlanes[5].w};
+    constexpr float nearDistance{cameraDefaultValues::nearPlane};
+    constexpr float farDistance{cameraDefaultValues::farPlane};
     bool anyVisible{false};
 
     const float cullDistance{nearDistance + (farDistance - nearDistance) * grassCullDistance};

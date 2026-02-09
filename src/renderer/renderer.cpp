@@ -103,6 +103,7 @@ void Renderer::loadShaders()
     shaders.emplace(REFLECTIVE, Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"});
     shaders.emplace(SKYBOX, Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"});
     shaders.emplace(WATER, Shader{"./shaders/water.vert", "./shaders/water.frag"});
+    shaders.emplace(OCEAN, Shader{"./shaders/water.vert", "./shaders/ocean.frag"});
 }
 
 void Renderer::setupShader(Shader &shader)
@@ -197,21 +198,24 @@ void Renderer::resetVisibility(Scene &scene)
 void Renderer::renderSkybox(Scene &scene)
 {
     using enum ShaderType;
-    auto &skyboxes = scene.getRenderablesByShader()[SKYBOX];
+    auto &map = scene.getRenderablesByShader();
 
-    if (skyboxes.empty())
+    if (!map.contains(SKYBOX))
         return;
+
+    auto &skyboxes = map[SKYBOX];
 
     Shader &skyboxShader{shaders.at(SKYBOX)};
     skyboxShader.use();
 
     glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_FALSE);
 
     for (auto &renderable : skyboxes)
     {
         auto &skybox = renderable.object.get();
 
-        const std::vector<Material> &materials{textureManager.getUniqueMaterials(skybox.getModelHandle())};
+        const std::vector<Material> &materials{textureManager.getMaterials(skybox.getModelHandle())};
 
         if (!materials.empty())
             bindTextures(materials[0]);
@@ -225,6 +229,32 @@ void Renderer::renderSkybox(Scene &scene)
     }
 
     glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+}
+
+void Renderer::renderOcean(Shader &shader, IRenderable &ocean, Scene &scene)
+{
+    using enum ShaderType;
+    auto &map = scene.getRenderablesByShader();
+
+    if (!map.contains(SKYBOX))
+        return;
+
+    auto &skyboxes = map[SKYBOX];
+
+    if (skyboxes.empty())
+        return;
+
+    glEnable(GL_DEPTH_CLAMP);
+
+    auto &skybox = skyboxes[0].object.get();
+    
+    auto &materials{textureManager.getMaterials(skybox.getMaterialID())};
+
+    glState.bindTexture(CUBEMAP, materials[0].cubemap);
+    renderObject(ocean);
+
+    glDisable(GL_DEPTH_CLAMP);
 }
 
 // Render objects, grouped by shader type
@@ -256,6 +286,12 @@ void Renderer::renderAllSceneObjects(Scene &scene)
             if (auto iter = ssboOffsets.find(object.getModelHandle()); iter != ssboOffsets.end())
                 shader.setInt("index", iter->second);
 
+            if (shaderType == OCEAN)
+            {
+                renderOcean(shader, object, scene);
+                continue;
+            }
+
             // Draw it
             renderObject(object);
         }
@@ -266,7 +302,7 @@ void Renderer::renderObject(IRenderable &object)
 {
     std::size_t lastMaterialIndex{0};
     bool materialBound{false};
-    const auto materials{textureManager.getUniqueMaterials(object.getMaterialID())};
+    const auto& materials{textureManager.getMaterials(object.getMaterialID())};
 
     for (const Primitive::Mesh &mesh : object.getMeshes())
     {

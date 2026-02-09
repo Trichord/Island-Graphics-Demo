@@ -80,8 +80,7 @@ void IslandScene::addAllModelsToScene()
 
     // Purple flowers
     auto &purpleFlowers = sceneResources.loadInstancedModel(
-        whiteFlowerHandle, "./res/models/purpleflower/purpleflower.gltf",
-                                                            "./res/purpleflowers.txt", 0.9f, 1.1f, 255);
+        whiteFlowerHandle, "./res/models/purpleflower/purpleflower.gltf", "./res/purpleflowers.txt", 0.9f, 1.1f, 255);
     addObjectToScene(purpleFlowers, FLOWERS, {.cullType = INSTANCED_DISTANCE});
 
     // Dandelions
@@ -118,9 +117,13 @@ void IslandScene::addAllModelsToScene()
     auto &pond = sceneResources.loadModel("./res/models/water1/water.gltf");
     addObjectToScene(pond, WATER, {.transform = {POND_WATER_POS, POND_WATER_SCALE}});
 
-    //Small starting area puddle
+    // Small starting area puddle
     auto &puddle = sceneResources.loadModel("./res/models/water2/water.gltf");
     addObjectToScene(puddle, WATER, {.transform = {PUDDLE_POS, PUDDLE_SCALE}});
+
+    // Ocean
+    auto &ocean = sceneResources.loadModel("./res/models/water1/water.gltf");
+    addObjectToScene(ocean, OCEAN, {.transform = {OCEAN_POS, OCEAN_SCALE}});
 }
 
 void IslandScene::addAllLightsToScene()
@@ -132,6 +135,6 @@ void IslandScene::addAllLightsToScene()
 void IslandScene::setupCamera(const ConfigWindow::GraphicsSettings &graphicsSettings)
 {
     camera = Camera{CAMERA_START_POS, -100.0f};
-    camera.setFOV(cameraDefaultValues::fov, static_cast<float>(graphicsSettings.screenWidth) /
-                          static_cast<float>(graphicsSettings.screenHeight));
+    camera.setFOV(cameraDefaultValues::fov,
+                  static_cast<float>(graphicsSettings.screenWidth) / static_cast<float>(graphicsSettings.screenHeight));
 }
