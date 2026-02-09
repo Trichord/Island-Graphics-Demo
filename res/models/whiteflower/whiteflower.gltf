@@ -20,7 +20,7 @@
 	],
 	"materials":[
 		{
-			"alphaMode":"BLEND",
+			"alphaMode":"MASK",
 			"doubleSided":true,
 			"name":"FLowerAtlas1.003",
 			"pbrMetallicRoughness":{
