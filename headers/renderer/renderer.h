@@ -72,6 +72,7 @@ class Renderer
                        const std::array<glm::vec4, 6> &frustumPlanes, bool cullByDistance);
     void cullModel(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
     void cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
+    void renderOcean(Shader &shader, IRenderable &ocean, Scene &scene);
     void renderAllSceneObjects(Scene &scene);
     void renderObject(IRenderable &object);
     void generateCubeMaps(Scene &scene);

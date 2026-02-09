@@ -13,6 +13,7 @@ enum class ShaderType
     REFLECTIVE,
     LIGHT_SOURCE,
     WATER,
+    OCEAN,
     SKYBOX
 };
 

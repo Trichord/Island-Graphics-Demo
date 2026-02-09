@@ -29,7 +29,7 @@ class TextureManager
     void releaseHandle(ModelHandle handle);
 
     const std::vector<Material> &borrowMaterials(ModelHandle other);
-    const std::vector<Material> &getUniqueMaterials(ModelHandle modelHandle) const;
+    const std::vector<Material> &getMaterials(ModelHandle modelHandle) const;
     void assignMaterial(ModelHandle handle, TextureUnit textureUnit, GLuint textureID, int materialIndex = 0);
 
     void processTextureQueue();

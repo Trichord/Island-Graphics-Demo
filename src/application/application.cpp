@@ -80,6 +80,7 @@ void Application::createWindow(const ConfigWindow::GraphicsSettings &graphicsSet
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_DEPTH_BITS, 32);
 
     if (graphicsSettings.msaa)
         glfwWindowHint(GLFW_SAMPLES, graphicsSettings.msaa);
