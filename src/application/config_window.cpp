@@ -10,11 +10,10 @@
 #include "imgui_impl_opengl3.h"
 #include "texture_utilities.h"
 
-namespace
-{
-constexpr unsigned int GUIWidth{1024u};
-constexpr unsigned int GUIHeight{576u};
-constexpr unsigned int numColumns{2u};
+namespace {
+constexpr int GUIWidth{1024};
+constexpr int GUIHeight{576};
+constexpr int numColumns{2};
 constexpr float baseFontSize = 22.0f;
 } // namespace
 
@@ -68,33 +67,25 @@ bool ConfigWindow::createWindow()
     glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    // Create window with graphics context
-    float windowScale{ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
-    window = glfwCreateWindow((int)(GUIWidth * windowScale), (int)(GUIHeight * windowScale),
-                              "Island Graphics Demo - Display Settings", nullptr, nullptr);
+  // Create window with graphics context
+  float windowScale{
+      ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
+  window = glfwCreateWindow(static_cast<int>(GUIWidth * windowScale),
+                            static_cast<int>(GUIHeight * windowScale),
+                            "Island Graphics Demo - Display Settings", nullptr,
+                            nullptr);
 
     if (!window)
         return false;
 
-    // Center window
-    ImVec2 windowCenter = {GUIWidth / 2, GUIHeight / 2};
-    int xPos{0};
-    int yPos{0};
-    int width{0};
-    int height{0};
+  // Make current context
+  glfwMakeContextCurrent(window);
+  glfwSwapInterval(1);
 
-    glfwGetMonitorWorkarea(glfwGetPrimaryMonitor(), &xPos, &yPos, &width, &height);
+  // Refocus
+  glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
 
-    int centerX{static_cast<int>(width / 2 - windowCenter.x)};
-    int centerY{static_cast<int>(height / 2 - windowCenter.y)};
-
-    glfwSetWindowPos(window, centerX, centerY);
-
-    // Make current context
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
-
-    return true;
+  return true;
 }
 
 void ConfigWindow::setupImGui()
@@ -127,71 +118,51 @@ void ConfigWindow::setupImGui()
     style.ScaleAllSizes(windowScale);
 }
 
-bool ConfigWindow::renderImGui(GraphicsSettings &settings)
-{
-    bool settingsConfirmed{false};
+bool ConfigWindow::renderImGui(GraphicsSettings& settings) {
+  bool settingsConfirmed{false};
 
-    // GLFW window scale
-    float windowScale{ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
+  // Loop until settings are confirmed
+  while (!glfwWindowShouldClose(window)) {
+    // Start the Dear ImGui frame
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
 
-    // GLFW window position
-    int xPos{0};
-    int yPos{0};
-    glfwGetWindowPos(window, &xPos, &yPos);
+    ImGuiViewport* imGuiViewPort{ImGui::GetMainViewport()};
 
-    // Dear ImGUI window size
-    ImVec2 guiSize{GUIWidth * windowScale, GUIHeight * windowScale};
-    ImVec2 windowUpperLeft{0.0f, 0.0f};
+    // Size
+    float dpi{imGuiViewPort->DpiScale};
+    ImGui::SetNextWindowSize(ImVec2{GUIWidth * dpi, GUIHeight * dpi},
+                             ImGuiCond_Always);
 
-    // Loop until settings are confirmed
-    while (!glfwWindowShouldClose(window))
-    {
-        // Sleep if minimized
-        if (glfwGetWindowAttrib(window, GLFW_ICONIFIED))
-        {
-            ImGui_ImplGlfw_Sleep(10);
-            continue;
-        }
+    // Center
+    ImVec2 imguiCenter{imGuiViewPort->GetCenter()};
+    ImGui::SetNextWindowPos(imguiCenter, ImGuiCond_Always, ImVec2{0.5f, 0.5f});
 
-        // Start the Dear ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
+    // Dear ImGUI window
+    ImGui::Begin("Island Graphics Demo - Display Settings", NULL,
+                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
+                     ImGuiWindowFlags_NoTitleBar);
 
-        // Set position and size
-        ImGui::SetNextWindowSize(guiSize, ImGuiCond_Always);
-        ImGui::SetNextWindowPos(windowUpperLeft, ImGuiCond_Always);
+    // start of display settings, image, and advanced options group
+    ImGui::BeginGroup();
 
-        // Dear ImGUI window
-        ImGui::Begin("Island Graphics Demo - Display Settings", NULL,
-                     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
+    // start of display settings group
+    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x / numColumns);
+    ImGui::BeginGroup();
+    ImGui::SeparatorText("Display Settings");
+    ImGui::Spacing();
 
-        // start of display settings, image, and advanced options group
-        ImGui::BeginGroup();
-
-        // start of display settings group
-        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x / numColumns);
-        ImGui::BeginGroup();
-        ImGui::SeparatorText("Display Settings");
-        ImGui::Spacing();
-
-        // Resolution
-        ImGui::Text("Resolution");
-        if (ImGui::BeginCombo("##resolutionCombo", resolutionPreviewValue, ImGuiComboFlags_HeightLargest))
-        {
-            for (int i = 0; i < resolutions.size(); ++i)
-            {
-                const bool isResolutionSelected{resolutionSelectedIndex == i};
-                if (ImGui::Selectable(resolutions[i], isResolutionSelected))
-                {
-                    resolutionSelectedIndex = i;
-                    resolutionPreviewValue = resolutions[resolutionSelectedIndex];
-                    updateResolution(settings, i);
-                }
-                if (isResolutionSelected)
-                    ImGui::SetItemDefaultFocus();
-            }
-            ImGui::EndCombo();
+    // Resolution
+    ImGui::Text("Resolution");
+    if (ImGui::BeginCombo("##resolutionCombo", resolutionPreviewValue,
+                          ImGuiComboFlags_HeightLargest)) {
+      for (int i = 0; i < resolutions.size(); ++i) {
+        const bool isResolutionSelected{resolutionSelectedIndex == i};
+        if (ImGui::Selectable(resolutions[i], isResolutionSelected)) {
+          resolutionSelectedIndex = i;
+          resolutionPreviewValue = resolutions[resolutionSelectedIndex];
+          updateResolution(settings, i);
         }
         ImGui::Spacing();
 
