@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "camera.h"
 #include "directional_light.h"
 #include "glm/glm.hpp"
 #include "light.h"
@@ -13,28 +14,47 @@
 #include "texture_manager.h"
 #include "transform.h"
 
-Scene::Scene(TextureManager& textureManager) : sceneResources{textureManager} {
-  pointLights.reserve(sceneMaxObjects::maxLights);
+Scene::Scene(TextureManager &textureManager) : sceneResources{textureManager}
+{
+    pointLights.reserve(sceneMaxObjects::maxLights);
 }
 
-std::map<ShaderType, std::vector<RenderableObject>>& Scene::getSceneObjects() {
-  return sceneObjects;
+std::map<ShaderType, std::vector<Renderable>> &Scene::getRenderablesByShader()
+{
+    return sceneRenderables;
 }
 
-Transform& Scene::getObjectTransform(const std::string& key) {
-  return namedTransforms.at(key).get();
+Transform &Scene::getObjectTransform(const std::string &key)
+{
+    return namedTransforms.at(key).get();
 }
 
-Light& Scene::getNamedLight(const std::string& key) {
-  return namedLights.at(key).get();
+Light &Scene::getNamedLight(const std::string &key)
+{
+    return namedLights.at(key).get();
 }
 
-DirectionalLight& Scene::getGlobalLightSource() { return globalLightSource; }
+DirectionalLight &Scene::getGlobalLightSource()
+{
+    return globalLightSource;
+}
 
-std::vector<PointLight>& Scene::getPointLights() { return pointLights; }
+std::vector<PointLight> &Scene::getPointLights()
+{
+    return pointLights;
+}
 
-glm::vec3 Scene::getAmbientLight() const { return ambientLight; }
+glm::vec3 Scene::getAmbientLight() const
+{
+    return ambientLight;
+}
 
-void Scene::setAmbientLight(const glm::vec3& ambient) {
-  ambientLight = ambient;
+void Scene::setAmbientLight(const glm::vec3 &ambient)
+{
+    ambientLight = ambient;
+}
+
+Camera &Scene::getCamera()
+{
+    return camera;
 }

@@ -6,3 +6,4 @@ OpenGL Demo.vcxproj.user
 OpenGL.vcxproj
 OpenGL.vcxproj.user
 OpenGL.vcxproj.filters
+imgui.ini

@@ -3,22 +3,33 @@
 #include "glm/glm.hpp"
 #include "light.h"
 
-PointLight::PointLight(const glm::vec3& newPosition, const glm::vec3& newColor)
-    : position{newPosition}, Light{newColor} {}
-
-glm::vec3 PointLight::getColor() const { return color; }
-
-glm::vec3 PointLight::getPosition() const { return position; }
-
-void PointLight::setPosition(const glm::vec3& newPosition) {
-  position = newPosition;
-  positionUpdated = true;
+PointLight::PointLight(const glm::vec3 &newPosition, const glm::vec3 &newColor) : Light{newColor}, position{newPosition}
+{
 }
 
-bool PointLight::positionHasUpdated() {
-  if (positionUpdated) {
-    positionUpdated = false;
-    return true;
-  } else
-    return false;
+glm::vec3 PointLight::getColor() const
+{
+    return color;
+}
+
+glm::vec3 PointLight::getPosition() const
+{
+    return position;
+}
+
+void PointLight::setPosition(const glm::vec3 &newPosition)
+{
+    position = newPosition;
+    positionUpdated = true;
+}
+
+bool PointLight::positionHasUpdated()
+{
+    if (positionUpdated)
+    {
+        positionUpdated = false;
+        return true;
+    }
+    else
+        return false;
 }

@@ -1,80 +1,73 @@
 #pragma once
 
-#include "glad/glad.h"
-#include "thread_pool.h"
-#include "texture_utilities.h"
-
-#include <unordered_map>
-#include <unordered_set>
-#include <queue>
-#include <variant>
-#include <vector>
-#include <cstdint>
 #include <fastgltf/types.hpp>
 #include <filesystem>
+#include <optional>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
-typedef uint64_t ModelHandle;
+#include "glad/glad.h"
+#include "texture_units.h"
+#include "thread_pool.h"
 
-/**
-* @details
-* OpenGL Texture Units:
-* 0 - Albedo
-* 1 - Occlusion, Roughness, Metallic
-* 2 - Normal map
-* 3 - Cubemap
-*/
-struct Material {
-  GLuint albedo{0};
-  GLuint occlusionRoughnessMetallic{0};
-  GLuint normal{0};
-  GLuint cubemap{0};
+using ModelHandle = int;
+
+struct Material
+{
+    GLuint albedo{0};
+    GLuint occlusionRoughnessMetallic{0};
+    GLuint normal{0};
+    GLuint cubemap{0};
 };
 
-class TextureManager {
- public:
-  void setAnisoLevel(float anisoLevel);
-  void queueModelMaterials(const ModelHandle handle, fastgltf::Asset&& asset,
-                            const std::filesystem::path& parentPath);
-  void queueCubeMap(const ModelHandle handle,
-                              std::vector<std::filesystem::path> imagePaths,
-                              const std::filesystem::path& parentPath = "./",
-                              bool sRGB = true);
-  const std::vector<Material>& acquireUniqueTextureSet(
-      ModelHandle modelHandle) const;
-  const std::vector<Material>& borrowTextureSet(ModelHandle other);
-  void releaseModel(ModelHandle modelHandle);
-  void processTextureQueue();
-  ModelHandle assignModelHandle();
+class TextureManager
+{
+  public:
+    explicit TextureManager(ThreadPool &threadPool);
 
- private:
-  float anisoLevel{0.0f};
-  bool globalAnisoEnabled{false};
-  // Each entry in the vector corresponds to a material index
-  struct TextureEntry {
-    std::vector<Material> materials;
-    std::unordered_set<GLuint> textureHandles;
-    int refCount{0};
-  };
+    ModelHandle assignHandle();
+    void releaseHandle(ModelHandle handle);
 
-  using TextureSourceType = std::variant<fastgltf::Asset, std::filesystem::path,
-                                         std::vector<std::filesystem::path>>;
+    const std::vector<Material> &getMaterials(ModelHandle modelHandle) const;
+    void setMaterial(ModelHandle handle, Texture texture, GLuint textureID, int materialIndex = 0);
+    const std::vector<Material> &borrowAssignMaterials(ModelHandle self, ModelHandle other,
+                                                       std::optional<Texture> texture = std::nullopt,
+                                                       int materialIndex = 0);
 
-  struct TextureQueueElement {
-    TextureSourceType source;
-    ModelHandle modelHandle{0};
-    std::filesystem::path parentPath{std::filesystem::current_path()};
-    bool sRGB{true};
-    bool requestAniso{true};
-  };
+    void loadCubemap(const ModelHandle handle, std::vector<std::filesystem::path> images,
+                     const std::filesystem::path &parentPath = "./", bool mipmaps = true, bool sRGB = true);
+    void loadModel(const ModelHandle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath);
 
-  std::unordered_map<ModelHandle, TextureEntry> textureCache;
-  std::queue<TextureQueueElement> textureCreationQueue;
+    void setAnisoLevel(float anisoLevel);
+    void allModelsLoaded();
 
-  void genTexIDFromAsset(ThreadPool& threadPool, fastgltf::Asset& asset,
-                         ModelHandle handle, std::filesystem::path parentPath);
-  void genTexIDFromImage(ThreadPool& threadPool, ModelHandle handle,
-                         const std::filesystem::path& imagePath,
-                         TextureConfig textureConfig);
-  void genCubemapTexID(ThreadPool& threadPool, ModelHandle handle,
-                       const std::vector<std::filesystem::path>& imagePaths, bool sRGB);
+  private:
+    float anisoLevel{0.0f};
+    bool globalAnisoEnabled{false};
+
+    ThreadPool &threadPool;
+
+    // Each entry in the vector corresponds to a gltf material index. Materials vector can contain duplicate IDs
+    // (multiple materials referencing the same texture atlas, etc.). Unordered set keeps track of which IDs need to be
+    // freed on destruction. Lenders keeps track of who the textures were borrowed from.
+    struct ModelResources
+    {
+        int refCount{1};
+        std::vector<Material> materials;
+        std::unordered_set<GLuint> glTextureHandles;
+        ModelHandle lender{-1};
+    };
+
+    std::unordered_map<ModelHandle, ModelResources> textureCache;
+
+    // From a fastgltf::asset
+    void textureFromAsset(fastgltf::Asset &asset, ModelHandle handle, std::filesystem::path parentPath);
+
+    // Create cubemap from vector of paths
+    void cubemapFromPaths(ModelHandle handle, const std::vector<std::filesystem::path> &images, bool mipmaps,
+                          bool sRGB);
+
+    void freeResources(ModelResources &resources);
+    void setMaterial(ModelResources &self, ModelResources &other, Texture texture, int index);
 };
