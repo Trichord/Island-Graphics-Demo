@@ -38,7 +38,8 @@ Model::Model(Model &&other) noexcept
 
 Model::~Model()
 {
-    texManager.releaseHandle(handle);
+    if (handle)
+        texManager.releaseHandle(handle);
 }
 
 AABB &Model::getAABB()
