@@ -7,32 +7,32 @@
  * 'Set relative' will adjust the current state by the amount in the parameter.
  * Rotation is given in degrees, for an x, y, and z. */
 
-class Transform {
- public:
-  Transform(glm::vec3 position = glm::vec3(0.0f),
-            glm::vec3 scale = glm::vec3(1.0f), float degrees = 0.0f,
-            glm::vec3 axis = glm::vec3(0.0f, 1.0f, 0.0f));
+class Transform
+{
+  public:
+    Transform(glm::vec3 position = glm::vec3(0.0f), glm::vec3 scale = glm::vec3(1.0f), float degrees = 0.0f,
+              glm::vec3 axis = glm::vec3(0.0f, 1.0f, 0.0f));
 
-  void setAbsolutePosition(glm::vec3 absolutePosition);
-  void setAbsoluteRotation(glm::vec3 absoluteRotation);
-  void setAbsoluteScale(glm::vec3 absoluteScale);
-  void setRelativePosition(glm::vec3 relativePosition);
-  void setRelativeRotation(glm::vec3 relativeRotation);
-  void setRelativeScale(glm::vec3 relativeScale);
-  void rotateAroundAxis(float degrees, glm::vec3 axis);
-  const glm::vec3& getPosition() const;
-  const glm::vec3& getScale() const;
-  glm::mat4& getModelMatrix();
-  glm::mat3& getNormalMatrix();
-  glm::vec3 getRotation() const;
+    void setAbsolutePosition(glm::vec3 absolutePosition);
+    void setAbsoluteRotation(glm::vec3 absoluteRotation);
+    void setAbsoluteScale(glm::vec3 absoluteScale);
+    void setRelativePosition(glm::vec3 relativePosition);
+    void setRelativeRotation(glm::vec3 relativeRotation);
+    void setRelativeScale(glm::vec3 relativeScale);
+    void rotateAroundAxis(float degrees, glm::vec3 axis);
+    const glm::vec3 &getPosition() const;
+    const glm::vec3 &getScale() const;
+    glm::mat4 &getModelMatrix();
+    glm::mat3 &getNormalMatrix();
+    glm::vec3 getRotation() const;
 
- private:
-  glm::vec3 position;
-  glm::vec3 scale;
-  glm::mat4 modelMatrix;
-  glm::mat3 normalMatrix;
-  glm::quat quaternion;
+  private:
+    glm::vec3 position{1.0f};
+    glm::vec3 scale{1.0f};
+    glm::mat4 modelMatrix{1.0f};
+    glm::mat3 normalMatrix{1.0f};
+    glm::quat quaternion{1.0f, 0.0f, 0.0f, 0.0f};
 
-  void rebuildModelMatrix();
-  bool isDirty{true};
+    void rebuildModelMatrix();
+    bool isDirty{true};
 };

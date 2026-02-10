@@ -1,51 +1,49 @@
 #pragma once
 
-#include <array>
 #include <filesystem>
+#include <span>
 #include <vector>
 
 #include "aabb.h"
-#include "glm/glm.hpp"
+#include "instance_data.h"
 #include "primitive.h"
 #include "renderable.h"
 #include "texture_manager.h"
-#include "gl_state.h"
 
-class Model : public Renderable {
- public:
-  Model(TextureManager& textureManager, const std::filesystem::path& path);
-  Model(TextureManager& textureManager, const Model& borrowTarget,
-        const std::filesystem::path& path);
-  Model(const Model&) = delete;
-  Model& operator=(const Model&) = delete;
-  Model(Model&& other) noexcept;
-  Model& operator=(Model&& other) = delete;
-  ~Model();
+class Model : public IRenderable
+{
+  public:
+    Model(TextureManager &textureManager, const std::filesystem::path &path);
+    Model(TextureManager &textureManager, const ModelHandle borrowHandle, const std::filesystem::path &path);
+    Model(const Model &) = delete;
+    Model &operator=(const Model &) = delete;
+    Model(Model &&other) noexcept;
+    Model &operator=(Model &&other) = delete;
+    ~Model();
 
-  /**
-   * @brief Model class's implementation of the Renderable interface.
-   *
-   * @details Draws each primitive in the mesh. Binds albdeo, ambient occlusion,
-   *  metallic, roughness, and normal map textures, if the model has them.
-   */
-  void render(GLState& glState) override;
-  bool performCulling(const std::array<glm::vec4, 6>& frustumPlanes,
-                      const glm::mat4& modelMatrix, const glm::vec3& cameraPos,
-                      const float cullDistanceScale) override;
+    /**
+     * @brief Model class's implementation of the Renderable interface.
+     *
+     * @details Draws each primitive in the mesh. Binds albdeo, ambient occlusion,
+     *  metallic, roughness, and normal map textures, if the model has them.
+     */
 
-  ModelHandle getModelHandle();
+    AABB &getAABB() override;
+    void resetVisibility() override;
+    const ModelHandle getHandle() const override;
+    std::size_t getInstanceCount() const override;
+    std::span<Primitive::Mesh> getMeshes() override;
+    std::span<InstanceData> getInstanceData() override;
+    void setVisibleInstanceCount(std::size_t newSize) override;
 
- protected:
-  ModelHandle handle{0};
-  TextureManager& texManager;
-  const std::vector<Material>& materials;
-  std::vector<Primitive::Mesh> meshes;
-  AABB aabb;
+  protected:
+    ModelHandle handle{0};
+    TextureManager &texManager;
+    std::vector<Primitive::Mesh> meshes;
+    AABB aabb;
 
-  void loadModel(const std::filesystem::path& path, bool borrowed);
-  void calculateAABB();
-  void bindTextures(GLState& glState, const Material& materials);
-  virtual void drawPrimitive(const Primitive& primitive);
-  void assignMaterialIndex(std::size_t newIndex);
-  bool hasMaterials() const;
+    void loadModel(const std::filesystem::path &path, bool borrowed);
+    void calculateAABB();
+    void assignMaterialIndex(std::size_t newIndex);
+    bool hasMaterials() const;
 };

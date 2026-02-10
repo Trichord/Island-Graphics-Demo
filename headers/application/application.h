@@ -13,14 +13,15 @@
  *
  * Also initializes OpenGL and passes settings from the config window to OpenGL.
  */
-class Application {
- public:
-  Application() = default;
-  Application(const Application&) = delete;
-  Application& operator=(const Application&) = delete;
-  Application(Application&& other) = delete;
-  Application& operator=(Application&& other) = delete;
-  void run();
+class Application
+{
+  public:
+    Application() = default;
+    Application(const Application &) = delete;
+    Application &operator=(const Application &) = delete;
+    Application(Application &&other) = delete;
+    Application &operator=(Application &&other) = delete;
+    void run();
 
  private:
   float deltaTime{0.0f};
@@ -30,39 +31,38 @@ class Application {
   static inline float lastMouseY{0.0f};
   GLFWwindow* window{nullptr};
 
-  /**
-   * @brief Creates a GLFW window.  Display settings from the config window are
-   * passed to GLFW here.
-   */
-  void createWindow(const ConfigWindow::GraphicsSettings& graphicsSettings);
+    /**
+     * @brief Creates a GLFW window.  Display settings from the config window are
+     * passed to GLFW here.
+     */
+    void createWindow(const ConfigWindow::GraphicsSettings &graphicsSettings);
 
-  /**
-   * @brief Checks for GLFW key presses and passes info to the scene.
-   *
-   * @param scene The target scene.
-   */
-  void processInput(Scene& scene);
+    /**
+     * @brief Checks for GLFW key presses and passes info to the scene.
+     *
+     * @param scene The target scene.
+     */
+    void processInput(Scene &scene);
 
-  /**
-   * @brief Registers OpenGL function pointers, creates an OpenGL viewport, and
-   * optionally sets MSAA.
-   */
-  void createOpenGLViewport(
-      const ConfigWindow::GraphicsSettings& graphicsSettings);
+    /**
+     * @brief Registers OpenGL function pointers, creates an OpenGL viewport, and
+     * optionally sets MSAA.
+     */
+    void createOpenGLViewport(const ConfigWindow::GraphicsSettings &graphicsSettings);
 
-  /**
-   * @brief Registers GLFW callbacks.  Mouse callback is seperate and should be
-   * registered last with centerMouse()
-   */
-  void registerCallbacks();
+    /**
+     * @brief Registers GLFW callbacks.  Mouse callback is seperate and should be
+     * registered last with centerMouse()
+     */
+    void registerCallbacks();
 
-  /**
-   * @brief Registers a scene with GLFW to be used with GLFW's built in
-   * call-backs.
-   *
-   * @param scene The target scene to be processed by GLFW.
-   */
-  void addGlfwUserParam(Scene& scene);
+    /**
+     * @brief Registers a scene with GLFW to be used with GLFW's built in
+     * call-backs.
+     *
+     * @param scene The target scene to be processed by GLFW.
+     */
+    void addGlfwUserParam(Scene &scene);
 
   /**
    * @brief Per-frame update logic.

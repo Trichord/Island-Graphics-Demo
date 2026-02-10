@@ -11,166 +11,175 @@
 #include "renderer.h"
 #include "scene.h"
 
-void Application::run() {
-  ConfigWindow configWindow;
-  ConfigWindow::GraphicsSettings graphicsSettings;
+void Application::run()
+{
+    ConfigWindow configWindow;
+    ConfigWindow::GraphicsSettings graphicsSettings;
 
-  if (!configWindow.launchSettingsWindow(graphicsSettings)) return;
+    if (!configWindow.launchSettingsWindow(graphicsSettings))
+        return;
 
-  createWindow(graphicsSettings);
-  if (!window) return;
+    createWindow(graphicsSettings);
+    if (!window)
+        return;
 
-  createOpenGLViewport(graphicsSettings);
-  registerCallbacks();
+    createOpenGLViewport(graphicsSettings);
+    registerCallbacks();
 
-  Renderer renderer(graphicsSettings);
+    Renderer renderer(graphicsSettings);
 
-  IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
+    IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
 
-  addGlfwUserParam(islandScene);
+    renderer.initializeResources(islandScene);
+    renderer.updateUBO(islandScene);
+    renderer.allResourcesLoaded();
 
-  renderer.updateUBO(islandScene);
+    addGlfwUserParam(islandScene);
 
-  // Average FPS
-  double totalTime{0};
-  double framesRendered{0};
+    // Average FPS
+    double totalTime{0};
+    double framesRendered{0};
 
-  while (!glfwWindowShouldClose(window)) {
-    // Delta Time
-    currentFrame = (float)glfwGetTime();
-    deltaTime = currentFrame - lastFrame;
-    lastFrame = currentFrame;
+    while (!glfwWindowShouldClose(window))
+    {
+        // Delta Time
+        currentFrame = (float)glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
 
-    // Final FPS count
-    totalTime += deltaTime;
-    framesRendered++;
+        // Final FPS count
+        totalTime += deltaTime;
+        ++framesRendered;
 
-    // Update GPU shared buffer if camera has moved
-    if (islandScene.camera.hasUpdated()) renderer.updateUBO(islandScene);
+        // Update scene objects
+        onUpdate(islandScene);
 
-    // Update scene objects
-    onUpdate(islandScene, deltaTime);
+        // Draw
+        renderer.renderScene(islandScene);
 
-    // Draw
-    renderer.renderScene(islandScene);
+        glfwSwapBuffers(window);
 
-    glfwSwapBuffers(window);
+        // User input
+        glfwPollEvents();
+        processInput(islandScene);
+    }
 
-    // User input
-    glfwPollEvents();
-    processInput(islandScene);
-  }
-
-  glfwTerminate();
-  std::cout << "Average FPS: " << framesRendered / totalTime << std::endl;
-  return;
-}
-
-void Application::createWindow(
-    const ConfigWindow::GraphicsSettings& graphicsSettings) {
-  glfwInit();
-
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-  glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
-
-  if (graphicsSettings.msaa)
-    glfwWindowHint(GLFW_SAMPLES, graphicsSettings.msaa);
-
-  int width{graphicsSettings.screenWidth};
-  int height{graphicsSettings.screenHeight};
-
-  if (graphicsSettings.fullscreen)
-    window = glfwCreateWindow(width, height, "Island Graphics Demo",
-                              glfwGetPrimaryMonitor(), nullptr);
-
-  else
-    window =
-        glfwCreateWindow(width, height, "Island Graphics Demo", NULL, NULL);
-
-  if (!window) {
-    std::cout << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
-  }
-
-  glfwMakeContextCurrent(window);
-
-  if (graphicsSettings.vsync)
-    glfwSwapInterval(1);
-
-  else
-    glfwSwapInterval(0);
+    std::cout << "Average FPS: " << framesRendered / totalTime << std::endl;
+    return;
 }
 
-void Application::createOpenGLViewport(
-    const ConfigWindow::GraphicsSettings& graphicsSettings) {
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-    std::cout << "Failed to initialize GLAD" << std::endl;
-    glfwTerminate();
-    return;
-  }
+void Application::createWindow(const ConfigWindow::GraphicsSettings &graphicsSettings)
+{
+    glfwInit();
 
-  GLsizei width{static_cast<GLsizei>(graphicsSettings.screenWidth)};
-  GLsizei height{static_cast<GLsizei>(graphicsSettings.screenHeight)};
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_DEPTH_BITS, 32);
 
-  glViewport(0, 0, width, height);
-  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_CULL_FACE);
-  glEnable(GL_FRAMEBUFFER_SRGB);
-  glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    if (graphicsSettings.msaa)
+        glfwWindowHint(GLFW_SAMPLES, graphicsSettings.msaa);
 
-  if (graphicsSettings.msaa) glEnable(GL_MULTISAMPLE);
+    int width{graphicsSettings.screenWidth};
+    int height{graphicsSettings.screenHeight};
+
+    if (graphicsSettings.fullscreen)
+        window = glfwCreateWindow(width, height, "Island Graphics Demo", glfwGetPrimaryMonitor(), nullptr);
+
+    else
+        window = glfwCreateWindow(width, height, "Island Graphics Demo", NULL, NULL);
+
+    if (!window)
+    {
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+    }
+
+    glfwMakeContextCurrent(window);
+
+    if (graphicsSettings.vsync)
+        glfwSwapInterval(1);
+
+    else
+        glfwSwapInterval(0);
 }
 
-void Application::processInput(Scene& scene) {
-  using enum CameraMovement;
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-    glfwSetWindowShouldClose(window, GLFW_TRUE);
-    return;
-  }
+void Application::createOpenGLViewport(const ConfigWindow::GraphicsSettings &graphicsSettings)
+{
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        glfwTerminate();
+        return;
+    }
 
-  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    scene.camera.processKeyboard(FORWARD, deltaTime);
+    GLsizei width{static_cast<GLsizei>(graphicsSettings.screenWidth)};
+    GLsizei height{static_cast<GLsizei>(graphicsSettings.screenHeight)};
 
-  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    scene.camera.processKeyboard(BACKWARD, deltaTime);
+    glViewport(0, 0, width, height);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    scene.camera.processKeyboard(LEFT, deltaTime);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_FRAMEBUFFER_SRGB);
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
 
-  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    scene.camera.processKeyboard(RIGHT, deltaTime);
+void Application::processInput(Scene &scene)
+{
+    using enum CameraMovement;
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+        return;
+    }
 
-  if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-    scene.camera.processKeyboard(UP, deltaTime);
+    const bool sprint{glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS};
 
-  if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-    scene.camera.processKeyboard(DOWN, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        scene.getCamera().processKeyboard(FORWARD, deltaTime, sprint);
+
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        scene.getCamera().processKeyboard(BACKWARD, deltaTime, sprint);
+
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        scene.getCamera().processKeyboard(LEFT, deltaTime, sprint);
+
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        scene.getCamera().processKeyboard(RIGHT, deltaTime, sprint);
+
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        scene.getCamera().processKeyboard(UP, deltaTime, sprint);
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        scene.getCamera().processKeyboard(DOWN, deltaTime, sprint);
 }
 
 void Application::mouse_callback(GLFWwindow* window, double xPos, double yPos) {
   static bool firstMouse{true};
 
-  if (firstMouse) {
+    if (firstMouse)
+    {
+        lastMouseX = (float)xPos;
+        lastMouseY = (float)yPos;
+        firstMouse = false;
+    }
+
+    float xOffset{(float)(xPos - lastMouseX)};
+    float yOffset{(float)(lastMouseY - yPos)};
+
     lastMouseX = (float)xPos;
     lastMouseY = (float)yPos;
-    firstMouse = false;
-  }
 
-  float xOffset{(float)(xPos - lastMouseX)};
-  float yOffset{(float)(lastMouseY - yPos)};
+    auto scenePointer = static_cast<IslandScene *>(glfwGetWindowUserPointer(window));
 
-  lastMouseX = (float)xPos;
-  lastMouseY = (float)yPos;
-
-  auto scenePointer =
-      static_cast<IslandScene*>(glfwGetWindowUserPointer(window));
-
-  if (scenePointer)
-    scenePointer->camera.processMouseMovement(xOffset, yOffset, GL_TRUE);
+    if (scenePointer)
+        scenePointer->getCamera().processMouseMovement(xOffset, yOffset);
 }
 
 void Application::registerCallbacks() {

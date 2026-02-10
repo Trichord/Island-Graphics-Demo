@@ -1,62 +1,78 @@
 #pragma once
 
 #include <array>
+
 #include "glm/glm.hpp"
+#include "world_vectors.h"
 
-inline constexpr float defaultCameraYaw{90.0f};
-inline constexpr float defaultCameraPitch{0.0f};
-inline constexpr float defaultCameraSpeed{5.0f};
-inline constexpr float defaultCameraSensitivity{0.1f};
-inline constexpr float defaultCameraZoom{45.0f};
-inline constexpr float defaultCameraNearPlane{0.1f};
-inline constexpr float defaultCameraFarPlane{475.0f};
+namespace cameraDefaultValues
+{
+constexpr float yaw{90.0f};
+constexpr float pitch{0.0f};
+constexpr float maxPitch{85.0f};
+constexpr float minPitch{-maxPitch};
 
-enum class CameraMovement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
+constexpr float speed{5.0f};
+constexpr float sensitivity{0.1f};
 
-class Camera {
- public:
-  Camera();
-  Camera(glm::vec3 pos,
-         glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f),
-         float y = defaultCameraYaw, float p = defaultCameraPitch);
-  Camera(float posX,
-         float posY, float posZ, float upX, float upY, float upZ,
-         float yaw, float pitch);
+constexpr float fov{45.0f};
+constexpr float nearPlane{0.1f};
+constexpr float farPlane{850.0f};
+constexpr float aspectRatio{16.0f / 9.0f};
+} // namespace cameraDefaultValues
 
-  const glm::mat4& getViewMatrix();
-  const glm::mat4& getViewMatrixNoTranslation();
-  const glm::mat4& getProjectionMatrix();
-  const glm::mat4& getViewProjectionMatrix();
-  const std::array<glm::vec4, 6>& getFrustumPlanes();
+enum class CameraMovement
+{
+    FORWARD,
+    BACKWARD,
+    LEFT,
+    RIGHT,
+    UP,
+    DOWN
+};
 
-  void processKeyboard(CameraMovement direction, float deltaTime);
-  void processMouseMovement(float xoffset, float yoffset,
-                            bool constrainPitch = true);
-  bool hasUpdated();
-  const glm::vec3& getPosition() const;
-  void setAspectRatio(float ratio);
-  void setPosition(const glm::vec3&& newPosition);
+class Camera
+{
+  public:
+    Camera(glm::vec3 position = glm::vec3{0.0f}, float yaw = cameraDefaultValues::yaw,
+           float pitch = cameraDefaultValues::pitch);
 
- private:
-  float aspectRatio{16.0f / 9.0f};
-  float yaw{defaultCameraYaw};
-  float pitch{defaultCameraPitch};
-  float movementSpeed{defaultCameraSpeed};
-  float mouseSensitivity{defaultCameraSensitivity};
-  bool hasChanged{false};
-  bool dirtyMatrices{true};
-  glm::vec3 position{0.0f};
-  glm::vec3 front{0.0f, 0.0f, -1.0f};
-  glm::vec3 right;
-  glm::vec3 up;
-  glm::vec3 worldUp{0.0f, 1.0f, 0.0f};
-  glm::mat4 viewMatrix{1.0f};
-  glm::mat4 viewMatrixNoTranslation{1.0f};
-  glm::mat4 projectionMatrix{1.0f};
-  glm::mat4 viewProjectionMatrix{1.0f};
-  std::array<glm::vec4, 6> frustumPlanes;
+    bool hasUpdated();
 
-  glm::mat4 createProjectionMatrix();
-  void updateCameraVectors();
-  void updateCameraMatrices();
+    float getYaw() const;
+    float getPitch() const;
+    const glm::vec3 &getPosition() const;
+
+    const glm::mat4 &getViewMatrix();
+    const glm::mat4 &getProjectionMatrix();
+    const glm::mat4 &getViewProjectionMatrix();
+    const std::array<glm::vec4, 6> &getFrustumPlanes();
+
+    void resetFOV();
+    void setYaw(float newYaw);
+    void setPitch(float newPitch);
+    void setFOV(float fov, float aspectRatio);
+    void setPosition(const glm::vec3 &newPosition);
+    void setWorldOrientation(WorldOrientation orientation);
+
+    void processMouseMovement(float xOffset, float yOffset);
+    void processKeyboard(CameraMovement direction, float deltaTime, bool sprint = false);
+
+  private:
+    float yaw{0.0f};
+    float pitch{0.0f};
+    glm::vec3 position{0.0f};
+    glm::mat4 viewMatrix{1.0f};
+    glm::mat4 projectionMatrix{1.0f};
+    glm::mat4 viewProjectionMatrix{1.0f};
+
+    bool hasChanged{false};
+    bool dirtyMatrices{true};
+
+    // Left, Right, Top, Bottom, Near, Far
+    std::array<glm::vec4, 6> frustumPlanes{glm::vec4{}, glm::vec4{}, glm::vec4{},
+                                           glm::vec4{}, glm::vec4{}, glm::vec4{}};
+
+    void updateMatrices();
+    glm::vec3 createFront();
 };

@@ -15,49 +15,57 @@ constexpr int GUIWidth{1024};
 constexpr int GUIHeight{576};
 constexpr int numColumns{2};
 constexpr float baseFontSize = 22.0f;
-}  // namespace
+} // namespace
 
-ConfigWindow::~ConfigWindow() {
-  if (textureID) glDeleteTextures(1, &textureID);
+ConfigWindow::~ConfigWindow()
+{
+    if (textureID)
+        glDeleteTextures(1, &textureID);
 }
 
-static void glfw_error_callback(int error, const char* description) {
-  std::cerr << "GLFW Error " << error << description << std::endl;
+static void glfw_error_callback(int error, const char *description)
+{
+    std::cerr << "GLFW Error " << error << description << std::endl;
 }
 
-bool ConfigWindow::launchSettingsWindow(GraphicsSettings& settings) {
-  if (!createWindow()) return false;
+bool ConfigWindow::launchSettingsWindow(GraphicsSettings &settings)
+{
+    if (!createWindow())
+        return false;
 
-  loadConfigWindowImage();
+    loadConfigWindowImage();
 
-  setupImGui();
+    setupImGui();
 
-  bool settingsConfirmed{renderImGui(settings)};
+    bool settingsConfirmed{renderImGui(settings)};
 
-  // Cleanup
-  ImGui_ImplOpenGL3_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
-  ImGui::DestroyContext();
+    // Cleanup
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
-  glfwDestroyWindow(window);
-  glfwTerminate();
+    glfwDestroyWindow(window);
+    glfwTerminate();
 
-  if (textureID) glDeleteTextures(1, &textureID);
+    if (textureID)
+        glDeleteTextures(1, &textureID);
 
-  return settingsConfirmed;
+    return settingsConfirmed;
 }
 
-bool ConfigWindow::createWindow() {
-  // Init window
-  glfwSetErrorCallback(glfw_error_callback);
-  if (!glfwInit()) return false;
+bool ConfigWindow::createWindow()
+{
+    // Init window
+    glfwSetErrorCallback(glfw_error_callback);
+    if (!glfwInit())
+        return false;
 
-  // Hints
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
-  glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    // Hints
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
   // Create window with graphics context
   float windowScale{
@@ -67,7 +75,8 @@ bool ConfigWindow::createWindow() {
                             "Island Graphics Demo - Display Settings", nullptr,
                             nullptr);
 
-  if (!window) return false;
+    if (!window)
+        return false;
 
   // Make current context
   glfwMakeContextCurrent(window);
@@ -79,35 +88,34 @@ bool ConfigWindow::createWindow() {
   return true;
 }
 
-void ConfigWindow::setupImGui() {
-  // Create ImGui context
-  const char* glsl_version = "#version 460";
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
+void ConfigWindow::setupImGui()
+{
+    // Create ImGui context
+    const char *glsl_version = "#version 460";
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
 
-  // Enable Keyboard Controls
-  ImGuiIO& io = ImGui::GetIO();
-  (void)io;
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    // Enable Keyboard Controls
+    ImGuiIO &io = ImGui::GetIO();
+    (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-  // Configure backend rendering
-  ImGui_ImplGlfw_InitForOpenGL(window, true);
-  ImGui_ImplOpenGL3_Init(glsl_version);
+    // Configure backend rendering
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init(glsl_version);
 
-  // Get window scale for font size
-  float windowScale{
-      ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
+    // Get window scale for font size
+    float windowScale{ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
 
-  // Custom font
-  io.Fonts->AddFontFromFileTTF("./res/Inter_18pt-Black.ttf",
-                               baseFontSize * windowScale);
+    // Custom font
+    io.Fonts->AddFontFromFileTTF("./res/Inter_18pt-Black.ttf", baseFontSize * windowScale);
 
-  // Set Style
-  ImGui::StyleColorsDark();
+    // Set Style
+    ImGui::StyleColorsDark();
 
-  // Scale all elements
-  ImGuiStyle& style = ImGui::GetStyle();
-  style.ScaleAllSizes(windowScale);
+    // Scale all elements
+    ImGuiStyle &style = ImGui::GetStyle();
+    style.ScaleAllSizes(windowScale);
 }
 
 bool ConfigWindow::renderImGui(GraphicsSettings& settings) {
@@ -156,161 +164,165 @@ bool ConfigWindow::renderImGui(GraphicsSettings& settings) {
           resolutionPreviewValue = resolutions[resolutionSelectedIndex];
           updateResolution(settings, i);
         }
-        if (isResolutionSelected) ImGui::SetItemDefaultFocus();
-      }
-      ImGui::EndCombo();
-    }
-    ImGui::Spacing();
+        ImGui::Spacing();
 
-    ImGui::Checkbox("Fullscreen", &settings.fullscreen);
-    ImGui::Spacing();
+        ImGui::Checkbox("Fullscreen", &settings.fullscreen);
+        ImGui::Spacing();
 
-    ImGui::Checkbox("VSync", &settings.vsync);
-    ImGui::Spacing();
+        ImGui::Checkbox("VSync", &settings.vsync);
+        ImGui::Spacing();
 
-    // Gamma
-    ImGui::Text("Gamma");
-    ImGui::SliderFloat("##gammaSlider", &settings.gamma, 0.8f, 1.3f, "%.2f",
-                       ImGuiSliderFlags_ClampOnInput);
-    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort |
-                             ImGuiHoveredFlags_NoSharedDelay))
-      ImGui::SetTooltip("Ctrl + Click to edit",
-                        ImGui::GetStyle().HoverDelayShort);
+        // Gamma
+        ImGui::Text("Gamma");
+        ImGui::SliderFloat("##gammaSlider", &settings.gamma, 0.8f, 1.3f, "%.2f", ImGuiSliderFlags_ClampOnInput);
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_NoSharedDelay))
+            ImGui::SetTooltip("Ctrl + Click to edit", ImGui::GetStyle().HoverDelayShort);
 
-    // Advanced options
-    ImGui::NewLine();
-    ImGui::SeparatorText("Advanced Options");
-    ImGui::Spacing();
+        // Advanced options
+        ImGui::NewLine();
+        ImGui::SeparatorText("Advanced Options");
+        ImGui::Spacing();
 
-    // MSAA
-    ImGui::Text("MSAA");
-    if (ImGui::BeginCombo("##msaaCombo", msaaPreviewValue,
-                          ImGuiComboFlags_HeightLargest)) {
-      for (int i = 0; i < msaaLevel.size(); ++i) {
-        const bool isMSAASelected{msaaSelectedIndex == i};
-        if (ImGui::Selectable(msaaLevel[i], isMSAASelected)) {
-          msaaSelectedIndex = i;
-          msaaPreviewValue = msaaLevel[msaaSelectedIndex];
-          updateMSAA(settings, i);
+        // MSAA
+        ImGui::Text("MSAA");
+        if (ImGui::BeginCombo("##msaaCombo", msaaPreviewValue, ImGuiComboFlags_HeightLargest))
+        {
+            for (int i = 0; i < msaaLevel.size(); ++i)
+            {
+                const bool isMSAASelected{msaaSelectedIndex == i};
+                if (ImGui::Selectable(msaaLevel[i], isMSAASelected))
+                {
+                    msaaSelectedIndex = i;
+                    msaaPreviewValue = msaaLevel[msaaSelectedIndex];
+                    updateMSAA(settings, i);
+                }
+                if (isMSAASelected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
         }
-        if (isMSAASelected) ImGui::SetItemDefaultFocus();
-      }
-      ImGui::EndCombo();
-    }
 
-    ImGui::Spacing();
+        ImGui::Spacing();
 
-    // Anisotropic filtering
-    ImGui::Text("Anisotropic Filtering");
-    if (ImGui::BeginCombo("##anisoCombo", anisoPreviewValue,
-                          ImGuiComboFlags_HeightLargest)) {
-      for (int i = 0; i < anisoLevel.size(); ++i) {
-        const bool isAnisoSelected{anisoSelectedIndex == i};
-        if (ImGui::Selectable(anisoLevel[i], isAnisoSelected)) {
-          anisoSelectedIndex = i;
-          anisoPreviewValue = anisoLevel[anisoSelectedIndex];
-          updateAniso(settings, i);
+        // Anisotropic filtering
+        ImGui::Text("Anisotropic Filtering");
+        if (ImGui::BeginCombo("##anisoCombo", anisoPreviewValue, ImGuiComboFlags_HeightLargest))
+        {
+            for (int i = 0; i < anisoLevel.size(); ++i)
+            {
+                const bool isAnisoSelected{anisoSelectedIndex == i};
+                if (ImGui::Selectable(anisoLevel[i], isAnisoSelected))
+                {
+                    anisoSelectedIndex = i;
+                    anisoPreviewValue = anisoLevel[anisoSelectedIndex];
+                    updateAniso(settings, i);
+                }
+                if (isAnisoSelected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
         }
-        if (isAnisoSelected) ImGui::SetItemDefaultFocus();
-      }
-      ImGui::EndCombo();
+
+        // end of display settigns
+        ImGui::PopItemWidth();
+        ImGui::EndGroup();
+
+        // start of image group
+        ImGui::SameLine();
+        ImGui::BeginGroup();
+
+        // Image
+        ImGui::Image((ImTextureID)(intptr_t)textureID,
+                     ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x));
+
+        // end of image and display settings
+        ImGui::EndGroup();
+
+        // end of display settings, image, and advanced options group
+        ImGui::EndGroup();
+
+        // Buttons
+        const float buttonHeight{ImGui::GetFrameHeight()};
+        const ImVec2 windowPadding{ImGui::GetStyle().WindowPadding};
+        const ImVec2 windowSize{ImGui::GetWindowSize()};
+        const ImVec2 windowPosition{ImGui::GetWindowPos()};
+
+        // Cancel button
+        float cancelX{windowPadding.x};
+        float cancelY{windowPosition.y + windowSize.y - buttonHeight - windowPadding.y};
+
+        ImGui::SetCursorScreenPos(ImVec2{cancelX, cancelY});
+        if (ImGui::Button("Cancel"))
+            glfwSetWindowShouldClose(window, true);
+
+        ImGui::SameLine();
+
+        // Confirm button
+        float confirmButtonWidth{ImGui::CalcTextSize("Confirm").x};
+
+        float confirmXPos{windowPosition.x + windowSize.x - (windowPadding.x * 2.0f) - confirmButtonWidth};
+
+        float confirmYPos{windowPosition.y + windowSize.y - buttonHeight - windowPadding.y};
+
+        ImGui::SetCursorScreenPos(ImVec2{confirmXPos, confirmYPos});
+        if (ImGui::Button("Confirm"))
+        {
+            settingsConfirmed = true;
+            glfwSetWindowShouldClose(window, true);
+        }
+
+        // End
+        ImGui::End();
+
+        // Rendering
+        ImGui::Render();
+        int displayWidth{0};
+        int displayHeight{0};
+        glfwGetFramebufferSize(window, &displayWidth, &displayHeight);
+        glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
     }
 
-    // end of display settigns
-    ImGui::PopItemWidth();
-    ImGui::EndGroup();
+    return settingsConfirmed;
+}
 
-    // start of image group
-    ImGui::SameLine();
-    ImGui::BeginGroup();
+void ConfigWindow::loadConfigWindowImage()
+{
+    ImageLoader imageLoader{"./res/textures/wireframe_sphere.png"};
+    std::vector<LoadedImage> imageData{imageLoader.getImageData()};
 
-    // Image
-    ImGui::Image((ImTextureID)(intptr_t)textureID,
-                 ImVec2(ImGui::GetContentRegionAvail().x,
-                        ImGui::GetContentRegionAvail().x));
-
-    // end of image and display settings
-    ImGui::EndGroup();
-
-    // end of display settings, image, and advanced options group
-    ImGui::EndGroup();
-
-    // Buttons
-    const float buttonHeight{ImGui::GetFrameHeight()};
-    const ImVec2 windowPadding{ImGui::GetStyle().WindowPadding};
-    const ImVec2 windowSize{ImGui::GetWindowSize()};
-    const ImVec2 windowPosition{ImGui::GetWindowPos()};
-
-    // Cancel button
-    float cancelX{windowPadding.x};
-    float cancelY{windowPosition.y + windowSize.y - buttonHeight -
-                  windowPadding.y};
-
-    ImGui::SetCursorScreenPos(ImVec2{cancelX, cancelY});
-    if (ImGui::Button("Cancel")) glfwSetWindowShouldClose(window, true);
-
-    ImGui::SameLine();
-
-    // Confirm button
-    float confirmButtonWidth{ImGui::CalcTextSize("Confirm").x};
-
-    float confirmXPos{windowPosition.x + windowSize.x -
-                      (windowPadding.x * 2.0f) - confirmButtonWidth};
-
-    float confirmYPos{windowPosition.y + windowSize.y - buttonHeight -
-                      windowPadding.y};
-
-    ImGui::SetCursorScreenPos(ImVec2{confirmXPos, confirmYPos});
-    if (ImGui::Button("Confirm")) {
-      settingsConfirmed = true;
-      glfwSetWindowShouldClose(window, true);
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        return;
     }
 
-    // End
-    ImGui::End();
+    if (!imageData.size())
+        return;
 
-    // Rendering
-    ImGui::Render();
-    int displayWidth{0};
-    int displayHeight{0};
-    glfwGetFramebufferSize(window, &displayWidth, &displayHeight);
-    glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-    glfwSwapBuffers(window);
-    glfwPollEvents();
-  }
-
-  return settingsConfirmed;
+    textureID = textureUtilities::generateTextureID(imageData[0], Sampler{}, TextureDetails{}, false);
 }
 
-void ConfigWindow::loadConfigWindowImage() {
-  ImageLoader imageLoader{"./res/textures/wireframe_sphere.png"};
-  std::vector<LoadedImage> imageData{imageLoader.getImageData()};
-
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-    std::cout << "Failed to initialize GLAD" << std::endl;
-    return;
-  }
-
-  if (!imageData.size()) return;
-
-  textureID = textureUtilities::generateTextureID(imageData[0], Sampler{},
-                                                  TextureConfig{}, false);
+void ConfigWindow::updateResolution(GraphicsSettings &settings, int index)
+{
+    if (index < resolutionTable.size())
+    {
+        settings.screenWidth = resolutionTable[index].first;
+        settings.screenHeight = resolutionTable[index].second;
+    }
 }
 
-void ConfigWindow::updateResolution(GraphicsSettings& settings, int index) {
-  if (index < resolutionTable.size()) {
-    settings.screenWidth = resolutionTable[index].first;
-    settings.screenHeight = resolutionTable[index].second;
-  }
+void ConfigWindow::updateMSAA(GraphicsSettings &settings, int index)
+{
+    if (index < msaaTable.size())
+        settings.msaa = msaaTable[index];
 }
-
-void ConfigWindow::updateMSAA(GraphicsSettings& settings, int index) {
-  if (index < msaaTable.size()) settings.msaa = msaaTable[index];
-}
-void ConfigWindow::updateAniso(GraphicsSettings& settings, int index) {
-  if (index < anisoTable.size())
-    settings.anisotropicFiltering = anisoTable[index];
+void ConfigWindow::updateAniso(GraphicsSettings &settings, int index)
+{
+    if (index < anisoTable.size())
+        settings.anisotropicFiltering = anisoTable[index];
 }
