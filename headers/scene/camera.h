@@ -17,7 +17,7 @@ constexpr float sensitivity{0.1f};
 
 constexpr float fov{45.0f};
 constexpr float nearPlane{0.1f};
-constexpr float farPlane{800.0f};
+constexpr float farPlane{850.0f};
 constexpr float aspectRatio{16.0f / 9.0f};
 } // namespace cameraDefaultValues
 
