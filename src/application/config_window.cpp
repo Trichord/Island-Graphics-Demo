@@ -10,7 +10,8 @@
 #include "imgui_impl_opengl3.h"
 #include "texture_utilities.h"
 
-namespace {
+namespace
+{
 constexpr int GUIWidth{1024};
 constexpr int GUIHeight{576};
 constexpr int numColumns{2};
@@ -67,25 +68,22 @@ bool ConfigWindow::createWindow()
     glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-  // Create window with graphics context
-  float windowScale{
-      ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
-  window = glfwCreateWindow(static_cast<int>(GUIWidth * windowScale),
-                            static_cast<int>(GUIHeight * windowScale),
-                            "Island Graphics Demo - Display Settings", nullptr,
-                            nullptr);
+    // Create window with graphics context
+    float windowScale{ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
+    window = glfwCreateWindow(static_cast<int>(GUIWidth * windowScale), static_cast<int>(GUIHeight * windowScale),
+                              "Island Graphics Demo - Display Settings", nullptr, nullptr);
 
     if (!window)
         return false;
 
-  // Make current context
-  glfwMakeContextCurrent(window);
-  glfwSwapInterval(1);
+    // Make current context
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
 
-  // Refocus
-  glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
+    // Refocus
+    glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
 
-  return true;
+    return true;
 }
 
 void ConfigWindow::setupImGui()
@@ -118,51 +116,55 @@ void ConfigWindow::setupImGui()
     style.ScaleAllSizes(windowScale);
 }
 
-bool ConfigWindow::renderImGui(GraphicsSettings& settings) {
-  bool settingsConfirmed{false};
+bool ConfigWindow::renderImGui(GraphicsSettings &settings)
+{
+    bool settingsConfirmed{false};
 
-  // Loop until settings are confirmed
-  while (!glfwWindowShouldClose(window)) {
-    // Start the Dear ImGui frame
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
+    // Loop until settings are confirmed
+    while (!glfwWindowShouldClose(window))
+    {
+        // Start the Dear ImGui frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
 
-    ImGuiViewport* imGuiViewPort{ImGui::GetMainViewport()};
+        ImGuiViewport *imGuiViewPort{ImGui::GetMainViewport()};
 
-    // Size
-    float dpi{imGuiViewPort->DpiScale};
-    ImGui::SetNextWindowSize(ImVec2{GUIWidth * dpi, GUIHeight * dpi},
-                             ImGuiCond_Always);
+        // Size
+        float dpi{imGuiViewPort->DpiScale};
+        ImGui::SetNextWindowSize(ImVec2{GUIWidth * dpi, GUIHeight * dpi}, ImGuiCond_Always);
 
-    // Center
-    ImVec2 imguiCenter{imGuiViewPort->GetCenter()};
-    ImGui::SetNextWindowPos(imguiCenter, ImGuiCond_Always, ImVec2{0.5f, 0.5f});
+        // Center
+        ImVec2 imguiCenter{imGuiViewPort->GetCenter()};
+        ImGui::SetNextWindowPos(imguiCenter, ImGuiCond_Always, ImVec2{0.5f, 0.5f});
 
-    // Dear ImGUI window
-    ImGui::Begin("Island Graphics Demo - Display Settings", NULL,
-                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
-                     ImGuiWindowFlags_NoTitleBar);
+        // Dear ImGUI window
+        ImGui::Begin("Island Graphics Demo - Display Settings", NULL,
+                     ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
-    // start of display settings, image, and advanced options group
-    ImGui::BeginGroup();
+        // start of display settings, image, and advanced options group
+        ImGui::BeginGroup();
 
-    // start of display settings group
-    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x / numColumns);
-    ImGui::BeginGroup();
-    ImGui::SeparatorText("Display Settings");
-    ImGui::Spacing();
+        // start of display settings group
+        ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x / numColumns);
+        ImGui::BeginGroup();
+        ImGui::SeparatorText("Display Settings");
+        ImGui::Spacing();
 
-    // Resolution
-    ImGui::Text("Resolution");
-    if (ImGui::BeginCombo("##resolutionCombo", resolutionPreviewValue,
-                          ImGuiComboFlags_HeightLargest)) {
-      for (int i = 0; i < resolutions.size(); ++i) {
-        const bool isResolutionSelected{resolutionSelectedIndex == i};
-        if (ImGui::Selectable(resolutions[i], isResolutionSelected)) {
-          resolutionSelectedIndex = i;
-          resolutionPreviewValue = resolutions[resolutionSelectedIndex];
-          updateResolution(settings, i);
+        // Resolution
+        ImGui::Text("Resolution");
+        if (ImGui::BeginCombo("##resolutionCombo", resolutionPreviewValue, ImGuiComboFlags_HeightLargest))
+        {
+            for (int i = 0; i < resolutions.size(); ++i)
+            {
+                const bool isResolutionSelected{resolutionSelectedIndex == i};
+                if (ImGui::Selectable(resolutions[i], isResolutionSelected))
+                {
+                    resolutionSelectedIndex = i;
+                    resolutionPreviewValue = resolutions[resolutionSelectedIndex];
+                    updateResolution(settings, i);
+                }
+            }
         }
         ImGui::Spacing();
 
