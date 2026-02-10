@@ -31,6 +31,7 @@ void Application::run()
 
     renderer.initializeResources(islandScene);
     renderer.updateUBO(islandScene);
+    renderer.allResourcesLoaded();
 
     addGlfwUserParam(islandScene);
 
@@ -47,11 +48,7 @@ void Application::run()
 
         // Final FPS count
         totalTime += deltaTime;
-        framesRendered++;
-
-        // Update GPU shared buffer if camera has moved
-        if (islandScene.getCamera().hasUpdated())
-            renderer.updateUBO(islandScene);
+        ++framesRendered;
 
         // Update scene objects
         onUpdate(islandScene);

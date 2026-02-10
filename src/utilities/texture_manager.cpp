@@ -4,7 +4,6 @@
 #include <iostream>
 #include <unordered_map>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include "fastgltf/types.hpp"
@@ -15,19 +14,20 @@
 #include "texture_utilities.h"
 #include "thread_pool.h"
 
-constexpr unsigned int threadCount{6u};
-
-void TextureManager::queueModel(const ModelHandle handle, fastgltf::Asset &&asset,
-                                const std::filesystem::path &parentPath)
+TextureManager::TextureManager(ThreadPool &threadPool) : threadPool{threadPool}
 {
-    textureCreationQueue.emplace(std::move(asset), handle, parentPath);
 }
 
-void TextureManager::queueCubemap(const ModelHandle handle, std::vector<std::filesystem::path> imagePaths,
-                                  const std::filesystem::path &parentPath, bool mipMaps, bool sRGB)
+void TextureManager::loadModel(const ModelHandle handle, fastgltf::Asset &&asset,
+                               const std::filesystem::path &parentPath)
 {
-    // No anisotropic filtering on cubemaps
-    textureCreationQueue.emplace(std::move(imagePaths), handle, parentPath, mipMaps, sRGB, false);
+    textureFromAsset(asset, handle, parentPath);
+}
+
+void TextureManager::loadCubemap(const ModelHandle handle, std::vector<std::filesystem::path> imagePaths,
+                                 const std::filesystem::path &parentPath, bool mipmaps, bool sRGB)
+{
+    cubemapFromPaths(handle, std::move(imagePaths), mipmaps, sRGB);
 }
 
 const std::vector<Material> &TextureManager::getMaterials(ModelHandle handle) const
@@ -49,6 +49,17 @@ void TextureManager::releaseHandle(ModelHandle handle)
 
     TextureEntry &entry{iter->second};
 
+    if (entry.lender != -1)
+    {
+        auto otherIter{textureCache.find(entry.lender)};
+
+        // Non recursive, one level deep on the lender.
+        releaseHandle(entry.lender);
+        textureCache.erase(handle);
+
+        return;
+    }
+
     entry.refCount--;
 
     if (entry.refCount == 0)
@@ -62,7 +73,7 @@ void TextureManager::releaseHandle(ModelHandle handle)
 
 ModelHandle TextureManager::assignHandle()
 {
-    static ModelHandle nextHandle{0};
+    static ModelHandle nextHandle{1};
 
     ModelHandle handle{nextHandle++};
 
@@ -71,34 +82,7 @@ ModelHandle TextureManager::assignHandle()
     return handle;
 }
 
-void TextureManager::processTextureQueue()
-{
-    if (textureCreationQueue.empty())
-        return;
-
-    ThreadPool threadPool{threadCount};
-
-    while (!textureCreationQueue.empty())
-    {
-        auto &element = textureCreationQueue.front();
-
-        // Fastgltf asset
-        if (std::holds_alternative<fastgltf::Asset>(element.source))
-            textureFromAsset(threadPool, std::get<fastgltf::Asset>(element.source), element.handle, element.parentPath);
-
-        // Cubemap from vector of paths
-        else if (std::holds_alternative<std::vector<std::filesystem::path>>(element.source))
-            cubemapFromPaths(threadPool, element.handle, std::get<std::vector<std::filesystem::path>>(element.source),
-                             element.mipmaps, element.sRGB);
-        else
-            throw std::runtime_error("ERROR: Unknown source for textures in texture creation queue");
-
-        textureCreationQueue.pop();
-    }
-}
-
-void TextureManager::textureFromAsset(ThreadPool &threadPool, fastgltf::Asset &asset, ModelHandle handle,
-                                      std::filesystem::path parentPath)
+void TextureManager::textureFromAsset(fastgltf::Asset &asset, ModelHandle handle, std::filesystem::path parentPath)
 {
     auto cacheIter = textureCache.find(handle);
 
@@ -110,9 +94,8 @@ void TextureManager::textureFromAsset(ThreadPool &threadPool, fastgltf::Asset &a
     ImageLoader imageLoader{threadPool, paths};
     std::vector<LoadedImage> rawImageData = imageLoader.getImageData();
 
-    // Increase reference count and resize to match fastgltf materials array
+    // Resize to match fastgltf materials array
     TextureEntry &entry{cacheIter->second};
-    ++entry.refCount;
     entry.materials.resize(asset.materials.size());
 
     // Create map to avoid duplicate images
@@ -171,16 +154,15 @@ void TextureManager::textureFromAsset(ThreadPool &threadPool, fastgltf::Asset &a
     }
 }
 
-void TextureManager::cubemapFromPaths(ThreadPool &threadPool, ModelHandle handle,
-                                      const std::vector<std::filesystem::path> &imagePaths, bool mipMaps, bool sRGB)
+void TextureManager::cubemapFromPaths(ModelHandle handle, const std::vector<std::filesystem::path> &imagePaths,
+                                      bool mipMaps, bool sRGB)
 {
     auto iter = textureCache.find(handle);
 
     if (iter == textureCache.end())
         throw std::runtime_error("ERROR: Could not create cubemap, handle does not exist");
 
-    // Increase ref count and resize to 1, since we only have one material
-    ++iter->second.refCount;
+    // Resize to 1, since we only have one material
     iter->second.materials.resize(1);
 
     // Raw data
@@ -193,15 +175,59 @@ void TextureManager::cubemapFromPaths(ThreadPool &threadPool, ModelHandle handle
     iter->second.glTextureHandles.insert(texID);
 }
 
-const std::vector<Material> &TextureManager::borrowMaterials(ModelHandle other)
+void TextureManager::setMaterial(TextureEntry &self, TextureEntry &other, Texture textureType, int index)
 {
-    auto textureSetIter = textureCache.find(other);
+    using enum Texture;
 
-    if (textureSetIter == textureCache.end())
+    if (index >= self.materials.size() || index >= other.materials.size())
+        throw std::runtime_error("ERROR: Material index out of bounds");
+
+    switch (textureType)
+    {
+    case ALBEDO:
+        self.materials[index].albedo = other.materials[index].albedo;
+        break;
+    case ARM:
+        self.materials[index].occlusionRoughnessMetallic = other.materials[index].occlusionRoughnessMetallic;
+        break;
+    case NORMAL:
+        self.materials[index].normal = other.materials[index].normal;
+        break;
+    case CUBEMAP:
+        self.materials[index].cubemap = other.materials[index].cubemap;
+        break;
+    }
+}
+
+// Borrow another models materials, completely releasing self's materials
+const std::vector<Material> &TextureManager::borrowMaterials(ModelHandle self, ModelHandle other,
+                                                             std::optional<Texture> textureType, int materialIndex)
+{
+    auto selfIter = textureCache.find(self);
+    auto otherIter = textureCache.find(other);
+
+    if (selfIter == textureCache.end() || otherIter == textureCache.end())
         throw std::runtime_error("ERROR: Could not borrow materials, handle does not exist");
 
-    ++textureSetIter->second.refCount;
-    return textureSetIter->second.materials;
+    if (otherIter->second.glTextureHandles.empty())
+        throw std::runtime_error("ERROR: Could not borrow materials from non-owning handle");
+
+    TextureEntry &selfEntry{selfIter->second};
+    TextureEntry &otherEntry{otherIter->second};
+
+    ++otherEntry.refCount;
+
+    if (textureType.has_value())
+        setMaterial(selfEntry, otherEntry, textureType.value(), materialIndex);
+    else
+    {
+        freeResources(selfEntry);
+        selfEntry.materials = otherEntry.materials;
+    }
+
+    selfEntry.lender = other;
+
+    return selfIter->second.materials;
 }
 
 void TextureManager::setAnisoLevel(float level)
@@ -211,9 +237,9 @@ void TextureManager::setAnisoLevel(float level)
 }
 
 // Assumes caller is giving up control of their texture ID, overwriting anything in that slot
-void TextureManager::assignMaterial(ModelHandle handle, TextureUnit textureUnit, GLuint textureID, int materialIndex)
+void TextureManager::assignMaterial(ModelHandle handle, Texture textureUnit, GLuint textureID, int materialIndex)
 {
-    using enum TextureUnit;
+    using enum Texture;
 
     auto iter = textureCache.find(handle);
 
@@ -251,4 +277,17 @@ void TextureManager::assignMaterial(ModelHandle handle, TextureUnit textureUnit,
     default:
         std::cerr << "ERROR: Material not supported in Texture Manager" << std::endl;
     }
+}
+
+void TextureManager::freeResources(TextureEntry &textureEntry)
+{
+    for (auto &gpuHandle : textureEntry.glTextureHandles)
+        glDeleteTextures(1, &gpuHandle);
+
+    textureEntry.glTextureHandles.clear();
+}
+
+void TextureManager::allModelsLoaded()
+{
+    threadPool.stopAllThreads();
 }
