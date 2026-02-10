@@ -52,7 +52,7 @@ void Application::run()
         ++framesRendered;
 
         // Update scene objects
-        onUpdate(islandScene);
+        onUpdate(islandScene, deltaTime);
 
         // Draw
         renderer.renderScene(islandScene);
