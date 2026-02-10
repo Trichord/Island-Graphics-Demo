@@ -17,6 +17,7 @@
 #include "glm/glm.hpp"
 #include "primitive.h"
 #include "texture_utilities.h"
+#include <variant>
 
 std::string fastgltfErrorToString(fastgltf::Error error)
 {

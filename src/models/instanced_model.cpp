@@ -4,11 +4,14 @@
 #include <random>
 #include <utility>
 
+#include "aabb.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "instance_data.h"
 #include "model.h"
 #include "texture_manager.h"
+#include <span>
 
 InstancedModel::InstancedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
                                const std::filesystem::path &positionsPath, float minSize, float maxSize,

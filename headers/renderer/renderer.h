@@ -2,15 +2,18 @@
 
 #include <array>
 #include <unordered_map>
+#include <vector>
 
 #include "config_window.h"
 #include "gl_state.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
+#include "renderable.h"
 #include "scene.h"
 #include "shader.h"
 #include "shader_types.h"
 #include "texture_manager.h"
+#include "thread_pool.h"
 
 // Desired threadcount for the texture loading threadpool
 constexpr unsigned int threadCount{6u};
@@ -73,7 +76,6 @@ class Renderer
     void setupTextureManager();
     void setupShader(Shader &shader);
     void resetVisibility(Scene &scene);
-    void renderSkybox(Scene &scene);
     void updateShaderUniforms(Scene &scene);
     void bindTextures(const Material &materials);
     void cullRenderables(Scene &scene);
