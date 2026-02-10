@@ -3,7 +3,7 @@
 out vec4 fragColor;
 
 uniform sampler2D albedoMap;
-uniform sampler2D occlusionRoughMetalMap;
+uniform sampler2D armMap;
 uniform vec3 ambientLight;
 uniform vec3 lightColor;
 uniform vec3 lightDir;
@@ -15,14 +15,16 @@ const float INVERSE_PI = 0.31830988618;
 
 layout (std140) uniform matrices {
 	layout (offset = 0) mat4 viewMatrix;
-	layout (offset = 64) mat4 projectionViewMatrix;
-	layout (offset = 128) vec4 cameraPosition;
+	layout (offset = 64) mat4 projectionMatrix;
+	layout (offset = 128) mat4 projectionViewMatrix;
+	layout (offset = 192) mat4 inverseViewProjectMatrix;
+	layout (offset = 256) vec4 cameraPosition;
 };
 
 in VS_OUT {
 	vec3 fragPos;
-	vec2 texCoords;
 	vec3 normal;
+	vec2 texCoords;
 } fs_in;
 
 //Burely diffuse (unrolled)
@@ -66,21 +68,18 @@ void main() {
 	//material properties, remap normal from [0, 1] to [-1, 1]
 	vec4 albedo = texture(albedoMap, fs_in.texCoords);
 	vec3 normal = normalize(fs_in.normal);
-	vec3 occlusionRoughMetalMap = texture(occlusionRoughMetalMap, fs_in.texCoords).rgb;
-	float ao = occlusionRoughMetalMap.r;
-	float roughness = occlusionRoughMetalMap.g;
-	float metallic = occlusionRoughMetalMap.b;
+	vec3 armMap = texture(armMap, fs_in.texCoords).rgb;
+	float ao = armMap.r;
+	float roughness = armMap.g;
+	float metallic = armMap.b;
 
-	//Scale alpha by mip level 0
-    vec2 texSize = vec2(textureSize(albedoMap, 0));
+	//Scale alpha by mip level
+    vec2 texSize = vec2(textureSize(albedoMap, 0)); // Level 0 size
     albedo.a *= 1 + max(0, CalcMipLevel(fs_in.texCoords * texSize)) * mipScale;
 
 	// Rescale alpha by partial derivative. Credit: Ben Golus
     albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
 
-	if(albedo.a < 0.1)
-		discard;
-  
 	//vectors
 	vec3 N = normalize(normal);
 	vec3 V = normalize(cameraPosition.xyz - fs_in.fragPos);

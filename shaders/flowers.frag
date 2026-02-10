@@ -36,16 +36,6 @@ float CalcMipLevel(vec2 texture_coord){
 void main() {
     vec4 albedo = texture(albedoMap, texCoords);
 
-	//Scale alpha by mip level 0
-    vec2 texSize = vec2(textureSize(albedoMap, 0));
-    albedo.a *= 1 + max(0, CalcMipLevel(texCoords * texSize)) * mipScale;
-
-	// Rescale alpha by partial derivative. Credit: Ben Golus
-    albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
-
-    if(albedo.a < 0.1)
-        discard;
-
     //Flip normal if 2D quad is facing away
     vec3 normalizedNormal = normalize(normal);
     normalizedNormal = gl_FrontFacing ? normalizedNormal : -normalizedNormal;
@@ -56,6 +46,13 @@ void main() {
 
     //Diffuse
     float diffuseStrength = NdotL * 0.5 + 0.5;
+
+	//Scale alpha by mip level 0
+    vec2 texSize = vec2(textureSize(albedoMap, 0));
+    albedo.a *= 1 + max(0, CalcMipLevel(texCoords * texSize)) * mipScale;
+
+	// Rescale alpha by partial derivative. Credit: Ben Golus
+    albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
     
     //Ambient
     vec3 ambient = ambientLight * lightColor * albedo.rgb;
