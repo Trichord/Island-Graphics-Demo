@@ -11,8 +11,8 @@
 #include "scene.h"
 #include "shader_types.h"
 
-// Culling at 27% of the frustum length
-constexpr float grassCullDistance{0.27f};
+// Culling at 25% of the frustum length
+constexpr float grassCullDistance{0.25f};
 
 void Renderer::cullRenderables(Scene &scene)
 {
