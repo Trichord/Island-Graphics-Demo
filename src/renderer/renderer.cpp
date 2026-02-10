@@ -1,7 +1,6 @@
 #include "renderer.h"
 
 #include <algorithm>
-#include <iostream>
 #include <iterator>
 #include <unordered_map>
 #include <utility>
@@ -14,6 +13,7 @@
 #include "glm/glm.hpp"
 #include "instance_data.h"
 #include "point_light.h"
+#include "render_target.h"
 #include "renderable.h"
 #include "scene.h"
 #include "shader.h"
@@ -35,23 +35,14 @@ constexpr glm::vec3 lightColor{1.0f, 0.95f, 0.9f};
 constexpr float mipScale{0.25f};
 constexpr float alphaCutoff{0.5f};
 
-Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings) : graphicsSettings{settings}
+Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings)
+    : textureManager{threadPool}, graphicsSettings{settings}
 {
     setupTextureManager();
     loadShaders();
 
     for (auto &[_, shader] : shaders)
         setupShader(shader);
-}
-
-Renderer::Renderer(Renderer &&other) noexcept
-    : UBO{other.UBO}, uboData{other.uboData}, SSBO{other.SSBO}, ssboData{std::move(other.ssboData)},
-      ssboOffsets{std::move(other.ssboOffsets)}, glState{std::move(other.glState)},
-      textureManager{std::move(other.textureManager)}, shaders{std::move(other.shaders)},
-      graphicsSettings{other.graphicsSettings}
-{
-    other.UBO = 0;
-    other.SSBO = 0;
 }
 
 Renderer::~Renderer()
@@ -61,7 +52,11 @@ Renderer::~Renderer()
 
 void Renderer::renderScene(Scene &scene)
 {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearNamedFramebufferfv(0, GL_COLOR, 0, clearColor.data());
+    glClearNamedFramebufferfv(0, GL_DEPTH, 0, &depthClear);
+
+    if (scene.getCamera().hasUpdated())
+        updateUBO(scene);
 
     updateShaderUniforms(scene);
 
@@ -108,7 +103,7 @@ void Renderer::loadShaders()
 
 void Renderer::setupShader(Shader &shader)
 {
-    using enum TextureUnit;
+    using enum Texture;
 
     shader.setUniformBlock("matrices", 0);
 
@@ -163,184 +158,6 @@ void Renderer::updateShaderUniforms(Scene &scene)
     }
 }
 
-void Renderer::bindTextures(const Material &materials)
-{
-    using enum TextureUnit;
-
-    if (materials.albedo)
-        glState.bindTexture(ALBEDO, materials.albedo);
-
-    if (materials.occlusionRoughnessMetallic)
-        glState.bindTexture(ARM, materials.occlusionRoughnessMetallic);
-
-    if (materials.normal)
-        glState.bindTexture(NORMAL, materials.normal);
-
-    if (materials.cubemap)
-        glState.bindTexture(CUBEMAP, materials.cubemap);
-}
-
-TextureManager &Renderer::getTextureManager()
-{
-    return textureManager;
-}
-
-void Renderer::resetVisibility(Scene &scene)
-{
-    for (auto &[_, objectList] : scene.getRenderablesByShader())
-        for (auto &renderable : objectList)
-        {
-            renderable.properties.isVisible = true;
-            renderable.object.get().resetVisibility();
-        }
-}
-
-void Renderer::renderSkybox(Scene &scene)
-{
-    using enum ShaderType;
-    auto &map = scene.getRenderablesByShader();
-
-    if (!map.contains(SKYBOX))
-        return;
-
-    auto &skyboxes = map[SKYBOX];
-
-    Shader &skyboxShader{shaders.at(SKYBOX)};
-    skyboxShader.use();
-
-    glDepthFunc(GL_LEQUAL);
-    glDepthMask(GL_FALSE);
-
-    for (auto &renderable : skyboxes)
-    {
-        auto &skybox = renderable.object.get();
-
-        const std::vector<Material> &materials{textureManager.getMaterials(skybox.getModelHandle())};
-
-        if (!materials.empty())
-            bindTextures(materials[0]);
-
-        for (auto &mesh : skybox.getMeshes())
-            for (auto &primitive : mesh.primitives)
-            {
-                glBindVertexArray(primitive.getVAO());
-                glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0);
-            }
-    }
-
-    glDepthFunc(GL_LESS);
-    glDepthMask(GL_TRUE);
-}
-
-void Renderer::renderOcean(Shader &shader, IRenderable &ocean, Scene &scene)
-{
-    using enum ShaderType;
-    auto &map = scene.getRenderablesByShader();
-
-    if (!map.contains(SKYBOX))
-        return;
-
-    auto &skyboxes = map[SKYBOX];
-
-    if (skyboxes.empty())
-        return;
-
-    glEnable(GL_DEPTH_CLAMP);
-
-    auto &skybox = skyboxes[0].object.get();
-    
-    auto &materials{textureManager.getMaterials(skybox.getMaterialID())};
-
-    glState.bindTexture(CUBEMAP, materials[0].cubemap);
-    renderObject(ocean);
-
-    glDisable(GL_DEPTH_CLAMP);
-}
-
-// Render objects, grouped by shader type
-void Renderer::renderAllSceneObjects(Scene &scene)
-{
-    using enum ShaderType;
-
-    for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
-    {
-        if (objectList.empty() || shaderType == SKYBOX)
-            continue;
-
-        Shader &shader{shaders.at(shaderType)};
-        shader.use();
-
-        for (auto &renderable : objectList)
-        {
-            if (!renderable.properties.isVisible)
-                continue;
-
-            glm::mat4 modelMatrix{renderable.properties.transform.getModelMatrix()};
-            glm::mat3 normalMatrix{renderable.properties.transform.getNormalMatrix()};
-
-            shader.setMat4("modelMatrix", modelMatrix);
-            shader.setMat3("normalMatrix", normalMatrix);
-            shader.setVec3("scale", renderable.properties.transform.getScale());
-
-            auto &object = renderable.object.get();
-            if (auto iter = ssboOffsets.find(object.getModelHandle()); iter != ssboOffsets.end())
-                shader.setInt("index", iter->second);
-
-            if (shaderType == OCEAN)
-            {
-                renderOcean(shader, object, scene);
-                continue;
-            }
-
-            // Draw it
-            renderObject(object);
-        }
-    }
-}
-
-void Renderer::renderObject(IRenderable &object)
-{
-    std::size_t lastMaterialIndex{0};
-    bool materialBound{false};
-    const auto& materials{textureManager.getMaterials(object.getMaterialID())};
-
-    for (const Primitive::Mesh &mesh : object.getMeshes())
-    {
-        if (!mesh.isVisible)
-            continue;
-
-        for (const Primitive &primitive : mesh.primitives)
-        {
-            glState.setAlphaMode(primitive.getAlphaMode());
-
-            if (primitive.materialsExist())
-            {
-                std::size_t materialIndex{primitive.getMaterialIndex()};
-
-                // Switch materials only if they've changed
-                if (materialIndex != lastMaterialIndex || !materialBound)
-                {
-                    lastMaterialIndex = materialIndex;
-                    materialBound = true;
-                    bindTextures(materials[materialIndex]);
-                }
-            }
-
-            glBindVertexArray(primitive.getVAO());
-
-            if (object.getInstanceCount())
-            {
-                GLuint offset{ssboOffsets.at(object.getModelHandle())};
-                GLsizei instanceCount{static_cast<GLsizei>(object.getInstanceCount())};
-                glDrawElementsInstanced(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0, instanceCount);
-            }
-
-            else
-                glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0);
-        }
-    }
-}
-
 void Renderer::updateSSBO(IRenderable &object)
 {
     auto instances = object.getInstanceData();
@@ -356,7 +173,7 @@ void Renderer::updateSSBO(IRenderable &object)
     std::sort(instances.begin(), instances.begin() + instanceCount,
               [](const InstanceData &a, const InstanceData &b) { return a.sortKey < b.sortKey; });
 
-    std::size_t offset{ssboOffsets.at(object.getModelHandle())};
+    std::size_t offset{ssboOffsets.at(object.getHandle())};
 
     for (std::size_t i{0}; i < instanceCount; ++i)
     {
@@ -366,6 +183,37 @@ void Renderer::updateSSBO(IRenderable &object)
 }
 
 void Renderer::initializeResources(Scene &scene)
+{
+    createBuffers(scene);
+    populateSSBO(scene);
+    generateCubeMaps(scene);
+    borrowSkyboxes(scene);
+}
+
+void Renderer::borrowSkyboxes(Scene &scene)
+{
+    using enum ShaderType;
+    auto &map = scene.getRenderablesByShader();
+
+    if (!map.contains(SKYBOX) || !map.contains(OCEAN))
+        return;
+
+    auto &skyboxes = map[SKYBOX];
+    auto &oceans = map[OCEAN];
+
+    if (skyboxes.empty() || oceans.empty())
+        return;
+
+    for (int i{0}; i < skyboxes.size() && i < oceans.size(); ++i)
+    {
+        auto &ocean = oceans[i].object.get();
+        auto &skybox = skyboxes[i].object.get();
+
+        textureManager.borrowMaterials(ocean.getHandle(), skybox.getHandle(), CUBEMAP);
+    }
+}
+
+void Renderer::createBuffers(Scene &scene)
 {
     // UBO
     glCreateBuffers(1, &UBO);
@@ -388,13 +236,17 @@ void Renderer::initializeResources(Scene &scene)
     glNamedBufferStorage(SSBO, numInstances * sizeof(SSBOData), nullptr, GL_DYNAMIC_STORAGE_BIT);
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, SSBO);
-
-    populateSSBO(scene);
-    generateCubeMaps(scene);
 }
 
 void Renderer::generateCubeMaps(Scene &scene)
 {
+    using enum ShaderType;
+
+    // For iterating cubemap faces
+    constexpr std::array<WorldOrientation, 6> faces{WorldOrientation::RIGHT, WorldOrientation::LEFT,
+                                                    WorldOrientation::UP,    WorldOrientation::DOWN,
+                                                    WorldOrientation::BACK,  WorldOrientation::FRONT};
+
     // Helper for rendering the scene
     auto renderFace = [&](RenderTarget &target, WorldOrientation orientation, Camera &camera) {
         camera.setWorldOrientation(orientation);
@@ -404,13 +256,6 @@ void Renderer::generateCubeMaps(Scene &scene)
         renderAllSceneObjects(scene);
         renderSkybox(scene);
     };
-
-    // For iterating cubemap faces
-    constexpr std::array<WorldOrientation, 6> faces{WorldOrientation::RIGHT, WorldOrientation::LEFT,
-                                                    WorldOrientation::UP,    WorldOrientation::DOWN,
-                                                    WorldOrientation::BACK,  WorldOrientation::FRONT};
-
-    using enum ShaderType;
 
     auto &waters{scene.getRenderablesByShader().at(WATER)};
 
@@ -423,7 +268,7 @@ void Renderer::generateCubeMaps(Scene &scene)
     int size{std::max(graphicsSettings.screenWidth, graphicsSettings.screenHeight) / 2};
     int mipLevels = static_cast<int>(std::floor(std::log2(size)) + 1);
 
-    // Camera settings before we make it bounce around the scene
+    // Save camera settings before we make it bounce around the scene
     const glm::vec3 originalPos{camera.getPosition()};
     float originalPitch{camera.getPitch()};
     float originalYaw{camera.getYaw()};
@@ -434,8 +279,6 @@ void Renderer::generateCubeMaps(Scene &scene)
 
     for (auto &waterPlane : waters)
     {
-        using enum WorldOrientation;
-
         camera.setPosition(waterPlane.properties.transform.getPosition());
 
         // Create the cubemap texture
@@ -463,7 +306,7 @@ void Renderer::generateCubeMaps(Scene &scene)
 
         // Assign the texture
         auto &obj = waterPlane.object.get();
-        textureManager.assignMaterial(obj.getModelHandle(), CUBEMAP, cubeMapTextureID);
+        textureManager.assignMaterial(obj.getHandle(), CUBEMAP, cubeMapTextureID);
         waterPlane.properties.isVisible = true;
     }
 
@@ -494,7 +337,7 @@ void Renderer::populateSSBO(Scene &scene)
             // Keep track of where each model's start position is in the SSBO. Even
             // with sorting and changing instance count, the starting offset into the
             // SSBO will never change.
-            ssboOffsets.emplace(object.getModelHandle(), offset);
+            ssboOffsets.emplace(object.getHandle(), offset);
 
             // Build and track each instance's offset into the buffer
             for (auto &instance : object.getInstanceData())
@@ -506,8 +349,18 @@ void Renderer::populateSSBO(Scene &scene)
     glNamedBufferSubData(SSBO, 0, ssboData.size() * sizeof(SSBOData), ssboData.data());
 }
 
+TextureManager &Renderer::getTextureManager()
+{
+    return textureManager;
+}
+
 void Renderer::deleteBuffers()
 {
     glDeleteBuffers(1, &UBO);
     glDeleteBuffers(1, &SSBO);
+}
+
+void Renderer::allResourcesLoaded()
+{
+    threadPool.stopAllThreads();
 }

@@ -75,8 +75,3 @@ CubeMappedModel &SceneResources::loadCubeMappedModel(const ModelHandle borrowHan
 
     return cubeMappedModels.emplace_back(textureManager, borrowHandle, modelPath);
 }
-
-void SceneResources::loadingComplete()
-{
-    textureManager.processTextureQueue();
-}
