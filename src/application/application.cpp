@@ -5,6 +5,7 @@
 #include "camera.h"
 #include "config_window.h"
 #include "gl_context.h"
+#include "glfw_callbacks.h"
 #include "glm/glm.hpp"
 #include "island_scene.h"
 #include "renderer.h"
@@ -159,29 +160,8 @@ void Application::processInput(Scene &scene)
         scene.getCamera().processKeyboard(DOWN, deltaTime, sprint);
 }
 
-void Application::registerCallbacks()
-{
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetKeyCallback(window, keyCallback);
-    glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-}
-
-void Application::addGlfwUserParam(Scene &scene)
-{
-    glfwSetWindowUserPointer(window, &scene);
-}
-
-void Application::onUpdate(Scene &scene)
-{
-    // Rotate the fancy space model
-    auto &spaceModel = scene.getObjectTransform("spaceModel");
-    spaceModel.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});
-}
-
-void mouse_callback(GLFWwindow *window, double xPos, double yPos)
-{
-    static bool firstMouse{true};
+void Application::mouse_callback(GLFWwindow* window, double xPos, double yPos) {
+  static bool firstMouse{true};
 
     if (firstMouse)
     {
@@ -202,13 +182,25 @@ void mouse_callback(GLFWwindow *window, double xPos, double yPos)
         scenePointer->getCamera().processMouseMovement(xOffset, yOffset);
 }
 
-// Global callbacks for GLFW
-void framebuffer_size_callback(GLFWwindow *window, int width, int height)
-{
-    glViewport(0, 0, width, height);
+void Application::registerCallbacks() {
+  glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+  glfwSetKeyCallback(window, Application::keyCallback);
+  glfwSetCursorPosCallback(window, Application::mouse_callback);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetWindowIconifyCallback(window, window_iconify_callback);
 }
 
-static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
-{
-    // Anything that needs to avoid key bouncing
+void Application::addGlfwUserParam(Scene& scene) {
+  glfwSetWindowUserPointer(window, &scene);
+}
+
+void Application::onUpdate(Scene& scene, float deltaTime) {
+  // Rotate the fancy space model
+  auto& spaceModel = scene.getObjectTransform("spaceModel");
+  spaceModel.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});
+}
+
+void Application::keyCallback(GLFWwindow* window, int key, int scancode, int action,
+                 int mods) {
+  // Anything that needs to avoid key bouncing
 }
