@@ -164,8 +164,12 @@ bool ConfigWindow::renderImGui(GraphicsSettings &settings)
                     resolutionPreviewValue = resolutions[resolutionSelectedIndex];
                     updateResolution(settings, i);
                 }
+                if (isResolutionSelected)
+                    ImGui::SetItemDefaultFocus();
             }
+            ImGui::EndCombo();
         }
+
         ImGui::Spacing();
 
         ImGui::Checkbox("Fullscreen", &settings.fullscreen);
