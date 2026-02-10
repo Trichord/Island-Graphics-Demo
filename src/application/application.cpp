@@ -120,7 +120,7 @@ void Application::createOpenGLViewport(const ConfigWindow::GraphicsSettings &gra
 
     glViewport(0, 0, width, height);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    
+
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);

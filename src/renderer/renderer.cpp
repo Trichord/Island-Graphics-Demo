@@ -1,6 +1,8 @@
 #include "renderer.h"
 
 #include <algorithm>
+#include <array>
+#include <cmath>
 #include <iterator>
 #include <unordered_map>
 #include <utility>
@@ -22,6 +24,7 @@
 #include "texture_units.h"
 #include "texture_utilities.h"
 #include "transform.h"
+#include "world_vectors.h"
 
 // Normalized wind direction, east southeast with a slight downward angle
 constexpr float windStrength{0.07f};
@@ -66,7 +69,6 @@ void Renderer::renderScene(Scene &scene)
     glNamedBufferSubData(SSBO, 0, ssboData.size() * sizeof(SSBOData), ssboData.data());
 
     renderAllSceneObjects(scene);
-    renderSkybox(scene);
 }
 
 void Renderer::updateUBO(Scene &scene)
@@ -209,7 +211,7 @@ void Renderer::borrowSkyboxes(Scene &scene)
         auto &ocean = oceans[i].object.get();
         auto &skybox = skyboxes[i].object.get();
 
-        textureManager.borrowMaterials(ocean.getHandle(), skybox.getHandle(), CUBEMAP);
+        textureManager.borrowAssignMaterials(ocean.getHandle(), skybox.getHandle(), CUBEMAP);
     }
 }
 
@@ -254,7 +256,6 @@ void Renderer::generateCubeMaps(Scene &scene)
         target.bind();
         target.clear();
         renderAllSceneObjects(scene);
-        renderSkybox(scene);
     };
 
     auto &waters{scene.getRenderablesByShader().at(WATER)};
@@ -306,7 +307,7 @@ void Renderer::generateCubeMaps(Scene &scene)
 
         // Assign the texture
         auto &obj = waterPlane.object.get();
-        textureManager.assignMaterial(obj.getHandle(), CUBEMAP, cubeMapTextureID);
+        textureManager.setMaterial(obj.getHandle(), CUBEMAP, cubeMapTextureID);
         waterPlane.properties.isVisible = true;
     }
 

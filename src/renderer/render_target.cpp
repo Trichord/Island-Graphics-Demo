@@ -1,7 +1,8 @@
 #include "render_target.h"
 
-#include "glad/glad.h"
 #include <iostream>
+
+#include "glad/glad.h"
 
 RenderTarget::RenderTarget(int width, int height, int msaaLevel, bool depthMapTexture) : width{width}, height{height}
 {

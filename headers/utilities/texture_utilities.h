@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <vector>
-#include <array>
 
 #include "glad/glad.h"
 #include "image_loader.h"

@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <span>
 #include <utility>
 #include <vector>
 
@@ -144,7 +145,7 @@ void Primitive::setupPrimitiveBuffers()
     glVertexArrayAttribBinding(VAO, 3, 0);
 }
 
-const std::vector<Primitive::Vertex> &Primitive::getVertices() const
+std::span<const Primitive::Vertex> Primitive::getVertices() const
 {
     return vertices;
 }

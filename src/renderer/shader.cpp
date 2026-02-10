@@ -1,10 +1,11 @@
 #include "shader.h"
 
 #include <array>
+#include <filesystem>
 #include <fstream>
 #include <ios>
 #include <iostream>
-#include <sstream>
+#include <iterator>
 #include <string>
 #include <unordered_map>
 #include <utility>

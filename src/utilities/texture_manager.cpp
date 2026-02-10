@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <stdexcept>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -47,7 +48,7 @@ void TextureManager::releaseHandle(ModelHandle handle)
     if (iter == textureCache.end())
         throw std::runtime_error("ERROR: Could not release handle, handle does not exist");
 
-    TextureEntry &entry{iter->second};
+    ModelResources &entry{iter->second};
 
     if (entry.lender != -1)
     {
@@ -77,7 +78,7 @@ ModelHandle TextureManager::assignHandle()
 
     ModelHandle handle{nextHandle++};
 
-    textureCache.emplace(handle, TextureEntry{});
+    textureCache.emplace(handle, ModelResources{});
 
     return handle;
 }
@@ -95,7 +96,7 @@ void TextureManager::textureFromAsset(fastgltf::Asset &asset, ModelHandle handle
     std::vector<LoadedImage> rawImageData = imageLoader.getImageData();
 
     // Resize to match fastgltf materials array
-    TextureEntry &entry{cacheIter->second};
+    ModelResources &entry{cacheIter->second};
     entry.materials.resize(asset.materials.size());
 
     // Create map to avoid duplicate images
@@ -155,7 +156,7 @@ void TextureManager::textureFromAsset(fastgltf::Asset &asset, ModelHandle handle
 }
 
 void TextureManager::cubemapFromPaths(ModelHandle handle, const std::vector<std::filesystem::path> &imagePaths,
-                                      bool mipMaps, bool sRGB)
+                                      bool mipmaps, bool sRGB)
 {
     auto iter = textureCache.find(handle);
 
@@ -170,19 +171,19 @@ void TextureManager::cubemapFromPaths(ModelHandle handle, const std::vector<std:
     std::vector<LoadedImage> loadedImages{imageLoader.getImageData()};
 
     // Create new id, assign it, and track it for eventual release
-    GLuint texID{textureUtilities::generateCubemapTextureID(loadedImages, mipMaps, sRGB)};
+    GLuint texID{textureUtilities::generateCubemapTextureID(loadedImages, mipmaps, sRGB)};
     iter->second.materials[0].cubemap = texID;
     iter->second.glTextureHandles.insert(texID);
 }
 
-void TextureManager::setMaterial(TextureEntry &self, TextureEntry &other, Texture textureType, int index)
+void TextureManager::setMaterial(ModelResources &self, ModelResources &other, Texture texture, int index)
 {
     using enum Texture;
 
     if (index >= self.materials.size() || index >= other.materials.size())
         throw std::runtime_error("ERROR: Material index out of bounds");
 
-    switch (textureType)
+    switch (texture)
     {
     case ALBEDO:
         self.materials[index].albedo = other.materials[index].albedo;
@@ -200,8 +201,8 @@ void TextureManager::setMaterial(TextureEntry &self, TextureEntry &other, Textur
 }
 
 // Borrow another models materials, completely releasing self's materials
-const std::vector<Material> &TextureManager::borrowMaterials(ModelHandle self, ModelHandle other,
-                                                             std::optional<Texture> textureType, int materialIndex)
+const std::vector<Material> &TextureManager::borrowAssignMaterials(ModelHandle self, ModelHandle other,
+                                                                   std::optional<Texture> texture, int materialIndex)
 {
     auto selfIter = textureCache.find(self);
     auto otherIter = textureCache.find(other);
@@ -212,13 +213,13 @@ const std::vector<Material> &TextureManager::borrowMaterials(ModelHandle self, M
     if (otherIter->second.glTextureHandles.empty())
         throw std::runtime_error("ERROR: Could not borrow materials from non-owning handle");
 
-    TextureEntry &selfEntry{selfIter->second};
-    TextureEntry &otherEntry{otherIter->second};
+    ModelResources &selfEntry{selfIter->second};
+    ModelResources &otherEntry{otherIter->second};
 
     ++otherEntry.refCount;
 
-    if (textureType.has_value())
-        setMaterial(selfEntry, otherEntry, textureType.value(), materialIndex);
+    if (texture.has_value())
+        setMaterial(selfEntry, otherEntry, texture.value(), materialIndex);
     else
     {
         freeResources(selfEntry);
@@ -237,7 +238,7 @@ void TextureManager::setAnisoLevel(float level)
 }
 
 // Assumes caller is giving up control of their texture ID, overwriting anything in that slot
-void TextureManager::assignMaterial(ModelHandle handle, Texture textureUnit, GLuint textureID, int materialIndex)
+void TextureManager::setMaterial(ModelHandle handle, Texture texture, GLuint textureID, int materialIndex)
 {
     using enum Texture;
 
@@ -252,7 +253,7 @@ void TextureManager::assignMaterial(ModelHandle handle, Texture textureUnit, GLu
     if (materialIndex >= materials.size())
         return;
 
-    switch (textureUnit)
+    switch (texture)
     {
     case ALBEDO:
         materials[materialIndex].albedo = textureID;
@@ -279,12 +280,12 @@ void TextureManager::assignMaterial(ModelHandle handle, Texture textureUnit, GLu
     }
 }
 
-void TextureManager::freeResources(TextureEntry &textureEntry)
+void TextureManager::freeResources(ModelResources &resources)
 {
-    for (auto &gpuHandle : textureEntry.glTextureHandles)
+    for (auto &gpuHandle : resources.glTextureHandles)
         glDeleteTextures(1, &gpuHandle);
 
-    textureEntry.glTextureHandles.clear();
+    resources.glTextureHandles.clear();
 }
 
 void TextureManager::allModelsLoaded()
