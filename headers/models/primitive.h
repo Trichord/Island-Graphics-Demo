@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <span>
 #include <vector>
 
 #include "aabb.h"
@@ -16,10 +17,10 @@ class Primitive
   public:
     struct Vertex
     {
-        glm::vec3 position{1.0f};
-        glm::vec3 normal{1.0f};
-        glm::vec4 tangent{1.0f};
-        glm::vec2 texCoords{1.0f};
+        glm::vec3 position{0.0f};
+        glm::vec3 normal{0.0f};
+        glm::vec4 tangent{0.0f};
+        glm::vec2 texCoords{0.0f};
     };
 
     struct Mesh
@@ -43,7 +44,7 @@ class Primitive
     GLsizei getIndicesSize() const;
     std::size_t getMaterialIndex() const;
     fastgltf::AlphaMode getAlphaMode() const;
-    const std::vector<Vertex> &getVertices() const;
+    std::span<const Vertex> getVertices() const;
     void setMaterialIndex(std::size_t newIndex);
     bool materialsExist() const;
 

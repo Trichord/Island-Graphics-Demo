@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "camera.h"
 #include "directional_light.h"
 #include "glm/glm.hpp"
 #include "light.h"
@@ -53,6 +54,7 @@ void Scene::setAmbientLight(const glm::vec3 &ambient)
     ambientLight = ambient;
 }
 
-Camera &Scene::getCamera(){
+Camera &Scene::getCamera()
+{
     return camera;
 }

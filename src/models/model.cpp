@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <limits>
+#include <span>
 #include <utility>
 #include <vector>
 
@@ -10,6 +11,7 @@
 #include "fastgltf/types.hpp"
 #include "fastgltf_loader.h"
 #include "glm/glm.hpp"
+#include "instance_data.h"
 #include "primitive.h"
 #include "texture_manager.h"
 
@@ -23,7 +25,7 @@ Model::Model(TextureManager &textureManager, const std::filesystem::path &path)
 Model::Model(TextureManager &textureManager, const ModelHandle borrowHandle, const std::filesystem::path &path)
     : handle{textureManager.assignHandle()}, texManager{textureManager}
 {
-    textureManager.borrowMaterials(handle, borrowHandle);
+    textureManager.borrowAssignMaterials(handle, borrowHandle);
     loadModel(path, true);
     calculateAABB();
 }
@@ -36,7 +38,7 @@ Model::Model(Model &&other) noexcept
 
 Model::~Model()
 {
-        texManager.releaseHandle(handle);
+    texManager.releaseHandle(handle);
 }
 
 AABB &Model::getAABB()

@@ -17,6 +17,7 @@
 #include "renderable.h"
 #include "scene_resources.h"
 #include "shader_types.h"
+#include "texture_manager.h"
 #include "transform.h"
 
 /*

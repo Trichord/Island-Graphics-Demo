@@ -139,8 +139,7 @@ GLuint textureUtilities::generateCubemapTextureID(const std::vector<LoadedImage>
 }
 
 void textureUtilities::generateCubemapFace(GLuint cubeMap, GLuint texture, int size, int faceIndex)
-{ 
-        glCopyImageSubData(texture, GL_TEXTURE_2D, 0, 0, 0, 0, cubeMap, GL_TEXTURE_CUBE_MAP, 0, 0, 0,
-                           faceIndex,
-                           size, size, 1);
+{
+    glCopyImageSubData(texture, GL_TEXTURE_2D, 0, 0, 0, 0, cubeMap, GL_TEXTURE_CUBE_MAP, 0, 0, 0, faceIndex, size, size,
+                       1);
 }

@@ -3,13 +3,13 @@
 #include <span>
 
 #include "aabb.h"
+#include "camera.h"
 #include "glm/glm.hpp"
 #include "instance_data.h"
 #include "renderable.h"
 #include "renderer.h"
 #include "scene.h"
 #include "shader_types.h"
-#include "camera.h"
 
 // Culling at 27% of the frustum length
 constexpr float grassCullDistance{0.27f};

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 
+#include "camera.h"
 #include "config_window.h"
 #include "glm/glm.hpp"
 #include "object_positions.h"

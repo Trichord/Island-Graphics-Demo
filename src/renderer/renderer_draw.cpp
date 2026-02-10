@@ -1,4 +1,13 @@
+#include "glad/glad.h"
+#include "glm/glm.hpp"
+#include "primitive.h"
+#include "renderable.h"
 #include "renderer.h"
+#include "scene.h"
+#include "shader.h"
+#include "shader_types.h"
+#include "texture_manager.h"
+#include "texture_units.h"
 
 // Render objects, grouped by shader type
 void Renderer::renderAllSceneObjects(Scene &scene)
@@ -7,11 +16,14 @@ void Renderer::renderAllSceneObjects(Scene &scene)
 
     for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
     {
-        if (objectList.empty() || shaderType == SKYBOX)
+        if (objectList.empty())
             continue;
 
         Shader &shader{shaders.at(shaderType)};
         shader.use();
+
+        if (shaderType == SKYBOX)
+            glDepthFunc(GL_LEQUAL);
 
         for (auto &renderable : objectList)
         {
@@ -32,6 +44,8 @@ void Renderer::renderAllSceneObjects(Scene &scene)
             // Draw it
             renderObject(object);
         }
+        if (shaderType == SKYBOX)
+            glDepthFunc(GL_LESS);
     }
 }
 
@@ -67,7 +81,6 @@ void Renderer::renderObject(IRenderable &object)
 
             if (object.getInstanceCount())
             {
-                GLuint offset{ssboOffsets.at(object.getHandle())};
                 GLsizei instanceCount{static_cast<GLsizei>(object.getInstanceCount())};
                 glDrawElementsInstanced(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0, instanceCount);
             }
@@ -76,29 +89,6 @@ void Renderer::renderObject(IRenderable &object)
                 glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0);
         }
     }
-}
-
-void Renderer::renderSkybox(Scene &scene)
-{
-    using enum ShaderType;
-    auto &map = scene.getRenderablesByShader();
-
-    if (!map.contains(SKYBOX))
-        return;
-
-    auto &skyboxes = map[SKYBOX];
-
-    Shader &skyboxShader{shaders.at(SKYBOX)};
-    skyboxShader.use();
-
-    glDepthFunc(GL_LEQUAL);
-    glDepthMask(GL_FALSE);
-
-    for (auto &renderable : skyboxes)
-        renderObject(renderable.object.get());
-
-    glDepthFunc(GL_LESS);
-    glDepthMask(GL_TRUE);
 }
 
 void Renderer::bindTextures(const Material &materials)

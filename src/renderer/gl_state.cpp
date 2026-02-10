@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include "fastgltf/types.hpp"
 #include "glad/glad.h"
 
 constexpr GLuint maxTextureUnits{16u};
