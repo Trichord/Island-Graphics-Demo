@@ -16,8 +16,7 @@ class IRenderable
     virtual AABB &getAABB() = 0;
     virtual void resetVisibility() = 0;
     virtual std::span<Primitive::Mesh> getMeshes() = 0;
-    virtual const ModelHandle getMaterialID() const = 0;
-    virtual const ModelHandle getModelHandle() const = 0;
+    virtual const ModelHandle getHandle() const = 0;
 
     // Instance based methods
     virtual std::size_t getInstanceCount() const = 0;

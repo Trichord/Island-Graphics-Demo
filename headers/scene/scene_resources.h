@@ -27,8 +27,6 @@ class SceneResources
                                          const std::vector<std::filesystem::path> &imagePaths, bool skybox = false);
     CubeMappedModel &loadCubeMappedModel(const ModelHandle borrowHandle, const std::filesystem::path &modelPath);
 
-    void loadingComplete();
-
   private:
     TextureManager &textureManager;
     std::vector<Model> models;

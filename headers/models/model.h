@@ -30,16 +30,14 @@ class Model : public IRenderable
 
     AABB &getAABB() override;
     void resetVisibility() override;
+    const ModelHandle getHandle() const override;
     std::size_t getInstanceCount() const override;
     std::span<Primitive::Mesh> getMeshes() override;
-    const ModelHandle getMaterialID() const override;
-    const ModelHandle getModelHandle() const override;
     std::span<InstanceData> getInstanceData() override;
     void setVisibleInstanceCount(std::size_t newSize) override;
 
   protected:
     ModelHandle handle{0};
-    ModelHandle borrowedHandle{0};
     TextureManager &texManager;
     std::vector<Primitive::Mesh> meshes;
     AABB aabb;

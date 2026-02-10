@@ -131,3 +131,13 @@ void Renderer::cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6>
         }
     }
 }
+
+void Renderer::resetVisibility(Scene &scene)
+{
+    for (auto &[_, objectList] : scene.getRenderablesByShader())
+        for (auto &renderable : objectList)
+        {
+            renderable.properties.isVisible = true;
+            renderable.object.get().resetVisibility();
+        }
+}

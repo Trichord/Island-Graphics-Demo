@@ -25,9 +25,6 @@ void IslandScene::initializeScene(const ConfigWindow::GraphicsSettings &graphics
     addAllModelsToScene();
     std::cout << " Done." << std::endl;
     addAllLightsToScene();
-    std::cout << "Loading Textures...";
-    sceneResources.loadingComplete();
-    std::cout << " Done." << std::endl;
 }
 
 void IslandScene::addAllModelsToScene()
@@ -43,6 +40,7 @@ void IslandScene::addAllModelsToScene()
     auto &deadTree = sceneResources.loadModel("./res/models/dead_tree/dead_tree.gltf");
     addObjectToScene(deadTree, DIRECTIONAL_PBR, {.transform = {DEAD_TREE_POS, glm::vec3{1.0f}, 45.0f}});
 
+    // Statue
     auto &statue = sceneResources.loadModel("./res/models/statue/statue.gltf");
     addObjectToScene(statue, DIRECTIONAL_PBR,
                      {.transform = {STATUE_POSITION, glm::vec3{1.0f}, -65.0f, glm::vec3{0.0f, 1.0f, 0.0f}}});
@@ -71,7 +69,7 @@ void IslandScene::addAllModelsToScene()
     auto &whiteFlowers = sceneResources.loadInstancedModel("./res/models/whiteflower/whiteflower.gltf",
                                                            "./res/whiteflowers.txt", 0.9f, 1.1f, 369);
     addObjectToScene(whiteFlowers, FLOWERS, {.cullType = INSTANCED_DISTANCE});
-    ModelHandle whiteFlowerHandle{whiteFlowers.getModelHandle()};
+    ModelHandle whiteFlowerHandle{whiteFlowers.getHandle()};
 
     // Blue flowers
     auto &blueFlowers = sceneResources.loadInstancedModel(whiteFlowerHandle, "./res/models/blueflower/blueflower.gltf",
@@ -96,7 +94,7 @@ void IslandScene::addAllModelsToScene()
     // Tree 1
     auto &tree1 = sceneResources.loadInstancedModel("./res/models/tree1/tree1.gltf", "./res/tree1.txt", 0.8f, 1.2f, 67);
     addObjectToScene(tree1, TREES, {.cullType = INSTANCED});
-    ModelHandle tree1Handle{tree1.getModelHandle()};
+    ModelHandle tree1Handle{tree1.getHandle()};
 
     // Tree 2
     auto &tree2 = sceneResources.loadInstancedModel(tree1Handle, "./res/models/tree2/tree2.gltf", "./res/tree2.txt",

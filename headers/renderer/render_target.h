@@ -25,10 +25,11 @@ class RenderTarget
     void clear(bool color = true, bool depth = true);
 
   private:
+    static constexpr float depthColor{1.0f};
+    static constexpr std::array<float, 4> clearColor{0.0f, 0.0f, 0.0f, 1.0f};
+    
     int width{960};
     int height{540};
-    inline static const std::array<GLfloat, 4> clearColor{0.0f, 0.0f, 0.0f, 0.0f};
-    inline static const GLfloat depthColor{1.0f};
 
     GLuint FBO{0};
     GLuint depthRBO{0};
