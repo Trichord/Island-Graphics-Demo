@@ -61,16 +61,17 @@ bool ConfigWindow::createWindow()
     if (!glfwInit())
         return false;
 
+    GLFWmonitor *primary = glfwGetPrimaryMonitor();
+
     // Hints
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 
-    // Create window with graphics context
-    float windowScale{ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
-    window = glfwCreateWindow(static_cast<int>(GUIWidth * windowScale), static_cast<int>(GUIHeight * windowScale),
+    window = glfwCreateWindow(GUIWidth, GUIHeight,
                               "Island Graphics Demo - Display Settings", nullptr, nullptr);
 
     if (!window)
@@ -82,6 +83,15 @@ bool ConfigWindow::createWindow()
 
     // Refocus
     glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
+
+    // Center
+    int xpos, ypos, width, height;
+    glfwGetMonitorWorkarea(primary, &xpos, &ypos, &width, &height);
+
+    int winW, winH;
+    glfwGetWindowSize(window, &winW, &winH);
+
+    glfwSetWindowPos(window, xpos + width / 2 - winW / 2, ypos + height / 2 - winH / 2);
 
     return true;
 }
