@@ -51,8 +51,6 @@ void Renderer::renderAllSceneObjects(Scene &scene)
 
 void Renderer::renderObject(IRenderable &object)
 {
-    std::size_t lastMaterialIndex{0};
-    bool materialBound{false};
     const auto &materials{textureManager.getMaterials(object.getHandle())};
 
     for (const Primitive::Mesh &mesh : object.getMeshes())
@@ -67,14 +65,7 @@ void Renderer::renderObject(IRenderable &object)
             if (primitive.materialsExist())
             {
                 std::size_t materialIndex{primitive.getMaterialIndex()};
-
-                // Switch materials only if they've changed
-                if (materialIndex != lastMaterialIndex || !materialBound)
-                {
-                    lastMaterialIndex = materialIndex;
-                    materialBound = true;
-                    bindTextures(materials[materialIndex]);
-                }
+                bindTextures(materials[materialIndex]);
             }
 
             glBindVertexArray(primitive.getVAO());

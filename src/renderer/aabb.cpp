@@ -16,6 +16,8 @@ AABB::AABB(const glm::vec3 &min_, const glm::vec3 &max_) : center{0.5f * (min_ +
 
 bool AABB::intersects(const std::array<glm::vec4, 6> &planes, const glm::mat4 &modelMatrix) const
 {
+    // Take the abs of the modelMatrix so the AABB can never collapse. It will only ever expand to a
+    // conservative estimate on rotations.
     glm::mat3 RS{glm::mat3{modelMatrix}};
     glm::mat3 absRS{glm::abs(RS[0]), glm::abs(RS[1]), glm::abs(RS[2])};
 

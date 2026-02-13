@@ -164,10 +164,10 @@ void Renderer::updateSSBO(IRenderable &object)
 {
     auto instances = object.getInstanceData();
     // Move visible instances to front of vector
-    auto iter = std::partition(instances.begin(), instances.end(),
+    auto invisibleInstances = std::ranges::partition(instances,
                                [](const InstanceData &instance) { return instance.isVisible; });
 
-    size_t instanceCount = static_cast<size_t>(std::distance(instances.begin(), iter));
+    size_t instanceCount{static_cast<size_t>(invisibleInstances.begin() - instances.begin())};
 
     object.setVisibleInstanceCount(instanceCount);
 
@@ -190,6 +190,7 @@ void Renderer::initializeResources(Scene &scene)
     populateSSBO(scene);
     generateCubeMaps(scene);
     borrowSkyboxes(scene);
+    updateUBO(scene);
 }
 
 void Renderer::borrowSkyboxes(Scene &scene)
@@ -281,6 +282,8 @@ void Renderer::generateCubeMaps(Scene &scene)
     for (auto &waterPlane : waters)
     {
         camera.setPosition(waterPlane.properties.transform.getPosition());
+
+        waterPlane.properties.isVisible = false;
 
         // Create the cubemap texture
         GLuint cubeMapTextureID{0};

@@ -31,7 +31,6 @@ void Application::run()
     IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
 
     renderer.initializeResources(islandScene);
-    renderer.updateUBO(islandScene);
     renderer.allResourcesLoaded();
 
     addGlfwUserParam(islandScene);
