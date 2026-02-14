@@ -15,7 +15,7 @@ constexpr glm::vec3 PUDDLE_POS{71.8089f, 0.3731f, -92.3751f};
 constexpr glm::vec3 PUDDLE_SCALE{5.0f};
 
 constexpr glm::vec3 OCEAN_POS{0.0f, -9.29f, 0.0f};
-constexpr glm::vec3 OCEAN_SCALE{10000.0f};
+constexpr glm::vec3 OCEAN_SCALE{11000.0f};
 
 constexpr glm::vec3 STATUE_POSITION{-220.8806f, -5.4838f, -143.7508f};
 

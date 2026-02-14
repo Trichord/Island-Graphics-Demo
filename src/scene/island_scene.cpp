@@ -137,3 +137,9 @@ void IslandScene::setupCamera(const ConfigWindow::GraphicsSettings &graphicsSett
     camera.setFOV(cameraDefaultValues::fov,
                   static_cast<float>(graphicsSettings.screenWidth) / static_cast<float>(graphicsSettings.screenHeight));
 }
+
+void IslandScene::onUpdate(float deltaTime){
+    // Rotate the fancy space model
+    auto &spaceModel = getObjectTransform("spaceModel");
+    spaceModel.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});
+}
