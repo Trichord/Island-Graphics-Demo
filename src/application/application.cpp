@@ -51,7 +51,7 @@ void Application::run()
         ++framesRendered;
 
         // Update scene objects
-        onUpdate(islandScene, deltaTime);
+        islandScene.onUpdate(deltaTime);
 
         // Draw
         renderer.renderScene(islandScene);
@@ -191,12 +191,6 @@ void Application::registerCallbacks() {
 
 void Application::addGlfwUserParam(Scene& scene) {
   glfwSetWindowUserPointer(window, &scene);
-}
-
-void Application::onUpdate(Scene& scene, float deltaTime) {
-  // Rotate the fancy space model
-  auto& spaceModel = scene.getObjectTransform("spaceModel");
-  spaceModel.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});
 }
 
 void Application::keyCallback(GLFWwindow* window, int key, int scancode, int action,

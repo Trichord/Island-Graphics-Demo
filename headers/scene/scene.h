@@ -64,6 +64,7 @@ class Scene
 
     virtual void addAllModelsToScene() = 0;
     virtual void addAllLightsToScene() = 0;
+    virtual void onUpdate(float deltaTime) = 0;
     virtual void setupCamera(const ConfigWindow::GraphicsSettings &graphicsSettings) = 0;
     virtual void initializeScene(const ConfigWindow::GraphicsSettings &graphicsSettings) = 0;
 

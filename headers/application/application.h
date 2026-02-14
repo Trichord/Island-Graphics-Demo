@@ -65,14 +65,6 @@ class Application
     void addGlfwUserParam(Scene &scene);
 
   /**
-   * @brief Per-frame update logic.
-   *
-   * @param scene The target scene to be updated.
-   * @param deltaTime The time elapsed since the last frame.
-   */
-  void onUpdate(Scene& scene, float deltaTime);
-
-  /**
    * GLFW mouse callback. Recieves updated cursor coordinates.
    *
    * @param window The window that recieved the event

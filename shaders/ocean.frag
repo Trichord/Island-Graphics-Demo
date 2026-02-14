@@ -30,7 +30,7 @@ const float waveSpeed = 0.025;
 const float specularDamper = 0.2;
 const float tileFactor = 50.0;
 const float fogStart = 400.0;
-const float fogEnd = 800.0;
+const float fogEnd = 900.0;
 const vec3 waterColor = vec3(0.01, 0.48, 0.88) * 0.1;
 const vec3 sceneCenter = vec3(0.0);
 
