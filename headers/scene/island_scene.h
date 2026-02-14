@@ -11,8 +11,9 @@ class IslandScene : public Scene
   public:
     IslandScene(TextureManager &_textureManager, const ConfigWindow::GraphicsSettings &graphicsSettings);
 
-    void initializeScene(const ConfigWindow::GraphicsSettings &graphicsSettings) override;
     void addAllModelsToScene() override;
     void addAllLightsToScene() override;
+    void onUpdate(float deltaTime) override;
     void setupCamera(const ConfigWindow::GraphicsSettings &graphicsSettings) override;
+    void initializeScene(const ConfigWindow::GraphicsSettings &graphicsSettings) override;
 };
