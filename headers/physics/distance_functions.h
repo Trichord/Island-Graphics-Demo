@@ -14,6 +14,6 @@ struct Result
 };
 
 Result pointTriangle(const glm::vec3 &point, const glm::vec3 &A, const glm::vec3 &B, const glm::vec3 &C);
-Result segmentSegment(const glm::vec3 &P0, const glm::vec3 &P1, const glm::vec3 Q0, const glm::vec3 &Q1);
+Result segmentSegment(const glm::vec3 &P0, const glm::vec3 &P1, const glm::vec3& Q0, const glm::vec3 &Q1);
 
 } // namespace distanceFunction
