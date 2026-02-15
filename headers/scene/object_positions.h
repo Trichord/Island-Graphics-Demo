@@ -8,11 +8,11 @@ constexpr glm::vec3 SPACE_DODECA_POS{-21.0f, 12.5f, -48.0f};
 
 constexpr glm::vec3 DEAD_TREE_POS{196.18584f, -0.93f, 154.62890f};
 
-constexpr glm::vec3 POND_WATER_POS{123.66389f, -5.20597f, 137.39207f};
+constexpr glm::vec3 POND_WATER_POS{121.80589f, -6.22636f, 145.36897f};
 constexpr glm::vec3 POND_WATER_SCALE{45.0f, 1.0f, 45.0f};
 
-constexpr glm::vec3 PUDDLE_POS{71.8089f, 0.3731f, -92.3751f};
-constexpr glm::vec3 PUDDLE_SCALE{5.0f};
+constexpr glm::vec3 PUDDLE_POS{102.09975f, -0.92979f, -67.76979f};
+    constexpr glm::vec3 PUDDLE_SCALE{5.0f};
 
 constexpr glm::vec3 OCEAN_POS{0.0f, -10.39f, 0.0f};
 constexpr glm::vec3 OCEAN_SCALE{11000.0f};
