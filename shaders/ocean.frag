@@ -25,8 +25,8 @@ in VS_OUT
 	vec4 clipSpace;
 } fs_in;
 
-const float dudvStrength = 0.01;
-const float waveSpeed = 0.025;
+const float dudvStrength = 0.025;
+const float waveSpeed = 0.01;
 const float specularDamper = 0.2;
 const float tileFactor = 50.0;
 const float fogStart = 400.0;
