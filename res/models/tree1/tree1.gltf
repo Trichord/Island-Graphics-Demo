@@ -29,7 +29,7 @@
 				0,
 				1
 			],
-			"name":"Acer_medium_2_LOD2"
+			"name":"tree1"
 		}
 	],
 	"materials":[
@@ -40,7 +40,7 @@
 					"specularFactor":0.12677262723445892
 				}
 			},
-			"name":"Bark_Mat.001",
+			"name":"Bark_Mat.006",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":0
@@ -59,7 +59,7 @@
 					"specularFactor":0.155915766954422
 				}
 			},
-			"name":"Cluster_Mat.001",
+			"name":"Cluster_Mat.006",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":2
@@ -73,7 +73,7 @@
 	],
 	"meshes":[
 		{
-			"name":"Acer_medium_2_LOD2_Bark_Mat_0.001",
+			"name":"Acer_medium_2_LOD2_Bark_Mat_0.003",
 			"primitives":[
 				{
 					"attributes":{
@@ -90,7 +90,7 @@
 			]
 		},
 		{
-			"name":"Acer_medium_2_LOD2_Cluster_Mat_0.001",
+			"name":"Acer_medium_2_LOD2_Cluster_Mat_0.003",
 			"primitives":[
 				{
 					"attributes":{
@@ -137,13 +137,13 @@
 		},
 		{
 			"mimeType":"image/png",
-			"name":"Image_5",
-			"uri":"textures/Image_5.png"
+			"name":"branch_atlas",
+			"uri":"textures/branch_atlas.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"Image_6",
-			"uri":"textures/Image_6.png"
+			"name":"branch_atlas_ARM",
+			"uri":"textures/branch_atlas_ARM.png"
 		}
 	],
 	"accessors":[
