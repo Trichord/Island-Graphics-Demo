@@ -19,11 +19,11 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"Acer_small_3_LOD0_Bark_Mat_0"
+			"name":"tree4_bark"
 		},
 		{
 			"mesh":1,
-			"name":"Acer_small_3_LOD0_Cluster_Mat_0"
+			"name":"tree4_leaves"
 		}
 	],
 	"materials":[
@@ -34,7 +34,7 @@
 					"specularFactor":0.12677262723445892
 				}
 			},
-			"name":"Bark_Mat.002",
+			"name":"Bark_Mat.009",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":0
@@ -53,7 +53,7 @@
 					"specularFactor":0.155915766954422
 				}
 			},
-			"name":"Cluster_Mat.002",
+			"name":"Cluster_Mat.009",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":2
@@ -67,7 +67,7 @@
 	],
 	"meshes":[
 		{
-			"name":"Acer_small_3_LOD0_Bark_Mat_0",
+			"name":"Acer_small_3_LOD0_Bark_Mat_0.001",
 			"primitives":[
 				{
 					"attributes":{
@@ -84,7 +84,7 @@
 			]
 		},
 		{
-			"name":"Acer_small_3_LOD0_Cluster_Mat_0",
+			"name":"Acer_small_3_LOD0_Cluster_Mat_0.001",
 			"primitives":[
 				{
 					"attributes":{
@@ -131,13 +131,13 @@
 		},
 		{
 			"mimeType":"image/png",
-			"name":"Image_5",
-			"uri":"textures/Image_5.png"
+			"name":"branch_atlas",
+			"uri":"textures/branch_atlas.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"Image_6",
-			"uri":"textures/Image_6.png"
+			"name":"branch_atlas_ARM",
+			"uri":"textures/branch_atlas_ARM.png"
 		}
 	],
 	"accessors":[
@@ -196,10 +196,10 @@
 		{
 			"bufferView":7,
 			"componentType":5126,
-			"count":811,
+			"count":795,
 			"max":[
 				4.1767988204956055,
-				11.994701385498047,
+				10.083683013916016,
 				5.184535503387451
 			],
 			"min":[
@@ -212,31 +212,31 @@
 		{
 			"bufferView":8,
 			"componentType":5126,
-			"count":811,
+			"count":795,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":9,
 			"componentType":5126,
-			"count":811,
+			"count":795,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":10,
 			"componentType":5126,
-			"count":811,
+			"count":795,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":11,
 			"componentType":5126,
-			"count":811,
+			"count":795,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":12,
 			"componentType":5123,
-			"count":2469,
+			"count":2421,
 			"type":"SCALAR"
 		}
 	],
@@ -285,38 +285,38 @@
 		},
 		{
 			"buffer":0,
-			"byteLength":9732,
+			"byteLength":9540,
 			"byteOffset":45380,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":9732,
-			"byteOffset":55112,
+			"byteLength":9540,
+			"byteOffset":54920,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":6488,
-			"byteOffset":64844,
+			"byteLength":6360,
+			"byteOffset":64460,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":6488,
-			"byteOffset":71332,
+			"byteLength":6360,
+			"byteOffset":70820,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":12976,
-			"byteOffset":77820,
+			"byteLength":12720,
+			"byteOffset":77180,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":4938,
-			"byteOffset":90796,
+			"byteLength":4842,
+			"byteOffset":89900,
 			"target":34963
 		}
 	],
@@ -328,7 +328,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":95736,
+			"byteLength":94744,
 			"uri":"tree4.bin"
 		}
 	]
