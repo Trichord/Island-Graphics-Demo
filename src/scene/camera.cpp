@@ -220,7 +220,7 @@ void Camera::processKeyboard(CameraMovement direction, float deltaTime, bool spr
 {
     using enum CameraMovement;
     using namespace WorldVectors;
-    constexpr float cameraSprintSpeed{7.5f};
+    constexpr float cameraSprintSpeed{3.0f};
 
     float boost{sprint ? cameraSprintSpeed : 1.0f};
     float velocity{cameraDefaultValues::speed * deltaTime * boost};

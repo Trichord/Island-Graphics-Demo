@@ -97,6 +97,8 @@ void Renderer::loadShaders()
     shaders.emplace(TREES, Shader{"./shaders/trees.vert", "./shaders/trees.frag"});
     shaders.emplace(POINT_PBR, Shader{"./shaders/point_PBR.vert", "./shaders/point_PBR.frag"});
     shaders.emplace(DIRECTIONAL_PBR, Shader{"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"});
+    shaders.emplace(DIRECTIONAL_PBR_INSTANCED,
+                    Shader{"./shaders/directional_PBR_instanced.vert", "./shaders/directional_PBR.frag"});
     shaders.emplace(REFLECTIVE, Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"});
     shaders.emplace(SKYBOX, Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"});
     shaders.emplace(WATER, Shader{"./shaders/water.vert", "./shaders/water.frag"});
@@ -164,8 +166,8 @@ void Renderer::updateSSBO(IRenderable &object)
 {
     auto instances = object.getInstanceData();
     // Move visible instances to front of vector
-    auto invisibleInstances = std::ranges::partition(instances,
-                               [](const InstanceData &instance) { return instance.isVisible; });
+    auto invisibleInstances =
+        std::ranges::partition(instances, [](const InstanceData &instance) { return instance.isVisible; });
 
     size_t instanceCount{static_cast<size_t>(invisibleInstances.begin() - instances.begin())};
 
