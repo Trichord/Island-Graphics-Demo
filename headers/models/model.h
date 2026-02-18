@@ -29,12 +29,11 @@ class Model : public IRenderable
      */
 
     AABB &getAABB() override;
+    void enableVisibility() override;
     void resetVisibility() override;
     const ModelHandle getHandle() const override;
-    std::size_t getInstanceCount() const override;
     std::span<Primitive::Mesh> getMeshes() override;
-    std::span<InstanceData> getInstanceData() override;
-    void setVisibleInstanceCount(std::size_t newSize) override;
+    std::span<InstancedData> getInstanceData() override;
 
   protected:
     ModelHandle handle{0};

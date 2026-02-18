@@ -28,11 +28,6 @@
  * safer ownership model.
  */
 
-namespace sceneMaxObjects
-{
-inline constexpr int maxLights{5};
-} // namespace sceneMaxObjects
-
 class Scene
 {
   public:

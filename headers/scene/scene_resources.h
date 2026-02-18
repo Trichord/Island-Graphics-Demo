@@ -8,6 +8,16 @@
 #include "model.h"
 #include "texture_manager.h"
 
+
+namespace sceneMaxObjects
+{
+inline constexpr int maxModels{50};
+inline constexpr int maxInstancedModels{25};
+inline constexpr int maxCubeMappedModels{10};
+inline constexpr int totalMaxModels{maxModels + maxInstancedModels + maxCubeMappedModels};
+inline constexpr int maxLights{5};
+} // namespace sceneMaxObjects
+
 class SceneResources
 {
   public:

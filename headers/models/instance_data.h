@@ -3,12 +3,10 @@
 #include "aabb.h"
 #include "glm/glm.hpp"
 
-struct InstanceData
+struct InstancedData
 {
     glm::mat4 modelMatrix{1.0f};
-    glm::mat4 normalMatrix{1.0f};
     glm::vec3 position{0.0f};
     AABB worldAABB;
     bool isVisible{false};
-    float sortKey{0.0f};
 };

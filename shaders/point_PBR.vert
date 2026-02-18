@@ -21,10 +21,11 @@ out VS_OUT {
 } vs_out;
 
 uniform mat4 modelMatrix;
-uniform mat3 normalMatrix; //transpose(inverse(mat3(modelMatrix)))
 uniform vec3 lightPosition;
 
 void main () {
+	mat3 normalMatrix = mat3(modelMatrix);
+
 	//TBN matrix for normal map
 	vec3 T = normalize(normalMatrix * aTangent.xyz);
 	vec3 N = normalize(normalMatrix * aNormal);

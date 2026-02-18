@@ -52,14 +52,9 @@ std::span<Primitive::Mesh> Model::getMeshes()
     return meshes;
 }
 
-std::span<InstanceData> Model::getInstanceData()
+std::span<InstancedData> Model::getInstanceData()
 {
     return {};
-}
-
-std::size_t Model::getInstanceCount() const
-{
-    return 0;
 }
 
 void Model::loadModel(const std::filesystem::path &path, bool borrowed)
@@ -129,10 +124,11 @@ void Model::calculateAABB()
 void Model::resetVisibility()
 {
     for (auto &mesh : meshes)
-        mesh.isVisible = true;
+        mesh.isVisible = false;
 }
 
-void Model::setVisibleInstanceCount(std::size_t newSize)
+void Model::enableVisibility()
 {
-    return;
+    for (auto &mesh : meshes)
+        mesh.isVisible = true;
 }
