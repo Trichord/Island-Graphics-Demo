@@ -13,18 +13,21 @@ class Transform
     Transform(glm::vec3 position = glm::vec3(0.0f), glm::vec3 scale = glm::vec3(1.0f), float degrees = 0.0f,
               glm::vec3 axis = glm::vec3(0.0f, 1.0f, 0.0f));
 
+    void setAbsoluteScale(float absoluteScale);
     void setAbsolutePosition(glm::vec3 absolutePosition);
     void setAbsoluteRotation(glm::vec3 absoluteRotation);
-    void setAbsoluteScale(glm::vec3 absoluteScale);
+
+    void setRelativeScale(float relativeScale);
     void setRelativePosition(glm::vec3 relativePosition);
     void setRelativeRotation(glm::vec3 relativeRotation);
-    void setRelativeScale(glm::vec3 relativeScale);
+
     void rotateAroundAxis(float degrees, glm::vec3 axis);
-    const glm::vec3 &getPosition() const;
-    const glm::vec3 &getScale() const;
+
     glm::mat4 &getModelMatrix();
     glm::mat3 &getNormalMatrix();
     glm::vec3 getRotation() const;
+    const glm::vec3 &getScale() const;
+    const glm::vec3 &getPosition() const;
 
   private:
     glm::vec3 position{1.0f};

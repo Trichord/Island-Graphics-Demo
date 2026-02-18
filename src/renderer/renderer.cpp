@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <iostream>
 #include <iterator>
 #include <unordered_map>
 #include <utility>
@@ -66,7 +67,7 @@ void Renderer::renderScene(Scene &scene)
     resetVisibility(scene);
     cullRenderables(scene);
 
-    glNamedBufferSubData(SSBO, 0, ssboData.size() * sizeof(SSBOData), ssboData.data());
+    updateSSBO(scene);
 
     renderAllSceneObjects(scene);
 }
@@ -74,13 +75,13 @@ void Renderer::renderScene(Scene &scene)
 void Renderer::updateUBO(Scene &scene)
 {
     Camera &camera{scene.getCamera()};
-    uboData.viewMatrix = camera.getViewMatrix();
-    uboData.projectionMatrix = camera.getProjectionMatrix();
-    uboData.viewProjectionMatrix = camera.getViewProjectionMatrix();
-    uboData.inverseViewProjectMatrix = glm::inverse(uboData.viewProjectionMatrix);
-    uboData.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
+    uboCameraData.viewMatrix = camera.getViewMatrix();
+    uboCameraData.projectionMatrix = camera.getProjectionMatrix();
+    uboCameraData.viewProjectionMatrix = camera.getViewProjectionMatrix();
+    uboCameraData.inverseViewProjectMatrix = glm::inverse(uboCameraData.viewProjectionMatrix);
+    uboCameraData.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
 
-    glNamedBufferSubData(UBO, 0, sizeof(PackedUBOData), &uboData);
+    glNamedBufferSubData(UBO, 0, sizeof(PackedCameraData), &uboCameraData);
 }
 
 void Renderer::setupTextureManager()
@@ -162,34 +163,46 @@ void Renderer::updateShaderUniforms(Scene &scene)
     }
 }
 
-void Renderer::updateSSBO(IRenderable &object)
+void Renderer::updateSSBO(Scene &scene)
 {
-    auto instances = object.getInstanceData();
-    // Move visible instances to front of vector
-    auto invisibleInstances =
-        std::ranges::partition(instances, [](const InstanceData &instance) { return instance.isVisible; });
+    using enum CullType;
 
-    size_t instanceCount{static_cast<size_t>(invisibleInstances.begin() - instances.begin())};
+    instanceIndices.clear();
 
-    object.setVisibleInstanceCount(instanceCount);
+    std::uint32_t indicesOffset{0};
 
-    // Sort front to back for speed on depth testing, over proper alpha blending
-    std::sort(instances.begin(), instances.begin() + instanceCount,
-              [](const InstanceData &a, const InstanceData &b) { return a.sortKey < b.sortKey; });
-
-    std::size_t offset{ssboOffsets.at(object.getHandle())};
-
-    for (std::size_t i{0}; i < instanceCount; ++i)
+    for (auto &[_, renderables] : scene.getRenderablesByShader())
     {
-        ssboData[offset + i].modelMatrix = instances[i].modelMatrix;
-        ssboData[offset + i].normalMatrix = instances[i].normalMatrix;
+        for (auto &renderable : renderables)
+        {
+            if (!renderable.properties.isVisible || renderable.properties.cullType != INSTANCED)
+                continue;
+
+            std::span<InstancedData> instances{renderable.object.get().getInstanceData()};
+
+            for (uint32_t i{0}; i < instances.size(); ++i)
+            {
+                if (instances[i].isVisible)
+                {
+                    ++renderable.properties.visibleInstances;
+                    instanceIndices.push_back(i);
+                }
+            }
+
+            // Update render's count for the draw call
+            renderable.properties.instancedIndicesOffset = indicesOffset;
+
+            // Keep track of where each model's instances start in the vector of indices
+            indicesOffset += renderable.properties.visibleInstances;
+        }
     }
+
+    glNamedBufferSubData(indicesSSBO, 0, instanceIndices.size() * sizeof(std::uint32_t), instanceIndices.data());
 }
 
 void Renderer::initializeResources(Scene &scene)
 {
     createBuffers(scene);
-    populateSSBO(scene);
     generateCubeMaps(scene);
     borrowSkyboxes(scene);
     updateUBO(scene);
@@ -222,25 +235,28 @@ void Renderer::createBuffers(Scene &scene)
 {
     // UBO
     glCreateBuffers(1, &UBO);
-
-    glNamedBufferStorage(UBO, sizeof(PackedUBOData), nullptr, GL_DYNAMIC_STORAGE_BIT);
-
+    glNamedBufferStorage(UBO, sizeof(PackedCameraData), nullptr, GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, UBO);
 
-    // SSBO
-    glCreateBuffers(1, &SSBO);
-    std::size_t numInstances{0};
-
     // Find total number of all instances across all scene objects
+    std::size_t numInstances{0};
     for (auto &[_, objectList] : scene.getRenderablesByShader())
         for (auto &renderable : objectList)
             numInstances += renderable.object.get().getInstanceData().size();
 
-    ssboData.reserve(numInstances);
+    // Instanced model matrices
+    glCreateBuffers(1, &matricesSSBO);
+    glNamedBufferStorage(matricesSSBO, numInstances * sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, matricesSSBO);
 
-    glNamedBufferStorage(SSBO, numInstances * sizeof(SSBOData), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    // Indices into the model matrices buffer
+    glCreateBuffers(1, &indicesSSBO);
+    glNamedBufferStorage(indicesSSBO, numInstances * sizeof(std::uint32_t), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indicesSSBO);
+    instanceIndices.reserve(numInstances);
 
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, SSBO);
+    // Fill the SSBO with all instanced model matrices
+    populateSSBO(scene, numInstances);
 }
 
 void Renderer::generateCubeMaps(Scene &scene)
@@ -328,31 +344,33 @@ void Renderer::generateCubeMaps(Scene &scene)
     glViewport(0, 0, graphicsSettings.screenWidth, graphicsSettings.screenHeight);
 }
 
-void Renderer::populateSSBO(Scene &scene)
+void Renderer::populateSSBO(Scene &scene, std::size_t totalInstanceCount)
 {
+    // Reserve max amount for matrices
+    std::vector<glm::mat4> modelMatrices;
+    modelMatrices.reserve(totalInstanceCount);
+
     GLuint offset{0};
 
-    for (auto &[_, objectList] : scene.getRenderablesByShader())
-        for (auto &renderable : objectList)
+    for (auto &[_, renderables] : scene.getRenderablesByShader())
+        for (auto &renderable : renderables)
         {
             auto &object = renderable.object.get();
 
-            if (!object.getInstanceCount())
+            if (object.getInstanceData().empty())
                 continue;
 
-            // Keep track of where each model's start position is in the SSBO. Even
-            // with sorting and changing instance count, the starting offset into the
-            // SSBO will never change.
-            ssboOffsets.emplace(object.getHandle(), offset);
+            // Keep track of start position for each model's matrices in the SSBO.
+            instancedBaseOffsets.emplace(object.getHandle(), offset);
 
             // Build and track each instance's offset into the buffer
             for (auto &instance : object.getInstanceData())
-                ssboData.emplace_back(instance.modelMatrix, instance.normalMatrix);
+                modelMatrices.emplace_back(instance.modelMatrix);
 
             offset += static_cast<GLuint>(object.getInstanceData().size());
         }
 
-    glNamedBufferSubData(SSBO, 0, ssboData.size() * sizeof(SSBOData), ssboData.data());
+    glNamedBufferSubData(matricesSSBO, 0, modelMatrices.size() * sizeof(glm::mat4), modelMatrices.data());
 }
 
 TextureManager &Renderer::getTextureManager()
@@ -363,7 +381,7 @@ TextureManager &Renderer::getTextureManager()
 void Renderer::deleteBuffers()
 {
     glDeleteBuffers(1, &UBO);
-    glDeleteBuffers(1, &SSBO);
+    glDeleteBuffers(1, &matricesSSBO);
 }
 
 void Renderer::allResourcesLoaded()

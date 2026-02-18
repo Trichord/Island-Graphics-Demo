@@ -14,15 +14,12 @@ layout (std140) uniform matrices
 	layout (offset = 256) vec4 cameraPosition;
 };
 
-struct instanceData
-{
-	mat4 modelMatrix;
-	mat4 normalMatrix;
+layout(binding = 0, std430) readonly buffer matricesSSBO {
+    mat4 instances[];
 };
 
-layout(binding = 0, std430) readonly buffer ssbo 
-{
-    instanceData instances[];
+layout(binding = 1, std430) readonly buffer indicesSSBO {
+    uint indices[];
 };
 
 out VS_OUT 
@@ -33,13 +30,15 @@ out VS_OUT
 	vec2 texCoords;
 } vs_out;
 
-uniform int index;
+uniform uint baseIndex;
+uniform uint indicesOffset;
 uniform vec3 lightDir;
 
 void main () 
 {
-	mat4 modelMatrix = instances[index + gl_InstanceID].modelMatrix;
-	mat3 normalMatrix = mat3(instances[index + gl_InstanceID].normalMatrix);
+	uint instanceIndex = indices[indicesOffset + gl_InstanceID];
+	mat4 modelMatrix = instances[baseIndex + instanceIndex];
+	mat3 normalMatrix = mat3(modelMatrix);
 
 	//TBN matrix for normal map
 	vec3 T = normalize(normalMatrix * aTangent.xyz);

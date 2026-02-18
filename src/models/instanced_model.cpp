@@ -37,7 +37,6 @@ InstancedModel::InstancedModel(TextureManager &textureManager, const ModelHandle
 InstancedModel::InstancedModel(InstancedModel &&other) noexcept : Model{std::move(other)}
 {
     instances = std::move(other.instances);
-    visibleInstances = std::move(other.visibleInstances);
     instancesVBO = other.instancesVBO;
 
     other.instancesVBO = 0;
@@ -70,8 +69,6 @@ void InstancedModel::loadPositions(const std::filesystem::path &positionsPath, u
 
     if (instances.size() != numPositions && numPositions != 0)
         std::cout << positionsPath << " expected " << numPositions << " allocated " << instances.size() << std::endl;
-
-    visibleInstances = instances.size();
 }
 
 void InstancedModel::generateInstanceMatrices(float minSize, float maxSize)
@@ -96,7 +93,6 @@ void InstancedModel::generateInstanceMatrices(float minSize, float maxSize)
         glm::mat4 normalMatrix{glm::transpose(glm::inverse(glm::mat3{modelMatrix}))};
 
         instance.modelMatrix = modelMatrix;
-        instance.normalMatrix = normalMatrix;
     }
 }
 
@@ -119,26 +115,15 @@ void InstancedModel::deleteBuffers()
     glDeleteBuffers(1, &instancesVBO);
 }
 
-std::span<InstanceData> InstancedModel::getInstanceData()
+std::span<InstancedData> InstancedModel::getInstanceData()
 {
     return instances;
-}
-
-std::size_t InstancedModel::getInstanceCount() const
-{
-    return visibleInstances;
 }
 
 void InstancedModel::resetVisibility()
 {
     Model::resetVisibility();
-    visibleInstances = instances.size();
 
     for (auto &instance : instances)
-        instance.isVisible = true;
-}
-
-void InstancedModel::setVisibleInstanceCount(std::size_t updatedCount)
-{
-    visibleInstances = updatedCount;
+        instance.isVisible = false;
 }

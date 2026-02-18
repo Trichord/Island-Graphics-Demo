@@ -9,12 +9,9 @@
 #include "model.h"
 #include "texture_manager.h"
 
-inline constexpr int maxModels{50};
-inline constexpr int maxInstancedModels{25};
-inline constexpr int maxCubeMappedModels{10};
-
 SceneResources::SceneResources(TextureManager &_textureManager) : textureManager{_textureManager}
 {
+    using namespace sceneMaxObjects;
     models.reserve(maxModels);
     instancedModels.reserve(maxInstancedModels);
     cubeMappedModels.reserve(maxCubeMappedModels);
@@ -22,6 +19,8 @@ SceneResources::SceneResources(TextureManager &_textureManager) : textureManager
 
 Model &SceneResources::loadModel(const std::filesystem::path &filepath)
 {
+    using namespace sceneMaxObjects;
+
     if (models.size() >= maxModels)
         throw std::runtime_error("Max number of models reached!");
 
@@ -30,6 +29,8 @@ Model &SceneResources::loadModel(const std::filesystem::path &filepath)
 
 Model &SceneResources::loadModel(const ModelHandle borrowHandle, const std::filesystem::path &filepath)
 {
+    using namespace sceneMaxObjects;
+
     if (models.size() >= maxModels)
         throw std::runtime_error("Max number of models reached!");
 
@@ -40,6 +41,8 @@ InstancedModel &SceneResources::loadInstancedModel(const std::filesystem::path &
                                                    const std::filesystem::path &positionsPath, float minSize,
                                                    float maxSize, unsigned int numPositions)
 {
+    using namespace sceneMaxObjects;
+
     if (instancedModels.size() >= maxInstancedModels)
         throw std::runtime_error{"Max number of instanced models reached!"};
 
@@ -51,6 +54,8 @@ InstancedModel &SceneResources::loadInstancedModel(const ModelHandle borrowHandl
                                                    const std::filesystem::path &positionsPath, float minSize,
                                                    float maxSize, unsigned int numPositions)
 {
+    using namespace sceneMaxObjects;
+
     if (instancedModels.size() >= maxInstancedModels)
         throw std::runtime_error{"Max number of instanced models reached!"};
 
@@ -61,6 +66,8 @@ InstancedModel &SceneResources::loadInstancedModel(const ModelHandle borrowHandl
 CubeMappedModel &SceneResources::loadCubeMappedModel(const std::filesystem::path &modelPath,
                                                      const std::vector<std::filesystem::path> &imagePaths, bool skybox)
 {
+    using namespace sceneMaxObjects;
+
     if (cubeMappedModels.size() >= maxCubeMappedModels)
         throw std::runtime_error("Max number of space models reached!");
 
@@ -70,6 +77,8 @@ CubeMappedModel &SceneResources::loadCubeMappedModel(const std::filesystem::path
 CubeMappedModel &SceneResources::loadCubeMappedModel(const ModelHandle borrowHandle,
                                                      const std::filesystem::path &modelPath)
 {
+    using namespace sceneMaxObjects;
+
     if (cubeMappedModels.size() >= maxCubeMappedModels)
         throw std::runtime_error("Max number of space models reached!");
 

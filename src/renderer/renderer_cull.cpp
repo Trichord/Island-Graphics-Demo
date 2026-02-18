@@ -11,9 +11,6 @@
 #include "scene.h"
 #include "shader_types.h"
 
-// Culling at 25% of the frustum length
-constexpr float grassCullDistance{0.25f};
-
 void Renderer::cullRenderables(Scene &scene)
 {
     Camera &camera{scene.getCamera()};
@@ -33,20 +30,20 @@ void Renderer::cullRenderables(Scene &scene)
                 cullModel(renderable, frustumPlanes);
                 break;
 
-            case BY_MESH:
+            case TERRAIN:
                 cullByMesh(renderable, frustumPlanes);
                 break;
 
             case INSTANCED:
-                cullInstanced(renderable, camera.getPosition(), frustumPlanes, false);
+                cullInstanced(renderable, camera.getPosition(), frustumPlanes);
                 break;
 
-            case INSTANCED_DISTANCE:
-                cullInstanced(renderable, camera.getPosition(), frustumPlanes, true);
+            case NONE: {
+                auto &object = renderable.object.get();
+                object.enableVisibility();
+                renderable.properties.isVisible = true;
                 break;
-
-            case NONE:
-                break;
+            }
 
             default:
                 std::cerr << "ERROR: unknown enum in cull strategy" << std::endl;
@@ -63,50 +60,32 @@ void Renderer::cullModel(Renderable &renderable, const std::array<glm::vec4, 6> 
     const AABB &aabb = object.getAABB();
 
     properties.isVisible = aabb.intersects(frustumPlanes, modelMatrix);
+
+    if (properties.isVisible)
+        object.enableVisibility();
 }
 
-// Cull by distance is represented as a fraction of the frustum length. e.g.
-// 0.5f will cull grass at half of the viewable distance. For water reflections, we can ignore the top plane if the
-// camera is within [-45.0, 45.0] degrees, otherwise reflected objects get culled too early.
 void Renderer::cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
-                             const std::array<glm::vec4, 6> &frustumPlanes, bool cullByDistance)
+                             const std::array<glm::vec4, 6> &frustumPlanes)
 {
-    constexpr float nearDistance{cameraDefaultValues::nearPlane};
-    constexpr float farDistance{cameraDefaultValues::farPlane};
     bool anyVisible{false};
 
-    const float cullDistance{nearDistance + (farDistance - nearDistance) * grassCullDistance};
-
     auto &object = renderable.object.get();
-    std::span<InstanceData> instances = object.getInstanceData();
+    std::span<InstancedData> instances = object.getInstanceData();
 
     for (auto &instance : instances)
     {
-        const float objToCamera{glm::length(cameraPos - instance.position)};
-
-        // Outside of distance based culling
-        if (cullByDistance && objToCamera > cullDistance)
-        {
-            instance.isVisible = false;
-            continue;
-        }
-
         instance.isVisible = instance.worldAABB.intersectsWorldSpace(frustumPlanes);
 
         if (instance.isVisible)
         {
             anyVisible = true;
-            float xDist{instance.position.x - cameraPos.x};
-            float zDist{instance.position.z - cameraPos.z};
-            instance.sortKey = xDist * xDist + zDist * zDist;
             renderable.properties.isVisible = true;
+            object.enableVisibility();
         }
     }
 
     renderable.properties.isVisible = anyVisible;
-
-    if (anyVisible)
-        updateSSBO(object);
 }
 
 void Renderer::cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
@@ -126,6 +105,7 @@ void Renderer::cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6>
             {
                 mesh.isVisible = true;
                 properties.isVisible = true;
+                object.enableVisibility();
                 break;
             }
         }
@@ -134,10 +114,21 @@ void Renderer::cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6>
 
 void Renderer::resetVisibility(Scene &scene)
 {
-    for (auto &[_, objectList] : scene.getRenderablesByShader())
-        for (auto &renderable : objectList)
+    for (auto &[shader, renderables] : scene.getRenderablesByShader())
+        for (auto &renderable : renderables)
         {
-            renderable.properties.isVisible = true;
-            renderable.object.get().resetVisibility();
+            using enum ShaderType;
+
+            ObjectProperties &properties{renderable.properties};
+            auto &object = renderable.object.get();
+
+            properties.isVisible = false;
+            properties.visibleInstances = 0;
+            properties.instancedIndicesOffset = 0;
+
+            if (shader != SKYBOX)
+                object.resetVisibility();
+            else
+                object.enableVisibility();
         }
 }

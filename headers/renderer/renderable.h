@@ -15,13 +15,12 @@ class IRenderable
   public:
     virtual AABB &getAABB() = 0;
     virtual void resetVisibility() = 0;
+    virtual void enableVisibility() = 0;
     virtual std::span<Primitive::Mesh> getMeshes() = 0;
     virtual const ModelHandle getHandle() const = 0;
 
     // Instance based methods
-    virtual std::size_t getInstanceCount() const = 0;
-    virtual std::span<InstanceData> getInstanceData() = 0;
-    virtual void setVisibleInstanceCount(std::size_t newSize) = 0;
+    virtual std::span<InstancedData> getInstanceData() = 0;
 
     virtual ~IRenderable() = default;
 };
@@ -30,14 +29,9 @@ struct ObjectProperties
 {
     Transform transform;
     CullType cullType{CullType::MODEL};
-    bool isVisible{true};
-    bool cullByMesh{false};
-
-    bool isInstanced() const
-    {
-        using enum CullType;
-        return cullType == INSTANCED || cullType == INSTANCED_DISTANCE;
-    }
+    bool isVisible{false};
+    std::uint32_t visibleInstances{0};
+    std::uint32_t instancedIndicesOffset{0};
 };
 
 struct Renderable

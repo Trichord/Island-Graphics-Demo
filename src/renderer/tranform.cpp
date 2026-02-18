@@ -23,9 +23,9 @@ void Transform::setAbsoluteRotation(glm::vec3 absoluteRotation)
     isDirty = true;
 }
 
-void Transform::setAbsoluteScale(glm::vec3 absoluteScale)
+void Transform::setAbsoluteScale(float absoluteScale)
 {
-    scale = absoluteScale;
+    scale = glm::vec3(absoluteScale);
     isDirty = true;
 }
 
@@ -42,7 +42,7 @@ void Transform::setRelativeRotation(glm::vec3 relativeRotation)
     isDirty = true;
 }
 
-void Transform::setRelativeScale(glm::vec3 relativeScale)
+void Transform::setRelativeScale(float relativeScale)
 {
     scale *= relativeScale;
     isDirty = true;
