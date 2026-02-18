@@ -23,6 +23,5 @@ enum class CullType
     NONE,
     MODEL,
     INSTANCED,
-    INSTANCED_DISTANCE,
-    BY_MESH
+    TERRAIN
 };

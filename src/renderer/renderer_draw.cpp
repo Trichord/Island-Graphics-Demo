@@ -14,6 +14,7 @@ void Renderer::renderAllSceneObjects(Scene &scene)
 {
     using enum ShaderType;
 
+
     for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
     {
         if (objectList.empty())
@@ -31,26 +32,29 @@ void Renderer::renderAllSceneObjects(Scene &scene)
                 continue;
 
             glm::mat4 modelMatrix{renderable.properties.transform.getModelMatrix()};
-            glm::mat3 normalMatrix{renderable.properties.transform.getNormalMatrix()};
 
             shader.setMat4("modelMatrix", modelMatrix);
-            shader.setMat3("normalMatrix", normalMatrix);
             shader.setVec3("scale", renderable.properties.transform.getScale());
 
             auto &object = renderable.object.get();
-            if (auto iter = ssboOffsets.find(object.getHandle()); iter != ssboOffsets.end())
-                shader.setInt("index", iter->second);
-
+            if (auto iter = instancedBaseOffsets.find(object.getHandle()); iter != instancedBaseOffsets.end())
+            {
+                shader.setIntU("baseIndex", iter->second);
+                shader.setIntU("indicesOffset", renderable.properties.instancedIndicesOffset);
+            }
             // Draw it
-            renderObject(object);
+            renderObject(renderable);
         }
+
         if (shaderType == SKYBOX)
             glDepthFunc(GL_LESS);
     }
 }
 
-void Renderer::renderObject(IRenderable &object)
+void Renderer::renderObject(Renderable &renderable)
 {
+    auto &object = renderable.object.get();
+    auto &properties = renderable.properties;
     const auto &materials{textureManager.getMaterials(object.getHandle())};
 
     for (const Primitive::Mesh &mesh : object.getMeshes())
@@ -60,6 +64,8 @@ void Renderer::renderObject(IRenderable &object)
 
         for (const Primitive &primitive : mesh.primitives)
         {
+            using enum CullType;
+
             glState.setAlphaMode(primitive.getAlphaMode());
 
             if (primitive.materialsExist())
@@ -70,9 +76,9 @@ void Renderer::renderObject(IRenderable &object)
 
             glBindVertexArray(primitive.getVAO());
 
-            if (object.getInstanceCount())
+            if (properties.cullType == INSTANCED)
             {
-                GLsizei instanceCount{static_cast<GLsizei>(object.getInstanceCount())};
+                GLsizei instanceCount{static_cast<GLsizei>(properties.visibleInstances)};
                 glDrawElementsInstanced(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0, instanceCount);
             }
 

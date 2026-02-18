@@ -25,13 +25,10 @@ class InstancedModel : public Model
     ~InstancedModel();
 
     void resetVisibility() override;
-    std::size_t getInstanceCount() const override;
-    std::span<InstanceData> getInstanceData() override;
-    void setVisibleInstanceCount(std::size_t newSize) override;
+    std::span<InstancedData> getInstanceData() override;
 
   private:
-    std::vector<InstanceData> instances;
-    std::size_t visibleInstances{0};
+    std::vector<InstancedData> instances;
 
     GLuint instancesVBO{0};
 

@@ -13,13 +13,12 @@ layout (std140) uniform matrices {
 	layout (offset = 256) vec4 cameraPosition;
 };
 
-struct instanceData{
-mat4 modelMatrix;
-mat4 normalMatrix;
+layout(binding = 0, std430) readonly buffer matricesSSBO {
+    mat4 instances[];
 };
 
-layout(binding = 0, std430) readonly buffer ssbo {
-    instanceData instances[];
+layout(binding = 1, std430) readonly buffer indicesSSBO {
+    uint indices[];
 };
 
 out vec2 texCoords;
@@ -29,7 +28,8 @@ const float minVertexHeight = 0.001;
 const float maxVertexHeight = 1.0;
 const float swaySpeed = 0.5;
 
-uniform int index;
+uniform uint baseIndex;
+uniform uint indicesOffset;
 uniform float time;
 uniform float windStrength;
 uniform vec3 windDirection;
@@ -52,16 +52,17 @@ vec3 calcWindTranslation(mat4 transform, float timeStamp, vec3 windDir, float wi
 }
 
 void main() {
-	mat4 modelMatrix = instances[index + gl_InstanceID].modelMatrix;
-	mat3 normalMatrix = mat3(instances[index + gl_InstanceID].normalMatrix);
+	uint instanceIndex = indices[indicesOffset + gl_InstanceID];
+	mat4 modelMatrix = instances[baseIndex + instanceIndex];
+	mat3 normalMatrix = mat3(modelMatrix);
+	
 	texCoords = aTexCoords;
 	normal = normalize(normalMatrix * aNormal);
 
 	vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
-
 	vec3 windTranslation = calcWindTranslation(modelMatrix, time * swaySpeed, windDirection, windStrength);
-
 	float mask = smoothstep(minVertexHeight, maxVertexHeight, aPos.y);
+	
 	windTranslation *= mask;
 
     gl_Position = projectionViewMatrix * vec4(worldPos.xyz + windTranslation, 1.0);

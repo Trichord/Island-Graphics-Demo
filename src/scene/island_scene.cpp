@@ -41,7 +41,7 @@ void IslandScene::addAllModelsToScene()
 
     // Main island
     auto &island = sceneResources.loadModel("./res/models/island/island.gltf");
-    addObjectToScene(island, DIRECTIONAL_PBR, {.cullType = BY_MESH});
+    addObjectToScene(island, DIRECTIONAL_PBR, {.cullType = TERRAIN});
 
     // Statue
     auto &statue = sceneResources.loadModel("./res/models/set_pieces/statue/statue.gltf");
@@ -66,37 +66,37 @@ void IslandScene::addAllModelsToScene()
     // Grass
     auto &grass = sceneResources.loadInstancedModel("./res/models/vegetation/grass/grass.gltf",
                                                     "./res/positions/grass.txt", 0.3f, 0.5, 1497);
-    addObjectToScene(grass, FLOWERS, {.cullType = INSTANCED_DISTANCE});
+    addObjectToScene(grass, FLOWERS, {.cullType = INSTANCED});
 
     // White flowers
     auto &whiteFlowers = sceneResources.loadInstancedModel("./res/models/vegetation/whiteflower/whiteflower.gltf",
                                                            "./res/positions/whiteflower.txt", 0.9f, 1.1f, 488);
-    addObjectToScene(whiteFlowers, FLOWERS, {.cullType = INSTANCED_DISTANCE});
+    addObjectToScene(whiteFlowers, FLOWERS, {.cullType = INSTANCED});
     ModelHandle whiteFlowerHandle{whiteFlowers.getHandle()};
 
     // Blue flowers
     auto &blueFlowers =
         sceneResources.loadInstancedModel(whiteFlowerHandle, "./res/models/vegetation/blueflower/blueflower.gltf",
                                           "./res/positions/blueflower.txt", 0.9f, 1.1f, 212);
-    addObjectToScene(blueFlowers, FLOWERS, {.cullType = INSTANCED_DISTANCE});
+    addObjectToScene(blueFlowers, FLOWERS, {.cullType = INSTANCED});
 
     // Purple flowers
     auto &purpleFlowers =
         sceneResources.loadInstancedModel(whiteFlowerHandle, "./res/models/vegetation/purpleflower/purpleflower.gltf",
                                           "./res/positions/purpleflower.txt", 0.9f, 1.1f, 328);
-    addObjectToScene(purpleFlowers, FLOWERS, {.cullType = INSTANCED_DISTANCE});
+    addObjectToScene(purpleFlowers, FLOWERS, {.cullType = INSTANCED});
 
     // Dandelions
     auto &dandelions =
         sceneResources.loadInstancedModel(whiteFlowerHandle, "./res/models/vegetation/dandelion/dandelion.gltf",
                                           "./res/positions/dandelion.txt", 1.0f, 1.5f, 944);
-    addObjectToScene(dandelions, FLOWERS, {.cullType = INSTANCED_DISTANCE});
+    addObjectToScene(dandelions, FLOWERS, {.cullType = INSTANCED});
 
     // Strawberry flowers
     auto &strawberries =
         sceneResources.loadInstancedModel(whiteFlowerHandle, "./res/models/vegetation/strawberry/strawberry.gltf",
                                           "./res/positions/strawberry.txt", 0.8f, 1.2f, 120);
-    addObjectToScene(strawberries, FLOWERS, {.cullType = INSTANCED_DISTANCE});
+    addObjectToScene(strawberries, FLOWERS, {.cullType = INSTANCED});
 
     /*********
      *       *
