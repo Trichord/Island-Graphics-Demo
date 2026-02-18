@@ -24,7 +24,6 @@ class InstancedModel : public Model
     InstancedModel &operator=(InstancedModel &&other) = delete;
     ~InstancedModel();
 
-    void resetVisibility() override;
     std::span<InstancedData> getInstanceData() override;
 
   private:

@@ -121,14 +121,8 @@ void Model::calculateAABB()
     aabb = AABB{minX, minY, minZ, maxX, maxY, maxZ};
 }
 
-void Model::resetVisibility()
+void Model::setVisibility(bool visible)
 {
     for (auto &mesh : meshes)
-        mesh.isVisible = false;
-}
-
-void Model::enableVisibility()
-{
-    for (auto &mesh : meshes)
-        mesh.isVisible = true;
+        mesh.isVisible = visible;
 }
