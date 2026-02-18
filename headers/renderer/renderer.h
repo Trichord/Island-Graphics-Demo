@@ -36,6 +36,7 @@ class Renderer
     TextureManager &getTextureManager();
 
   private:
+    std::uint32_t indicesOffset{0};
     static constexpr float depthClear{1.0f};
     static constexpr std::array<float, 4> clearColor{0.0f, 0.0f, 0.0f, 1.0f};
 
@@ -69,7 +70,6 @@ class Renderer
 
     void loadShaders();
     void setupTextureManager();
-    void updateSSBO(Scene &scene);
     void setupShader(Shader &shader);
     void resetVisibility(Scene &scene);
     void updateShaderUniforms(Scene &scene);
@@ -84,6 +84,6 @@ class Renderer
     void generateCubeMaps(Scene &scene);
     void createBuffers(Scene &scene);
     void borrowSkyboxes(Scene &scene);
-    void populateSSBO(Scene &scene, std::size_t totalInstanceCount);
+    void populateSSBOs(Scene &scene, std::size_t totalInstanceCount);
     void deleteBuffers();
 };

@@ -14,8 +14,7 @@ class IRenderable
 {
   public:
     virtual AABB &getAABB() = 0;
-    virtual void resetVisibility() = 0;
-    virtual void enableVisibility() = 0;
+    virtual void setVisibility(bool visible) = 0;
     virtual std::span<Primitive::Mesh> getMeshes() = 0;
     virtual const ModelHandle getHandle() const = 0;
 

@@ -119,11 +119,3 @@ std::span<InstancedData> InstancedModel::getInstanceData()
 {
     return instances;
 }
-
-void InstancedModel::resetVisibility()
-{
-    Model::resetVisibility();
-
-    for (auto &instance : instances)
-        instance.isVisible = false;
-}
