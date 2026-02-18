@@ -13,8 +13,10 @@
 
 void Renderer::cullRenderables(Scene &scene)
 {
-    Camera &camera{scene.getCamera()};
+    indicesOffset = 0;
+    instanceIndices.clear();
 
+    Camera &camera{scene.getCamera()};
     const std::array<glm::vec4, 6> &frustumPlanes{camera.getFrustumPlanes()};
 
     for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
@@ -40,7 +42,7 @@ void Renderer::cullRenderables(Scene &scene)
 
             case NONE: {
                 auto &object = renderable.object.get();
-                object.enableVisibility();
+                object.setVisibility(true);
                 renderable.properties.isVisible = true;
                 break;
             }
@@ -49,6 +51,8 @@ void Renderer::cullRenderables(Scene &scene)
                 std::cerr << "ERROR: unknown enum in cull strategy" << std::endl;
             }
         }
+
+    glNamedBufferSubData(indicesSSBO, 0, instanceIndices.size() * sizeof(std::uint32_t), instanceIndices.data());
 }
 
 void Renderer::cullModel(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
@@ -62,7 +66,7 @@ void Renderer::cullModel(Renderable &renderable, const std::array<glm::vec4, 6> 
     properties.isVisible = aabb.intersects(frustumPlanes, modelMatrix);
 
     if (properties.isVisible)
-        object.enableVisibility();
+        object.setVisibility(true);
 }
 
 void Renderer::cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
@@ -73,19 +77,29 @@ void Renderer::cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
     auto &object = renderable.object.get();
     std::span<InstancedData> instances = object.getInstanceData();
 
-    for (auto &instance : instances)
+    for (uint32_t i{0}; i < instances.size(); ++i)
     {
-        instance.isVisible = instance.worldAABB.intersectsWorldSpace(frustumPlanes);
-
-        if (instance.isVisible)
+        if (instances[i].worldAABB.intersectsWorldSpace(frustumPlanes))
         {
             anyVisible = true;
-            renderable.properties.isVisible = true;
-            object.enableVisibility();
+
+            ++renderable.properties.visibleInstances;
+            instanceIndices.push_back(i);
         }
     }
 
-    renderable.properties.isVisible = anyVisible;
+    if (anyVisible)
+    {
+
+        renderable.properties.isVisible = true;
+        object.setVisibility(true);
+
+        // Update render's count for the draw call
+        renderable.properties.instancedIndicesOffset = indicesOffset;
+
+        // Keep track of where each model's instances start in the vector of indices
+        indicesOffset += renderable.properties.visibleInstances;
+    }
 }
 
 void Renderer::cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
@@ -105,7 +119,6 @@ void Renderer::cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6>
             {
                 mesh.isVisible = true;
                 properties.isVisible = true;
-                object.enableVisibility();
                 break;
             }
         }
@@ -118,17 +131,18 @@ void Renderer::resetVisibility(Scene &scene)
         for (auto &renderable : renderables)
         {
             using enum ShaderType;
+            using enum CullType;
 
             ObjectProperties &properties{renderable.properties};
             auto &object = renderable.object.get();
 
-            properties.isVisible = false;
-            properties.visibleInstances = 0;
-            properties.instancedIndicesOffset = 0;
+            if (properties.isVisible)
+            {
 
-            if (shader != SKYBOX)
-                object.resetVisibility();
-            else
-                object.enableVisibility();
+                properties.isVisible = false;
+                properties.visibleInstances = 0;
+                properties.instancedIndicesOffset = 0;
+                object.setVisibility(false);
+            }
         }
 }

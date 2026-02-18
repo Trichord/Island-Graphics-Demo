@@ -29,8 +29,7 @@ class Model : public IRenderable
      */
 
     AABB &getAABB() override;
-    void enableVisibility() override;
-    void resetVisibility() override;
+    void setVisibility(bool visible) override;
     const ModelHandle getHandle() const override;
     std::span<Primitive::Mesh> getMeshes() override;
     std::span<InstancedData> getInstanceData() override;
