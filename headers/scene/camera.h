@@ -37,7 +37,7 @@ class Camera
     Camera(glm::vec3 position = glm::vec3{0.0f}, float yaw = cameraDefaultValues::yaw,
            float pitch = cameraDefaultValues::pitch);
 
-    bool hasUpdated();
+    [[nodiscard("Consumes 'updated' flag")]] bool hasUpdated();
 
     float getYaw() const;
     float getPitch() const;
