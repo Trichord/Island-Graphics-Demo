@@ -11,6 +11,13 @@ class AABB
     AABB(float minX, float minY, float minZ, float maxX, float maxY, float maxZ);
     AABB(const glm::vec3 &min_, const glm::vec3 &max_);
 
+    float getMinX() const;
+    float getMinY() const;
+    float getMinZ() const;
+    float getMaxX() const;
+    float getMaxY() const;
+    float getMaxZ() const;
+
     void resize(float scale);
     glm::vec3 getCenter() const;
     glm::vec3 getExtent() const;

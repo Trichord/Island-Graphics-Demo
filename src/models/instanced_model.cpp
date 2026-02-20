@@ -90,8 +90,6 @@ void InstancedModel::generateInstanceMatrices(float minSize, float maxSize)
         modelMatrix = glm::rotate(modelMatrix, glm::radians(instanceRotation), glm::vec3{0.0f, 1.0f, 0.0f});
         modelMatrix = glm::scale(modelMatrix, glm::vec3{instanceScale});
 
-        glm::mat4 normalMatrix{glm::transpose(glm::inverse(glm::mat3{modelMatrix}))};
-
         instance.modelMatrix = modelMatrix;
     }
 }
