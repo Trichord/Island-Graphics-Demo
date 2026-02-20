@@ -10,12 +10,11 @@ class SpatialGrid
   public:
     SpatialGrid(const AABB &worldBounds, int cellSize, const std::vector<glm::vec3> &meshVertices);
 
-    std::vector<int> query(float worldX, float worldZ);
-    std::vector<int> query(const AABB &bounds);
+    void query(const glm::vec3 &position, std::vector<int> &result);
 
   private:
     int cellSize{0};
-    std::size_t gridWidth{0};
+    int gridWidth{0};
     float originX{0.0f};
     float originZ{0.0f};
     std::vector<int> offsets;
