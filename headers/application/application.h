@@ -23,13 +23,14 @@ class Application
     Application &operator=(Application &&other) = delete;
     void run();
 
- private:
-  float deltaTime{0.0f};
-  float lastFrame{0.0f};
-  float currentFrame{0.0f};
-  static inline float lastMouseX{0.0f};
-  static inline float lastMouseY{0.0f};
-  GLFWwindow* window{nullptr};
+  private:
+    float deltaTime{0.0f};
+    float lastFrame{0.0f};
+    float currentFrame{0.0f};
+    static inline bool firstMouse{true};
+    static inline float lastMouseX{0.0f};
+    static inline float lastMouseY{0.0f};
+    GLFWwindow *window{nullptr};
 
     /**
      * @brief Creates a GLFW window.  Display settings from the config window are
@@ -64,26 +65,25 @@ class Application
      */
     void addGlfwUserParam(Scene &scene);
 
-  /**
-   * GLFW mouse callback. Recieves updated cursor coordinates.
-   *
-   * @param window The window that recieved the event
-   * @param xPos The new x-coordinate, in screen coordinates, of the cursor.
-   * @param yPos The new y-coordinate, in screen coordinates, of the cursor.
-   */
-  static void mouse_callback(GLFWwindow* window, double xPos, double yPos);
+    /**
+     * GLFW mouse callback. Recieves updated cursor coordinates.
+     *
+     * @param window The window that recieved the event
+     * @param xPos The new x-coordinate, in screen coordinates, of the cursor.
+     * @param yPos The new y-coordinate, in screen coordinates, of the cursor.
+     */
+    static void mouse_callback(GLFWwindow *window, double xPos, double yPos);
 
-  /**
-   * GLFW key callback, triggered when a keyboard button is pressed, repeated or
-   * released.
-   *
-   * @param window The window that received the event.
-   * @param key The keyboard key that was pressed or released.
-   * @param scancode The system-specific scancode of the key.
-   * @param action The button action, such as GLFW_PRESS, GLFW_RELEASE or
-   * GLFW_REPEAT
-   * @param mods Bit field describing which modifier keys were held down.
-   */
-  static void keyCallback(GLFWwindow* window, int key, int scancode,
-                               int action, int mods);
+    /**
+     * GLFW key callback, triggered when a keyboard button is pressed, repeated or
+     * released.
+     *
+     * @param window The window that received the event.
+     * @param key The keyboard key that was pressed or released.
+     * @param scancode The system-specific scancode of the key.
+     * @param action The button action, such as GLFW_PRESS, GLFW_RELEASE or
+     * GLFW_REPEAT
+     * @param mods Bit field describing which modifier keys were held down.
+     */
+    static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
 };

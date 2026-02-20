@@ -160,8 +160,6 @@ void Application::processInput(Scene &scene)
 }
 
 void Application::mouse_callback(GLFWwindow* window, double xPos, double yPos) {
-  static bool firstMouse{true};
-
     if (firstMouse)
     {
         lastMouseX = (float)xPos;

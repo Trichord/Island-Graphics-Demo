@@ -61,7 +61,6 @@ void Model::loadModel(const std::filesystem::path &path, bool borrowed)
 {
     fastgltf::Asset asset = fastgltfLoader::loadAsset(path);
 
-    meshes.resize(asset.meshes.size());
     meshes = fastgltfLoader::loadMeshes(asset);
 
     if (!borrowed)
