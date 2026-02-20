@@ -59,7 +59,38 @@ glm::vec3 AABB::getCenter() const
 {
     return center;
 }
+
 glm::vec3 AABB::getExtent() const
 {
     return extent;
+}
+
+float AABB::getMinX() const
+{
+    return (center - extent).x;
+}
+
+float AABB::getMinY() const
+{
+    return (center - extent).y;
+}
+
+float AABB::getMinZ() const
+{
+    return (center - extent).z;
+}
+
+float AABB::getMaxX() const
+{
+    return (center + extent).x;
+}
+
+float AABB::getMaxY() const
+{
+    return (center + extent).y;
+}
+
+float AABB::getMaxZ() const
+{
+    return (center + extent).z;
 }

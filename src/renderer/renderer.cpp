@@ -73,22 +73,6 @@ void Renderer::renderScene(Scene &scene)
 
 void Renderer::updateUBO(Scene &scene)
 {
-    /*
-    // Culling test
-    glm::vec3 position{15.0f, 20.0f, -75.0f};
-    glm::vec3 front{0.0f, 0.0f, 1.0f};
-    glm::vec3 up{0.0f, 1.0f, 0.0f};
-    glm::mat4 viewMatrix{glm::lookAt(position, position + front, up)};
-    viewMatrix = glm::rotate(viewMatrix, 45.0f, glm::vec3{0.0f, 1.0f, 0.0f});
-    glm::mat4 projectionMatrix{glm::perspective(glm::radians(cameraDefaultValues::fov), 2560.0f / 1440.0f,
-                                                cameraDefaultValues::nearPlane, cameraDefaultValues::farPlane)};
-    uboCameraData.viewMatrix = viewMatrix;
-    uboCameraData.projectionMatrix = projectionMatrix;
-    uboCameraData.viewProjectionMatrix = projectionMatrix * viewMatrix;
-    uboCameraData.inverseViewProjectMatrix = glm::inverse(uboCameraData.viewProjectionMatrix);
-    uboCameraData.cameraPosition = glm::vec4{position, 0.0f};
-    */
-
     Camera &camera{scene.getCamera()};
     uboCameraData.viewMatrix = camera.getViewMatrix();
     uboCameraData.projectionMatrix = camera.getProjectionMatrix();
@@ -351,7 +335,7 @@ void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
             instancedBaseOffsets.emplace(object.getHandle(), offset);
 
             for (uint32_t i{0}; i < instances.size(); ++i)
-            {     
+            {
                 // Add the model matrix to one SSBO
                 modelMatrices.emplace_back(instances[i].modelMatrix);
 
@@ -359,7 +343,7 @@ void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
                 ++renderable.properties.visibleInstances;
                 instanceIndices.push_back(i);
             }
-   
+
             offset += static_cast<GLuint>(instances.size());
             indicesOffset += static_cast<std::uint32_t>(instances.size());
         }

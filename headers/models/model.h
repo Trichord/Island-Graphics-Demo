@@ -21,13 +21,6 @@ class Model : public IRenderable
     Model &operator=(Model &&other) = delete;
     ~Model();
 
-    /**
-     * @brief Model class's implementation of the Renderable interface.
-     *
-     * @details Draws each primitive in the mesh. Binds albdeo, ambient occlusion,
-     *  metallic, roughness, and normal map textures, if the model has them.
-     */
-
     AABB &getAABB() override;
     void setVisibility(bool visible) override;
     const ModelHandle getHandle() const override;
