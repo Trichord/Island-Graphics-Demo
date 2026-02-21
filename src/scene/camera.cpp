@@ -216,63 +216,6 @@ void Camera::processMouseMovement(float xOffset, float yOffset)
     dirtyMatrices = true;
 }
 
-void Camera::processKeyboard(CameraMovement direction, float deltaTime, bool sprint)
-{
-    using enum CameraMovement;
-    using namespace WorldVectors;
-    constexpr float cameraSprintSpeed{3.0f};
-
-    float boost{sprint ? cameraSprintSpeed : 1.0f};
-    float velocity{cameraDefaultValues::speed * deltaTime * boost};
-
-    // Using local scope to minimize work
-    switch (direction)
-    {
-    case FORWARD: {
-        glm::vec3 front{createFront()};
-
-        position += front * velocity;
-        break;
-    }
-
-    case BACKWARD: {
-        glm::vec3 front{createFront()};
-
-        position -= front * velocity;
-        break;
-    }
-
-    case LEFT: {
-        glm::vec3 front{createFront()};
-        glm::vec3 right{glm::cross(front, worldUp)};
-        right = glm::normalize(right);
-
-        position -= right * velocity;
-        break;
-    }
-
-    case RIGHT: {
-        glm::vec3 front{createFront()};
-        glm::vec3 right{glm::cross(front, worldUp)};
-        right = glm::normalize(right);
-
-        position += right * velocity;
-        break;
-    }
-
-    case UP:
-        position += worldUp * velocity;
-        break;
-
-    case DOWN:
-        position -= worldUp * velocity;
-        break;
-    }
-
-    hasChanged = true;
-    dirtyMatrices = true;
-}
-
 void Camera::updateMatrices()
 {
     using namespace WorldVectors;
@@ -286,11 +229,11 @@ void Camera::updateMatrices()
     viewProjectionMatrix = projectionMatrix * viewMatrix;
 }
 
-glm::vec3 Camera::createFront()
+glm::vec3 Camera::createFront() const
 {
-    float pitchRads{glm::radians(pitch)};
-    float yawRads{glm::radians(yaw)};
-    float cosPitch{glm::cos(pitchRads)};
+    const float pitchRads{glm::radians(pitch)};
+    const float yawRads{glm::radians(yaw)};
+    const float cosPitch{glm::cos(pitchRads)};
 
     glm::vec3 front;
     front.x = cosPitch * glm::sin(yawRads);
@@ -298,4 +241,9 @@ glm::vec3 Camera::createFront()
     front.z = cosPitch * glm::cos(yawRads);
 
     return front;
+}
+
+const glm::vec3 Camera::getFront() const
+{
+    return createFront();
 }

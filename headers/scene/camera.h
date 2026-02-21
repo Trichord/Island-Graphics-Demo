@@ -12,7 +12,6 @@ constexpr float pitch{0.0f};
 constexpr float maxPitch{85.0f};
 constexpr float minPitch{-maxPitch};
 
-constexpr float speed{5.0f};
 constexpr float sensitivity{0.1f};
 
 constexpr float fov{45.0f};
@@ -20,16 +19,6 @@ constexpr float nearPlane{0.1f};
 constexpr float farPlane{850.0f};
 constexpr float aspectRatio{16.0f / 9.0f};
 } // namespace cameraDefaultValues
-
-enum class CameraMovement
-{
-    FORWARD,
-    BACKWARD,
-    LEFT,
-    RIGHT,
-    UP,
-    DOWN
-};
 
 class Camera
 {
@@ -41,6 +30,7 @@ class Camera
 
     float getYaw() const;
     float getPitch() const;
+    const glm::vec3 getFront() const;
     const glm::vec3 &getPosition() const;
 
     const glm::mat4 &getViewMatrix();
@@ -56,7 +46,6 @@ class Camera
     void setWorldOrientation(WorldOrientation orientation);
 
     void processMouseMovement(float xOffset, float yOffset);
-    void processKeyboard(CameraMovement direction, float deltaTime, bool sprint = false);
 
   private:
     float yaw{0.0f};
@@ -74,5 +63,5 @@ class Camera
                                            glm::vec4{}, glm::vec4{}, glm::vec4{}};
 
     void updateMatrices();
-    glm::vec3 createFront();
+    glm::vec3 createFront() const;
 };

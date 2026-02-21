@@ -187,8 +187,8 @@ void Renderer::borrowSkyboxes(Scene &scene)
 
     for (int i{0}; i < skyboxes.size() && i < oceans.size(); ++i)
     {
-        auto &ocean = oceans[i].object.get();
-        auto &skybox = skyboxes[i].object.get();
+        auto &ocean = oceans[i].objectRef.get();
+        auto &skybox = skyboxes[i].objectRef.get();
 
         textureManager.borrowAssignMaterials(ocean.getHandle(), skybox.getHandle(), CUBEMAP);
     }
@@ -205,7 +205,7 @@ void Renderer::createBuffers(Scene &scene)
     std::size_t numInstances{0};
     for (auto &[_, objectList] : scene.getRenderablesByShader())
         for (auto &renderable : objectList)
-            numInstances += renderable.object.get().getInstanceData().size();
+            numInstances += renderable.objectRef.get().getInstanceData().size();
 
     // Instanced model matrices
     glCreateBuffers(1, &matricesSSBO);
@@ -259,11 +259,11 @@ void Renderer::generateCubeMaps(Scene &scene)
     RenderTarget cubeFace(size, size, graphicsSettings.msaa, false);
     RenderTarget resolveTarget(size, size, 0, false);
 
-    for (auto &waterPlane : waters)
+    for (auto &renderable : waters)
     {
-        camera.setPosition(waterPlane.properties.transform.getPosition());
+        camera.setPosition(renderable.properties.transform.getPosition());
 
-        waterPlane.properties.isVisible = false;
+        renderable.properties.isVisible = false;
 
         // Create the cubemap texture
         GLuint cubeMapTextureID{0};
@@ -289,9 +289,9 @@ void Renderer::generateCubeMaps(Scene &scene)
         glTextureParameteri(cubeMapTextureID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
         // Assign the texture
-        auto &obj = waterPlane.object.get();
-        textureManager.setMaterial(obj.getHandle(), CUBEMAP, cubeMapTextureID);
-        waterPlane.properties.isVisible = true;
+        auto &waterPlane = renderable.objectRef.get();
+        textureManager.setMaterial(waterPlane.getHandle(), CUBEMAP, cubeMapTextureID);
+        renderable.properties.isVisible = true;
     }
 
     // Reset
@@ -320,7 +320,7 @@ void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
     for (auto &[_, renderables] : scene.getRenderablesByShader())
         for (auto &renderable : renderables)
         {
-            auto &object = renderable.object.get();
+            auto &object = renderable.objectRef.get();
 
             // Make everything visible for cubemap generation
             renderable.properties.isVisible = true;
