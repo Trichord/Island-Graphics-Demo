@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "camera.h"
+#include "character_physics.h"
 #include "config_window.h"
 #include "gl_context.h"
 #include "glfw_callbacks.h"
@@ -26,9 +27,10 @@ void Application::run()
     createOpenGLViewport(graphicsSettings);
     registerCallbacks();
 
+    // Create resources
     Renderer renderer(graphicsSettings);
-
     IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
+    CharacterPhysics physicsHandler(islandScene);
 
     renderer.initializeResources(islandScene);
     renderer.allResourcesLoaded();
@@ -53,6 +55,9 @@ void Application::run()
         // Update scene objects
         islandScene.onUpdate(deltaTime);
 
+        // Physics
+        processKeyboard(islandScene, physicsHandler);
+
         // Draw
         renderer.renderScene(islandScene);
 
@@ -60,7 +65,6 @@ void Application::run()
 
         // User input
         glfwPollEvents();
-        processInput(islandScene);
     }
 
     glfwTerminate();
@@ -129,37 +133,38 @@ void Application::createOpenGLViewport(const ConfigWindow::GraphicsSettings &gra
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-void Application::processInput(Scene &scene)
+void Application::processKeyboard(Scene &scene, CharacterPhysics &physicsHandler)
 {
-    using enum CameraMovement;
+    using enum CharacterMovement;
+
+    Camera& camera{scene.getCamera()};
+    const glm::vec3 front{camera.getFront()};
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
         return;
     }
 
-    const bool sprint{glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS};
-
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        scene.getCamera().processKeyboard(FORWARD, deltaTime, sprint);
+        physicsHandler.update(FORWARD, front, deltaTime);
 
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        scene.getCamera().processKeyboard(BACKWARD, deltaTime, sprint);
+    else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        physicsHandler.update(BACKWARD, front, deltaTime);
 
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        scene.getCamera().processKeyboard(LEFT, deltaTime, sprint);
+    else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        physicsHandler.update(LEFT, front, deltaTime);
 
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        scene.getCamera().processKeyboard(RIGHT, deltaTime, sprint);
+    else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        physicsHandler.update(RIGHT, front, deltaTime);
+    else
+        physicsHandler.update(NONE, front, deltaTime);
 
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        scene.getCamera().processKeyboard(UP, deltaTime, sprint);
-
-    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-        scene.getCamera().processKeyboard(DOWN, deltaTime, sprint);
+    camera.setPosition(physicsHandler.getPosition());
 }
 
-void Application::mouse_callback(GLFWwindow* window, double xPos, double yPos) {
+void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
+{
     if (firstMouse)
     {
         lastMouseX = (float)xPos;
@@ -179,19 +184,21 @@ void Application::mouse_callback(GLFWwindow* window, double xPos, double yPos) {
         scenePointer->getCamera().processMouseMovement(xOffset, yOffset);
 }
 
-void Application::registerCallbacks() {
-  glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-  glfwSetKeyCallback(window, Application::keyCallback);
-  glfwSetCursorPosCallback(window, Application::mouse_callback);
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  glfwSetWindowIconifyCallback(window, window_iconify_callback);
+void Application::registerCallbacks()
+{
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetKeyCallback(window, Application::keyCallback);
+    glfwSetCursorPosCallback(window, Application::mouse_callback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetWindowIconifyCallback(window, window_iconify_callback);
 }
 
-void Application::addGlfwUserParam(Scene& scene) {
-  glfwSetWindowUserPointer(window, &scene);
+void Application::addGlfwUserParam(Scene &scene)
+{
+    glfwSetWindowUserPointer(window, &scene);
 }
 
-void Application::keyCallback(GLFWwindow* window, int key, int scancode, int action,
-                 int mods) {
-  // Anything that needs to avoid key bouncing
+void Application::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+    // Anything that needs to avoid key bouncing
 }

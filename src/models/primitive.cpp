@@ -72,11 +72,6 @@ GLuint Primitive::getVAO() const
     return VAO;
 }
 
-GLsizei Primitive::getIndicesSize() const
-{
-    return static_cast<GLsizei>(indices.size());
-}
-
 std::size_t Primitive::getMaterialIndex() const
 {
     return materialIndex;
@@ -148,4 +143,9 @@ void Primitive::setupPrimitiveBuffers()
 std::span<const Primitive::Vertex> Primitive::getVertices() const
 {
     return vertices;
+}
+
+std::span<const std::uint32_t> Primitive::getIndices() const
+{
+    return indices;
 }

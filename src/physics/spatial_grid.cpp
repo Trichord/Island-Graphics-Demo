@@ -9,7 +9,7 @@
 #include "spatial_grid.h"
 
 // Two-pass construction as described by Christer Ericson
-SpatialGrid::SpatialGrid(const AABB &worldBounds, int cellSize, const std::vector<glm::vec3> &meshVertices)
+SpatialGrid::SpatialGrid(const AABB &worldBounds, float cellSize, const std::vector<glm::vec3> &meshVertices)
     : cellSize{cellSize}, originX{worldBounds.getMinX()}, originZ{worldBounds.getMinZ()}
 {
     struct CellBounds

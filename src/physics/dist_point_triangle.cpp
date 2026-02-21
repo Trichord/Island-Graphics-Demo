@@ -222,6 +222,5 @@ distanceFunction::Result distanceFunction::pointTriangle(const glm::vec3 &point,
     result.closest.second = A + s * edge0 + t * edge1;
     diff = result.closest.first - result.closest.second;
     result.sqrDistance = glm::dot(diff, diff);
-    result.distance = std::sqrt(result.sqrDistance);
     return result;
 }

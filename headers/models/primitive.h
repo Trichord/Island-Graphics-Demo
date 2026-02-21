@@ -41,10 +41,10 @@ class Primitive
 
     GLuint getVAO() const;
     const AABB &getAABB() const;
-    GLsizei getIndicesSize() const;
     std::size_t getMaterialIndex() const;
     fastgltf::AlphaMode getAlphaMode() const;
     std::span<const Vertex> getVertices() const;
+    std::span<const std::uint32_t> getIndices() const;
     void setMaterialIndex(std::size_t newIndex);
     bool materialsExist() const;
 
