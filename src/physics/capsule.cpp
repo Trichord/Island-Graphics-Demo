@@ -1,12 +1,15 @@
 #include "capsule.h"
+
+#include <array>
+
 #include "distance_functions.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "world_vectors.h"
 
-Capsule::Capsule(const glm::vec3 &position, float radius, float height)
+Capsule::Capsule(const glm::vec3 &position, float height, float radius)
     : top{position + WorldVectors::worldUp * height / 2.0f}, bottom{position - WorldVectors::worldUp * height / 2.0f},
-      radius{radius}, height{height}
+      height{height}, radius{radius}
 {
 }
 
@@ -21,41 +24,29 @@ void Capsule::setPosition(const glm::vec3 &newPosition)
     bottom = newPosition - WorldVectors::worldUp * height / 2.0f;
 }
 
-std::optional<glm::vec3> Capsule::collision(const glm::vec3 &A, const glm::vec3 &B, const glm::vec3 &C)
+Capsule::CollisionResolution Capsule::collision(const glm::vec3 &A, const glm::vec3 &B, const glm::vec3 &C)
 {
+    constexpr float epsilon{0.0001f};
     using namespace distanceFunction;
 
-    Result topWithTriangle{pointTriangle(top, A, B, C)};
-    Result bottomWithTriangle{pointTriangle(bottom, A, B, C)};
-    Result segWithAB{segmentSegment(top, bottom, A, B)};
-    Result segWithAC{segmentSegment(top, bottom, A, C)};
-    Result segWithBC{segmentSegment(top, bottom, B, C)};
+    const auto results =
+        std::array{pointTriangle(top, A, B, C), pointTriangle(bottom, A, B, C), segmentSegment(top, bottom, A, B),
+                   segmentSegment(top, bottom, A, C), segmentSegment(top, bottom, B, C)};
 
-    float minDistance{std::min({topWithTriangle.sqrDistance, bottomWithTriangle.sqrDistance, segWithAB.sqrDistance,
-                                segWithAC.sqrDistance, segWithBC.sqrDistance})};
+    auto closestPoint = std::ranges::min_element(
+        results, [](const Result &a, const Result &b) { return a.sqrDistance < b.sqrDistance; });
 
-    if (minDistance >= radius * radius)
+    if (closestPoint->sqrDistance >= radius * radius)
         return {};
 
-    glm::vec3 normal{0.0f};
+    glm::vec3 normal{closestPoint->closest.first - closestPoint->closest.second};
 
-    // Find out which test succeded
-    if (minDistance == topWithTriangle.sqrDistance)
-        normal = glm::normalize(topWithTriangle.closest.first - topWithTriangle.closest.second);
-
-    else if (minDistance == bottomWithTriangle.sqrDistance)
-        normal = glm::normalize(bottomWithTriangle.closest.first - bottomWithTriangle.closest.second);
-
-    else if (minDistance == segWithAB.sqrDistance)
-        normal = glm::normalize(segWithAB.closest.first - segWithAB.closest.second);
-
-    else if (minDistance == segWithAC.sqrDistance)
-        normal = glm::normalize(segWithAC.closest.first - segWithAC.closest.second);
-
+    if (glm::length(normal) > epsilon)
+        normal = glm::normalize(normal);
     else
-        normal = glm::normalize(segWithBC.closest.first - segWithBC.closest.second);
+        normal = glm::vec3(0.0f);
 
-    float penetration{radius - std::sqrt(minDistance)};
+    float depth{radius - std::sqrt(closestPoint->sqrDistance)};
 
-    return glm::vec3{normal * penetration};
+    return CollisionResolution{depth, normal};
 }

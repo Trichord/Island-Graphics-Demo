@@ -8,7 +8,6 @@ namespace distanceFunction
 
 struct Result
 {
-    float distance{0.0f};
     float sqrDistance{0.0f};
     std::pair<glm::vec3, glm::vec3> closest{glm::vec3{0.0f}, glm::vec3{0.0f}};
 };

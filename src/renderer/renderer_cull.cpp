@@ -41,7 +41,7 @@ void Renderer::cullRenderables(Scene &scene)
                 break;
 
             case NONE: {
-                auto &object = renderable.object.get();
+                auto &object = renderable.objectRef.get();
                 object.setVisibility(true);
                 renderable.properties.isVisible = true;
                 break;
@@ -57,7 +57,7 @@ void Renderer::cullRenderables(Scene &scene)
 
 void Renderer::cullModel(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
 {
-    auto &object = renderable.object.get();
+    auto &object = renderable.objectRef.get();
     auto &properties = renderable.properties;
 
     const glm::mat4 &modelMatrix = properties.transform.getModelMatrix();
@@ -74,7 +74,7 @@ void Renderer::cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
 {
     bool anyVisible{false};
 
-    auto &object = renderable.object.get();
+    auto &object = renderable.objectRef.get();
     std::span<InstancedData> instances = object.getInstanceData();
 
     for (uint32_t i{0}; i < instances.size(); ++i)
@@ -104,7 +104,7 @@ void Renderer::cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
 
 void Renderer::cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
 {
-    auto &object = renderable.object.get();
+    auto &object = renderable.objectRef.get();
     auto &properties = renderable.properties;
 
     properties.isVisible = false;
@@ -134,7 +134,7 @@ void Renderer::resetVisibility(Scene &scene)
             using enum CullType;
 
             ObjectProperties &properties{renderable.properties};
-            auto &object = renderable.object.get();
+            auto &object = renderable.objectRef.get();
 
             if (properties.isVisible)
             {

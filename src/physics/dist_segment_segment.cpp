@@ -387,6 +387,5 @@ distanceFunction::Result distanceFunction::segmentSegment(const glm::vec3 &P0, c
     result.closest.second = (one - parameter[1]) * Q0 + parameter[1] * Q1;
     glm::vec3 diff = result.closest.first - result.closest.second;
     result.sqrDistance = glm::dot(diff, diff);
-    result.distance = std::sqrt(result.sqrDistance);
     return result;
 }

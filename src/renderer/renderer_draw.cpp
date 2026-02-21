@@ -36,7 +36,7 @@ void Renderer::renderAllSceneObjects(Scene &scene)
             shader.setMat4("modelMatrix", modelMatrix);
             shader.setVec3("scale", renderable.properties.transform.getScale());
 
-            auto &object = renderable.object.get();
+            auto &object = renderable.objectRef.get();
             if (auto iter = instancedBaseOffsets.find(object.getHandle()); iter != instancedBaseOffsets.end())
             {
                 shader.setIntU("baseIndex", iter->second);
@@ -53,7 +53,7 @@ void Renderer::renderAllSceneObjects(Scene &scene)
 
 void Renderer::renderObject(Renderable &renderable)
 {
-    auto &object = renderable.object.get();
+    auto &object = renderable.objectRef.get();
     auto &properties = renderable.properties;
     const auto &materials{textureManager.getMaterials(object.getHandle())};
 
@@ -76,14 +76,16 @@ void Renderer::renderObject(Renderable &renderable)
 
             glBindVertexArray(primitive.getVAO());
 
+            GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
+
             if (properties.cullType == INSTANCED)
             {
                 GLsizei instanceCount{static_cast<GLsizei>(properties.visibleInstances)};
-                glDrawElementsInstanced(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0, instanceCount);
+                glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0, instanceCount);
             }
 
             else
-                glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0);
+                glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0);
         }
     }
 }

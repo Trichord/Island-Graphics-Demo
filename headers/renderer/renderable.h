@@ -35,6 +35,6 @@ struct ObjectProperties
 
 struct Renderable
 {
-    std::reference_wrapper<IRenderable> object;
+    std::reference_wrapper<IRenderable> objectRef;
     ObjectProperties properties;
 };
