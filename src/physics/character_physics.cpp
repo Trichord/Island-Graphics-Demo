@@ -1,6 +1,7 @@
 #include "character_physics.h"
 
 #include <cstdint>
+#include <optional>
 
 #include "capsule.h"
 #include "glm/glm.hpp"
@@ -11,7 +12,8 @@
 constexpr float gridPadding{1.125};
 
 CharacterPhysics::CharacterPhysics(Scene &scene)
-    : capsule{scene.getCamera().getPosition(), defaultPhysicsValues::playerHeight, defaultPhysicsValues::playerWidth}
+    : capsule{scene.getCamera().getPosition(), defaultPhysicsValues::playerHeight, defaultPhysicsValues::playerWidth},
+      capsulePosition{scene.getCamera().getPosition()}
 {
     float worldMinX{std::numeric_limits<float>::infinity()};
     float worldMaxX{-std::numeric_limits<float>::infinity()};
@@ -72,105 +74,162 @@ CharacterPhysics::CharacterPhysics(Scene &scene)
     terrainGrid = SpatialGrid(std::move(worldAABB), cellSize, meshVertices);
 }
 
-void CharacterPhysics::update(CharacterMovement direction, const glm::vec3 &front, float deltaTime)
+void CharacterPhysics::accelerate(glm::vec3 &wishDir, float wishSpeed, float accel, float deltaTime)
 {
-    constexpr float epsilon{0.0001f};
-    constexpr int maxResolveSteps{5};
+    using namespace defaultPhysicsValues;
 
+    float currentSpeed{glm::dot(capsuleVelocity, wishDir)};
+    float addSpeed{wishSpeed - currentSpeed};
+
+    if (addSpeed <= 0)
+        return;
+
+    float accelSpeed{accel * deltaTime * wishSpeed * surfaceFriction};
+
+    if (accelSpeed > addSpeed)
+        accelSpeed = addSpeed;
+
+    capsuleVelocity += accelSpeed * wishDir;
+}
+
+// Source Engine inspired movement
+void CharacterPhysics::update(std::uint8_t direction, const glm::vec3 &front, float deltaTime)
+{
     using enum CharacterMovement;
     using namespace WorldVectors;
     using namespace defaultPhysicsValues;
 
-    glm::vec3 acceleration{0.0f};
+    glm::vec3 flatFront{glm::normalize(glm::vec3{front.x, 0.0f, front.z})};
+    glm::vec3 right{glm::cross(flatFront, worldUp)};
+    right = glm::normalize(right);
 
-    switch (direction)
+    glm::vec3 wishDir{0.0f};
+    glm::vec3 wishVel{0.0f};
+
+    float wishSpeed{0.0f};
+    float forwardMove{0.0f};
+    float sideMove{0.0f};
+
+    if (direction & FORWARD)
+        forwardMove = 1.0f;
+
+    if (direction & BACKWARD)
+        forwardMove = -1.0f;
+
+    if (direction & RIGHT)
+        sideMove = 1.0f;
+
+    if (direction & LEFT)
+        sideMove = -1.0f;
+
+    wishVel = flatFront * forwardMove + right * sideMove;
+
+    wishDir = wishVel;
+
+    if (glm::length(wishVel) > 0.0f)
     {
-    case FORWARD:
-        acceleration += front * playerMovementSpeed;
-        break;
-
-    case BACKWARD:
-        acceleration -= front * playerMovementSpeed;
-        break;
-
-    case LEFT: {
-        glm::vec3 right{glm::cross(front, worldUp)};
-        right = glm::normalize(right);
-
-        acceleration -= right * playerMovementSpeed;
-        break;
+        wishSpeed = glm::length(wishVel) * maxGroundVelocity;
+        wishDir = glm::normalize(wishVel);
     }
 
-    case RIGHT: {
-        glm::vec3 right{glm::cross(front, worldUp)};
-        right = glm::normalize(right);
-
-        acceleration += right * playerMovementSpeed;
-        break;
+    if (wishSpeed > playerMaxSpeed)
+    {
+        wishVel *= playerMaxSpeed / wishSpeed;
+        wishSpeed = playerMaxSpeed;
     }
 
-    case NONE:
-        break;
+    float currentSpeed{glm::length(capsuleVelocity)};
+
+    // Avoid divide by 0
+    if (currentSpeed > 0.0f)
+    {
+        float drag{currentSpeed * surfaceFriction * deltaTime};
+        capsuleVelocity *= std::max(currentSpeed - drag, 0.0f) / currentSpeed;
     }
 
-    // Apply acceleration to the position
-    acceleration.y -= gravity;
-    velocity += acceleration * deltaTime;
-    velocity *= (1.0 - drag * deltaTime);
+    // Stop player if under minimum speed
+    if (currentSpeed < playerMinSpeed)
+        capsuleVelocity = glm::vec3{0.0f};
 
-    if (glm::length(velocity) > maxVelocity)
-        velocity = glm::normalize(velocity) * maxVelocity;
+    accelerate(wishDir, wishSpeed, playerMaxAcceleration, deltaTime);
 
-    position += velocity * deltaTime;
-    capsule.setPosition(position);
+    // Resolve collisions for movement
+    capsulePosition += capsuleVelocity * deltaTime;
+    resolveCollisions();
 
-    // Run collision check multiple times to avoid being pushed through nearby triangles
+    // Resolve collisions for gravity
+    capsuleVelocity.y -= gravity * deltaTime;
+    capsulePosition += glm::vec3{0.0f, capsuleVelocity.y, 0.0f} * deltaTime;
+    resolveCollisions();
+}
+
+void CharacterPhysics::resolveCollisions()
+{
+    constexpr int maxResolveSteps{3};
+
+    capsule.setPosition(capsulePosition);
+
     for (int i{0}; i < maxResolveSteps; ++i)
     {
-        // Get which triangles are close to the capsule
-        terrainGrid.query(position, triangleCollisions);
+        auto collisionNormal = checkCollisionNormal();
 
-        float depth{-std::numeric_limits<float>::infinity()};
-        glm::vec3 collisionNormal{0.0f};
-
-        // Find deepest collision
-        for (int index : triangleCollisions)
-        {
-            auto result = capsule.collision(meshVertices[index], meshVertices[index + 1], meshVertices[index + 2]);
-
-            if (result.depth > depth)
-            {
-                depth = result.depth;
-                collisionNormal = result.normal;
-            }
-        }
-
-        if (depth <= 0.0f)
+        if (!collisionNormal.has_value())
             break;
 
-        // Slide. Credit Wicked Engine: https://wickedengine.net/2020/04/capsule-collision-detection/
+        capsulePosition += collisionNormal.value();
+        capsule.setPosition(capsulePosition);
 
-        if (depth > 0.0f)
+        slide(collisionNormal.value());
+    }
+}
+
+void CharacterPhysics::slide(const glm::vec3 &normal)
+{
+    float velocity_length{glm::length(capsuleVelocity)};
+    glm::vec3 velocityNormalized{capsuleVelocity / velocity_length};
+    glm::vec3 undesiredMotion = normal * glm::dot(velocityNormalized, normal);
+    glm::vec3 desiredMotion = velocityNormalized - undesiredMotion;
+    capsuleVelocity = desiredMotion * velocity_length;
+}
+
+std::optional<glm::vec3> CharacterPhysics::checkCollisionNormal()
+{
+    using namespace defaultPhysicsValues;
+    using namespace WorldVectors;
+    constexpr float epsilon{0.0001f};
+    constexpr int maxResolveSteps{5};
+
+    float depth{-std::numeric_limits<float>::infinity()};
+    glm::vec3 collisionNormal{0.0f};
+
+    // Get which triangles are close to the capsule
+    terrainGrid.query(capsulePosition, triangleCollisions);
+
+    // Find deepest collision
+    for (int index : triangleCollisions)
+    {
+        auto result = capsule.collision(meshVertices[index], meshVertices[index + 1], meshVertices[index + 2]);
+
+        if (result.depth > depth)
         {
-            float velocity_length{glm::length(velocity)};
-            glm::vec3 velocityNormalized{velocity / velocity_length};
-            glm::vec3 undesiredMotion = collisionNormal * glm::dot(velocityNormalized, collisionNormal);
-            glm::vec3 desiredMotion = velocityNormalized - undesiredMotion;
-            velocity = desiredMotion * velocity_length;
-
-            position += collisionNormal * (depth + epsilon);
-            capsule.setPosition(position);
+            depth = result.depth;
+            collisionNormal = result.normal;
         }
     }
+
+    if (depth <= 0.0f)
+        return {};
+
+    return collisionNormal * (depth + epsilon);
 }
 
 const glm::vec3 &CharacterPhysics::getPosition() const
 {
-    return position;
+    return capsulePosition;
 }
 
 void CharacterPhysics::setPosition(const glm::vec3 &newPosition)
 {
-    position = newPosition;
-    velocity = glm::vec3{0.0f};
+    capsulePosition = newPosition;
+    capsuleVelocity = glm::vec3{0.0f};
 }
