@@ -50,3 +50,8 @@ Capsule::CollisionResolution Capsule::collision(const glm::vec3 &A, const glm::v
 
     return CollisionResolution{depth, normal};
 }
+
+glm::vec3 Capsule::getBottom() const
+{
+    return bottom + radius;
+}
