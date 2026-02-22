@@ -24,6 +24,7 @@ class Application
     float deltaTime{0.0f};
     float lastFrame{0.0f};
     float currentFrame{0.0f};
+    float accumulator{0.0f};
     static inline bool firstMouse{true};
     static inline float lastMouseX{0.0f};
     static inline float lastMouseY{0.0f};

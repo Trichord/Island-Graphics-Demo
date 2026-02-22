@@ -48,7 +48,7 @@ SpatialGrid::SpatialGrid(const AABB &worldBounds, float cellSize, const std::vec
         throw std::runtime_error("ERROR: Mesh has incomplete triangles");
 
     // Force a square grid based of world AABB width
-    gridWidth = static_cast<int>(worldBounds.getMaxX() - worldBounds.getMinX());
+    gridWidth = static_cast<int>(std::ceilf(worldBounds.getMaxX() - worldBounds.getMinX()) / cellSize);
 
     std::vector<int> counts(gridWidth * gridWidth, 0);
 

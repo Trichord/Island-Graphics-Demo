@@ -14,6 +14,7 @@ class Capsule
     Capsule() = default;
     Capsule(const glm::vec3 &position, float height, float radius);
 
+    glm::vec3 getBottom() const;
     glm::vec3 getPosition() const;
     void setPosition(const glm::vec3 &newPosition);
     CollisionResolution collision(const glm::vec3 &A, const glm::vec3 &B, const glm::vec3 &C);

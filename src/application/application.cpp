@@ -38,15 +38,14 @@ void Application::run()
     addGlfwUserParam(islandScene);
 
     // Average FPS
-    double totalTime{0};
-    double framesRendered{0};
+    float totalTime{0};
+    float framesRendered{0};
 
     while (!glfwWindowShouldClose(window))
     {
         // Delta Time
         currentFrame = (float)glfwGetTime();
         deltaTime = currentFrame - lastFrame;
-        deltaTime = std::min(deltaTime, 1.0f / 60.0f);
         lastFrame = currentFrame;
 
         // Final FPS count
@@ -137,11 +136,14 @@ void Application::createOpenGLViewport(const ConfigWindow::GraphicsSettings &gra
 void Application::processKeyboard(Scene &scene, CharacterPhysics &physicsHandler)
 {
     using enum CharacterMovement;
+    constexpr float physicsTick{1.0f / 120.0f};
 
     std::uint8_t direction{0};
-
     Camera &camera{scene.getCamera()};
     const glm::vec3 front{camera.getFront()};
+    glm::vec3 previousPos{physicsHandler.getPreviousPosition()};
+
+    accumulator += deltaTime;
 
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
@@ -155,19 +157,29 @@ void Application::processKeyboard(Scene &scene, CharacterPhysics &physicsHandler
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         direction |= BACKWARD;
 
-     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
         direction |= LEFT;
 
-     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         direction |= RIGHT;
 
-     physicsHandler.update(direction, front, deltaTime);
+    while (accumulator > physicsTick)
+    {
+        previousPos = physicsHandler.getPosition();
+        physicsHandler.update(direction, front, physicsTick);
+        accumulator -= physicsTick;
+    }
 
-    camera.setPosition(physicsHandler.getPosition());
+    // Interpolate camera between last position and latest physics tick
+    float tickDelta{accumulator / physicsTick};
+    glm::vec3 interpolatedPos{glm::mix(previousPos, physicsHandler.getPosition(), tickDelta)};
+
+    camera.setPosition(interpolatedPos);
 }
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
 {
+
     if (firstMouse)
     {
         lastMouseX = (float)xPos;
