@@ -13,15 +13,23 @@ constexpr float gridPadding{1.125};
 
 CharacterPhysics::CharacterPhysics(Scene &scene)
     : capsule{scene.getCamera().getPosition(), defaultPhysicsValues::playerHeight, defaultPhysicsValues::playerWidth},
-      capsulePosition{scene.getCamera().getPosition()}
+      capsulePosition{scene.getCamera().getPosition()}, resetPosition{scene.getCamera().getPosition()}
 {
+    constexpr float cellSizeMultiplier{5.0f};
+
     float worldMinX{std::numeric_limits<float>::infinity()};
     float worldMaxX{-std::numeric_limits<float>::infinity()};
+
+    float worldMinY{std::numeric_limits<float>::infinity()};
+    float worldMaxY{-std::numeric_limits<float>::infinity()};
 
     float worldMinZ{std::numeric_limits<float>::infinity()};
     float worldMaxZ{-std::numeric_limits<float>::infinity()};
 
     float triangleMaxSpan{-std::numeric_limits<float>::infinity()};
+    float triangleMinSpan{std::numeric_limits<float>::infinity()};
+
+    float triangleSum{0.0f};
 
     for (auto [_, renderables] : scene.getRenderablesByShader())
         for (auto &renderable : renderables)
@@ -35,6 +43,9 @@ CharacterPhysics::CharacterPhysics(Scene &scene)
 
                 worldMinX = std::min(worldMinX, aabb.getMinX());
                 worldMaxX = std::max(worldMaxX, aabb.getMaxX());
+
+                worldMinY = std::min(worldMinY, aabb.getMinY());
+                worldMaxY = std::max(worldMaxY, aabb.getMaxY());
 
                 worldMinZ = std::min(worldMinZ, aabb.getMinZ());
                 worldMaxZ = std::max(worldMaxZ, aabb.getMaxZ());
@@ -58,6 +69,8 @@ CharacterPhysics::CharacterPhysics(Scene &scene)
                             float maxZ{std::max({a.z, b.z, c.z})};
 
                             triangleMaxSpan = std::max({triangleMaxSpan, maxX - minX, maxZ - minZ});
+                            triangleMinSpan = std::min({triangleMinSpan, maxX - minX, maxZ - minZ});
+                            triangleSum += std::max(maxX - minX, maxZ - minZ);
 
                             meshVertices.push_back(a);
                             meshVertices.push_back(b);
@@ -67,11 +80,13 @@ CharacterPhysics::CharacterPhysics(Scene &scene)
             }
         }
 
-    float cellSize{triangleMaxSpan * gridPadding};
+    float averageTriangleSize{triangleSum / meshVertices.size() / 3.0f};
+    float cellSize{averageTriangleSize * cellSizeMultiplier * gridPadding};
 
-    AABB worldAABB{worldMinX, 0.0f, worldMinZ, worldMaxX, 0.0f, worldMaxZ};
+    AABB worldAABB{worldMinX, worldMinY, worldMinZ, worldMaxX, worldMaxY, worldMaxZ};
 
     terrainGrid = SpatialGrid(std::move(worldAABB), cellSize, meshVertices);
+    resetHeight = worldAABB.getMinY();
 }
 
 void CharacterPhysics::accelerate(glm::vec3 &wishDir, float wishSpeed, float accel, float deltaTime)
@@ -98,6 +113,17 @@ void CharacterPhysics::update(std::uint8_t direction, const glm::vec3 &front, fl
     using enum CharacterMovement;
     using namespace WorldVectors;
     using namespace defaultPhysicsValues;
+
+    if (capsule.getBottom().y < resetHeight)
+    {
+        capsule.setPosition(resetPosition);
+        capsulePosition = resetPosition;
+        capsuleVelocity = glm::vec3{0.0f};
+        previousPosition = capsulePosition;
+        return;
+    }
+
+    previousPosition = capsulePosition;
 
     glm::vec3 flatFront{glm::normalize(glm::vec3{front.x, 0.0f, front.z})};
     glm::vec3 right{glm::cross(flatFront, worldUp)};
@@ -160,7 +186,26 @@ void CharacterPhysics::update(std::uint8_t direction, const glm::vec3 &front, fl
     // Resolve collisions for gravity
     capsuleVelocity.y -= gravity * deltaTime;
     capsulePosition += glm::vec3{0.0f, capsuleVelocity.y, 0.0f} * deltaTime;
-    resolveCollisions();
+    capsule.setPosition(capsulePosition);
+    auto collisionNormal{checkCollisionNormal()};
+
+    if (collisionNormal.has_value())
+    {
+
+        if (glm::dot(glm::normalize(collisionNormal.value()), worldUp) > minSlope)
+        {
+            capsulePosition.y += glm::abs(collisionNormal.value()).y;
+            capsuleVelocity.y = 0.0f;
+        }
+        else
+        {
+            capsulePosition += collisionNormal.value();
+            capsule.setPosition(capsulePosition);
+            slide(collisionNormal.value());
+        }
+    }
+
+    capsule.setPosition(capsulePosition);
 }
 
 void CharacterPhysics::resolveCollisions()
@@ -232,4 +277,9 @@ void CharacterPhysics::setPosition(const glm::vec3 &newPosition)
 {
     capsulePosition = newPosition;
     capsuleVelocity = glm::vec3{0.0f};
+}
+
+const glm::vec3 &CharacterPhysics::getPreviousPosition() const
+{
+    return previousPosition;
 }
