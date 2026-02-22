@@ -46,6 +46,7 @@ void Application::run()
         // Delta Time
         currentFrame = (float)glfwGetTime();
         deltaTime = currentFrame - lastFrame;
+        deltaTime = std::min(deltaTime, 1.0f / 60.0f);
         lastFrame = currentFrame;
 
         // Final FPS count
@@ -137,7 +138,9 @@ void Application::processKeyboard(Scene &scene, CharacterPhysics &physicsHandler
 {
     using enum CharacterMovement;
 
-    Camera& camera{scene.getCamera()};
+    std::uint8_t direction{0};
+
+    Camera &camera{scene.getCamera()};
     const glm::vec3 front{camera.getFront()};
 
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -147,18 +150,18 @@ void Application::processKeyboard(Scene &scene, CharacterPhysics &physicsHandler
     }
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        physicsHandler.update(FORWARD, front, deltaTime);
+        direction |= FORWARD;
 
-    else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        physicsHandler.update(BACKWARD, front, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        direction |= BACKWARD;
 
-    else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        physicsHandler.update(LEFT, front, deltaTime);
+     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        direction |= LEFT;
 
-    else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        physicsHandler.update(RIGHT, front, deltaTime);
-    else
-        physicsHandler.update(NONE, front, deltaTime);
+     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        direction |= RIGHT;
+
+     physicsHandler.update(direction, front, deltaTime);
 
     camera.setPosition(physicsHandler.getPosition());
 }
