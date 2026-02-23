@@ -29,7 +29,7 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
+#include <cstdint>
 
 #include "glm/glm.hpp"
 
@@ -254,7 +254,7 @@ void ComputeMinimumParameters(std::array<int32_t, 2> const &edge, std::array<std
     }
 }
 
-distanceFunction::Result distanceFunction::segmentSegment(const glm::vec3 &P0, const glm::vec3 &P1, const glm::vec3& Q0,
+distanceFunction::Result distanceFunction::segmentSegment(const glm::vec3 &P0, const glm::vec3 &P1, const glm::vec3 &Q0,
                                                           const glm::vec3 &Q1)
 {
     using namespace distanceFunction;
