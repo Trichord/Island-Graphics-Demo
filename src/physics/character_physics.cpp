@@ -257,7 +257,7 @@ std::optional<glm::vec3> CharacterPhysics::checkCollisionNormal()
     // Find deepest collision
     for (int index : triangleCollisions)
     {
-        auto result = capsule.collision(meshVertices[index], meshVertices[index + 1], meshVertices[index + 2]);
+        auto result = capsule.collideWithTriangle(meshVertices[index], meshVertices[index + 1], meshVertices[index + 2]);
 
         if (result.depth > depth)
         {
