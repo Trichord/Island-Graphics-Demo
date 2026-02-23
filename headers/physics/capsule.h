@@ -1,5 +1,8 @@
 #pragma once
 
+#include <optional>
+
+#include "aabb.h"
 #include "glm/glm.hpp"
 
 class Capsule
@@ -22,7 +25,9 @@ class Capsule
     void addVelocity(const glm::vec3 &velocity);
     void setPosition(const glm::vec3 &newPosition);
     void setVelocity(const glm::vec3 &newVelocity);
-    CollisionResolution collision(const glm::vec3 &A, const glm::vec3 &B, const glm::vec3 &C);
+    std::optional<CollisionResolution> collideWithAABB(const AABB &aabb);
+    std::optional<CollisionResolution> collideWithCircle(const glm::vec3 &center, float otherRadius);
+    CollisionResolution collideWithTriangle(const glm::vec3 &A, const glm::vec3 &B, const glm::vec3 &C);
 
     // Sliding physics credit: Wicked Engine https://wickedengine.net/2020/04/capsule-collision-detection
     void slide(const glm::vec3 &normal);
