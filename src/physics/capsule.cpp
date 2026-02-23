@@ -33,9 +33,11 @@ Capsule::CollisionResolution Capsule::collision(const glm::vec3 &A, const glm::v
         std::array{pointTriangle(top, A, B, C), pointTriangle(bottom, A, B, C), segmentSegment(top, bottom, A, B),
                    segmentSegment(top, bottom, A, C), segmentSegment(top, bottom, B, C)};
 
+    // Find the closest triangle from all the tests
     auto closestPoint = std::ranges::min_element(
         results, [](const Result &a, const Result &b) { return a.sqrDistance < b.sqrDistance; });
 
+    // Triangle outside the capsule
     if (closestPoint->sqrDistance >= radius * radius)
         return {};
 
@@ -46,12 +48,55 @@ Capsule::CollisionResolution Capsule::collision(const glm::vec3 &A, const glm::v
     else
         normal = glm::vec3(0.0f);
 
-    float depth{radius - std::sqrt(closestPoint->sqrDistance)};
+    float collisionDepth{radius - std::sqrt(closestPoint->sqrDistance)};
 
-    return CollisionResolution{depth, normal};
+    return CollisionResolution{collisionDepth, normal};
 }
 
 glm::vec3 Capsule::getBottom() const
 {
-    return bottom + radius;
+    return bottom + glm::vec3{0.0f, radius, 0.0f};
+}
+
+void Capsule::translate(const glm::vec3 &direction)
+{
+    top += direction;
+    bottom += direction;
+}
+
+const glm::vec3 &Capsule::getVelocity() const
+{
+    return velocity;
+}
+
+void Capsule::addVelocity(const glm::vec3 &velocity_)
+{
+    velocity += velocity_;
+}
+
+void Capsule::setVelocity(const glm::vec3 &newVelocity)
+{
+    velocity = newVelocity;
+}
+
+void Capsule::slide(const glm::vec3 &normal)
+{
+    constexpr float epsilon{0.001f};
+
+    float velocityLength{glm::length(velocity)};
+
+    if (velocityLength < 0.00001)
+        return;
+
+    glm::vec3 velocityNormalized{velocity / velocityLength};
+    glm::vec3 undesiredMotion = normal * glm::dot(velocityNormalized, normal);
+    glm::vec3 desiredMotion = velocityNormalized - undesiredMotion;
+    velocity = desiredMotion * velocityLength;
+
+    translate(normal + epsilon);
+}
+
+float Capsule::getHeight() const
+{
+    return glm::distance(bottom, top) + 2.0f * radius;
 }
