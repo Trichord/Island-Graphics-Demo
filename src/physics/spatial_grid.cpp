@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 #include <vector>
 
@@ -97,7 +98,7 @@ SpatialGrid::SpatialGrid(const AABB &worldBounds, float cellSize, const std::vec
     }
 }
 
-void SpatialGrid::query(const glm::vec3& position, std::vector<int> &result)
+void SpatialGrid::query(const glm::vec3 &position, std::vector<int> &result)
 {
     result.clear();
 

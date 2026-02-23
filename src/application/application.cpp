@@ -1,5 +1,6 @@
 #include "application.h"
 
+#include <cstdint>
 #include <iostream>
 
 #include "camera.h"

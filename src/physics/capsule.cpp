@@ -1,10 +1,11 @@
 #include "capsule.h"
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 
 #include "distance_functions.h"
 #include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
 #include "world_vectors.h"
 
 Capsule::Capsule(const glm::vec3 &position, float height, float radius)
