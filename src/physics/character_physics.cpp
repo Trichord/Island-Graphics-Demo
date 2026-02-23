@@ -1,6 +1,7 @@
 #include "character_physics.h"
 
 #include <cstdint>
+#include <iostream>
 #include <optional>
 
 #include "capsule.h"
@@ -9,11 +10,13 @@
 #include "spatial_grid.h"
 #include "world_vectors.h"
 
+constexpr int maxResolveSteps{3};
 constexpr float gridPadding{1.125};
+constexpr float groundSnap{0.5f};
 
 CharacterPhysics::CharacterPhysics(Scene &scene)
-    : capsule{scene.getCamera().getPosition(), defaultPhysicsValues::playerHeight, defaultPhysicsValues::playerWidth},
-      capsulePosition{scene.getCamera().getPosition()}, resetPosition{scene.getCamera().getPosition()}
+    : capsule{scene.getCamera().getPosition(), physicsDefaultValues::playerHeight, physicsDefaultValues::playerWidth},
+      resetPosition{scene.getCamera().getPosition()}
 {
     constexpr float cellSizeMultiplier{5.0f};
 
@@ -89,22 +92,22 @@ CharacterPhysics::CharacterPhysics(Scene &scene)
     resetHeight = worldAABB.getMinY();
 }
 
-void CharacterPhysics::accelerate(glm::vec3 &wishDir, float wishSpeed, float accel, float deltaTime)
+glm::vec3 CharacterPhysics::accelerate(const glm::vec3 &wishDir, float wishSpeed, float accel, float deltaTime)
 {
-    using namespace defaultPhysicsValues;
+    using namespace physicsDefaultValues;
 
-    float currentSpeed{glm::dot(capsuleVelocity, wishDir)};
+    float currentSpeed{glm::dot(capsule.getVelocity(), wishDir)};
     float addSpeed{wishSpeed - currentSpeed};
 
     if (addSpeed <= 0)
-        return;
+        return glm::vec3{0.0f};
 
     float accelSpeed{accel * deltaTime * wishSpeed * surfaceFriction};
 
     if (accelSpeed > addSpeed)
         accelSpeed = addSpeed;
 
-    capsuleVelocity += accelSpeed * wishDir;
+    return glm::vec3{wishDir * accelSpeed};
 }
 
 // Source Engine inspired movement
@@ -112,18 +115,17 @@ void CharacterPhysics::update(std::uint8_t direction, const glm::vec3 &front, fl
 {
     using enum CharacterMovement;
     using namespace WorldVectors;
-    using namespace defaultPhysicsValues;
+    using namespace physicsDefaultValues;
 
     if (capsule.getBottom().y < resetHeight)
     {
         capsule.setPosition(resetPosition);
-        capsulePosition = resetPosition;
-        capsuleVelocity = glm::vec3{0.0f};
-        previousPosition = capsulePosition;
+        capsule.setVelocity(glm::vec3{0.0f});
+        previousPosition = resetPosition;
         return;
     }
 
-    previousPosition = capsulePosition;
+    previousPosition = capsule.getPosition();
 
     glm::vec3 flatFront{glm::normalize(glm::vec3{front.x, 0.0f, front.z})};
     glm::vec3 right{glm::cross(flatFront, worldUp)};
@@ -164,55 +166,54 @@ void CharacterPhysics::update(std::uint8_t direction, const glm::vec3 &front, fl
         wishSpeed = playerMaxSpeed;
     }
 
-    float currentSpeed{glm::length(capsuleVelocity)};
+    float currentSpeed{glm::length(capsule.getVelocity())};
 
-    // Avoid divide by 0
+    // Apply drag
     if (currentSpeed > 0.0f)
     {
         float drag{currentSpeed * surfaceFriction * deltaTime};
-        capsuleVelocity *= std::max(currentSpeed - drag, 0.0f) / currentSpeed;
+        capsule.setVelocity(capsule.getVelocity() * std::max(currentSpeed - drag, 0.0f) / currentSpeed);
     }
 
     // Stop player if under minimum speed
     if (currentSpeed < playerMinSpeed)
-        capsuleVelocity = glm::vec3{0.0f};
+        capsule.setVelocity(glm::vec3{0.0f});
 
-    accelerate(wishDir, wishSpeed, playerMaxAcceleration, deltaTime);
+    // Acceleration from wish direction
+    glm::vec3 accelerationDir{accelerate(wishDir, wishSpeed, playerMaxAcceleration, deltaTime)};
+    capsule.addVelocity(accelerationDir);
+    capsule.translate(accelerationDir * deltaTime);
 
     // Resolve collisions for movement
-    capsulePosition += capsuleVelocity * deltaTime;
-    resolveCollisions();
+    glm::vec3 capsuleVelocity{capsule.getVelocity()};
+    glm::vec3 horizontalVel{capsuleVelocity.x, 0.0f, capsuleVelocity.z};
+    capsule.translate(horizontalVel * deltaTime);
+    resolveMovementCollisions();
 
-    // Resolve collisions for gravity
-    capsuleVelocity.y -= gravity * deltaTime;
-    capsulePosition += glm::vec3{0.0f, capsuleVelocity.y, 0.0f} * deltaTime;
-    capsule.setPosition(capsulePosition);
-    auto collisionNormal{checkCollisionNormal()};
+    auto closestTriangle{rayCast(capsule.getBottom())};
 
-    if (collisionNormal.has_value())
+    if (closestTriangle.distance < groundSnap && glm::dot(closestTriangle.normal, worldUp) > minSlope)
     {
+        capsule.translate(glm::vec3{0.0f, -closestTriangle.distance, 0.0f});
 
-        if (glm::dot(glm::normalize(collisionNormal.value()), worldUp) > minSlope)
-        {
-            capsulePosition.y += glm::abs(collisionNormal.value()).y;
-            capsuleVelocity.y = 0.0f;
-        }
-        else
-        {
-            capsulePosition += collisionNormal.value();
-            capsule.setPosition(capsulePosition);
-            slide(collisionNormal.value());
-        }
+        glm::vec3 capVelocity{capsule.getVelocity()};   
+        capVelocity = capVelocity - glm::dot(closestTriangle.normal, capVelocity) * closestTriangle.normal;
+        capsule.setVelocity(capVelocity * deltaTime);
     }
+    else
+    {
+        glm::vec3 gravity{0.0f, -gravityForce * deltaTime, 0.0f};
+        capsule.addVelocity(gravity * deltaTime);
 
-    capsule.setPosition(capsulePosition);
+        capsule.translate(glm::vec3{0.0f, capsule.getVelocity().y, 0.0f});
+        resolveGravityCollisions(deltaTime);
+    }   
 }
 
-void CharacterPhysics::resolveCollisions()
+void CharacterPhysics::resolveMovementCollisions()
 {
-    constexpr int maxResolveSteps{3};
-
-    capsule.setPosition(capsulePosition);
+    using namespace WorldVectors;
+    using namespace physicsDefaultValues;
 
     for (int i{0}; i < maxResolveSteps; ++i)
     {
@@ -221,34 +222,41 @@ void CharacterPhysics::resolveCollisions()
         if (!collisionNormal.has_value())
             break;
 
-        capsulePosition += collisionNormal.value();
-        capsule.setPosition(capsulePosition);
-
-        slide(collisionNormal.value());
+        capsule.slide(collisionNormal.value());
     }
 }
 
-void CharacterPhysics::slide(const glm::vec3 &normal)
+void CharacterPhysics::resolveGravityCollisions(float deltaTime)
 {
-    float velocity_length{glm::length(capsuleVelocity)};
-    glm::vec3 velocityNormalized{capsuleVelocity / velocity_length};
-    glm::vec3 undesiredMotion = normal * glm::dot(velocityNormalized, normal);
-    glm::vec3 desiredMotion = velocityNormalized - undesiredMotion;
-    capsuleVelocity = desiredMotion * velocity_length;
+    using namespace WorldVectors;
+    using namespace physicsDefaultValues;
+
+    for (int i{0}; i < maxResolveSteps; ++i)
+    {
+        auto collisionNormal = checkCollisionNormal();
+
+        if (!collisionNormal.has_value())
+            break;
+
+        glm::vec3 normal{collisionNormal.value()};
+        glm::vec3 capsuleVelocity{capsule.getVelocity()};
+
+        glm::vec3 verticalPush{0.0f, normal.y, 0.0f};
+        capsule.translate(verticalPush);
+    }
 }
 
 std::optional<glm::vec3> CharacterPhysics::checkCollisionNormal()
 {
-    using namespace defaultPhysicsValues;
+    using namespace physicsDefaultValues;
     using namespace WorldVectors;
-    constexpr float epsilon{0.0001f};
-    constexpr int maxResolveSteps{5};
+    constexpr float epsilon{0.001f};
 
     float depth{-std::numeric_limits<float>::infinity()};
     glm::vec3 collisionNormal{0.0f};
 
     // Get which triangles are close to the capsule
-    terrainGrid.query(capsulePosition, triangleCollisions);
+    terrainGrid.query(capsule.getPosition(), triangleCollisions);
 
     // Find deepest collision
     for (int index : triangleCollisions)
@@ -268,18 +276,72 @@ std::optional<glm::vec3> CharacterPhysics::checkCollisionNormal()
     return collisionNormal * (depth + epsilon);
 }
 
-const glm::vec3 &CharacterPhysics::getPosition() const
+glm::vec3 CharacterPhysics::getPosition() const
 {
-    return capsulePosition;
+    return capsule.getPosition();
 }
 
 void CharacterPhysics::setPosition(const glm::vec3 &newPosition)
 {
-    capsulePosition = newPosition;
-    capsuleVelocity = glm::vec3{0.0f};
+    capsule.setPosition(newPosition);
+    capsule.setVelocity(glm::vec3{0.0f});
 }
 
 const glm::vec3 &CharacterPhysics::getPreviousPosition() const
 {
     return previousPosition;
+}
+
+// Ray triangle intersection test: https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+CharacterPhysics::RayCast CharacterPhysics::rayCast(const glm::vec3 &position)
+{
+    constexpr float epsilon = std::numeric_limits<float>::epsilon();
+    constexpr glm::vec3 rayVector{0.0f, -1.0f, 0.0f};
+
+    CharacterPhysics::RayCast result;
+    float closestDistance{std::numeric_limits<float>::infinity()};
+
+    terrainGrid.query(capsule.getPosition(), triangleCollisions);
+
+    for (int index : triangleCollisions)
+    {
+        glm::vec3 a{meshVertices[index]};
+        glm::vec3 b{meshVertices[index + 1]};
+        glm::vec3 c{meshVertices[index + 2]};
+
+        glm::vec3 edge1{b - a};
+        glm::vec3 edge2{c - a};
+        glm::vec3 rayCrossE2{glm::cross(rayVector, edge2)};
+        float det{dot(edge1, rayCrossE2)};
+
+        if (det > -epsilon && det < epsilon)
+            continue; // This ray is parallel to this triangle.
+
+        float invDet{1.0f / det};
+        glm::vec3 s{position - a};
+        float u{invDet * dot(s, rayCrossE2)};
+
+        if ((u < 0 && abs(u) > epsilon) || (u > 1 && abs(u - 1) > epsilon))
+            continue;
+
+        glm::vec3 sCrossE1{glm::cross(s, edge1)};
+        float v{invDet * glm::dot(rayVector, sCrossE1)};
+
+        if ((v < 0 && abs(v) > epsilon) || (u + v > 1 && abs(u + v - 1) > epsilon))
+            continue;
+
+        // At this stage we can compute t to find out where the intersection point is on the line.
+        float t{invDet * glm::dot(edge2, sCrossE1)};
+
+        if (t > epsilon && t < closestDistance) // ray intersection
+        {
+            closestDistance = t;
+
+            result.distance = t;
+            result.intersection = glm::vec3{position + rayVector * t};
+            result.normal = glm::normalize(glm::cross(edge1, edge2));
+        }
+    }
+
+    return result;
 }

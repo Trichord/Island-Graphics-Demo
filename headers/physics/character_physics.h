@@ -19,18 +19,18 @@ enum CharacterMovement : std::uint8_t
     NONE = 16U
 };
 
-namespace defaultPhysicsValues
+namespace physicsDefaultValues
 {
 constexpr float surfaceFriction{5.0f};
-constexpr float gravity{20.0f};
-constexpr float playerWidth{0.5f};
+constexpr float gravityForce{70.0f};
+constexpr float playerWidth{0.25f};
 constexpr float playerHeight{2.0f};
 constexpr float maxGroundVelocity{6.0f};
 constexpr float playerMaxAcceleration{10.0f * maxGroundVelocity};
 constexpr float playerMaxSpeed{5.0f};
 constexpr float playerMinSpeed{0.2f};
-constexpr float minSlope{0.40f};
-} // namespace defaultPhysicsValues
+constexpr float minSlope{0.3f};
+} // namespace physicsDefaultValues
 
 class CharacterPhysics
 {
@@ -40,13 +40,18 @@ class CharacterPhysics
 
     void update(std::uint8_t direction, const glm::vec3 &front, float deltaTime);
 
-    const glm::vec3 &getPosition() const;
+    glm::vec3 getPosition() const;
     const glm::vec3 &getPreviousPosition() const;
     void setPosition(const glm::vec3 &newPosition);
 
   private:
-    glm::vec3 capsuleVelocity{0.0f};
-    glm::vec3 capsulePosition{0.0f};
+    struct RayCast
+    {
+        glm::vec3 intersection{0.0f};
+        glm::vec3 normal{0.0f};
+        float distance{0.0f};
+    };
+
     glm::vec3 previousPosition{0.0f};
     glm::vec3 resetPosition{0.0f};
     float resetHeight{0.0f};
@@ -57,12 +62,11 @@ class CharacterPhysics
     std::vector<int> triangleCollisions;
     std::vector<glm::vec3> meshVertices;
 
+    RayCast rayCast(const glm::vec3 &position);
+    void resolveMovementCollisions();
+    void resolveGravityCollisions(float deltaTime);
     std::optional<glm::vec3> checkCollisionNormal();
-    void resolveCollisions();
 
     // Accelerate function from Valve's Source engine
-    void accelerate(glm::vec3 &wishDir, float wishSpeed, float accel, float deltaTime);
-
-    // Sliding physics credit: Wicked Engine https://wickedengine.net/2020/04/capsule-collision-detection
-    void slide(const glm::vec3 &normal);
+    glm::vec3 accelerate(const glm::vec3 &wishDir, float wishSpeed, float accel, float deltaTime);
 };

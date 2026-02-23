@@ -136,7 +136,7 @@ void Application::createOpenGLViewport(const ConfigWindow::GraphicsSettings &gra
 void Application::processKeyboard(Scene &scene, CharacterPhysics &physicsHandler)
 {
     using enum CharacterMovement;
-    constexpr float physicsTick{1.0f / 120.0f};
+    constexpr float physicsTick{1.0f / 60.0f};
 
     std::uint8_t direction{0};
     Camera &camera{scene.getCamera()};
