@@ -103,18 +103,13 @@ void Model::calculateAABB()
         {
             const AABB &primAABB{primitive.getAABB()};
 
-            const glm::vec3 center{primAABB.getCenter()};
-            const glm::vec3 extent{primAABB.getExtent()};
-            const glm::vec3 aabbMin{center - extent};
-            const glm::vec3 aabbMax{center + extent};
+            minX = std::min(primAABB.getMinX(), minX);
+            minY = std::min(primAABB.getMinY(), minY);
+            minZ = std::min(primAABB.getMinZ(), minZ);
 
-            minX = std::min(aabbMin.x, minX);
-            minY = std::min(aabbMin.y, minY);
-            minZ = std::min(aabbMin.z, minZ);
-
-            maxX = std::max(aabbMax.x, maxX);
-            maxY = std::max(aabbMax.y, maxY);
-            maxZ = std::max(aabbMax.z, maxZ);
+            maxX = std::max(primAABB.getMaxX(), maxX);
+            maxY = std::max(primAABB.getMaxY(), maxY);
+            maxZ = std::max(primAABB.getMaxZ(), maxZ);
         }
 
     aabb = AABB{minX, minY, minZ, maxX, maxY, maxZ};

@@ -94,3 +94,13 @@ float AABB::getMaxZ() const
 {
     return (center + extent).z;
 }
+
+glm::vec3 AABB::getMin() const
+{
+    return center - extent;
+}
+
+glm::vec3 AABB::getMax() const
+{
+    return center + extent;
+}
