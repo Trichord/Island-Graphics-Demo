@@ -4,7 +4,7 @@
 
 constexpr glm::vec3 CAMERA_START_POS{134.6624f, 0.5f, -62.8179f};
 
-constexpr glm::vec3 SPACE_DODECA_POS{-21.0f, 12.5f, -48.0f};
+constexpr glm::vec3 SPACE_DODECA_POS{-21.0f, 13.2f, -48.0f};
 
 constexpr glm::vec3 DEAD_TREE_POS{196.18584f, -0.93f, 154.62890f};
 
