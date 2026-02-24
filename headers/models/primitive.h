@@ -41,12 +41,17 @@ class Primitive
 
     GLuint getVAO() const;
     const AABB &getAABB() const;
-    std::size_t getMaterialIndex() const;
+    void setAABB(const AABB &otherAABB);
     fastgltf::AlphaMode getAlphaMode() const;
     std::span<const Vertex> getVertices() const;
     std::span<const std::uint32_t> getIndices() const;
-    void setMaterialIndex(std::size_t newIndex);
+
     bool materialsExist() const;
+    std::size_t getMaterialIndex() const;
+    void setMaterialIndex(std::size_t newIndex);
+
+    std::span<Vertex> getMutableVertices();
+    void setupPrimitiveBuffers();
 
   private:
     GLuint VAO{0};
@@ -59,5 +64,5 @@ class Primitive
     std::size_t materialIndex{0};
     fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
 
-    void setupPrimitiveBuffers();
+    
 };
