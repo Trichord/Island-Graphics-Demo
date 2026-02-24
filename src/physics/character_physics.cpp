@@ -142,16 +142,16 @@ void CharacterPhysics::update(std::uint8_t direction, const glm::vec3 &front, fl
     float sideMove{0.0f};
 
     if (direction & FORWARD)
-        forwardMove = 1.0f;
+        forwardMove += 1.0f;
 
     if (direction & BACKWARD)
-        forwardMove = -1.0f;
+        forwardMove += -1.0f;
 
     if (direction & RIGHT)
-        sideMove = 1.0f;
+        sideMove += 1.0f;
 
     if (direction & LEFT)
-        sideMove = -1.0f;
+        sideMove += -1.0f;
 
     wishVel = flatFront * forwardMove + right * sideMove;
 
@@ -180,7 +180,7 @@ void CharacterPhysics::update(std::uint8_t direction, const glm::vec3 &front, fl
         capsule.setVelocity(glm::vec3{0.0f});
 
     // Acceleration from wish direction
-    glm::vec3 accelerationDir{accelerate(wishDir, playerMaxSpeed, playerMaxAcceleration)};
+    glm::vec3 accelerationDir{accelerate(wishDir, wishSpeed, playerMaxAcceleration)};
 
     capsule.addVelocity(accelerationDir * deltaTime);
     capsule.translate(accelerationDir * deltaTime);

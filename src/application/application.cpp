@@ -138,6 +138,7 @@ void Application::processKeyboard(Scene &scene, CharacterPhysics &physicsHandler
 {
     using enum CharacterMovement;
     constexpr float physicsTick{1.0f / 60.0f};
+    constexpr float objectSpeed{0.5f};
 
     std::uint8_t direction{0};
     Camera &camera{scene.getCamera()};
@@ -176,6 +177,40 @@ void Application::processKeyboard(Scene &scene, CharacterPhysics &physicsHandler
     glm::vec3 interpolatedPos{glm::mix(previousPos, physicsHandler.getPosition(), tickDelta)};
 
     camera.setPosition(interpolatedPos);
+
+    /*
+    //****************************************
+    // Object Positioning - For Testing Only *
+    //****************************************
+    Transform &transform{scene.getObjectTransform("spaceModel")};
+
+    // +- Z
+    if (glfwGetKey(window, GLFW_KEY_KP_8) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{0.0f, 0.0f, -objectSpeed * deltaTime});
+
+    if (glfwGetKey(window, GLFW_KEY_KP_5) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{0.0f, 0.0f, objectSpeed * deltaTime});
+
+    // +- X
+    if (glfwGetKey(window, GLFW_KEY_KP_4) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{-objectSpeed * deltaTime, -0.0f, 0.0f});
+
+    if (glfwGetKey(window, GLFW_KEY_KP_6) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{objectSpeed * deltaTime, 0.0f, 0.0f});
+
+    // +- Y
+    if (glfwGetKey(window, GLFW_KEY_KP_7) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{0.0f, -objectSpeed * deltaTime, 0.0f});
+
+    if (glfwGetKey(window, GLFW_KEY_KP_9) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{0.0f, objectSpeed * deltaTime, 0.0f});
+
+    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+    {
+        const glm::vec3 &pos{transform.getPosition()};
+        std::cout << "Transform at: (" << pos.x << ", " << pos.y << ", " << pos.z << ")" << std::endl;
+    }
+    */
 }
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)

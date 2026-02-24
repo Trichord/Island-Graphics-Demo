@@ -16,7 +16,6 @@ Primitive::Primitive(std::vector<Vertex> &&vertices_, std::vector<std::uint32_t>
     : vertices{std::move(vertices_)}, indices{std::move(indices_)}, aabb{aabb_}, hasMaterials{hasMaterials_},
       materialIndex{materialIndex_}, alphaMode{alphaMode_}
 {
-    setupPrimitiveBuffers();
 }
 
 Primitive::Primitive(Primitive &&other) noexcept
@@ -148,4 +147,14 @@ std::span<const Primitive::Vertex> Primitive::getVertices() const
 std::span<const std::uint32_t> Primitive::getIndices() const
 {
     return indices;
+}
+
+std::span<Primitive::Vertex> Primitive::getMutableVertices()
+{
+    return vertices;
+}
+
+void Primitive::setAABB(const AABB &otherAABB)
+{
+    aabb = otherAABB;
 }
