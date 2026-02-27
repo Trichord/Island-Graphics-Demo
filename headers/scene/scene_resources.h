@@ -1,13 +1,13 @@
 #pragma once
 
 #include <filesystem>
+#include <span>
 #include <vector>
 
 #include "cube_mapped_model.h"
 #include "instanced_model.h"
 #include "model.h"
 #include "texture_manager.h"
-
 
 namespace sceneMaxObjects
 {
@@ -23,8 +23,8 @@ class SceneResources
   public:
     SceneResources(TextureManager &textureManager);
 
-    Model &loadModel(const std::filesystem::path &filepath);
-    Model &loadModel(const ModelHandle borrowHandle, const std::filesystem::path &filepath);
+    Model &loadModel(const std::filesystem::path &modelPath);
+    Model &loadModel(const ModelHandle borrowHandle, const std::filesystem::path &modelPath);
 
     InstancedModel &loadInstancedModel(const std::filesystem::path &modelPath,
                                        const std::filesystem::path &positionsPath, float minSize = 1.0f,
@@ -38,8 +38,8 @@ class SceneResources
     CubeMappedModel &loadCubeMappedModel(const ModelHandle borrowHandle, const std::filesystem::path &modelPath);
 
   private:
-    TextureManager &textureManager;
-    std::vector<Model> models;
-    std::vector<CubeMappedModel> cubeMappedModels;
-    std::vector<InstancedModel> instancedModels;
+    TextureManager &textureManager_;
+    std::vector<Model> models_;
+    std::vector<CubeMappedModel> cubeMappedModels_;
+    std::vector<InstancedModel> instancedModels_;
 };

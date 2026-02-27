@@ -18,21 +18,17 @@ class InstancedModel : public Model
     InstancedModel(TextureManager &textureManager, const ModelHandle borrowHandle,
                    const std::filesystem::path &modelPath, const std::filesystem::path &positionsPath,
                    float minSize = 1.0f, float maxSize = 1.0f, unsigned int numPositions = 0);
-    InstancedModel(const InstancedModel &) = delete;
-    InstancedModel &operator=(const InstancedModel &) = delete;
-    InstancedModel(InstancedModel &&other) noexcept;
-    InstancedModel &operator=(InstancedModel &&other) = delete;
-    ~InstancedModel();
 
-    std::span<InstancedData> getInstanceData() override;
+    // Load positions from storage and generate matrices
+    std::optional<std::vector<InstancedData>> generateInstancedData() override;
 
   private:
-    std::vector<InstancedData> instances;
+    unsigned int numInstances_{0};
+    float minSize_{0.0f};
+    float maxSize_{0.0f};
+    std::filesystem::path positionsPath_;
 
-    GLuint instancesVBO{0};
-
-    void loadPositions(const std::filesystem::path &positionsPath, unsigned int numPositions);
-    void generateInstanceMatrices(float minSize, float maxSize);
-    void generateWorldAABBs();
-    void deleteBuffers();
+    bool loadPositions(std::vector<InstancedData>& instances);
+    void generateInstanceMatrices(std::vector<InstancedData> &instances);
+    void generateWorldAABBs(std::vector<InstancedData> &instances);
 };

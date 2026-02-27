@@ -29,6 +29,6 @@ class AABB
     bool intersectsWorldSpace(const std::array<glm::vec4, 6> &planes) const;
 
   private:
-    glm::vec3 center{0.0f};
-    glm::vec3 extent{0.0f};
+    glm::vec3 center_{0.0f};
+    glm::vec3 extent_{0.0f};
 };

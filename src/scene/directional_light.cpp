@@ -4,31 +4,31 @@
 #include "light.h"
 
 DirectionalLight::DirectionalLight(const glm::vec3 &newDirection, const glm::vec3 &newColor)
-    : Light{newColor}, direction{newDirection}
+    : Light{newColor}, direction_{newDirection}
 {
 }
 
 glm::vec3 DirectionalLight::getColor() const
 {
-    return color;
+    return color_;
 }
 
 glm::vec3 DirectionalLight::getDirection() const
 {
-    return direction;
+    return direction_;
 }
 
 void DirectionalLight::setDirection(const glm::vec3 &newDirection)
 {
-    direction = newDirection;
-    directionUpdated = true;
+    direction_ = newDirection;
+    directionUpdated_ = true;
 }
 
 bool DirectionalLight::directionHasUpdated()
 {
-    if (directionUpdated)
+    if (directionUpdated_)
     {
-        directionUpdated = false;
+        directionUpdated_ = false;
         return true;
     }
     else

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "character_physics.h"
+#include "player_physics.h"
 #include "config_window.h"
 #include "gl_context.h"
 #include "scene.h"
@@ -41,7 +41,7 @@ class Application
      *
      * @param scene The target scene.
      */
-    void processKeyboard(Scene &scene, CharacterPhysics &physicsHandler);
+    void processKeyboard(Scene &scene, PlayerPhysics &physicsHandler);
 
     /**
      * @brief Registers OpenGL function pointers, creates an OpenGL viewport, and

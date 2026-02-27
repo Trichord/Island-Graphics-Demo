@@ -11,7 +11,7 @@
 #include "renderable.h"
 #include "scene.h"
 #include "shader.h"
-#include "shader_types.h"
+#include "shader_type.h"
 #include "texture_manager.h"
 #include "thread_pool.h"
 
@@ -36,9 +36,9 @@ class Renderer
     TextureManager &getTextureManager();
 
   private:
-    std::uint32_t indicesOffset{0};
-    static constexpr float depthClear{1.0f};
-    static constexpr std::array<float, 4> clearColor{0.0f, 0.0f, 0.0f, 1.0f};
+    std::uint32_t indicesOffset_{0};
+    static constexpr float depthClear_{1.0f};
+    static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
 
     // Packed UBO data holds everything we want to share with all shaders
     struct PackedCameraData
@@ -50,40 +50,50 @@ class Renderer
         glm::vec4 cameraPosition{0.0f};
     };
 
-    ThreadPool threadPool{threadCount};
+    ThreadPool threadPool_{threadCount};
 
     // UBO
-    GLuint UBO{0};
-    PackedCameraData uboCameraData;
+    GLuint UBO_{0};
+    PackedCameraData uboCameraData_;
 
     // SSBOs
-    GLuint indicesSSBO{0};
-    GLuint matricesSSBO{0};  
-    std::unordered_map<ModelHandle, GLuint> instancedBaseOffsets;
+    GLuint indicesSSBO_{0};
+    GLuint matricesSSBO_{0};
+    std::unordered_map<ModelHandle, GLuint> instancedBaseOffsets_;
 
     // Owned objects
-    GLState glState;
-    TextureManager textureManager;
-    std::vector<std::uint32_t> instanceIndices;
-    std::unordered_map<ShaderType, Shader> shaders;
-    const ConfigWindow::GraphicsSettings graphicsSettings;
+    GLState glState_;
+    TextureManager textureManager_;
+    std::vector<std::uint32_t> instanceIndices_;
+    std::unordered_map<ShaderType, Shader> shaders_;
+    const ConfigWindow::GraphicsSettings graphicsSettings_;
 
+    // Renderer initialization
     void loadShaders();
     void setupTextureManager();
+
+    // Scene initialization
+    void createBuffers(Scene &scene);
     void setupShader(Shader &shader);
-    void resetVisibility(Scene &scene);
+    void borrowSkyboxes(Scene &scene);
+    void generateCubeMaps(Scene &scene);
+    void loadInstancedData(Scene &scene);
+    void populateSSBOs(Scene &scene, std::size_t totalInstanceCount);
+
+    // Rendering
     void updateShaderUniforms(Scene &scene);
-    void bindTextures(const Material &materials);
-    void cullRenderables(Scene &scene);
-    void cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
-                       const std::array<glm::vec4, 6> &frustumPlanes);
-    void cullModel(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
-    void cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
     void renderAllSceneObjects(Scene &scene);
     void renderObject(Renderable &renderable);
-    void generateCubeMaps(Scene &scene);
-    void createBuffers(Scene &scene);
-    void borrowSkyboxes(Scene &scene);
-    void populateSSBOs(Scene &scene, std::size_t totalInstanceCount);
+    void bindTextures(const Material &materials);
+
+    // Culling
+    void resetVisibility(Scene &scene);
+    void cullRenderables(Scene &scene);
+    void cullModel(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
+    void cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
+    void cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
+                       const std::array<glm::vec4, 6> &frustumPlanes);
+
+    // Cleanup
     void deleteBuffers();
 };

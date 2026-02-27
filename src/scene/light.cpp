@@ -2,21 +2,21 @@
 
 #include "glm/glm.hpp"
 
-Light::Light(const glm::vec3 &newColor) : color{newColor}
+Light::Light(const glm::vec3 &newColor) : color_{newColor}
 {
 }
 
 void Light::setColor(const glm::vec3 &newColor)
 {
-    color = newColor;
-    colorUpdated = true;
+    color_ = newColor;
+    colorUpdated_ = true;
 }
 
 bool Light::colorHasUpdated()
 {
-    if (colorUpdated)
+    if (colorUpdated_)
     {
-        colorUpdated = false;
+        colorUpdated_ = false;
         return true;
     }
     else

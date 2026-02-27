@@ -14,6 +14,6 @@ class PointLight : public Light
     bool positionHasUpdated();
 
   private:
-    bool positionUpdated{true};
-    glm::vec3 position{0.0f};
+    bool positionUpdated_{true};
+    glm::vec3 position_{0.0f};
 };

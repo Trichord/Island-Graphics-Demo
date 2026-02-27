@@ -38,11 +38,11 @@ class ImageLoader
     void freeImages();
 
   private:
-    size_t numImages{0};
-    std::atomic<unsigned int> numImagesLoaded{0};
-    std::vector<LoadedImage> loadedImages;
-    std::mutex imagesMutex;
-    std::condition_variable condition;
+    size_t numImages_{0};
+    std::atomic<unsigned int> numImagesLoaded_{0};
+    std::vector<LoadedImage> loadedImages_;
+    std::mutex imagesMutex_;
+    std::condition_variable condition_;
 
     void loadFromFile(const std::filesystem::path &path, unsigned int assetImageIndex);
 };

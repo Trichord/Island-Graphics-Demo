@@ -9,12 +9,12 @@
 #include "renderable.h"
 #include "renderer.h"
 #include "scene.h"
-#include "shader_types.h"
+#include "shader_type.h"
 
 void Renderer::cullRenderables(Scene &scene)
 {
-    indicesOffset = 0;
-    instanceIndices.clear();
+    indicesOffset_ = 0;
+    instanceIndices_.clear();
 
     Camera &camera{scene.getCamera()};
     const std::array<glm::vec4, 6> &frustumPlanes{camera.getFrustumPlanes()};
@@ -22,9 +22,9 @@ void Renderer::cullRenderables(Scene &scene)
     for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
         for (auto &renderable : objectList)
         {
-            using enum CullType;
+            using enum CullMethod;
 
-            CullType cull{renderable.properties.cullType};
+            CullMethod cull{renderable.properties.cullMethod};
 
             switch (cull)
             {
@@ -52,7 +52,7 @@ void Renderer::cullRenderables(Scene &scene)
             }
         }
 
-    glNamedBufferSubData(indicesSSBO, 0, instanceIndices.size() * sizeof(std::uint32_t), instanceIndices.data());
+    glNamedBufferSubData(indicesSSBO_, 0, instanceIndices_.size() * sizeof(std::uint32_t), instanceIndices_.data());
 }
 
 void Renderer::cullModel(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
@@ -60,8 +60,13 @@ void Renderer::cullModel(Renderable &renderable, const std::array<glm::vec4, 6> 
     auto &object = renderable.objectRef.get();
     auto &properties = renderable.properties;
 
-    const glm::mat4 &modelMatrix = properties.transform.getModelMatrix();
-    const AABB &aabb = object.getAABB();
+    if (properties.isInstanced())
+        return;
+
+    Transform &transform{std::get<Transform>(properties.transform)};
+
+    const glm::mat4 &modelMatrix{transform.getModelMatrix()};
+    const AABB &aabb{object.getAABB()};
 
     properties.isVisible = aabb.intersects(frustumPlanes, modelMatrix);
 
@@ -75,7 +80,7 @@ void Renderer::cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
     bool anyVisible{false};
 
     auto &object = renderable.objectRef.get();
-    std::span<InstancedData> instances = object.getInstanceData();
+    auto &instances = std::get<std::vector<InstancedData>>(renderable.properties.transform);
 
     for (uint32_t i{0}; i < instances.size(); ++i)
     {
@@ -84,21 +89,20 @@ void Renderer::cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
             anyVisible = true;
 
             ++renderable.properties.visibleInstances;
-            instanceIndices.push_back(i);
+            instanceIndices_.push_back(i);
         }
     }
 
     if (anyVisible)
     {
-
         renderable.properties.isVisible = true;
         object.setVisibility(true);
 
         // Update render's count for the draw call
-        renderable.properties.instancedIndicesOffset = indicesOffset;
+        renderable.properties.instancedIndicesOffset = indicesOffset_;
 
         // Keep track of where each model's instances start in the vector of indices
-        indicesOffset += renderable.properties.visibleInstances;
+        indicesOffset_ += renderable.properties.visibleInstances;
     }
 }
 
@@ -108,6 +112,7 @@ void Renderer::cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6>
     auto &properties = renderable.properties;
 
     properties.isVisible = false;
+    Transform &transform{std::get<Transform>(properties.transform)};
 
     for (auto &mesh : object.getMeshes())
     {
@@ -115,7 +120,7 @@ void Renderer::cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6>
 
         for (const auto &primitive : mesh.primitives)
         {
-            if (primitive.getAABB().intersects(frustumPlanes, properties.transform.getModelMatrix()))
+            if (primitive.getAABB().intersects(frustumPlanes, transform.getModelMatrix()))
             {
                 mesh.isVisible = true;
                 properties.isVisible = true;
@@ -131,14 +136,13 @@ void Renderer::resetVisibility(Scene &scene)
         for (auto &renderable : renderables)
         {
             using enum ShaderType;
-            using enum CullType;
+            using enum CullMethod;
 
             ObjectProperties &properties{renderable.properties};
             auto &object = renderable.objectRef.get();
 
             if (properties.isVisible)
             {
-
                 properties.isVisible = false;
                 properties.visibleInstances = 0;
                 properties.instancedIndicesOffset = 0;
