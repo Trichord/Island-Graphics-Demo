@@ -55,7 +55,7 @@ Shader::Shader(const std::filesystem::path &vertexPath, const std::filesystem::p
 Shader::Shader(Shader &&other) noexcept
 {
     ID = other.ID;
-    uniformLocations = std::move(other.uniformLocations);
+    uniformLocations_ = std::move(other.uniformLocations_);
     other.ID = 0;
 };
 
@@ -67,7 +67,7 @@ Shader &Shader::operator=(Shader &&other) noexcept
             glDeleteProgram(ID);
 
         ID = other.ID;
-        uniformLocations = std::move(other.uniformLocations);
+        uniformLocations_ = std::move(other.uniformLocations_);
         other.ID = 0;
     }
 
@@ -167,7 +167,7 @@ void Shader::setUniformBlock(const std::string &name, unsigned int index)
 
 GLint Shader::getCachedUniform(const std::string &name)
 {
-    auto [iter, inserted] = uniformLocations.try_emplace(name, -1);
+    auto [iter, inserted] = uniformLocations_.try_emplace(name, -1);
 
     if (inserted)
         iter->second = glGetUniformLocation(ID, name.c_str());
@@ -177,7 +177,7 @@ GLint Shader::getCachedUniform(const std::string &name)
 
 GLuint Shader::getCachedBlock(const std::string &name)
 {
-    auto [iter, inserted] = blockLocations.try_emplace(name, GL_INVALID_INDEX);
+    auto [iter, inserted] = blockLocations_.try_emplace(name, GL_INVALID_INDEX);
 
     if (inserted)
         iter->second = glGetUniformBlockIndex(ID, name.c_str());

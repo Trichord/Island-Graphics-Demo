@@ -33,9 +33,9 @@ class Capsule
     void slide(const glm::vec3 &normal);
 
   private:
-    glm::vec3 top{1.0f};
-    glm::vec3 bottom{0.0f};
-    glm::vec3 velocity{0.0f};
-    float height{1.0f};
-    float radius{0.5f};
+    glm::vec3 top_{1.0f};
+    glm::vec3 bottom_{0.0f};
+    glm::vec3 velocity_{0.0f};
+    float height_{1.0f};
+    float radius_{0.5f};
 };

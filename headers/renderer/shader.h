@@ -42,8 +42,8 @@ class Shader
     void setUniformBlock(const std::string &name, unsigned int index);
 
   private:
-    std::unordered_map<std::string, GLint> uniformLocations;
-    std::unordered_map<std::string, GLuint> blockLocations;
+    std::unordered_map<std::string, GLint> uniformLocations_;
+    std::unordered_map<std::string, GLuint> blockLocations_;
 
     GLuint getCachedBlock(const std::string &name);
     GLint getCachedUniform(const std::string &name);

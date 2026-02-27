@@ -1,6 +1,7 @@
 #include "scene_resources.h"
 
 #include <filesystem>
+#include <span>
 #include <stdexcept>
 #include <vector>
 
@@ -9,32 +10,32 @@
 #include "model.h"
 #include "texture_manager.h"
 
-SceneResources::SceneResources(TextureManager &_textureManager) : textureManager{_textureManager}
+SceneResources::SceneResources(TextureManager &textureManager) : textureManager_{textureManager}
 {
     using namespace sceneMaxObjects;
-    models.reserve(maxModels);
-    instancedModels.reserve(maxInstancedModels);
-    cubeMappedModels.reserve(maxCubeMappedModels);
+    models_.reserve(maxModels);
+    instancedModels_.reserve(maxInstancedModels);
+    cubeMappedModels_.reserve(maxCubeMappedModels);
 }
 
-Model &SceneResources::loadModel(const std::filesystem::path &filepath)
+Model &SceneResources::loadModel(const std::filesystem::path &modelPath)
 {
     using namespace sceneMaxObjects;
 
-    if (models.size() >= maxModels)
+    if (models_.size() >= maxModels)
         throw std::runtime_error("Max number of models reached!");
 
-    return models.emplace_back(textureManager, filepath);
+    return models_.emplace_back(textureManager_, modelPath);
 }
 
-Model &SceneResources::loadModel(const ModelHandle borrowHandle, const std::filesystem::path &filepath)
+Model &SceneResources::loadModel(const ModelHandle borrowHandle, const std::filesystem::path &modelPath)
 {
     using namespace sceneMaxObjects;
 
-    if (models.size() >= maxModels)
+    if (models_.size() >= maxModels)
         throw std::runtime_error("Max number of models reached!");
 
-    return models.emplace_back(textureManager, borrowHandle, filepath);
+    return models_.emplace_back(textureManager_, borrowHandle, modelPath);
 }
 
 InstancedModel &SceneResources::loadInstancedModel(const std::filesystem::path &modelPath,
@@ -43,10 +44,10 @@ InstancedModel &SceneResources::loadInstancedModel(const std::filesystem::path &
 {
     using namespace sceneMaxObjects;
 
-    if (instancedModels.size() >= maxInstancedModels)
+    if (instancedModels_.size() >= maxInstancedModels)
         throw std::runtime_error{"Max number of instanced models reached!"};
 
-    return instancedModels.emplace_back(textureManager, modelPath, positionsPath, minSize, maxSize, numPositions);
+    return instancedModels_.emplace_back(textureManager_, modelPath, positionsPath, minSize, maxSize, numPositions);
 }
 
 InstancedModel &SceneResources::loadInstancedModel(const ModelHandle borrowHandle,
@@ -56,10 +57,10 @@ InstancedModel &SceneResources::loadInstancedModel(const ModelHandle borrowHandl
 {
     using namespace sceneMaxObjects;
 
-    if (instancedModels.size() >= maxInstancedModels)
+    if (instancedModels_.size() >= maxInstancedModels)
         throw std::runtime_error{"Max number of instanced models reached!"};
 
-    return instancedModels.emplace_back(textureManager, borrowHandle, modelPath, positionsPath, minSize, maxSize,
+    return instancedModels_.emplace_back(textureManager_, borrowHandle, modelPath, positionsPath, minSize, maxSize,
                                         numPositions);
 }
 
@@ -68,10 +69,10 @@ CubeMappedModel &SceneResources::loadCubeMappedModel(const std::filesystem::path
 {
     using namespace sceneMaxObjects;
 
-    if (cubeMappedModels.size() >= maxCubeMappedModels)
+    if (cubeMappedModels_.size() >= maxCubeMappedModels)
         throw std::runtime_error("Max number of space models reached!");
 
-    return cubeMappedModels.emplace_back(textureManager, modelPath, imagePaths, skybox);
+    return cubeMappedModels_.emplace_back(textureManager_, modelPath, imagePaths, skybox);
 }
 
 CubeMappedModel &SceneResources::loadCubeMappedModel(const ModelHandle borrowHandle,
@@ -79,8 +80,8 @@ CubeMappedModel &SceneResources::loadCubeMappedModel(const ModelHandle borrowHan
 {
     using namespace sceneMaxObjects;
 
-    if (cubeMappedModels.size() >= maxCubeMappedModels)
+    if (cubeMappedModels_.size() >= maxCubeMappedModels)
         throw std::runtime_error("Max number of space models reached!");
 
-    return cubeMappedModels.emplace_back(textureManager, borrowHandle, modelPath);
+    return cubeMappedModels_.emplace_back(textureManager_, borrowHandle, modelPath);
 }

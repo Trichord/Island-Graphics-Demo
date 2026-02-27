@@ -25,13 +25,14 @@ class Model : public IRenderable
     void setVisibility(bool visible) override;
     const ModelHandle getHandle() const override;
     std::span<Primitive::Mesh> getMeshes() override;
-    std::span<InstancedData> getInstanceData() override;
+    std::optional<std::vector<InstancedData>> generateInstancedData() override;
 
   protected:
-    ModelHandle handle{0};
-    TextureManager &texManager;
-    std::vector<Primitive::Mesh> meshes;
-    AABB aabb;
+    ModelHandle handle_{0};
+    TextureManager &textureManager_;
+    std::filesystem::path filePath_;
+    std::vector<Primitive::Mesh> meshes_;
+    AABB aabb_;
 
     void loadModel(const std::filesystem::path &path, bool borrowed);
     void calculateAABB();

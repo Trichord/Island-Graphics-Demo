@@ -48,18 +48,18 @@ class Camera
     void processMouseMovement(float xOffset, float yOffset);
 
   private:
-    float yaw{0.0f};
-    float pitch{0.0f};
-    glm::vec3 position{0.0f};
-    glm::mat4 viewMatrix{1.0f};
-    glm::mat4 projectionMatrix{1.0f};
-    glm::mat4 viewProjectionMatrix{1.0f};
+    float yaw_{0.0f};
+    float pitch_{0.0f};
+    glm::vec3 position_{0.0f};
+    glm::mat4 viewMatrix_{1.0f};
+    glm::mat4 projectionMatrix_{1.0f};
+    glm::mat4 viewProjectionMatrix_{1.0f};
 
-    bool hasChanged{false};
-    bool dirtyMatrices{true};
+    bool hasChanged_{false};
+    bool dirtyMatrices_{true};
 
     // Left, Right, Top, Bottom, Near, Far
-    std::array<glm::vec4, 6> frustumPlanes{glm::vec4{}, glm::vec4{}, glm::vec4{},
+    std::array<glm::vec4, 6> frustumPlanes_{glm::vec4{}, glm::vec4{}, glm::vec4{},
                                            glm::vec4{}, glm::vec4{}, glm::vec4{}};
 
     void updateMatrices();

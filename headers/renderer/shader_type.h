@@ -17,11 +17,3 @@ enum class ShaderType
     OCEAN,
     SKYBOX
 };
-
-enum class CullType
-{
-    NONE,
-    MODEL,
-    INSTANCED,
-    TERRAIN
-};

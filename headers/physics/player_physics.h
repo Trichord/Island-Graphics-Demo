@@ -31,11 +31,11 @@ constexpr float playerMinSpeed{0.2f};
 constexpr float maxVerticalVelocity{0.1f};
 } // namespace physicsDefaultValues
 
-class CharacterPhysics
+class PlayerPhysics
 {
   public:
-    CharacterPhysics() = default;
-    CharacterPhysics(Scene &scene);
+    PlayerPhysics() = default;
+    PlayerPhysics(Scene &scene);
 
     void update(std::uint8_t direction, const glm::vec3 &front, float deltaTime);
 
@@ -44,20 +44,26 @@ class CharacterPhysics
     void setPosition(const glm::vec3 &newPosition);
 
   private:
-    glm::vec3 previousPosition{0.0f};
-    glm::vec3 resetPosition{0.0f};
-    float resetHeight{0.0f};
+    glm::vec3 previousPosition_{0.0f};
+    glm::vec3 resetPosition_{0.0f};
+    float resetHeight_{0.0f};
 
-    Capsule capsule;
+    Capsule capsule_;
 
-    SpatialGrid terrainGrid;
-    std::vector<int> triangleCollisions;
-    std::vector<glm::vec3> meshVertices;
-
-    void resolveMovementCollisions();
-    void resolveGravityCollisions(float deltaTime);
-    std::optional<glm::vec3> checkCollisionNormal();
+    SpatialGrid terrainGrid_;
+    SpatialGrid modelGrid_;
+    std::vector<int> triangleCollisions_;
+    std::vector<glm::vec3> terrainVertices_;
+    std::vector<glm::vec3> modelVertices_;
 
     // Accelerate function from Valve's Source engine
+    void movePlayer(std::uint8_t direction, const glm::vec3 &front, float deltaTime);
     glm::vec3 accelerate(const glm::vec3 &wishDir, float wishSpeed, float accel);
+   
+    void resolveMovementCollisions();
+    void resolveGravityCollisions(float deltaTime);
+    std::optional<glm::vec3> getCollisionNormal(SpatialGrid &grid, std::vector<glm::vec3>& vertices);
+
+    void createModelGrid(Scene &scene);
+    void createTerrainGrid(Scene &scene);
 };

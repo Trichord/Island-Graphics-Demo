@@ -15,7 +15,7 @@
 #include "texture_utilities.h"
 #include "thread_pool.h"
 
-TextureManager::TextureManager(ThreadPool &threadPool) : threadPool{threadPool}
+TextureManager::TextureManager(ThreadPool &threadPool) : threadPool_{threadPool}
 {
 }
 
@@ -33,9 +33,9 @@ void TextureManager::loadCubemap(const ModelHandle handle, std::vector<std::file
 
 const std::vector<Material> &TextureManager::getMaterials(ModelHandle handle) const
 {
-    auto iter = textureCache.find(handle);
+    auto iter = textureCache_.find(handle);
 
-    if (iter == textureCache.end())
+    if (iter == textureCache_.end())
         throw std::runtime_error("ERROR: Could not aquire materials, handle does not exist");
 
     return iter->second.materials;
@@ -43,20 +43,20 @@ const std::vector<Material> &TextureManager::getMaterials(ModelHandle handle) co
 
 void TextureManager::releaseHandle(ModelHandle handle)
 {
-    auto iter{textureCache.find(handle)};
+    auto iter{textureCache_.find(handle)};
 
-    if (iter == textureCache.end())
+    if (iter == textureCache_.end())
         throw std::runtime_error("ERROR: Could not release handle, handle does not exist");
 
     ModelResources &entry{iter->second};
 
     if (entry.lender != -1)
     {
-        auto otherIter{textureCache.find(entry.lender)};
+        auto otherIter{textureCache_.find(entry.lender)};
 
         // Non recursive, one level deep on the lender.
         releaseHandle(entry.lender);
-        textureCache.erase(handle);
+        textureCache_.erase(handle);
 
         return;
     }
@@ -68,7 +68,7 @@ void TextureManager::releaseHandle(ModelHandle handle)
         for (auto &gpuHandle : entry.glTextureHandles)
             glDeleteTextures(1, &gpuHandle);
 
-        textureCache.erase(iter);
+        textureCache_.erase(iter);
     }
 }
 
@@ -78,21 +78,21 @@ ModelHandle TextureManager::assignHandle()
 
     ModelHandle handle{nextHandle++};
 
-    textureCache.emplace(handle, ModelResources{});
+    textureCache_.emplace(handle, ModelResources{});
 
     return handle;
 }
 
 void TextureManager::textureFromAsset(fastgltf::Asset &asset, ModelHandle handle, std::filesystem::path parentPath)
 {
-    auto cacheIter = textureCache.find(handle);
+    auto cacheIter = textureCache_.find(handle);
 
-    if (cacheIter == textureCache.end())
+    if (cacheIter == textureCache_.end())
         throw std::runtime_error("ERROR: queue element with invalid handle");
 
     // Get raw image data
     auto paths = fastgltfLoader::getURIs(asset, parentPath);
-    ImageLoader imageLoader{threadPool, paths};
+    ImageLoader imageLoader{threadPool_, paths};
     std::vector<LoadedImage> rawImageData = imageLoader.getImageData();
 
     // Resize to match fastgltf materials array
@@ -109,10 +109,10 @@ void TextureManager::textureFromAsset(fastgltf::Asset &asset, ModelHandle handle
 
         if (inserted)
         {
-            TextureDetails details{sRGB, anisotropic, anisoLevel};
+            TextureDetails details{sRGB, anisotropic, anisoLevel_};
 
             GLuint id{
-                textureUtilities::generateTextureID(rawImageData[imageIndex], sampler, details, globalAnisoEnabled)};
+                textureUtilities::generateTextureID(rawImageData[imageIndex], sampler, details, globalAnisoEnabled_)};
 
             // Record new ID as seen
             seenIndices->second = id;
@@ -158,16 +158,16 @@ void TextureManager::textureFromAsset(fastgltf::Asset &asset, ModelHandle handle
 void TextureManager::cubemapFromPaths(ModelHandle handle, const std::vector<std::filesystem::path> &imagePaths,
                                       bool mipmaps, bool sRGB)
 {
-    auto iter = textureCache.find(handle);
+    auto iter = textureCache_.find(handle);
 
-    if (iter == textureCache.end())
+    if (iter == textureCache_.end())
         throw std::runtime_error("ERROR: Could not create cubemap, handle does not exist");
 
     // Resize to 1, since we only have one material
     iter->second.materials.resize(1);
 
     // Raw data
-    ImageLoader imageLoader{threadPool, imagePaths};
+    ImageLoader imageLoader{threadPool_, imagePaths};
     std::vector<LoadedImage> loadedImages{imageLoader.getImageData()};
 
     // Create new id, assign it, and track it for eventual release
@@ -204,10 +204,10 @@ void TextureManager::setMaterial(ModelResources &self, ModelResources &other, Te
 const std::vector<Material> &TextureManager::borrowAssignMaterials(ModelHandle self, ModelHandle other,
                                                                    std::optional<Texture> texture, int materialIndex)
 {
-    auto selfIter = textureCache.find(self);
-    auto otherIter = textureCache.find(other);
+    auto selfIter = textureCache_.find(self);
+    auto otherIter = textureCache_.find(other);
 
-    if (selfIter == textureCache.end() || otherIter == textureCache.end())
+    if (selfIter == textureCache_.end() || otherIter == textureCache_.end())
         throw std::runtime_error("ERROR: Could not borrow materials, handle does not exist");
 
     if (otherIter->second.glTextureHandles.empty())
@@ -233,8 +233,8 @@ const std::vector<Material> &TextureManager::borrowAssignMaterials(ModelHandle s
 
 void TextureManager::setAnisoLevel(float level)
 {
-    globalAnisoEnabled = true;
-    anisoLevel = level;
+    globalAnisoEnabled_ = true;
+    anisoLevel_ = level;
 }
 
 // Assumes caller is giving up control of their texture ID, overwriting anything in that slot
@@ -242,9 +242,9 @@ void TextureManager::setMaterial(ModelHandle handle, Texture texture, GLuint tex
 {
     using enum Texture;
 
-    auto iter = textureCache.find(handle);
+    auto iter = textureCache_.find(handle);
 
-    if (iter == textureCache.end())
+    if (iter == textureCache_.end())
         throw std::runtime_error("ERROR: Could not assign material, handle does not exist");
 
     auto &materials{iter->second.materials};
@@ -290,5 +290,5 @@ void TextureManager::freeResources(ModelResources &resources)
 
 void TextureManager::allModelsLoaded()
 {
-    threadPool.stopAllThreads();
+    threadPool_.stopAllThreads();
 }
