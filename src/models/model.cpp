@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <limits>
+#include <optional>
 #include <span>
 #include <utility>
 #include <vector>
@@ -16,72 +17,73 @@
 #include "texture_manager.h"
 
 Model::Model(TextureManager &textureManager, const std::filesystem::path &path)
-    : handle{textureManager.assignHandle()}, texManager{textureManager}
+    : handle_{textureManager.assignHandle()}, textureManager_{textureManager}, filePath_{path}
 {
     loadModel(path, false);
     calculateAABB();
 }
 
 Model::Model(TextureManager &textureManager, const ModelHandle borrowHandle, const std::filesystem::path &path)
-    : handle{textureManager.assignHandle()}, texManager{textureManager}
+    : handle_{textureManager.assignHandle()}, textureManager_{textureManager}
 {
-    textureManager.borrowAssignMaterials(handle, borrowHandle);
+    textureManager.borrowAssignMaterials(handle_, borrowHandle);
     loadModel(path, true);
     calculateAABB();
 }
 
 Model::Model(Model &&other) noexcept
-    : handle{other.handle}, texManager{other.texManager}, meshes{std::move(other.meshes)}, aabb{std::move(other.aabb)}
+    : handle_{other.handle_}, textureManager_{other.textureManager_}, meshes_{std::move(other.meshes_)},
+      aabb_{std::move(other.aabb_)}
 {
-    other.handle = 0;
+    other.handle_ = 0;
 }
 
 Model::~Model()
 {
-    if (handle)
-        texManager.releaseHandle(handle);
+    if (handle_)
+        textureManager_.releaseHandle(handle_);
 }
 
 AABB &Model::getAABB()
 {
-    return aabb;
+    return aabb_;
 }
 
 std::span<Primitive::Mesh> Model::getMeshes()
 {
-    return meshes;
+    return meshes_;
 }
 
-std::span<InstancedData> Model::getInstanceData()
+std::optional<std::vector<InstancedData>> Model::generateInstancedData()
 {
-    return {};
+    return std::nullopt;
 }
 
 void Model::loadModel(const std::filesystem::path &path, bool borrowed)
 {
     fastgltf::Asset asset = fastgltfLoader::loadAsset(path);
 
-    meshes = fastgltfLoader::loadMeshes(asset);
+    meshes_ = fastgltfLoader::loadMeshes(asset);
 
     if (!borrowed)
-        texManager.loadModel(handle, std::move(asset), path.parent_path());
+        textureManager_.loadModel(handle_, std::move(asset), path.parent_path());
 }
 
 const ModelHandle Model::getHandle() const
 {
-    return handle;
+    return handle_;
 }
 
 void Model::assignMaterialIndex(std::size_t newIndex)
 {
-    for (auto &mesh : meshes)
+    for (auto &mesh : meshes_)
         for (auto &primitive : mesh.primitives)
             primitive.setMaterialIndex(newIndex);
 }
 
 bool Model::hasMaterials() const
 {
-    for (const auto &mesh : meshes)
+    for (const auto &mesh : meshes_)
         for (const auto &primitive : mesh.primitives)
             if (primitive.materialsExist())
                 return true;
@@ -91,32 +93,23 @@ bool Model::hasMaterials() const
 
 void Model::calculateAABB()
 {
-    float minX{std::numeric_limits<float>::infinity()};
-    float minY{std::numeric_limits<float>::infinity()};
-    float minZ{std::numeric_limits<float>::infinity()};
-    float maxX{-std::numeric_limits<float>::infinity()};
-    float maxY{-std::numeric_limits<float>::infinity()};
-    float maxZ{-std::numeric_limits<float>::infinity()};
+    glm::vec3 min{std::numeric_limits<float>::infinity()};
+    glm::vec3 max{-std::numeric_limits<float>::infinity()};
 
-    for (const auto &mesh : meshes)
+    for (const auto &mesh : meshes_)
         for (const auto &primitive : mesh.primitives)
         {
             const AABB &primAABB{primitive.getAABB()};
 
-            minX = std::min(primAABB.getMinX(), minX);
-            minY = std::min(primAABB.getMinY(), minY);
-            minZ = std::min(primAABB.getMinZ(), minZ);
-
-            maxX = std::max(primAABB.getMaxX(), maxX);
-            maxY = std::max(primAABB.getMaxY(), maxY);
-            maxZ = std::max(primAABB.getMaxZ(), maxZ);
+            min = glm::min(min, primAABB.getMin());
+            max = glm::max(max, primAABB.getMax());
         }
 
-    aabb = AABB{minX, minY, minZ, maxX, maxY, maxZ};
+    aabb_ = AABB{min, max};
 }
 
 void Model::setVisibility(bool visible)
 {
-    for (auto &mesh : meshes)
+    for (auto &mesh : meshes_)
         mesh.isVisible = visible;
 }

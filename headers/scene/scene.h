@@ -16,7 +16,7 @@
 #include "point_light.h"
 #include "renderable.h"
 #include "scene_resources.h"
-#include "shader_types.h"
+#include "shader_type.h"
 #include "texture_manager.h"
 #include "transform.h"
 
@@ -48,14 +48,14 @@ class Scene
     std::map<ShaderType, std::vector<Renderable>> &getRenderablesByShader();
 
   protected:
-    glm::vec3 ambientLight{0.2f};
-    SceneResources sceneResources;
-    DirectionalLight globalLightSource;
-    std::vector<PointLight> pointLights;
-    std::map<ShaderType, std::vector<Renderable>> sceneRenderables;
-    std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights;
-    std::unordered_map<std::string, std::reference_wrapper<Transform>> namedTransforms;
-    Camera camera;
+    glm::vec3 ambientLight_{0.2f};
+    SceneResources sceneResources_;
+    DirectionalLight globalLightSource_;
+    std::vector<PointLight> pointLights_;
+    std::map<ShaderType, std::vector<Renderable>> sceneRenderables_;
+    std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights_;
+    std::unordered_map<std::string, std::reference_wrapper<Transform>> namedTransforms_;
+    Camera camera_;
 
     virtual void addAllModelsToScene() = 0;
     virtual void addAllLightsToScene() = 0;
@@ -65,16 +65,17 @@ class Scene
 
     /**
      * @brief Adds an object to the scene.  Optional: give the object a name to reference
-     * it in Application's onUpdate()
+     * it in a scene's onUpdate() method.
      */
     template <typename T>
     void addObjectToScene(T &modelRef, ShaderType shaderType, ObjectProperties properties = {},
                           const std::optional<std::string> name = std::nullopt)
     {
-        sceneRenderables[shaderType].emplace_back(Renderable{std::ref(modelRef), std::move(properties)});
+        sceneRenderables_[shaderType].emplace_back(Renderable{std::ref(modelRef), std::move(properties)});
 
         if (name.has_value())
-            namedTransforms.emplace(name.value(), std::ref(sceneRenderables[shaderType].back().properties.transform));
+            namedTransforms_.emplace(
+                name.value(), std::ref(std::get<Transform>(sceneRenderables_[shaderType].back().properties.transform)));
     }
 
     /**
@@ -94,6 +95,6 @@ class Scene
         lightVec.emplace_back(std::forward<LightType>(light));
 
         if (name.has_value())
-            namedLights.emplace(name.value(), std::ref(lightVec.back()));
+            namedLights_.emplace(name.value(), std::ref(lightVec.back()));
     }
 };

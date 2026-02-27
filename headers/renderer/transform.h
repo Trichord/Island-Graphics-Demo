@@ -30,12 +30,13 @@ class Transform
     const glm::vec3 &getPosition() const;
 
   private:
-    glm::vec3 position{1.0f};
-    glm::vec3 scale{1.0f};
-    glm::mat4 modelMatrix{1.0f};
-    glm::mat3 normalMatrix{1.0f};
-    glm::quat quaternion{1.0f, 0.0f, 0.0f, 0.0f};
+    glm::vec3 position_{1.0f};
+    glm::vec3 scale_{1.0f};
+    glm::mat4 modelMatrix_{1.0f};
+    glm::mat3 normalMatrix_{1.0f};
+    glm::quat quaternion_{1.0f, 0.0f, 0.0f, 0.0f};
+
+    bool isDirty_{true};
 
     void rebuildModelMatrix();
-    bool isDirty{true};
 };

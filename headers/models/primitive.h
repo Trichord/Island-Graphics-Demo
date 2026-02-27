@@ -54,15 +54,13 @@ class Primitive
     void setupPrimitiveBuffers();
 
   private:
-    GLuint VAO{0};
-    GLuint VBO{0};
-    GLuint EBO{0};
-    std::vector<Vertex> vertices;
-    std::vector<std::uint32_t> indices;
-    AABB aabb;
-    bool hasMaterials{false};
-    std::size_t materialIndex{0};
-    fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
-
-    
+    GLuint VAO_{0};
+    GLuint VBO_{0};
+    GLuint EBO_{0};
+    std::vector<Vertex> vertices_;
+    std::vector<std::uint32_t> indices_;
+    AABB aabb_;
+    bool hasMaterials_{false};
+    std::size_t materialIndex_{0};
+    fastgltf::AlphaMode alphaMode_{fastgltf::AlphaMode::Opaque};  
 };

@@ -1,3 +1,4 @@
+#include "cull_method.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "primitive.h"
@@ -5,7 +6,7 @@
 #include "renderer.h"
 #include "scene.h"
 #include "shader.h"
-#include "shader_types.h"
+#include "shader_type.h"
 #include "texture_manager.h"
 #include "texture_units.h"
 
@@ -14,13 +15,12 @@ void Renderer::renderAllSceneObjects(Scene &scene)
 {
     using enum ShaderType;
 
-
     for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
     {
         if (objectList.empty())
             continue;
 
-        Shader &shader{shaders.at(shaderType)};
+        Shader &shader{shaders_.at(shaderType)};
         shader.use();
 
         if (shaderType == SKYBOX)
@@ -31,17 +31,23 @@ void Renderer::renderAllSceneObjects(Scene &scene)
             if (!renderable.properties.isVisible)
                 continue;
 
-            glm::mat4 modelMatrix{renderable.properties.transform.getModelMatrix()};
-
-            shader.setMat4("modelMatrix", modelMatrix);
-            shader.setVec3("scale", renderable.properties.transform.getScale());
-
             auto &object = renderable.objectRef.get();
-            if (auto iter = instancedBaseOffsets.find(object.getHandle()); iter != instancedBaseOffsets.end())
+            auto &properties = renderable.properties;
+
+            if (std::holds_alternative<Transform>(properties.transform))
+            {
+                Transform &transform{std::get<Transform>(properties.transform)};
+
+                shader.setMat4("modelMatrix", transform.getModelMatrix());
+                shader.setVec3("scale", transform.getScale());
+            }
+
+            if (auto iter = instancedBaseOffsets_.find(object.getHandle()); iter != instancedBaseOffsets_.end())
             {
                 shader.setIntU("baseIndex", iter->second);
                 shader.setIntU("indicesOffset", renderable.properties.instancedIndicesOffset);
             }
+
             // Draw it
             renderObject(renderable);
         }
@@ -55,7 +61,7 @@ void Renderer::renderObject(Renderable &renderable)
 {
     auto &object = renderable.objectRef.get();
     auto &properties = renderable.properties;
-    const auto &materials{textureManager.getMaterials(object.getHandle())};
+    const auto &materials{textureManager_.getMaterials(object.getHandle())};
 
     for (const Primitive::Mesh &mesh : object.getMeshes())
     {
@@ -64,9 +70,9 @@ void Renderer::renderObject(Renderable &renderable)
 
         for (const Primitive &primitive : mesh.primitives)
         {
-            using enum CullType;
+            using enum CullMethod;
 
-            glState.setAlphaMode(primitive.getAlphaMode());
+            glState_.setAlphaMode(primitive.getAlphaMode());
 
             if (primitive.materialsExist())
             {
@@ -78,7 +84,7 @@ void Renderer::renderObject(Renderable &renderable)
 
             GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
 
-            if (properties.cullType == INSTANCED)
+            if (properties.cullMethod == INSTANCED)
             {
                 GLsizei instanceCount{static_cast<GLsizei>(properties.visibleInstances)};
                 glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0, instanceCount);
@@ -95,14 +101,14 @@ void Renderer::bindTextures(const Material &materials)
     using enum Texture;
 
     if (materials.albedo)
-        glState.bindTexture(ALBEDO, materials.albedo);
+        glState_.bindTexture(ALBEDO, materials.albedo);
 
     if (materials.occlusionRoughnessMetallic)
-        glState.bindTexture(ARM, materials.occlusionRoughnessMetallic);
+        glState_.bindTexture(ARM, materials.occlusionRoughnessMetallic);
 
     if (materials.normal)
-        glState.bindTexture(NORMAL, materials.normal);
+        glState_.bindTexture(NORMAL, materials.normal);
 
     if (materials.cubemap)
-        glState.bindTexture(CUBEMAP, materials.cubemap);
+        glState_.bindTexture(CUBEMAP, materials.cubemap);
 }

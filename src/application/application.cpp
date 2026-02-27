@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "camera.h"
-#include "character_physics.h"
+#include "player_physics.h"
 #include "config_window.h"
 #include "gl_context.h"
 #include "glfw_callbacks.h"
@@ -31,7 +31,7 @@ void Application::run()
     // Create resources
     Renderer renderer(graphicsSettings);
     IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
-    CharacterPhysics physicsHandler(islandScene);
+    PlayerPhysics physicsHandler(islandScene);
 
     renderer.initializeResources(islandScene);
     renderer.allResourcesLoaded();
@@ -134,7 +134,7 @@ void Application::createOpenGLViewport(const ConfigWindow::GraphicsSettings &gra
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-void Application::processKeyboard(Scene &scene, CharacterPhysics &physicsHandler)
+void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
 {
     using enum CharacterMovement;
     constexpr float physicsTick{1.0f / 60.0f};
