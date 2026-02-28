@@ -27,14 +27,6 @@
 #include "transform.h"
 #include "world_vectors.h"
 
-// Normalized wind direction, east southeast with a slight downward angle
-constexpr float windStrength{0.07f};
-constexpr glm::vec3 windDir{0.892079f, -0.101373f, 0.440362f};
-
-// Bright midday sun
-constexpr glm::vec3 ambientLight{0.2f};
-constexpr glm::vec3 lightColor{1.0f, 0.95f, 0.9f};
-
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.25f};
 constexpr float alphaCutoff{0.5f};
@@ -122,12 +114,6 @@ void Renderer::setupShader(Shader &shader)
     shader.setFloat("nearPlane", cameraDefaultValues::nearPlane);
     shader.setFloat("farPlane", cameraDefaultValues::farPlane);
 
-    shader.setVec3("ambientLight", ambientLight);
-    shader.setVec3("lightColor", lightColor);
-
-    shader.setFloat("windStrength", windStrength);
-    shader.setVec3("windDirection", windDir);
-
     shader.setFloat("mipScale", mipScale);
     shader.setFloat("alphaCutoff", alphaCutoff);
 
@@ -162,19 +148,36 @@ void Renderer::updateShaderUniforms(Scene &scene)
     }
 }
 
+void Renderer::setSceneShaderUniforms(Scene &scene)
+{
+    // Set uniforms
+    for (auto &[_, shader] : shaders_)
+    {
+        shader.setVec3("ambientLight", scene.getAmbientLight());
+        shader.setVec3("lightColor", scene.getGlobalLightSource().getColor());
+
+        shader.setFloat("windStrength", scene.getWindStrength());
+        shader.setVec3("windDirection", scene.getWindDirection());
+    }
+}
+
 void Renderer::initializeResources(Scene &scene)
 {
+    scene.getCamera().setFOV(cameraDefaultValues::fov, static_cast<float>(graphicsSettings_.screenWidth) /
+                                                           static_cast<float>(graphicsSettings_.screenHeight));
     loadInstancedData(scene);
     createBuffers(scene);
     generateCubeMaps(scene);
     borrowSkyboxes(scene);
     updateUBO(scene);
+    setSceneShaderUniforms(scene);
     cullRenderables(scene);
 }
 
 void Renderer::borrowSkyboxes(Scene &scene)
 {
     using enum ShaderType;
+
     auto &map = scene.getRenderablesByShader();
 
     if (!map.contains(SKYBOX) || !map.contains(OCEAN))
@@ -330,7 +333,7 @@ void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
                 continue;
 
             auto &object{renderable.objectRef.get()};
-            auto& instances{std::get<std::vector<InstancedData>>(renderable.properties.transform)};
+            auto &instances{std::get<std::vector<InstancedData>>(renderable.properties.transform)};
 
             if (instances.empty())
                 continue;
@@ -389,6 +392,6 @@ void Renderer::loadInstancedData(Scene &scene)
 
                 renderable.properties.visibleInstances = static_cast<uint32_t>(data.size());
                 renderable.properties.transform = std::move(data);
-            }          
+            }
         }
 }

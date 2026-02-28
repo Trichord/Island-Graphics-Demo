@@ -18,9 +18,29 @@
 
 constexpr float modelGridCellSize{50.0f};
 
+struct WorldInfo
+{
+    float minX{std::numeric_limits<float>::infinity()};
+    float maxX{-std::numeric_limits<float>::infinity()};
+
+    float minY{std::numeric_limits<float>::infinity()};
+    float maxY{-std::numeric_limits<float>::infinity()};
+
+    float minZ{std::numeric_limits<float>::infinity()};
+    float maxZ{-std::numeric_limits<float>::infinity()};
+
+    float averageTriangleSize{0.0f};
+    float triangleSpanSum{0.0f};
+    int numTriangles{0};
+};
+
 PlayerPhysics::PlayerPhysics(Scene &scene)
     : capsule_{scene.getCamera().getPosition(), physicsDefaultValues::playerHeight, physicsDefaultValues::playerWidth},
       resetPosition_{scene.getCamera().getPosition()}
+{
+}
+
+void PlayerPhysics::initializeResources(Scene &scene)
 {
     createTerrainGrid(scene);
     createModelGrid(scene);
@@ -70,8 +90,8 @@ void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float
     capsule_.translate(glm::vec3{0.0f, capsule_.getVelocity().y, 0.0f});
     resolveGravityCollisions(deltaTime);
 
-    // Zero out the vertical velocity for the next frame - collision resolutions should have placed us perfectly back on
-    // the ground
+    // Zero out the vertical velocity for the next frame - collision resolutions should have placed us perfectly
+    // back on the ground
     glm::vec3 velocity{capsule_.getVelocity()};
     capsule_.setVelocity(glm::vec3{velocity.x, 0.0f, velocity.z});
 }
@@ -173,8 +193,17 @@ void PlayerPhysics::resolveGravityCollisions(float deltaTime)
     using namespace WorldVectors;
     using namespace physicsDefaultValues;
 
-    auto collisionNormal = getCollisionNormal(terrainGrid_, terrainVertices_);
+    auto collisionNormal = getCollisionNormal(modelGrid_, modelVertices_);
+    if (collisionNormal.has_value())
+    {
+        glm::vec3 normal{collisionNormal.value()};
+        glm::vec3 capsuleVelocity{capsule_.getVelocity()};
 
+        glm::vec3 verticalPush{0.0f, normal.y, 0.0f};
+        capsule_.translate(verticalPush);
+    }
+
+    collisionNormal = getCollisionNormal(terrainGrid_, terrainVertices_);
     if (!collisionNormal.has_value())
         return;
 
@@ -229,146 +258,104 @@ const glm::vec3 &PlayerPhysics::getPreviousPosition() const
     return previousPosition_;
 }
 
-void PlayerPhysics::createModelGrid(Scene &scene)
+void iterateVertices(std::vector<glm::vec3> &target, const std::span<Primitive::Mesh> &meshes, WorldInfo &worldInfo,
+                     const glm::mat4 &modelMatrix)
 {
-    float worldMinX{std::numeric_limits<float>::infinity()};
-    float worldMaxX{-std::numeric_limits<float>::infinity()};
+    for (auto &mesh : meshes)
+        for (auto &primitive : mesh.primitives)
+        {
+            if (primitive.getAlphaMode() != fastgltf::AlphaMode::Opaque)
+                continue;
 
-    float worldMinY{std::numeric_limits<float>::infinity()};
-    float worldMaxY{-std::numeric_limits<float>::infinity()};
+            auto vertices = primitive.getVertices();
+            auto indices = primitive.getIndices();
 
-    float worldMinZ{std::numeric_limits<float>::infinity()};
-    float worldMaxZ{-std::numeric_limits<float>::infinity()};
+            for (std::uint32_t i{0}; i < indices.size(); i += 3)
+            {
+                glm::vec3 a{vertices[indices[i]].position};
+                glm::vec3 b{vertices[indices[i + 1]].position};
+                glm::vec3 c{vertices[indices[i + 2]].position};
+
+                a = glm::vec3{modelMatrix * glm::vec4{a, 1.0}};
+                b = glm::vec3{modelMatrix * glm::vec4{b, 1.0}};
+                c = glm::vec3{modelMatrix * glm::vec4{c, 1.0}};
+
+                // AABB
+                worldInfo.minX = std::min({worldInfo.minX, a.x, b.x, c.x});
+                worldInfo.maxX = std::max({worldInfo.maxX, a.x, b.x, c.x});
+
+                worldInfo.minY = std::min({worldInfo.minY, a.y, b.y, c.y});
+                worldInfo.maxY = std::max({worldInfo.maxY, a.y, b.y, c.y});
+
+                worldInfo.minZ = std::min({worldInfo.minZ, a.z, b.z, c.z});
+                worldInfo.maxZ = std::max({worldInfo.maxZ, a.z, b.z, c.z});
+
+                // Add local triangle to the total span
+                float minX{std::min({a.x, b.x, c.x})};
+                float maxX{std::max({a.x, b.x, c.x})};
+
+                float minZ{std::min({a.z, b.z, c.z})};
+                float maxZ{std::max({a.z, b.z, c.z})};
+
+                worldInfo.triangleSpanSum += (maxX - minX + maxZ - minZ) * 0.5f;
+
+                target.push_back(a);
+                target.push_back(b);
+                target.push_back(c);
+            }
+
+            worldInfo.numTriangles += static_cast<int>(indices.size() / 3);
+        }
+}
+
+WorldInfo traverseSceneGraph(Scene &scene, std::vector<glm::vec3> &vertices, bool terrain)
+{
+    WorldInfo worldInfo;
 
     for (auto [_, renderables] : scene.getRenderablesByShader())
         for (auto &renderable : renderables)
         {
-            if (renderable.properties.cullMethod == CullMethod::TERRAIN)
+            bool isTerrain{renderable.properties.cullMethod == CullMethod::TERRAIN};
+
+            if (isTerrain != terrain)
                 continue;
 
-            auto &object{renderable.objectRef.get()};
+            auto &object = renderable.objectRef.get();
+            auto meshes = object.getMeshes();
 
-            if (!std::holds_alternative<Transform>(renderable.properties.transform))
-                continue;
-
-            Transform &transform{std::get<Transform>(renderable.properties.transform)};
-            glm::mat4 modelMatrix{transform.getModelMatrix()};
-
-            for (auto &mesh : object.getMeshes())
-                for (auto &primitive : mesh.primitives)
-                {
-                    if (primitive.getAlphaMode() != fastgltf::AlphaMode::Opaque)
-                        continue;
-
-                    auto vertices = primitive.getVertices();
-                    auto indices = primitive.getIndices();
-
-                    for (std::uint32_t i{0}; i < indices.size(); i += 3)
-                    {
-                        glm::vec3 a{vertices[indices[i]].position};
-                        glm::vec3 b{vertices[indices[i + 1]].position};
-                        glm::vec3 c{vertices[indices[i + 2]].position};
-
-                        a = glm::vec3{modelMatrix * glm::vec4{a, 1.0}};
-                        b = glm::vec3{modelMatrix * glm::vec4{b, 1.0}};
-                        c = glm::vec3{modelMatrix * glm::vec4{c, 1.0}};
-
-                        worldMinX = std::min({worldMinX, a.x, b.x, c.x});
-                        worldMaxX = std::max({worldMaxX, a.x, b.x, c.x});
-
-                        worldMinY = std::min({worldMinY, a.y, b.y, c.y});
-                        worldMaxY = std::max({worldMaxY, a.y, b.y, c.y});
-
-                        worldMinZ = std::min({worldMinZ, a.z, b.z, c.z});
-                        worldMaxZ = std::max({worldMaxZ, a.z, b.z, c.z});
-
-                        float minX{std::min({a.x, b.x, c.x})};
-                        float maxX{std::max({a.x, b.x, c.x})};
-
-                        float minZ{std::min({a.z, b.z, c.z})};
-                        float maxZ{std::max({a.z, b.z, c.z})};
-
-                        modelVertices_.push_back(a);
-                        modelVertices_.push_back(b);
-                        modelVertices_.push_back(c);
-                    }
-                }
+            if (std::holds_alternative<Transform>(renderable.properties.transform))
+            {
+                Transform &transform{std::get<Transform>(renderable.properties.transform)};
+                iterateVertices(vertices, meshes, worldInfo, transform.getModelMatrix());
+            }
+            else
+            {
+                auto &transform{std::get<std::vector<InstancedData>>(renderable.properties.transform)};
+                for (InstancedData &data : transform)
+                    iterateVertices(vertices, meshes, worldInfo, data.modelMatrix);
+            }
         }
 
-    AABB worldAABB{worldMinX, worldMinY, worldMinZ, worldMaxX, worldMaxY, worldMaxZ};
+    worldInfo.averageTriangleSize = worldInfo.triangleSpanSum / worldInfo.numTriangles;
+
+    return worldInfo;
+}
+
+void PlayerPhysics::createModelGrid(Scene &scene)
+{
+    WorldInfo worldInfo{traverseSceneGraph(scene, modelVertices_, false)};
+
+    AABB worldAABB{worldInfo.minX, worldInfo.minY, worldInfo.minZ, worldInfo.maxX, worldInfo.maxY, worldInfo.maxZ};
 
     modelGrid_ = std::move(SpatialGrid(std::move(worldAABB), modelGridCellSize, modelVertices_));
 }
 
 void PlayerPhysics::createTerrainGrid(Scene &scene)
 {
-    float worldMinX{std::numeric_limits<float>::infinity()};
-    float worldMaxX{-std::numeric_limits<float>::infinity()};
+    WorldInfo worldInfo{traverseSceneGraph(scene, terrainVertices_, true)};
 
-    float worldMinY{std::numeric_limits<float>::infinity()};
-    float worldMaxY{-std::numeric_limits<float>::infinity()};
+    AABB worldAABB{worldInfo.minX, worldInfo.minY, worldInfo.minZ, worldInfo.maxX, worldInfo.maxY, worldInfo.maxZ};
 
-    float worldMinZ{std::numeric_limits<float>::infinity()};
-    float worldMaxZ{-std::numeric_limits<float>::infinity()};
-
-    float triangleMaxSpan{-std::numeric_limits<float>::infinity()};
-    float triangleMinSpan{std::numeric_limits<float>::infinity()};
-
-    float triangleSum{0.0f};
-
-    for (auto [_, renderables] : scene.getRenderablesByShader())
-        for (auto &renderable : renderables)
-        {
-            using enum CullMethod;
-
-            if (renderable.properties.cullMethod == TERRAIN)
-            {
-                auto &object = renderable.objectRef.get();
-                AABB &aabb{object.getAABB()};
-
-                worldMinX = std::min(worldMinX, aabb.getMinX());
-                worldMaxX = std::max(worldMaxX, aabb.getMaxX());
-
-                worldMinY = std::min(worldMinY, aabb.getMinY());
-                worldMaxY = std::max(worldMaxY, aabb.getMaxY());
-
-                worldMinZ = std::min(worldMinZ, aabb.getMinZ());
-                worldMaxZ = std::max(worldMaxZ, aabb.getMaxZ());
-
-                for (auto &mesh : object.getMeshes())
-                    for (auto &primitive : mesh.primitives)
-                    {
-                        auto vertices = primitive.getVertices();
-                        auto indices = primitive.getIndices();
-
-                        for (std::uint32_t i{0}; i < indices.size(); i += 3)
-                        {
-                            glm::vec3 a{vertices[indices[i]].position};
-                            glm::vec3 b{vertices[indices[i + 1]].position};
-                            glm::vec3 c{vertices[indices[i + 2]].position};
-
-                            float minX{std::min({a.x, b.x, c.x})};
-                            float maxX{std::max({a.x, b.x, c.x})};
-
-                            float minZ{std::min({a.z, b.z, c.z})};
-                            float maxZ{std::max({a.z, b.z, c.z})};
-
-                            triangleMaxSpan = std::max({triangleMaxSpan, maxX - minX, maxZ - minZ});
-                            triangleMinSpan = std::min({triangleMinSpan, maxX - minX, maxZ - minZ});
-                            triangleSum += std::max(maxX - minX, maxZ - minZ);
-
-                            terrainVertices_.push_back(a);
-                            terrainVertices_.push_back(b);
-                            terrainVertices_.push_back(c);
-                        }
-                    }
-            }
-        }
-
-    float averageTriangleSize{triangleSum / terrainVertices_.size() / 3.0f};
-
-    AABB worldAABB{worldMinX, worldMinY, worldMinZ, worldMaxX, worldMaxY, worldMaxZ};
-
-    terrainGrid_ = std::move(SpatialGrid(std::move(worldAABB), averageTriangleSize, terrainVertices_));
-    resetHeight_ = worldAABB.getMinY();
+    terrainGrid_ = std::move(SpatialGrid(std::move(worldAABB), worldInfo.averageTriangleSize, terrainVertices_));
+    resetHeight_ = worldInfo.minY;
 }
