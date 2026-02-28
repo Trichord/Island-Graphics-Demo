@@ -23,10 +23,10 @@ namespace physicsDefaultValues
 {
 constexpr float surfaceFriction{5.0f};
 constexpr float gravityForce{70.0f};
-constexpr float playerWidth{0.25f};
+constexpr float playerWidth{0.5f};
 constexpr float playerHeight{2.0f};
 constexpr float playerMaxAcceleration{24.0f};
-constexpr float playerMaxSpeed{4.0f};
+constexpr float playerMaxSpeed{5.0f};
 constexpr float playerMinSpeed{0.2f};
 constexpr float maxVerticalVelocity{0.1f};
 } // namespace physicsDefaultValues
@@ -42,6 +42,7 @@ class PlayerPhysics
     glm::vec3 getPosition() const;
     const glm::vec3 &getPreviousPosition() const;
     void setPosition(const glm::vec3 &newPosition);
+    void initializeResources(Scene &scene);
 
   private:
     glm::vec3 previousPosition_{0.0f};

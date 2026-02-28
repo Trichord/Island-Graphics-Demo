@@ -61,3 +61,13 @@ Camera &Scene::getCamera()
 {
     return camera_;
 }
+
+const glm::vec3 &Scene::getWindDirection() const
+{
+    return windDirection_;
+}
+
+float Scene::getWindStrength() const
+{
+    return windStrength_;
+}
