@@ -4,12 +4,12 @@
 #include <iostream>
 
 #include "camera.h"
-#include "player_physics.h"
 #include "config_window.h"
 #include "gl_context.h"
 #include "glfw_callbacks.h"
 #include "glm/glm.hpp"
 #include "island_scene.h"
+#include "player_physics.h"
 #include "renderer.h"
 #include "scene.h"
 
@@ -33,8 +33,10 @@ void Application::run()
     IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
     PlayerPhysics physicsHandler(islandScene);
 
+    // Initialize
     renderer.initializeResources(islandScene);
     renderer.allResourcesLoaded();
+    physicsHandler.initializeResources(islandScene);
 
     addGlfwUserParam(islandScene);
 
@@ -172,9 +174,9 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
         accumulator -= physicsTick;
     }
 
-    // Interpolate camera between last position and latest physics tick
-    float tickDelta{accumulator / physicsTick};
-    glm::vec3 interpolatedPos{glm::mix(previousPos, physicsHandler.getPosition(), tickDelta)};
+    // Interpolate camera between last position and latest physics tick (Glenn Fiedler)
+    float alpha{accumulator / physicsTick};
+    glm::vec3 interpolatedPos{glm::mix(previousPos, physicsHandler.getPosition(), alpha)};
 
     camera.setPosition(interpolatedPos);
 

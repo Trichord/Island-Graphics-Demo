@@ -78,6 +78,7 @@ class Renderer
     void borrowSkyboxes(Scene &scene);
     void generateCubeMaps(Scene &scene);
     void loadInstancedData(Scene &scene);
+    void setSceneShaderUniforms(Scene &scene);
     void populateSSBOs(Scene &scene, std::size_t totalInstanceCount);
 
     // Rendering

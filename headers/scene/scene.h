@@ -39,7 +39,9 @@ class Scene
     virtual ~Scene() = default;
 
     Camera &getCamera();
+    float getWindStrength() const;
     glm::vec3 getAmbientLight() const;
+    const glm::vec3 &getWindDirection() const;
     DirectionalLight &getGlobalLightSource();
     std::vector<PointLight> &getPointLights();
     Light &getNamedLight(const std::string &key);
@@ -48,17 +50,25 @@ class Scene
     std::map<ShaderType, std::vector<Renderable>> &getRenderablesByShader();
 
   protected:
+    Camera camera_;
+
+    // Wind
+    float windStrength_{0.0f};
+    glm::vec3 windDirection_{0.0f};
+
+    // Lights
     glm::vec3 ambientLight_{0.2f};
     SceneResources sceneResources_;
     DirectionalLight globalLightSource_;
     std::vector<PointLight> pointLights_;
-    std::map<ShaderType, std::vector<Renderable>> sceneRenderables_;
     std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights_;
+
+    // Access points
     std::unordered_map<std::string, std::reference_wrapper<Transform>> namedTransforms_;
-    Camera camera_;
+    std::map<ShaderType, std::vector<Renderable>> sceneRenderables_;
 
     virtual void addAllModelsToScene() = 0;
-    virtual void addAllLightsToScene() = 0;
+    virtual void setupEnvironment() = 0;
     virtual void onUpdate(float deltaTime) = 0;
     virtual void setupCamera(const ConfigWindow::GraphicsSettings &graphicsSettings) = 0;
     virtual void initializeScene(const ConfigWindow::GraphicsSettings &graphicsSettings) = 0;
