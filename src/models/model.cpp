@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <iostream>
 #include <limits>
 #include <optional>
 #include <span>
@@ -24,7 +25,7 @@ Model::Model(TextureManager &textureManager, const std::filesystem::path &path)
 }
 
 Model::Model(TextureManager &textureManager, const ModelHandle borrowHandle, const std::filesystem::path &path)
-    : handle_{textureManager.assignHandle()}, textureManager_{textureManager}
+    : handle_{textureManager.assignHandle()}, textureManager_{textureManager}, filePath_{path}
 {
     textureManager.borrowAssignMaterials(handle_, borrowHandle);
     loadModel(path, true);
@@ -112,4 +113,26 @@ void Model::setVisibility(bool visible)
 {
     for (auto &mesh : meshes_)
         mesh.isVisible = visible;
+}
+
+std::optional<std::vector<Primitive::Mesh>> Model::loadCollisionMesh()
+{
+    std::filesystem::path collisionMeshPath{filePath_.parent_path() / "collision"};
+    std::string gltf{filePath_.stem().string() + "_collision.gltf"};
+    std::filesystem::path fullPath{collisionMeshPath / gltf};
+
+    std::error_code error;
+
+    if (std::filesystem::exists(fullPath, error))
+    {
+        fastgltf::Asset asset = fastgltfLoader::loadAsset(fullPath);
+        return fastgltfLoader::loadMeshes(asset);
+    }
+    else if (error)
+    {
+        std::cerr << error.message() << std::endl;
+        throw std::runtime_error("ERROR: Unable to load collision mesh.");
+    }
+    else
+        return {};
 }

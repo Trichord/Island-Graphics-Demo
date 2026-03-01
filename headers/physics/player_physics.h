@@ -21,14 +21,14 @@ enum CharacterMovement : std::uint8_t
 
 namespace physicsDefaultValues
 {
-constexpr float surfaceFriction{5.0f};
-constexpr float gravityForce{70.0f};
+constexpr float surfaceFriction{5.5f};
+constexpr float gravityForce{50.0f};
 constexpr float playerWidth{0.5f};
 constexpr float playerHeight{2.0f};
-constexpr float playerMaxAcceleration{24.0f};
-constexpr float playerMaxSpeed{5.0f};
-constexpr float playerMinSpeed{0.2f};
-constexpr float maxVerticalVelocity{0.1f};
+constexpr float playerMaxAcceleration{5.0f};
+constexpr float playerMaxSpeed{30.0f};
+constexpr float playerMinSpeed{0.5f};
+constexpr float maxVerticalVelocity{0.2f};
 } // namespace physicsDefaultValues
 
 class PlayerPhysics
@@ -53,13 +53,13 @@ class PlayerPhysics
 
     SpatialGrid terrainGrid_;
     SpatialGrid modelGrid_;
-    std::vector<int> triangleCollisions_;
+    std::vector<int> collisionTriangles_;
     std::vector<glm::vec3> terrainVertices_;
     std::vector<glm::vec3> modelVertices_;
 
     // Accelerate function from Valve's Source engine
     void movePlayer(std::uint8_t direction, const glm::vec3 &front, float deltaTime);
-    glm::vec3 accelerate(const glm::vec3 &wishDir, float wishSpeed, float accel);
+    glm::vec3 accelerate(const glm::vec3 &wishDir, float wishSpeed, float deltaTime);
    
     void resolveMovementCollisions();
     void resolveGravityCollisions(float deltaTime);

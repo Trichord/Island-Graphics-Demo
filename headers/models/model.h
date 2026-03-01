@@ -25,6 +25,7 @@ class Model : public IRenderable
     void setVisibility(bool visible) override;
     const ModelHandle getHandle() const override;
     std::span<Primitive::Mesh> getMeshes() override;
+    std::optional<std::vector<Primitive::Mesh>> loadCollisionMesh() override;
     std::optional<std::vector<InstancedData>> generateInstancedData() override;
 
   protected:
