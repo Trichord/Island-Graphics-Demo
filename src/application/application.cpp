@@ -42,7 +42,7 @@ void Application::run()
 
     // Average FPS
     float totalTime{0};
-    float framesRendered{0};
+    unsigned long long framesRendered{0};
 
     while (!glfwWindowShouldClose(window))
     {

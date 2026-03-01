@@ -54,7 +54,7 @@ void IslandScene::addAllModelsToScene()
 
     // Fancy spinning space model
     auto &spaceModel =
-        sceneResources_.loadCubeMappedModel("./res/models/set_pieces/space_model/scene.gltf", spaceBoxPaths);
+        sceneResources_.loadCubeMappedModel("./res/models/set_pieces/space_model/space_model.gltf", spaceBoxPaths);
     addObjectToScene(spaceModel, REFLECTIVE, {.transform = {SPACE_DODECA_POS}}, "spaceModel");
 
     /**************
@@ -183,15 +183,15 @@ void IslandScene::addAllModelsToScene()
      *********/
 
     // Main pond
-    auto &pond = sceneResources_.loadModel("./res/models/water/pond/water.gltf");
+    auto &pond = sceneResources_.loadModel("./res/models/water/pond/pond.gltf");
     addObjectToScene(pond, WATER, {.transform = Transform{POND_WATER_POS, POND_WATER_SCALE}});
 
     // Small starting area puddle
-    auto &puddle = sceneResources_.loadModel("./res/models/water/puddle/water.gltf");
+    auto &puddle = sceneResources_.loadModel("./res/models/water/puddle/puddle.gltf");
     addObjectToScene(puddle, WATER, {.transform = Transform{PUDDLE_POS, PUDDLE_SCALE}});
 
     // Ocean
-    auto &ocean = sceneResources_.loadModel("./res/models/water/ocean/water.gltf");
+    auto &ocean = sceneResources_.loadModel("./res/models/water/ocean/ocean.gltf");
     addObjectToScene(ocean, OCEAN, {.transform = Transform{OCEAN_POS, OCEAN_SCALE}});
 
     /**********
@@ -204,7 +204,7 @@ void IslandScene::addAllModelsToScene()
         "./res/textures/skybox/right.png",  "./res/textures/skybox/left.png",  "./res/textures/skybox/top.png",
         "./res/textures/skybox/bottom.png", "./res/textures/skybox/front.png", "./res/textures/skybox/back.png"};
 
-    auto &skybox = sceneResources_.loadCubeMappedModel("./res/models/set_pieces/cube/cube.gltf", skyBoxPaths, true);
+    auto &skybox = sceneResources_.loadCubeMappedModel("./res/models/set_pieces/skybox/skybox.gltf", skyBoxPaths, true);
     addObjectToScene(skybox, SKYBOX, {.cullMethod = NONE});
 }
 

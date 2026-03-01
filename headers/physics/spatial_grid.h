@@ -10,7 +10,6 @@ class SpatialGrid
   public:
     SpatialGrid() = default;
     SpatialGrid(const AABB &worldBounds, float cellSize, const std::vector<glm::vec3> &terrainVertices);
-    SpatialGrid(const AABB &worldBounds, float cellSize, const std::vector<AABB> AABBs);
 
     void query(const glm::vec3 &position, std::vector<int> &result);
 

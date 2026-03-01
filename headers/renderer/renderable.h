@@ -15,11 +15,12 @@ class IRenderable
 {
   public:
     virtual AABB &getAABB() = 0;
-    virtual void setVisibility(bool visible) = 0;
-    virtual std::span<Primitive::Mesh> getMeshes() = 0;
+    virtual void setVisibility(bool visible) = 0;  
     virtual const ModelHandle getHandle() const = 0;
+    virtual std::span<Primitive::Mesh> getMeshes() = 0;
+    virtual std::optional<std::vector<Primitive::Mesh>> loadCollisionMesh() = 0;
     virtual std::optional<std::vector<InstancedData>> generateInstancedData() = 0;
-
+    
     virtual ~IRenderable() = default;
 };
 
