@@ -27,7 +27,7 @@
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"material_0.001",
+			"name":"material_0.003",
 			"normalTexture":{
 				"index":0
 			},
@@ -44,7 +44,7 @@
 	],
 	"meshes":[
 		{
-			"name":"Object_0.001",
+			"name":"Object_0.006",
 			"primitives":[
 				{
 					"attributes":{
@@ -94,7 +94,7 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":29665,
+			"count":28436,
 			"max":[
 				1.7286568880081177,
 				5.36033821105957,
@@ -110,19 +110,19 @@
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":29665,
+			"count":28436,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":29665,
+			"count":28436,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":29665,
+			"count":28436,
 			"type":"VEC4"
 		},
 		{
@@ -135,32 +135,32 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":355980,
+			"byteLength":341232,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":355980,
-			"byteOffset":355980,
+			"byteLength":341232,
+			"byteOffset":341232,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":237320,
-			"byteOffset":711960,
+			"byteLength":227488,
+			"byteOffset":682464,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":474640,
-			"byteOffset":949280,
+			"byteLength":454976,
+			"byteOffset":909952,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":305844,
-			"byteOffset":1423920,
+			"byteOffset":1364928,
 			"target":34963
 		}
 	],
@@ -172,7 +172,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":1729764,
+			"byteLength":1670772,
 			"uri":"statue.bin"
 		}
 	]

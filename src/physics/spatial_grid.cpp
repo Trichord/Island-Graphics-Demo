@@ -26,6 +26,8 @@ SpatialGrid::SpatialGrid(const AABB &worldBounds, float cellSize, const std::vec
 
     int totalCells{gridWidth_ * gridHeight_};
 
+    std::cout << "total cells: " << totalCells << std::endl;
+
     std::vector<int> counts(totalCells, 0);
 
     // First pass - count how many cells each triangle's AABB overlaps
@@ -71,60 +73,8 @@ SpatialGrid::SpatialGrid(const AABB &worldBounds, float cellSize, const std::vec
                 ++cursor[cellIndex];
             }
     }
-}
 
-SpatialGrid::SpatialGrid(const AABB &worldBounds, float cellSize, const std::vector<AABB> AABBs)
-{
-    if (AABBs.empty())
-        return;
-
-    gridWidth_ = static_cast<int>(std::ceilf(worldBounds.getMaxX() - worldBounds.getMinX()) / cellSize);
-
-    std::vector<int> counts(gridWidth_ * gridWidth_, 0);
-
-    // First pass
-    for (std::size_t i{0}; i < AABBs.size(); ++i)
-    {
-        CellBounds bounds{getMinMaxBounds(AABBs[i])};
-
-        int cellMinX{bounds.minX};
-        int cellMaxX{bounds.maxX};
-        int cellMinZ{bounds.minZ};
-        int cellMaxZ{bounds.maxZ};
-
-        // Count touching cells
-        for (int row{cellMinZ}; row <= cellMaxZ; ++row)
-            for (int col{cellMinX}; col <= cellMaxX; ++col)
-                counts[row * gridWidth_ + col]++;
-    }
-
-    offsets_.resize(gridWidth_ * gridWidth_ + 1);
-
-    for (int i{1}; i < offsets_.size(); ++i)
-        offsets_[i] = offsets_[i - 1] + counts[i - 1];
-
-    data_.resize(offsets_.back());
-    std::vector<int> cursor(gridWidth_ * gridWidth_, 0);
-
-    // Second pass
-    for (std::size_t i{0}; i < AABBs.size(); ++i)
-    {
-        CellBounds bounds{getMinMaxBounds(AABBs[i])};
-
-        int cellMinX{bounds.minX};
-        int cellMaxX{bounds.maxX};
-        int cellMinZ{bounds.minZ};
-        int cellMaxZ{bounds.maxZ};
-
-
-        for (int row{cellMinZ}; row <= cellMaxZ; ++row)
-            for (int col{cellMinX}; col <= cellMaxX; ++col)
-            {
-                int cellIndex{row * gridWidth_ + col};
-                data_[offsets_[cellIndex] + cursor[cellIndex]] = static_cast<int>(i);
-                ++cursor[cellIndex];
-            }
-    }
+    std::cout << "total KB: " << (data_.size() + offsets_.size()) * sizeof(int) / 1000 << std::endl;
 }
 
 void SpatialGrid::query(const glm::vec3 &position, std::vector<int> &result)

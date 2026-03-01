@@ -15,34 +15,18 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"Water"
+			"name":"rock8_low_rocks_texture_0"
 		}
 	],
 	"materials":[
 		{
-			"alphaMode":"BLEND",
 			"doubleSided":true,
-			"name":"water",
-			"normalTexture":{
-				"index":0
-			},
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					0.800000011920929,
-					0.800000011920929,
-					0.800000011920929,
-					1
-				],
-				"metallicFactor":0,
-				"metallicRoughnessTexture":{
-					"index":1
-				}
-			}
+			"name":"rocks_texture.017"
 		}
 	],
 	"meshes":[
 		{
-			"name":"Plane.001",
+			"name":"rock8_low_rocks_texture_0",
 			"primitives":[
 				{
 					"attributes":{
@@ -57,112 +41,84 @@
 			]
 		}
 	],
-	"textures":[
-		{
-			"sampler":0,
-			"source":0
-		},
-		{
-			"sampler":0,
-			"source":1
-		}
-	],
-	"images":[
-		{
-			"mimeType":"image/png",
-			"name":"water-normal",
-			"uri":"textures/water-normal.png"
-		},
-		{
-			"mimeType":"image/png",
-			"name":"water-dudv",
-			"uri":"textures/water-dudv.png"
-		}
-	],
 	"accessors":[
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":4,
+			"count":64,
 			"max":[
-				0.5,
-				0,
-				0.5
+				0.24971836805343628,
+				0.2871740460395813,
+				0.3172966539859772
 			],
 			"min":[
-				-0.5,
-				0,
-				-0.5
+				-0.2819724380970001,
+				-0.08561092615127563,
+				-0.23720186948776245
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":4,
+			"count":64,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":4,
+			"count":64,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":4,
+			"count":64,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
 			"componentType":5123,
-			"count":6,
+			"count":276,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":48,
+			"byteLength":768,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":48,
-			"byteOffset":48,
+			"byteLength":768,
+			"byteOffset":768,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":32,
-			"byteOffset":96,
+			"byteLength":512,
+			"byteOffset":1536,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":64,
-			"byteOffset":128,
+			"byteLength":1024,
+			"byteOffset":2048,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":12,
-			"byteOffset":192,
+			"byteLength":552,
+			"byteOffset":3072,
 			"target":34963
-		}
-	],
-	"samplers":[
-		{
-			"magFilter":9729,
-			"minFilter":9987
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":204,
-			"uri":"water.bin"
+			"byteLength":3624,
+			"uri":"rock8_collision.bin"
 		}
 	]
 }
