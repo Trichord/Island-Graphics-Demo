@@ -8,18 +8,22 @@
 		{
 			"name":"Scene",
 			"nodes":[
-				1
+				0,
+				2
 			]
 		}
 	],
 	"nodes":[
+		{
+			"name":"tree2"
+		},
 		{
 			"mesh":0,
 			"name":"Acer_medium_2_LOD2_Bark_Mat_0"
 		},
 		{
 			"children":[
-				0
+				1
 			],
 			"name":"tree1"
 		}
@@ -42,23 +46,23 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":18,
+			"count":16,
 			"max":[
-				0.24603056907653809,
-				3.0046677589416504,
-				0.28480854630470276
+				0.20603057742118835,
+				2.0029947757720947,
+				0.22480854392051697
 			],
 			"min":[
-				-0.23811112344264984,
+				-0.22868327796459198,
 				-0.003315715352073312,
-				-0.23215802013874054
+				-0.19637835025787354
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":18,
+			"count":16,
 			"type":"VEC3"
 		},
 		{
@@ -71,26 +75,26 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":216,
+			"byteLength":192,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":216,
-			"byteOffset":216,
+			"byteLength":192,
+			"byteOffset":192,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":168,
-			"byteOffset":432,
+			"byteOffset":384,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":600,
+			"byteLength":552,
 			"uri":"tree1_collision.bin"
 		}
 	]

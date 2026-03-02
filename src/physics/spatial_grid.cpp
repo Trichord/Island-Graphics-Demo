@@ -18,15 +18,13 @@ SpatialGrid::SpatialGrid(const AABB &worldBounds, float cellSize, const std::vec
         return;
 
     // Force a square grid based of world AABB width
-    gridWidth_ = static_cast<int>(std::ceilf(worldBounds.getMaxX() - worldBounds.getMinX()) / cellSize);
-    gridHeight_ = static_cast<int>(std::ceilf(worldBounds.getMaxZ() - worldBounds.getMinZ()) / cellSize);
+    gridWidth_ = static_cast<int>(std::ceilf(worldBounds.getMaxX() - worldBounds.getMinX() / cellSize));
+    gridHeight_ = static_cast<int>(std::ceilf(worldBounds.getMaxZ() - worldBounds.getMinZ() / cellSize));
 
     gridWidth_ = std::max(1, gridWidth_);
     gridHeight_ = std::max(1, gridHeight_);
 
     int totalCells{gridWidth_ * gridHeight_};
-
-    std::cout << "total cells: " << totalCells << std::endl;
 
     std::vector<int> counts(totalCells, 0);
 
@@ -73,8 +71,6 @@ SpatialGrid::SpatialGrid(const AABB &worldBounds, float cellSize, const std::vec
                 ++cursor[cellIndex];
             }
     }
-
-    std::cout << "total KB: " << (data_.size() + offsets_.size()) * sizeof(int) / 1000 << std::endl;
 }
 
 void SpatialGrid::query(const glm::vec3 &position, std::vector<int> &result)

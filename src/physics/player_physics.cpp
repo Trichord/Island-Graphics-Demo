@@ -16,8 +16,17 @@
 #include "spatial_grid.h"
 #include "world_vectors.h"
 
-constexpr float modelGridCellMultiplier{10.0f};
-constexpr int numResolveIterations{3};
+constexpr float modelGridCellSize{10.0f};
+
+// Movement
+constexpr float groundFriction{5.5f};
+constexpr float groundAcceleration{11.0f};
+constexpr float gravityForce{10.0f};
+constexpr float playerWidth{0.5f};
+constexpr float playerHeight{2.0f};
+constexpr float playerMaxSpeed{27.0f};
+constexpr float playerMinSpeed{0.5f};
+constexpr float maxVerticalVelocity{1.5f};
 
 struct WorldInfo
 {
@@ -36,7 +45,7 @@ struct WorldInfo
 };
 
 PlayerPhysics::PlayerPhysics(Scene &scene)
-    : capsule_{scene.getCamera().getPosition(), physicsDefaultValues::playerHeight, physicsDefaultValues::playerWidth},
+    : capsule_{scene.getCamera().getPosition(), playerHeight, playerWidth},
       resetPosition_{scene.getCamera().getPosition()}
 {
 }
@@ -50,19 +59,13 @@ void PlayerPhysics::initializeResources(Scene &scene)
 // Source Engine inspired movement
 void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float deltaTime)
 {
-    using namespace physicsDefaultValues;
-
     movePlayer(direction, front, deltaTime);
 
-    // modelGrid_.query(capsule_.getPosition(), collisionTriangles_);
-    // std::cout << collisionTriangles_.size() << std::endl;
-
     // Resolve collisions for movement
-    //glm::vec3 capsuleVelocity{capsule_.getVelocity()};
-   // glm::vec3 horizontalVel{capsuleVelocity.x, 0.0f, capsuleVelocity.z};
-   // capsule_.translate(horizontalVel * deltaTime);
-    capsule_.translate(capsule_.getVelocity() * deltaTime);
-    resolveMovementCollisions();
+    glm::vec3 capsuleVelocity{capsule_.getVelocity()};
+    glm::vec3 horizontalVel{capsuleVelocity.x, 0.0f, capsuleVelocity.z};
+    capsule_.translate(horizontalVel * deltaTime);
+    resolveMovementCollisions(deltaTime);
 
     // Add in the gravity
     glm::vec3 gravity{0.0f, -gravityForce, 0.0f};
@@ -76,13 +79,17 @@ void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float
     // And resolve any new collisions
     capsule_.translate(glm::vec3{0.0f, capsule_.getVelocity().y, 0.0f});
     resolveGravityCollisions(deltaTime);
+
+    // Zero out the vertical velocity for the next frame - collision resolutions should have placed us perfectly
+    // back on the ground
+    glm::vec3 velocity{capsule_.getVelocity()};
+    capsule_.setVelocity(glm::vec3{velocity.x, 0.0f, velocity.z});
 }
 
 void PlayerPhysics::movePlayer(std::uint8_t direction, const glm::vec3 &front, float deltaTime)
 {
     using enum CharacterMovement;
     using namespace WorldVectors;
-    using namespace physicsDefaultValues;
 
     if (capsule_.getBottom().y < resetHeight_)
     {
@@ -136,22 +143,22 @@ void PlayerPhysics::movePlayer(std::uint8_t direction, const glm::vec3 &front, f
     float currentSpeed{glm::length(capsule_.getVelocity())};
 
     // Apply drag
-    float drag{currentSpeed * surfaceFriction * deltaTime};
-    capsule_.setVelocity(capsule_.getVelocity() * (1.0f - surfaceFriction * deltaTime));
+    float drag{currentSpeed * groundFriction * deltaTime};
+    capsule_.setVelocity(capsule_.getVelocity() * std::max(currentSpeed - drag, 0.0f) / currentSpeed);
 
     // Stop player if under minimum speed
     if (currentSpeed < playerMinSpeed)
         capsule_.setVelocity(glm::vec3{0.0f});
 
     // Acceleration from wish direction
-    glm::vec3 accelerationDir{accelerate(wishDir, wishSpeed, playerMaxAcceleration)};
+    glm::vec3 accelerationDir{accelerate(wishDir, wishSpeed, deltaTime)};
 
     capsule_.addVelocity(accelerationDir * deltaTime);
+    capsule_.translate(accelerationDir * deltaTime);
 }
 
 glm::vec3 PlayerPhysics::accelerate(const glm::vec3 &wishDir, float wishSpeed, float deltaTime)
 {
-    using namespace physicsDefaultValues;
 
     float currentSpeed{glm::dot(capsule_.getVelocity(), wishDir)};
     float addSpeed{wishSpeed - currentSpeed};
@@ -159,7 +166,7 @@ glm::vec3 PlayerPhysics::accelerate(const glm::vec3 &wishDir, float wishSpeed, f
     if (addSpeed <= 0)
         return glm::vec3{0.0f};
 
-    float accelSpeed{playerMaxAcceleration * deltaTime * wishSpeed};
+    float accelSpeed{deltaTime * wishSpeed * groundAcceleration};
 
     if (accelSpeed > addSpeed)
         accelSpeed = addSpeed;
@@ -168,63 +175,55 @@ glm::vec3 PlayerPhysics::accelerate(const glm::vec3 &wishDir, float wishSpeed, f
 }
 
 // Resolve and slide along collision triangle's normal
-void PlayerPhysics::resolveMovementCollisions()
+void PlayerPhysics::resolveMovementCollisions(float deltaTime)
 {
     using namespace WorldVectors;
-    using namespace physicsDefaultValues;
 
     // Collisions with models first
     auto collisionNormal = getCollisionNormal(modelGrid_, modelVertices_);
 
     if (collisionNormal.has_value())
         capsule_.slide(collisionNormal.value());
-   
+
     // Then ground
     collisionNormal = getCollisionNormal(terrainGrid_, terrainVertices_);
 
     if (collisionNormal.has_value())
-       capsule_.slide(collisionNormal.value());  
+        capsule_.slide(collisionNormal.value());
 }
 
 // Only push capsule up vertically
 void PlayerPhysics::resolveGravityCollisions(float deltaTime)
 {
     using namespace WorldVectors;
-    using namespace physicsDefaultValues;
 
     auto collisionNormal = getCollisionNormal(modelGrid_, modelVertices_);
-
     if (collisionNormal.has_value())
     {
-        glm::vec3 normal{collisionNormal.value()};
+        auto collision{collisionNormal.value()};
         glm::vec3 capsuleVelocity{capsule_.getVelocity()};
 
-        glm::vec3 verticalPush{0.0f, normal.y, 0.0f};
-        capsule_.translate(verticalPush);
+        glm::vec3 verticalPush{0.0f, collision.normal.y, 0.0f};
+        capsule_.translate(verticalPush * collision.depth);
     }
 
     collisionNormal = getCollisionNormal(terrainGrid_, terrainVertices_);
     if (!collisionNormal.has_value())
         return;
 
-    glm::vec3 normal{collisionNormal.value()};
-    glm::vec3 capsuleVelocity{capsule_.getVelocity()};
+    auto collision{collisionNormal.value()};
 
-    glm::vec3 verticalPush{0.0f, normal.y, 0.0f};
-    capsule_.translate(verticalPush);
-
-    // Zero out the vertical velocity for the next frame - collision resolutions should have placed us perfectly
-    // back on the ground
-    glm::vec3 velocity{capsule_.getVelocity()};
-    capsule_.setVelocity(glm::vec3{velocity.x, 0.0f, velocity.z});
+    glm::vec3 verticalPush{0.0f, collision.normal.y, 0.0f};
+    capsule_.translate(verticalPush * collision.depth);
 }
 
-std::optional<glm::vec3> PlayerPhysics::getCollisionNormal(SpatialGrid &grid, std::vector<glm::vec3> &vertices)
+std::optional<Capsule::CollisionResolution> PlayerPhysics::getCollisionNormal(SpatialGrid &grid,
+                                                                              std::vector<glm::vec3> &vertices)
 {
     constexpr float epsilon{0.001f};
 
-    float depth{-std::numeric_limits<float>::infinity()};
-    glm::vec3 collisionNormal{0.0f};
+    float maxDepth{-std::numeric_limits<float>::infinity()};
+    Capsule::CollisionResolution result;
 
     // Get which triangles are close to the capsule
     grid.query(capsule_.getPosition(), collisionTriangles_);
@@ -232,19 +231,22 @@ std::optional<glm::vec3> PlayerPhysics::getCollisionNormal(SpatialGrid &grid, st
     // Find deepest collision
     for (int index : collisionTriangles_)
     {
-        auto result = capsule_.collideWithTriangle(vertices[index], vertices[index + 1], vertices[index + 2]);
+        auto collision = capsule_.collideWithTriangle(vertices[index], vertices[index + 1], vertices[index + 2]);
 
-        if (result.depth > depth)
+        if (collision.depth > maxDepth)
         {
-            depth = result.depth;
-            collisionNormal = result.normal;
+            maxDepth = collision.depth;
+            result = collision;
         }
     }
 
-    if (depth <= 0.0f)
+    if (maxDepth <= 0.0f)
         return {};
 
-    return collisionNormal * (depth + epsilon);
+    result.depth += epsilon;
+    result.normal = glm::normalize(result.normal);
+
+    return result;
 }
 
 glm::vec3 PlayerPhysics::getPosition() const
@@ -263,7 +265,6 @@ const glm::vec3 &PlayerPhysics::getPreviousPosition() const
     return previousPosition_;
 }
 
-// Calculates triangle sizes and positions, pushing them into a vector of vertex positions for the spatial grid.
 void iterateVertices(std::vector<glm::vec3> &target, const std::span<Primitive::Mesh> &meshes, WorldInfo &worldInfo,
                      const glm::mat4 &modelMatrix)
 {
@@ -314,12 +315,11 @@ void iterateVertices(std::vector<glm::vec3> &target, const std::span<Primitive::
         }
 }
 
-// Walks the scene loading collision meshes. Uses default mesh for terrain and assumes terrain will not be instanced.
 WorldInfo traverseSceneGraph(Scene &scene, std::vector<glm::vec3> &vertices, bool terrain)
 {
     WorldInfo worldInfo;
 
-    for (auto &[_, renderables] : scene.getRenderablesByShader())
+    for (auto [_, renderables] : scene.getRenderablesByShader())
         for (auto &renderable : renderables)
         {
             bool isTerrain{renderable.properties.cullMethod == CullMethod::TERRAIN};
@@ -334,25 +334,25 @@ WorldInfo traverseSceneGraph(Scene &scene, std::vector<glm::vec3> &vertices, boo
                 auto meshes = object.getMeshes();
                 Transform &transform{std::get<Transform>(renderable.properties.transform)};
                 iterateVertices(vertices, meshes, worldInfo, transform.getModelMatrix());
-
-                continue;
-            }
-
-            auto meshes = object.loadCollisionMesh();
-
-            if (!meshes.has_value())
-                continue;
-
-            if (std::holds_alternative<Transform>(renderable.properties.transform))
-            {
-                Transform &transform{std::get<Transform>(renderable.properties.transform)};
-                iterateVertices(vertices, meshes.value(), worldInfo, transform.getModelMatrix());
             }
             else
             {
-                auto &transform{std::get<std::vector<InstancedData>>(renderable.properties.transform)};
-                for (InstancedData &data : transform)
-                    iterateVertices(vertices, meshes.value(), worldInfo, data.modelMatrix);
+                auto meshes = object.loadCollisionMesh();
+
+                if (!meshes.has_value())
+                    continue;
+
+                if (std::holds_alternative<Transform>(renderable.properties.transform))
+                {
+                    Transform &transform{std::get<Transform>(renderable.properties.transform)};
+                    iterateVertices(vertices, meshes.value(), worldInfo, transform.getModelMatrix());
+                }
+                else
+                {
+                    auto &transform{std::get<std::vector<InstancedData>>(renderable.properties.transform)};
+                    for (InstancedData &data : transform)
+                        iterateVertices(vertices, meshes.value(), worldInfo, data.modelMatrix);
+                }
             }
         }
 
@@ -367,10 +367,7 @@ void PlayerPhysics::createModelGrid(Scene &scene)
 
     AABB worldAABB{worldInfo.minX, worldInfo.minY, worldInfo.minZ, worldInfo.maxX, worldInfo.maxY, worldInfo.maxZ};
 
-    std::cout << "model grid average triangle size: " << worldInfo.averageTriangleSize << std::endl;
-
-    modelGrid_ = std::move(
-        SpatialGrid(std::move(worldAABB), worldInfo.averageTriangleSize * modelGridCellMultiplier, modelVertices_));
+    modelGrid_ = std::move(SpatialGrid(std::move(worldAABB), modelGridCellSize, modelVertices_));
 }
 
 void PlayerPhysics::createTerrainGrid(Scene &scene)
@@ -378,8 +375,6 @@ void PlayerPhysics::createTerrainGrid(Scene &scene)
     WorldInfo worldInfo{traverseSceneGraph(scene, terrainVertices_, true)};
 
     AABB worldAABB{worldInfo.minX, worldInfo.minY, worldInfo.minZ, worldInfo.maxX, worldInfo.maxY, worldInfo.maxZ};
-
-    std::cout << "terrain grid average triangle size: " << worldInfo.averageTriangleSize << std::endl;
 
     terrainGrid_ = std::move(SpatialGrid(std::move(worldAABB), worldInfo.averageTriangleSize, terrainVertices_));
     resetHeight_ = worldInfo.minY;
