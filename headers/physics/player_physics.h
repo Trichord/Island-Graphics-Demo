@@ -19,18 +19,6 @@ enum CharacterMovement : std::uint8_t
     NONE = 16U
 };
 
-namespace physicsDefaultValues
-{
-constexpr float surfaceFriction{5.5f};
-constexpr float gravityForce{50.0f};
-constexpr float playerWidth{0.5f};
-constexpr float playerHeight{2.0f};
-constexpr float playerMaxAcceleration{5.0f};
-constexpr float playerMaxSpeed{30.0f};
-constexpr float playerMinSpeed{0.5f};
-constexpr float maxVerticalVelocity{0.2f};
-} // namespace physicsDefaultValues
-
 class PlayerPhysics
 {
   public:
@@ -57,13 +45,14 @@ class PlayerPhysics
     std::vector<glm::vec3> terrainVertices_;
     std::vector<glm::vec3> modelVertices_;
 
-    // Accelerate function from Valve's Source engine
     void movePlayer(std::uint8_t direction, const glm::vec3 &front, float deltaTime);
+
+    // Accelerate function from Valve's Source engine, slideMove from Quake
     glm::vec3 accelerate(const glm::vec3 &wishDir, float wishSpeed, float deltaTime);
-   
-    void resolveMovementCollisions();
+
+    void resolveMovementCollisions(float deltaTime);
     void resolveGravityCollisions(float deltaTime);
-    std::optional<glm::vec3> getCollisionNormal(SpatialGrid &grid, std::vector<glm::vec3>& vertices);
+    std::optional<Capsule::CollisionResolution> getCollisionNormal(SpatialGrid &grid, std::vector<glm::vec3> &vertices);
 
     void createModelGrid(Scene &scene);
     void createTerrainGrid(Scene &scene);

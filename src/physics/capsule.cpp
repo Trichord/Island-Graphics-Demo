@@ -85,7 +85,7 @@ void Capsule::setVelocity(const glm::vec3 &velocity)
     velocity_ = velocity;
 }
 
-void Capsule::slide(const glm::vec3 &normal)
+void Capsule::slide(const Capsule::CollisionResolution &collision)
 {
 
     float velocityLength{glm::length(velocity_)};
@@ -94,11 +94,11 @@ void Capsule::slide(const glm::vec3 &normal)
         return;
 
     glm::vec3 velocityNormalized{velocity_ / velocityLength};
-    glm::vec3 undesiredMotion = normal * glm::dot(velocityNormalized, normal);
+    glm::vec3 undesiredMotion = collision.normal * glm::dot(velocityNormalized, collision.normal);
     glm::vec3 desiredMotion = velocityNormalized - undesiredMotion;
     velocity_ = desiredMotion * velocityLength;
 
-    translate(normal + epsilon);
+    translate(collision.normal * (collision.depth + epsilon));
 }
 
 float Capsule::getHeight() const
