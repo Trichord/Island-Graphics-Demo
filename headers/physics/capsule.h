@@ -30,7 +30,7 @@ class Capsule
     CollisionResolution collideWithTriangle(const glm::vec3 &A, const glm::vec3 &B, const glm::vec3 &C);
 
     // Sliding physics credit: Wicked Engine https://wickedengine.net/2020/04/capsule-collision-detection
-    void slide(const glm::vec3 &normal);
+    void slide(const CollisionResolution &collision);
 
   private:
     glm::vec3 top_{1.0f};
