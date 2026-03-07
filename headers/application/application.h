@@ -63,6 +63,8 @@ class Application
      */
     void addGlfwUserParam(Scene &scene);
 
+    void initializeJolt();
+
     /**
      * GLFW mouse callback. Recieves updated cursor coordinates.
      *

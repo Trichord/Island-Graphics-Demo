@@ -42,7 +42,7 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":129,
+			"count":121,
 			"max":[
 				1.438036561012268,
 				5.405559062957764,
@@ -50,47 +50,47 @@
 			],
 			"min":[
 				-2.6840431690216064,
-				0.007135751657187939,
-				-1.348012924194336
+				0.0029709935188293457,
+				-1.3373675346374512
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":129,
+			"count":121,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5123,
-			"count":762,
+			"count":714,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":1548,
+			"byteLength":1452,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1548,
-			"byteOffset":1548,
+			"byteLength":1452,
+			"byteOffset":1452,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1524,
-			"byteOffset":3096,
+			"byteLength":1428,
+			"byteOffset":2904,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":4620,
+			"byteLength":4332,
 			"uri":"statue_collision.bin"
 		}
 	]
