@@ -1,14 +1,18 @@
 #pragma once
 
-#include "capsule.h"
-
 #include <cstdint>
 #include <optional>
 #include <vector>
 
+#include "jolt/Jolt.h"
+
 #include "glm/glm.hpp"
+#include "jolt/Core/JobSystemSingleThreaded.h"
+#include "jolt/Core/TempAllocator.h"
+#include "jolt/Physics/PhysicsSystem.h"
+#include "jolt_impl.h"
+#include "player.h"
 #include "scene.h"
-#include "spatial_grid.h"
 
 enum CharacterMovement : std::uint8_t
 {
@@ -19,41 +23,47 @@ enum CharacterMovement : std::uint8_t
     NONE = 16U
 };
 
+constexpr float physicsTick{1.0f / 60.0f};
+
 class PlayerPhysics
 {
   public:
-    PlayerPhysics() = default;
-    PlayerPhysics(Scene &scene);
+    PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator);
+    PlayerPhysics(const PlayerPhysics &) = delete;
+    PlayerPhysics &operator=(const PlayerPhysics &) = delete;
+    PlayerPhysics(PlayerPhysics &&other) = delete;
+    PlayerPhysics &operator=(PlayerPhysics &&other) = delete;
+    ~PlayerPhysics();
 
     void update(std::uint8_t direction, const glm::vec3 &front, float deltaTime);
 
     glm::vec3 getPosition() const;
     const glm::vec3 &getPreviousPosition() const;
     void setPosition(const glm::vec3 &newPosition);
-    void initializeResources(Scene &scene);
 
   private:
+    static constexpr JPH::uint maxPhysicsJobs_{2048};
+
     glm::vec3 previousPosition_{0.0f};
-    glm::vec3 resetPosition_{0.0f};
+    JPH::Vec3 resetPosition_{0.0f, 0.0f, 0.0f};
     float resetHeight_{0.0f};
 
-    Capsule capsule_;
+    JPH::PhysicsSystem &physicsSystem_;
 
-    SpatialGrid terrainGrid_;
-    SpatialGrid modelGrid_;
-    std::vector<int> collisionTriangles_;
-    std::vector<glm::vec3> terrainVertices_;
-    std::vector<glm::vec3> modelVertices_;
+    // Everything the physics system needs
+    JPH::TempAllocatorImpl &tempAllocator_;
+    ObjectLayerPairFilterImpl objectLayerPairFilter_;
+    BPLayerInterfaceImpl broadPhaseLayer_;
+    ObjectVsBroadPhaseLayerFilterImpl objectVsBroadPhaseLayerFilter_;
+    JPH::JobSystemSingleThreaded jobSystem_{maxPhysicsJobs_};
+
+    JPH::BodyInterface *bodyInterface_;
+
+    // Physics body for terrain
+    JPH::Body *terrain_{nullptr};
+
+    Player player_;
 
     void movePlayer(std::uint8_t direction, const glm::vec3 &front, float deltaTime);
-
-    // Accelerate function from Valve's Source engine, slideMove from Quake
-    glm::vec3 accelerate(const glm::vec3 &wishDir, float wishSpeed, float deltaTime);
-
-    void resolveMovementCollisions(float deltaTime);
-    void resolveGravityCollisions(float deltaTime);
-    std::optional<Capsule::CollisionResolution> getCollisionNormal(SpatialGrid &grid, std::vector<glm::vec3> &vertices);
-
-    void createModelGrid(Scene &scene);
-    void createTerrainGrid(Scene &scene);
+    JPH::TriangleList traverseSceneGraph(Scene &scene);
 };

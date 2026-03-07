@@ -3,15 +3,23 @@
 #include <cstdint>
 #include <iostream>
 
+#include "jolt/Jolt.h"
+
 #include "camera.h"
 #include "config_window.h"
 #include "gl_context.h"
 #include "glfw_callbacks.h"
 #include "glm/glm.hpp"
 #include "island_scene.h"
+#include "jolt/registerTypes.h"
 #include "player_physics.h"
 #include "renderer.h"
 #include "scene.h"
+
+
+#include <cstdarg>
+
+constexpr size_t joltStackSize{10 * 1024 * 1024}; // 10 MB for Jolt's internal stack space
 
 void Application::run()
 {
@@ -27,16 +35,18 @@ void Application::run()
 
     createOpenGLViewport(graphicsSettings);
     registerCallbacks();
+    initializeJolt();
 
     // Create resources
     Renderer renderer(graphicsSettings);
     IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
-    PlayerPhysics physicsHandler(islandScene);
+    JPH::PhysicsSystem physicsSystem;
+    JPH::TempAllocatorImpl tempAllocator{joltStackSize};
 
-    // Initialize
+    // Initialize scene dependent resources
     renderer.initializeResources(islandScene);
     renderer.allResourcesLoaded();
-    physicsHandler.initializeResources(islandScene);
+    PlayerPhysics physicsHandler(islandScene, physicsSystem, tempAllocator);
 
     addGlfwUserParam(islandScene);
 
@@ -139,7 +149,6 @@ void Application::createOpenGLViewport(const ConfigWindow::GraphicsSettings &gra
 void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
 {
     using enum CharacterMovement;
-    constexpr float physicsTick{1.0f / 60.0f};
     constexpr float objectSpeed{0.5f};
 
     std::uint8_t direction{0};
@@ -254,4 +263,11 @@ void Application::addGlfwUserParam(Scene &scene)
 void Application::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
     // Anything that needs to avoid key bouncing
+}
+
+void Application::initializeJolt()
+{
+    JPH::RegisterDefaultAllocator();
+    JPH::Factory::sInstance = new JPH::Factory();
+    JPH::RegisterTypes();
 }
