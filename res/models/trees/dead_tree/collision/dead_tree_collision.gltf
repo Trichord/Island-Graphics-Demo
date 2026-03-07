@@ -8,19 +8,37 @@
 		{
 			"name":"Scene",
 			"nodes":[
-				0
+				0,
+				1,
+				2
 			]
 		}
 	],
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"dead_tree_collision"
+			"name":"tree1_collision",
+			"scale":[
+				0.5685999393463135,
+				1.27271568775177,
+				0.5685999393463135
+			],
+			"translation":[
+				-0.04013616591691971,
+				1.2714823484420776,
+				-0.07898560911417007
+			]
+		},
+		{
+			"name":"Acer_medium_2_LOD2"
+		},
+		{
+			"name":"Acer_medium_2_LOD2.001"
 		}
 	],
 	"meshes":[
 		{
-			"name":"Mesh",
+			"name":"Cylinder.004",
 			"primitives":[
 				{
 					"attributes":{
@@ -36,55 +54,55 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":19,
+			"count":86,
 			"max":[
-				0.4750877916812897,
-				2.479287624359131,
-				0.559968113899231
+				0.9903926849365234,
+				1,
+				0.9903926849365234
 			],
 			"min":[
-				-0.6063441634178162,
-				-0.01809384673833847,
-				-0.5562704205513
+				-0.9903926849365234,
+				-1,
+				-0.9903926849365234
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":19,
+			"count":86,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5123,
-			"count":96,
+			"count":90,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":228,
+			"byteLength":1032,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":228,
-			"byteOffset":228,
+			"byteLength":1032,
+			"byteOffset":1032,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":192,
-			"byteOffset":456,
+			"byteLength":180,
+			"byteOffset":2064,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":648,
+			"byteLength":2244,
 			"uri":"dead_tree_collision.bin"
 		}
 	]

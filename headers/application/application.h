@@ -20,15 +20,17 @@ class Application
     Application &operator=(Application &&other) = delete;
     void run();
 
-  private:
-    float deltaTime{0.0f};
-    float lastFrame{0.0f};
-    float currentFrame{0.0f};
-    float accumulator{0.0f};
-    static inline bool firstMouse{true};
-    static inline float lastMouseX{0.0f};
-    static inline float lastMouseY{0.0f};
-    GLFWwindow *window{nullptr};
+  private: 
+    float deltaTime_{0.0f};
+    float lastFrame_{0.0f};
+    float currentFrame_{0.0f};
+    float accumulator_{0.0f};
+    static inline bool leftCtrlToggle_{false};
+    static inline bool leftShiftToggle_{false};
+    static inline bool firstMouse_{true};
+    static inline float lastMouseX_{0.0f};
+    static inline float lastMouseY_{0.0f};
+    GLFWwindow *window_{nullptr};
 
     /**
      * @brief Creates a GLFW window.  Display settings from the config window are

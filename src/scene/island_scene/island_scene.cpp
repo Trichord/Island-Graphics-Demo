@@ -103,23 +103,25 @@ void IslandScene::addAllModelsToScene()
      * Trees *
      *       *
      *********/
-
+    
     // Tree 1
     auto &tree1 = sceneResources_.loadInstancedModel("./res/models/trees/tree1/tree1.gltf", "./res/positions/tree1.txt",
                                                      0.8f, 1.2f, 66);
     addObjectToScene(tree1, TREES, {.cullMethod = INSTANCED});
     ModelHandle tree1Handle{tree1.getHandle()};
-
+    
+    
     // Tree 2
     auto &tree2 = sceneResources_.loadInstancedModel(tree1Handle, "./res/models/trees/tree2/tree2.gltf",
                                                      "./res/positions/tree2.txt", 0.8f, 1.125f, 24);
     addObjectToScene(tree2, TREES, {.cullMethod = INSTANCED});
+    
 
     // Tree 3
     auto &tree3 = sceneResources_.loadInstancedModel(tree1Handle, "./res/models/trees/tree3/tree3.gltf",
                                                      "./res/positions/tree3.txt", 0.85f, 1.3f, 27);
     addObjectToScene(tree3, TREES, {.cullMethod = INSTANCED});
-
+    
     // Tree 4
     auto &tree4 = sceneResources_.loadInstancedModel(tree1Handle, "./res/models/trees/tree4/tree4.gltf",
                                                      "./res/positions/tree4.txt", 0.9f, 1.3f, 34);
@@ -128,6 +130,7 @@ void IslandScene::addAllModelsToScene()
     // Dead tree
     auto &deadTree = sceneResources_.loadModel("./res/models/trees/dead_tree/dead_tree.gltf");
     addObjectToScene(deadTree, DIRECTIONAL_PBR, {.transform = Transform{DEAD_TREE_POS, glm::vec3{1.0f}, 45.0f}});
+    
 
     /*********
      *       *
