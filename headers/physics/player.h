@@ -21,26 +21,33 @@ class Player
     JPH::Vec3 getCenter() const;
     JPH::Vec3 getPosition() const;
     void setPosition(JPH::Vec3 position);
-    void handleInput(const JPH::Vec3 &direction, bool jump, bool switchStance, float deltaTime);
+    void toggleCrouch(bool enable);
+    void toggleSprint(bool enable);
+    void handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime);
     void prePhysicsUpdate(float deltaTime);
 
   private:
     // Character size
     static constexpr float characterHeightStanding_{1.35f};
-    static constexpr float characterRadiusStanding_{0.5f};
+    static constexpr float characterRadiusStanding_{0.3f};
     static constexpr float characterHeightCrouching_{0.8f};
-    static constexpr float characterRadiusCrouching_{0.5f};
+    static constexpr float characterRadiusCrouching_{0.3f};
     static constexpr float innerShapeFraction_{0.9f};
 
     // Terrain interaction
     static constexpr float maxSlopeAngle_{glm::radians(45.0f)};
 
     // Character movement properties
+    static constexpr float jumpSpeed_{2.75f};
+    static constexpr float characterSpeed_{4.0f};
+    static constexpr float characterSprintSpeedMultiplier_{1.1f};
+    static constexpr float characterCrouchSpeedMultiplier{0.4f};
     bool controlMovementDuringJump_{true}; // If false the character cannot change movement direction in mid air
+    bool crouched_{false};
     bool allowSliding_{false};
+    bool characterSprinting_{false};
     bool enableCharacterInertia_{true};
-    float characterSpeed_{6.0f};
-    float jumpSpeed_{4.0f};
+
     JPH::Vec3 desiredVelocity_{0.0f, 0.0f, 0.0f};
 
     // The different stances for the character

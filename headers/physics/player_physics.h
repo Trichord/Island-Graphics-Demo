@@ -35,9 +35,11 @@ class PlayerPhysics
     PlayerPhysics &operator=(PlayerPhysics &&other) = delete;
     ~PlayerPhysics();
 
-    void update(std::uint8_t direction, const glm::vec3 &front, float deltaTime);
+    void update(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime);
 
     glm::vec3 getPosition() const;
+    void toggleCrouch(bool enable);
+    void toggleSprint(bool enable);
     const glm::vec3 &getPreviousPosition() const;
     void setPosition(const glm::vec3 &newPosition);
 
@@ -47,7 +49,6 @@ class PlayerPhysics
     glm::vec3 previousPosition_{0.0f};
     JPH::Vec3 resetPosition_{0.0f, 0.0f, 0.0f};
     float resetHeight_{0.0f};
-
     JPH::PhysicsSystem &physicsSystem_;
 
     // Everything the physics system needs
@@ -64,6 +65,6 @@ class PlayerPhysics
 
     Player player_;
 
-    void movePlayer(std::uint8_t direction, const glm::vec3 &front, float deltaTime);
+    void movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime);
     JPH::TriangleList traverseSceneGraph(Scene &scene);
 };

@@ -8,29 +8,29 @@
 		{
 			"name":"Scene",
 			"nodes":[
-				0,
-				2
+				0
 			]
 		}
 	],
 	"nodes":[
 		{
-			"name":"tree2"
-		},
-		{
 			"mesh":0,
-			"name":"Acer_medium_2_LOD2_Bark_Mat_0"
-		},
-		{
-			"children":[
-				1
+			"name":"tree1_collision",
+			"scale":[
+				0.24221622943878174,
+				0.8680697083473206,
+				0.24221622943878174
 			],
-			"name":"tree1"
+			"translation":[
+				0,
+				0.8719934225082397,
+				0
+			]
 		}
 	],
 	"meshes":[
 		{
-			"name":"Acer_medium_2_LOD2_Bark_Mat_0.003",
+			"name":"Cylinder.003",
 			"primitives":[
 				{
 					"attributes":{
@@ -46,55 +46,55 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":16,
+			"count":86,
 			"max":[
-				0.20603057742118835,
-				2.0029947757720947,
-				0.22480854392051697
+				0.9903926849365234,
+				1,
+				0.9903926849365234
 			],
 			"min":[
-				-0.22868327796459198,
-				-0.003315715352073312,
-				-0.19637835025787354
+				-0.9903926849365234,
+				-1,
+				-0.9903926849365234
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":16,
+			"count":86,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5123,
-			"count":84,
+			"count":90,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":192,
+			"byteLength":1032,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":192,
-			"byteOffset":192,
+			"byteLength":1032,
+			"byteOffset":1032,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":168,
-			"byteOffset":384,
+			"byteLength":180,
+			"byteOffset":2064,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":552,
+			"byteLength":2244,
 			"uri":"tree1_collision.bin"
 		}
 	]
