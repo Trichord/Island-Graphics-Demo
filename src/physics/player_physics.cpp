@@ -32,7 +32,8 @@ constexpr JPH::uint maxBodyPairs{1024};
 constexpr JPH::uint maxContactConstraints{1024};
 
 PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator)
-    : resetPosition_{toJPHVec3(scene.getCamera().getPosition())}, physicsSystem_{physicsSystem}, tempAllocator_{tempAllocator}
+    : resetPosition_{toJPHVec3(scene.getCamera().getPosition())}, physicsSystem_{physicsSystem},
+      tempAllocator_{tempAllocator}
 {
     using namespace JPH;
 
@@ -80,21 +81,21 @@ PlayerPhysics::~PlayerPhysics()
     Factory::sInstance = nullptr;
 }
 
-void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float deltaTime)
-{ 
+void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime)
+{
 
     if (player_.getPosition().GetY() < resetHeight_)
     {
         player_.setPosition(resetPosition_);
         previousPosition_ = toGLM(resetPosition_);
         return;
-    }   
+    }
 
     previousPosition_ = toGLM(player_.getCenter());
-    movePlayer(direction, front, deltaTime);
+    movePlayer(direction, front, jump, crouch, deltaTime);
 }
 
-void PlayerPhysics::movePlayer(std::uint8_t direction, const glm::vec3 &front, float deltaTime)
+void PlayerPhysics::movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime)
 {
     using enum CharacterMovement;
     using namespace WorldVectors;
@@ -118,7 +119,7 @@ void PlayerPhysics::movePlayer(std::uint8_t direction, const glm::vec3 &front, f
     glm::vec3 right{glm::cross(forward, worldUp)};
     glm::vec3 wishDir{forward * forwardMove + right * sideMove};
 
-    player_.handleInput(toJPHVec3(wishDir), false, false, deltaTime);
+    player_.handleInput(toJPHVec3(wishDir), jump, deltaTime);
     player_.prePhysicsUpdate(deltaTime);
 }
 
@@ -134,6 +135,16 @@ void PlayerPhysics::setPosition(const glm::vec3 &newPosition)
 const glm::vec3 &PlayerPhysics::getPreviousPosition() const
 {
     return previousPosition_;
+}
+
+void PlayerPhysics::toggleCrouch(bool enable)
+{
+    player_.toggleCrouch(enable);
+}
+
+void PlayerPhysics::toggleSprint(bool enable)
+{
+    player_.toggleSprint(enable);
 }
 
 void iterateVertices(JPH::TriangleList &triangles, const std::span<Primitive::Mesh> &meshes,

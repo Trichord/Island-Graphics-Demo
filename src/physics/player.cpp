@@ -57,13 +57,13 @@ void Player::init(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tem
     player_ = new CharacterVirtual(settings, RVec3::sZero(), Quat::sIdentity(), 0, &physicsSystem);
 }
 
-//Returns the center of mass of the capsule
+// Returns the center of mass of the capsule
 JPH::Vec3 Player::getCenter() const
 {
     return player_->GetCenterOfMassPosition();
 }
 
-//Returns the bottom of the capsule, per JPH
+// Returns the bottom of the capsule, per JPH
 JPH::Vec3 Player::getPosition() const
 {
     return player_->GetPosition();
@@ -74,7 +74,35 @@ void Player::setPosition(JPH::Vec3 position)
     player_->SetPosition(position);
 }
 
-void Player::handleInput(const JPH::Vec3 &direction, bool jump, bool switchStance, float deltaTime)
+void Player::toggleCrouch(bool enable)
+{
+    using namespace JPH;
+
+    if (crouched_ == enable)
+        return;
+
+    crouched_ = !crouched_;
+
+    bool isStanding = player_->GetShape() == standingShape_;
+    const Shape *shape = isStanding ? crouchingShape_ : standingShape_;
+    if (player_->SetShape(shape, 1.5f * physicsSystem_->GetPhysicsSettings().mPenetrationSlop,
+                          physicsSystem_->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
+                          physicsSystem_->GetDefaultLayerFilter(Layers::MOVING), {}, {}, *tempAllocator_))
+    {
+        const Shape *inner_shape = isStanding ? innerCrouchingShape_ : innerStandingShape_;
+        player_->SetInnerBodyShape(inner_shape);
+    }
+}
+
+void Player::toggleSprint(bool enable)
+{
+    if (characterSprinting_ == enable)
+        return;
+
+    characterSprinting_ = !characterSprinting_;
+}
+
+void Player::handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime)
 {
     using namespace JPH;
 
@@ -82,8 +110,17 @@ void Player::handleInput(const JPH::Vec3 &direction, bool jump, bool switchStanc
 
     if (playerControlsHorizontalVelocity)
     {
+        //Sprinting
+        float speed{characterSprinting_ ? characterSpeed_ * characterSprintSpeedMultiplier_ : characterSpeed_};
+        
+        //Crouching
+        speed *= crouched_ ? characterCrouchSpeedMultiplier : 1.0f;
+
         // Smooth the player input
-        desiredVelocity_ = 0.25f * direction * characterSpeed_ + 0.75f * desiredVelocity_;
+        desiredVelocity_ = 0.25f * direction * speed + 0.75f * desiredVelocity_;
+
+        if (characterSprinting_)
+            desiredVelocity_ *= characterSprintSpeedMultiplier_;
 
         // True if the player intended to move
         allowSliding_ = !direction.IsNearZero();
@@ -132,20 +169,6 @@ void Player::handleInput(const JPH::Vec3 &direction, bool jump, bool switchStanc
 
     // Update character velocity
     player_->SetLinearVelocity(newVelocity);
-
-    // Stance switch
-    if (switchStance)
-    {
-        bool isStanding = player_->GetShape() == standingShape_;
-        const Shape *shape = isStanding ? crouchingShape_ : standingShape_;
-        if (player_->SetShape(shape, 1.5f * physicsSystem_->GetPhysicsSettings().mPenetrationSlop,
-                              physicsSystem_->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-                              physicsSystem_->GetDefaultLayerFilter(Layers::MOVING), {}, {}, *tempAllocator_))
-        {
-            const Shape *inner_shape = isStanding ? innerCrouchingShape_ : innerStandingShape_;
-            player_->SetInnerBodyShape(inner_shape);
-        }
-    }
 }
 
 void Player::prePhysicsUpdate(float deltaTime)

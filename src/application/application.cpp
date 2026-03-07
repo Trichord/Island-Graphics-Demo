@@ -16,7 +16,6 @@
 #include "renderer.h"
 #include "scene.h"
 
-
 #include <cstdarg>
 
 constexpr size_t joltStackSize{10 * 1024 * 1024}; // 10 MB for Jolt's internal stack space
@@ -30,7 +29,7 @@ void Application::run()
         return;
 
     createWindow(graphicsSettings);
-    if (!window)
+    if (!window_)
         return;
 
     createOpenGLViewport(graphicsSettings);
@@ -54,19 +53,19 @@ void Application::run()
     float totalTime{0};
     unsigned long long framesRendered{0};
 
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(window_))
     {
         // Delta Time
-        currentFrame = (float)glfwGetTime();
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
+        currentFrame_ = (float)glfwGetTime();
+        deltaTime_ = currentFrame_ - lastFrame_;
+        lastFrame_ = currentFrame_;
 
         // Final FPS count
-        totalTime += deltaTime;
+        totalTime += deltaTime_;
         ++framesRendered;
 
         // Update scene objects
-        islandScene.onUpdate(deltaTime);
+        islandScene.onUpdate(deltaTime_);
 
         // Physics
         processKeyboard(islandScene, physicsHandler);
@@ -74,7 +73,7 @@ void Application::run()
         // Draw
         renderer.renderScene(islandScene);
 
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(window_);
 
         // User input
         glfwPollEvents();
@@ -103,18 +102,18 @@ void Application::createWindow(const ConfigWindow::GraphicsSettings &graphicsSet
     int height{graphicsSettings.screenHeight};
 
     if (graphicsSettings.fullscreen)
-        window = glfwCreateWindow(width, height, "Island Graphics Demo", glfwGetPrimaryMonitor(), nullptr);
+        window_ = glfwCreateWindow(width, height, "Island Graphics Demo", glfwGetPrimaryMonitor(), nullptr);
 
     else
-        window = glfwCreateWindow(width, height, "Island Graphics Demo", NULL, NULL);
+        window_ = glfwCreateWindow(width, height, "Island Graphics Demo", NULL, NULL);
 
-    if (!window)
+    if (!window_)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
     }
 
-    glfwMakeContextCurrent(window);
+    glfwMakeContextCurrent(window_);
 
     if (graphicsSettings.vsync)
         glfwSwapInterval(1);
@@ -152,39 +151,47 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
     constexpr float objectSpeed{0.5f};
 
     std::uint8_t direction{0};
+    bool jump{false};
+
     Camera &camera{scene.getCamera()};
     const glm::vec3 front{camera.getFront()};
     glm::vec3 previousPos{physicsHandler.getPreviousPosition()};
 
-    accumulator += deltaTime;
+    accumulator_ += deltaTime_;
 
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    if (glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
+        glfwSetWindowShouldClose(window_, GLFW_TRUE);
         return;
     }
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS)
         direction |= FORWARD;
 
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS)
         direction |= BACKWARD;
 
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    if (glfwGetKey(window_, GLFW_KEY_A) == GLFW_PRESS)
         direction |= LEFT;
 
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    if (glfwGetKey(window_, GLFW_KEY_D) == GLFW_PRESS)
         direction |= RIGHT;
 
-    while (accumulator > physicsTick)
+    if (glfwGetKey(window_, GLFW_KEY_SPACE) == GLFW_PRESS)
+        jump = true;
+
+    physicsHandler.toggleCrouch(leftCtrlToggle_);
+    physicsHandler.toggleSprint(leftShiftToggle_);
+
+    while (accumulator_ > physicsTick)
     {
         previousPos = physicsHandler.getPosition();
-        physicsHandler.update(direction, front, physicsTick);
-        accumulator -= physicsTick;
+        physicsHandler.update(direction, front, jump, leftCtrlToggle_, physicsTick);
+        accumulator_ -= physicsTick;
     }
 
     // Interpolate camera between last position and latest physics tick (Glenn Fiedler)
-    float alpha{accumulator / physicsTick};
+    float alpha{accumulator_ / physicsTick};
     glm::vec3 interpolatedPos{glm::mix(previousPos, physicsHandler.getPosition(), alpha)};
 
     camera.setPosition(interpolatedPos);
@@ -227,18 +234,18 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
 {
 
-    if (firstMouse)
+    if (firstMouse_)
     {
-        lastMouseX = (float)xPos;
-        lastMouseY = (float)yPos;
-        firstMouse = false;
+        lastMouseX_ = (float)xPos;
+        lastMouseY_ = (float)yPos;
+        firstMouse_ = false;
     }
 
-    float xOffset{(float)(xPos - lastMouseX)};
-    float yOffset{(float)(lastMouseY - yPos)};
+    float xOffset{(float)(xPos - lastMouseX_)};
+    float yOffset{(float)(lastMouseY_ - yPos)};
 
-    lastMouseX = (float)xPos;
-    lastMouseY = (float)yPos;
+    lastMouseX_ = (float)xPos;
+    lastMouseY_ = (float)yPos;
 
     auto scenePointer = static_cast<IslandScene *>(glfwGetWindowUserPointer(window));
 
@@ -248,21 +255,26 @@ void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
 
 void Application::registerCallbacks()
 {
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetKeyCallback(window, Application::keyCallback);
-    glfwSetCursorPosCallback(window, Application::mouse_callback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetWindowIconifyCallback(window, window_iconify_callback);
+    glfwSetFramebufferSizeCallback(window_, framebuffer_size_callback);
+    glfwSetKeyCallback(window_, Application::keyCallback);
+    glfwSetCursorPosCallback(window_, Application::mouse_callback);
+    glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetWindowIconifyCallback(window_, window_iconify_callback);
 }
 
 void Application::addGlfwUserParam(Scene &scene)
 {
-    glfwSetWindowUserPointer(window, &scene);
+    glfwSetWindowUserPointer(window_, &scene);
 }
 
 void Application::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
     // Anything that needs to avoid key bouncing
+    if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS)
+        leftCtrlToggle_ = !leftCtrlToggle_;
+
+    if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
+        leftShiftToggle_ = !leftShiftToggle_;
 }
 
 void Application::initializeJolt()

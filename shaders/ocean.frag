@@ -76,9 +76,8 @@ void main()
 
 	//Blend into distance
 	float dist = length(fs_in.fragPos - sceneCenter);
-	//float alpha = smoothstep(fogStart, fogEnd, dist);
 	float alpha = (fogEnd - dist) / (fogEnd - fogStart);
-	alpha = clamp(alpha, 0.0, 1.0);
+	alpha = 1.0 - clamp(alpha, 0.0, 1.0);
 
 	vec3 oceanColor = reflection + specHighlight + waterColor;
 	oceanColor = mix(oceanColor, skybox, alpha);

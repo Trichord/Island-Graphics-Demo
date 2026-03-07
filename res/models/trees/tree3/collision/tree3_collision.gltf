@@ -3,9 +3,6 @@
 		"generator":"Khronos glTF Blender I/O v5.0.21",
 		"version":"2.0"
 	},
-	"extensionsUsed":[
-		"KHR_materials_specular"
-	],
 	"scene":0,
 	"scenes":[
 		{
@@ -18,34 +15,29 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"Acer_small_2_LOD1_Bark_Mat_0"
-		}
-	],
-	"materials":[
-		{
-			"doubleSided":true,
-			"extensions":{
-				"KHR_materials_specular":{
-					"specularFactor":0.12677262723445892
-				}
-			},
-			"name":"Bark_Mat.001",
-			"pbrMetallicRoughness":{
-				"metallicFactor":0
-			}
+			"name":"tree3_collision",
+			"scale":[
+				0.12485651671886444,
+				0.58902508020401,
+				0.12485651671886444
+			],
+			"translation":[
+				-0.008083758875727654,
+				0.5755944848060608,
+				0.012468207627534866
+			]
 		}
 	],
 	"meshes":[
 		{
-			"name":"Acer_small_2_LOD1_Bark_Mat_0.002",
+			"name":"Cylinder.006",
 			"primitives":[
 				{
 					"attributes":{
 						"POSITION":0,
 						"NORMAL":1
 					},
-					"indices":2,
-					"material":0
+					"indices":2
 				}
 			]
 		}
@@ -54,55 +46,55 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":16,
+			"count":86,
 			"max":[
-				0.11498041450977325,
-				2.5141403675079346,
-				0.12340757250785828
+				0.9903926849365234,
+				1,
+				0.9903926849365234
 			],
 			"min":[
-				-0.12413828074932098,
-				-0.001710038515739143,
-				-0.10994242131710052
+				-0.9903926849365234,
+				-1,
+				-0.9903926849365234
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":16,
+			"count":86,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5123,
-			"count":72,
+			"count":90,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":192,
+			"byteLength":1032,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":192,
-			"byteOffset":192,
+			"byteLength":1032,
+			"byteOffset":1032,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":144,
-			"byteOffset":384,
+			"byteLength":180,
+			"byteOffset":2064,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":528,
+			"byteLength":2244,
 			"uri":"tree3_collision.bin"
 		}
 	]
