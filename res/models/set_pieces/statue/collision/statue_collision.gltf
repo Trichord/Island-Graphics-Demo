@@ -15,18 +15,28 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"statue_collision"
+			"name":"Object_0.001",
+			"scale":[
+				1,
+				1.4284236431121826,
+				1
+			],
+			"translation":[
+				0,
+				-0.11301116645336151,
+				0
+			]
 		},
 		{
 			"children":[
 				0
 			],
-			"name":"Rodin_Thinker_collision"
+			"name":"Rodin_Thinker_Collision"
 		}
 	],
 	"meshes":[
 		{
-			"name":"Object_0.003",
+			"name":"Object_0.008",
 			"primitives":[
 				{
 					"attributes":{
@@ -42,55 +52,55 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":118,
+			"count":96,
 			"max":[
-				1.637887716293335,
-				5.405559062957764,
-				1.5395697355270386
+				1.7286564111709595,
+				3.8693666458129883,
+				1.7313116788864136
 			],
 			"min":[
-				-2.6616592407226562,
-				0.0029709935188293457,
-				-1.3373675346374512
+				-2.763021945953369,
+				0.002588987350463867,
+				-1.4749231338500977
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":118,
+			"count":96,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5123,
-			"count":696,
+			"count":279,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":1416,
+			"byteLength":1152,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1416,
-			"byteOffset":1416,
+			"byteLength":1152,
+			"byteOffset":1152,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1392,
-			"byteOffset":2832,
+			"byteLength":558,
+			"byteOffset":2304,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":4224,
+			"byteLength":2864,
 			"uri":"statue_collision.bin"
 		}
 	]
