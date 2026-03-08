@@ -21,26 +21,19 @@ class Model : public IRenderable
     Model &operator=(Model &&other) = delete;
     ~Model();
 
-    /**
-     * @brief Model class's implementation of the Renderable interface.
-     *
-     * @details Draws each primitive in the mesh. Binds albdeo, ambient occlusion,
-     *  metallic, roughness, and normal map textures, if the model has them.
-     */
-
     AABB &getAABB() override;
-    void resetVisibility() override;
+    void setVisibility(bool visible) override;
     const ModelHandle getHandle() const override;
-    std::size_t getInstanceCount() const override;
     std::span<Primitive::Mesh> getMeshes() override;
-    std::span<InstanceData> getInstanceData() override;
-    void setVisibleInstanceCount(std::size_t newSize) override;
+    std::optional<std::vector<Primitive::Mesh>> loadCollisionMesh() override;
+    std::optional<std::vector<InstancedData>> generateInstancedData() override;
 
   protected:
-    ModelHandle handle{0};
-    TextureManager &texManager;
-    std::vector<Primitive::Mesh> meshes;
-    AABB aabb;
+    ModelHandle handle_{0};
+    TextureManager &textureManager_;
+    std::filesystem::path filePath_;
+    std::vector<Primitive::Mesh> meshes_;
+    AABB aabb_;
 
     void loadModel(const std::filesystem::path &path, bool borrowed);
     void calculateAABB();

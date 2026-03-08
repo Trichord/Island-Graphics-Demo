@@ -14,9 +14,9 @@ class GLState
     void setAlphaMode(fastgltf::AlphaMode mode);
 
   private:
-    bool alphaMaskEnabled{false};
-    bool alphaBlendEnabled{false};
-    bool cullFaceEnabled{false};
+    bool alphaMaskEnabled_{false};
+    bool alphaBlendEnabled_{false};
+    bool cullFaceEnabled_{false};
 
-    std::vector<GLuint> textureUnits;
+    std::vector<GLuint> textureUnits_;
 };

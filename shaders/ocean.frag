@@ -25,13 +25,13 @@ in VS_OUT
 	vec4 clipSpace;
 } fs_in;
 
-const float dudvStrength = 0.01;
-const float waveSpeed = 0.025;
+const float dudvStrength = 0.025;
+const float waveSpeed = 0.01;
 const float specularDamper = 0.2;
 const float tileFactor = 50.0;
 const float fogStart = 400.0;
 const float fogEnd = 900.0;
-const vec3 waterColor = vec3(0.01, 0.48, 0.88) * 0.1;
+const vec3 waterColor = vec3(0.0, 0.02, 0.08);
 const vec3 sceneCenter = vec3(0.0);
 
 void main() 
@@ -76,7 +76,8 @@ void main()
 
 	//Blend into distance
 	float dist = length(fs_in.fragPos - sceneCenter);
-	float alpha = smoothstep(fogStart, fogEnd, dist);
+	float alpha = (fogEnd - dist) / (fogEnd - fogStart);
+	alpha = 1.0 - clamp(alpha, 0.0, 1.0);
 
 	vec3 oceanColor = reflection + specHighlight + waterColor;
 	oceanColor = mix(oceanColor, skybox, alpha);

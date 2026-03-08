@@ -1,0 +1,19 @@
+#pragma once
+
+#include "config_window.h"
+#include "scene.h"
+#include "texture_manager.h"
+
+/* Concrete implementation of a scene */
+
+class IslandScene : public Scene
+{
+  public:
+    IslandScene(TextureManager &_textureManager, const ConfigWindow::GraphicsSettings &graphicsSettings);
+
+    void addAllModelsToScene() override;
+    void setupEnvironment() override;
+    void onUpdate(float deltaTime) override;
+    void setupCamera(const ConfigWindow::GraphicsSettings &graphicsSettings) override;
+    void initializeScene(const ConfigWindow::GraphicsSettings &graphicsSettings) override;
+};

@@ -12,13 +12,14 @@ layout (std140) uniform matrices {
 };
 
 uniform mat4 modelMatrix;
-uniform mat3 normalMatrix;
 
 out vec3 normal;
 out vec3 fragPos;
 out vec3 position;
 
 void main() {
+	mat3 normalMatrix = mat3(modelMatrix);
+
 	normal = normalMatrix * aNorm;
 	position = vec3(modelMatrix * vec4(aPos, 1.0f));
 	gl_Position = projectionViewMatrix * vec4(position, 1.0f);

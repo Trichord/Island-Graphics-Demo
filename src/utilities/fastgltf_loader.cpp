@@ -80,6 +80,64 @@ fastgltf::Asset fastgltfLoader::loadAsset(const std::filesystem::path &path)
     return std::move(assetResult.get());
 }
 
+void calculateAABB(std::vector<Primitive::Mesh> &meshes)
+{
+    for (auto &mesh : meshes)
+        for (auto &primitive : mesh.primitives)
+        {
+            // Create AABB
+            float minX{std::numeric_limits<float>::infinity()};
+            float minY{std::numeric_limits<float>::infinity()};
+            float minZ{std::numeric_limits<float>::infinity()};
+            float maxX{-std::numeric_limits<float>::infinity()};
+            float maxY{-std::numeric_limits<float>::infinity()};
+            float maxZ{-std::numeric_limits<float>::infinity()};
+
+            for (const auto &vertex : primitive.getVertices())
+            {
+                minX = std::min(vertex.position.x, minX);
+                minY = std::min(vertex.position.y, minY);
+                minZ = std::min(vertex.position.z, minZ);
+
+                maxX = std::max(vertex.position.x, maxX);
+                maxY = std::max(vertex.position.y, maxY);
+                maxZ = std::max(vertex.position.z, maxZ);
+            }
+
+            primitive.setAABB(AABB{minX, minY, minZ, maxX, maxY, maxZ});
+        }
+}
+
+void applyNodeTransforms(const fastgltf::Asset &asset, std::vector<Primitive::Mesh> &meshes)
+{
+    for (std::size_t i{0}; i < asset.scenes.size(); ++i)
+    {
+        fastgltf::iterateSceneNodes(
+            asset, i, fastgltf::math::fmat4x4(1.0f), [&](const fastgltf::Node &node, fastgltf::math::fmat4x4 matrix) {
+                if (node.meshIndex.has_value())
+                {
+                    for (auto &primitive : meshes[node.meshIndex.value()].primitives)
+                    {
+                        glm::mat4 modelMatrix{0.0f};
+
+                        if (sizeof(modelMatrix[0][0]) != sizeof(matrix[0][0]))
+                            throw std::runtime_error("Incompatible matrix floats");
+
+                        memcpy(&modelMatrix, &matrix, 16 * sizeof(matrix[0][0]));
+
+                        glm::mat3 normalMatrix{glm::transpose(glm::inverse(modelMatrix))};
+
+                        for (auto &vertex : primitive.getMutableVertices())
+                        {
+                            vertex.position = glm::vec3{modelMatrix * glm::vec4{vertex.position, 1.0f}};
+                            vertex.normal = normalMatrix * vertex.normal;
+                        }
+                    }
+                }
+            });
+    }
+}
+
 std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(const fastgltf::Asset &asset)
 {
     std::vector<Primitive::Mesh> meshes;
@@ -162,35 +220,21 @@ std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(const fastgltf::Asset &a
                 alphaMode = asset.materials[materialIndex].alphaMode;
             }
 
-            // Create AABB
-            float minX{std::numeric_limits<float>::infinity()};
-            float minY{std::numeric_limits<float>::infinity()};
-            float minZ{std::numeric_limits<float>::infinity()};
-            float maxX{-std::numeric_limits<float>::infinity()};
-            float maxY{-std::numeric_limits<float>::infinity()};
-            float maxZ{-std::numeric_limits<float>::infinity()};
-
-            for (const auto &vertex : vertices)
-            {
-                minX = std::min(vertex.position.x, minX);
-                minY = std::min(vertex.position.y, minY);
-                minZ = std::min(vertex.position.z, minZ);
-
-                maxX = std::max(vertex.position.x, maxX);
-                maxY = std::max(vertex.position.y, maxY);
-                maxZ = std::max(vertex.position.z, maxZ);
-            }
-
-            AABB aabb{minX, minY, minZ, maxX, maxY, maxZ};
-
             // Build the primitive
-            mesh.primitives.emplace_back(std::move(vertices), std::move(indices), std::move(aabb), hasMaterials,
-                                         materialIndex, alphaMode);
+            mesh.primitives.emplace_back(std::move(vertices), std::move(indices), AABB{}, hasMaterials, materialIndex,
+                                         alphaMode);
         }
 
         // Add the mesh
         meshes.push_back(std::move(mesh));
     }
+
+    applyNodeTransforms(asset, meshes);
+    calculateAABB(meshes);
+
+    for (auto &mesh : meshes)
+        for (auto &primitive : mesh.primitives)
+            primitive.setupPrimitiveBuffers();
 
     return meshes;
 }

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <iostream>
 #include <iterator>
 #include <unordered_map>
 #include <utility>
@@ -19,32 +20,24 @@
 #include "renderable.h"
 #include "scene.h"
 #include "shader.h"
-#include "shader_types.h"
+#include "shader_type.h"
 #include "texture_manager.h"
 #include "texture_units.h"
 #include "texture_utilities.h"
 #include "transform.h"
 #include "world_vectors.h"
 
-// Normalized wind direction, east southeast with a slight downward angle
-constexpr float windStrength{0.07f};
-constexpr glm::vec3 windDir{0.892079f, -0.101373f, 0.440362f};
-
-// Bright midday sun
-constexpr glm::vec3 ambientLight{0.2f};
-constexpr glm::vec3 lightColor{1.0f, 0.95f, 0.9f};
-
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.25f};
 constexpr float alphaCutoff{0.5f};
 
 Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings)
-    : textureManager{threadPool}, graphicsSettings{settings}
+    : textureManager_{threadPool_}, graphicsSettings_{settings}
 {
     setupTextureManager();
     loadShaders();
 
-    for (auto &[_, shader] : shaders)
+    for (auto &[_, shader] : shaders_)
         setupShader(shader);
 }
 
@@ -55,18 +48,17 @@ Renderer::~Renderer()
 
 void Renderer::renderScene(Scene &scene)
 {
-    glClearNamedFramebufferfv(0, GL_COLOR, 0, clearColor.data());
-    glClearNamedFramebufferfv(0, GL_DEPTH, 0, &depthClear);
-
-    if (scene.getCamera().hasUpdated())
-        updateUBO(scene);
+    glClearNamedFramebufferfv(0, GL_COLOR, 0, clearColor_.data());
+    glClearNamedFramebufferfv(0, GL_DEPTH, 0, &depthClear_);
 
     updateShaderUniforms(scene);
 
-    resetVisibility(scene);
-    cullRenderables(scene);
-
-    glNamedBufferSubData(SSBO, 0, ssboData.size() * sizeof(SSBOData), ssboData.data());
+    if (scene.getCamera().hasUpdated())
+    {
+        updateUBO(scene);
+        resetVisibility(scene);
+        cullRenderables(scene);
+    }
 
     renderAllSceneObjects(scene);
 }
@@ -74,33 +66,35 @@ void Renderer::renderScene(Scene &scene)
 void Renderer::updateUBO(Scene &scene)
 {
     Camera &camera{scene.getCamera()};
-    uboData.viewMatrix = camera.getViewMatrix();
-    uboData.projectionMatrix = camera.getProjectionMatrix();
-    uboData.viewProjectionMatrix = camera.getViewProjectionMatrix();
-    uboData.inverseViewProjectMatrix = glm::inverse(uboData.viewProjectionMatrix);
-    uboData.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
+    uboCameraData_.viewMatrix = camera.getViewMatrix();
+    uboCameraData_.projectionMatrix = camera.getProjectionMatrix();
+    uboCameraData_.viewProjectionMatrix = camera.getViewProjectionMatrix();
+    uboCameraData_.inverseViewProjectMatrix = glm::inverse(uboCameraData_.viewProjectionMatrix);
+    uboCameraData_.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
 
-    glNamedBufferSubData(UBO, 0, sizeof(PackedUBOData), &uboData);
+    glNamedBufferSubData(UBO_, 0, sizeof(PackedCameraData), &uboCameraData_);
 }
 
 void Renderer::setupTextureManager()
 {
-    if (graphicsSettings.anisotropicFiltering)
-        textureManager.setAnisoLevel(static_cast<float>(graphicsSettings.anisotropicFiltering));
+    if (graphicsSettings_.anisotropicFiltering)
+        textureManager_.setAnisoLevel(static_cast<float>(graphicsSettings_.anisotropicFiltering));
 }
 
 void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    shaders.emplace(FLOWERS, Shader{"./shaders/flowers.vert", "./shaders/flowers.frag"});
-    shaders.emplace(TREES, Shader{"./shaders/trees.vert", "./shaders/trees.frag"});
-    shaders.emplace(POINT_PBR, Shader{"./shaders/point_PBR.vert", "./shaders/point_PBR.frag"});
-    shaders.emplace(DIRECTIONAL_PBR, Shader{"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"});
-    shaders.emplace(REFLECTIVE, Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"});
-    shaders.emplace(SKYBOX, Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"});
-    shaders.emplace(WATER, Shader{"./shaders/water.vert", "./shaders/water.frag"});
-    shaders.emplace(OCEAN, Shader{"./shaders/water.vert", "./shaders/ocean.frag"});
+    shaders_.emplace(FLOWERS, Shader{"./shaders/flowers.vert", "./shaders/flowers.frag"});
+    shaders_.emplace(TREES, Shader{"./shaders/trees.vert", "./shaders/trees.frag"});
+    shaders_.emplace(POINT_PBR, Shader{"./shaders/point_PBR.vert", "./shaders/point_PBR.frag"});
+    shaders_.emplace(DIRECTIONAL_PBR, Shader{"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"});
+    shaders_.emplace(DIRECTIONAL_PBR_INSTANCED,
+                     Shader{"./shaders/directional_PBR_instanced.vert", "./shaders/directional_PBR.frag"});
+    shaders_.emplace(REFLECTIVE, Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"});
+    shaders_.emplace(SKYBOX, Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"});
+    shaders_.emplace(WATER, Shader{"./shaders/water.vert", "./shaders/water.frag"});
+    shaders_.emplace(OCEAN, Shader{"./shaders/water.vert", "./shaders/ocean.frag"});
 }
 
 void Renderer::setupShader(Shader &shader)
@@ -120,16 +114,10 @@ void Renderer::setupShader(Shader &shader)
     shader.setFloat("nearPlane", cameraDefaultValues::nearPlane);
     shader.setFloat("farPlane", cameraDefaultValues::farPlane);
 
-    shader.setVec3("ambientLight", ambientLight);
-    shader.setVec3("lightColor", lightColor);
-
-    shader.setFloat("windStrength", windStrength);
-    shader.setVec3("windDirection", windDir);
-
     shader.setFloat("mipScale", mipScale);
     shader.setFloat("alphaCutoff", alphaCutoff);
 
-    shader.setFloat("gamma", graphicsSettings.gamma);
+    shader.setFloat("gamma", graphicsSettings_.gamma);
 }
 
 void Renderer::updateShaderUniforms(Scene &scene)
@@ -148,7 +136,7 @@ void Renderer::updateShaderUniforms(Scene &scene)
     }
 
     // Set uniforms
-    for (auto &[_, shader] : shaders)
+    for (auto &[_, shader] : shaders_)
     {
         using enum ShaderType;
         if (dirUpdated)
@@ -160,42 +148,36 @@ void Renderer::updateShaderUniforms(Scene &scene)
     }
 }
 
-void Renderer::updateSSBO(IRenderable &object)
+void Renderer::setSceneShaderUniforms(Scene &scene)
 {
-    auto instances = object.getInstanceData();
-    // Move visible instances to front of vector
-    auto invisibleInstances = std::ranges::partition(instances,
-                               [](const InstanceData &instance) { return instance.isVisible; });
-
-    size_t instanceCount{static_cast<size_t>(invisibleInstances.begin() - instances.begin())};
-
-    object.setVisibleInstanceCount(instanceCount);
-
-    // Sort front to back for speed on depth testing, over proper alpha blending
-    std::sort(instances.begin(), instances.begin() + instanceCount,
-              [](const InstanceData &a, const InstanceData &b) { return a.sortKey < b.sortKey; });
-
-    std::size_t offset{ssboOffsets.at(object.getHandle())};
-
-    for (std::size_t i{0}; i < instanceCount; ++i)
+    // Set uniforms
+    for (auto &[_, shader] : shaders_)
     {
-        ssboData[offset + i].modelMatrix = instances[i].modelMatrix;
-        ssboData[offset + i].normalMatrix = instances[i].normalMatrix;
+        shader.setVec3("ambientLight", scene.getAmbientLight());
+        shader.setVec3("lightColor", scene.getGlobalLightSource().getColor());
+
+        shader.setFloat("windStrength", scene.getWindStrength());
+        shader.setVec3("windDirection", scene.getWindDirection());
     }
 }
 
 void Renderer::initializeResources(Scene &scene)
 {
+    scene.getCamera().setFOV(cameraDefaultValues::fov, static_cast<float>(graphicsSettings_.screenWidth) /
+                                                           static_cast<float>(graphicsSettings_.screenHeight));
+    loadInstancedData(scene);
     createBuffers(scene);
-    populateSSBO(scene);
     generateCubeMaps(scene);
     borrowSkyboxes(scene);
     updateUBO(scene);
+    setSceneShaderUniforms(scene);
+    cullRenderables(scene);
 }
 
 void Renderer::borrowSkyboxes(Scene &scene)
 {
     using enum ShaderType;
+
     auto &map = scene.getRenderablesByShader();
 
     if (!map.contains(SKYBOX) || !map.contains(OCEAN))
@@ -209,36 +191,38 @@ void Renderer::borrowSkyboxes(Scene &scene)
 
     for (int i{0}; i < skyboxes.size() && i < oceans.size(); ++i)
     {
-        auto &ocean = oceans[i].object.get();
-        auto &skybox = skyboxes[i].object.get();
+        auto &ocean = oceans[i].objectRef.get();
+        auto &skybox = skyboxes[i].objectRef.get();
 
-        textureManager.borrowAssignMaterials(ocean.getHandle(), skybox.getHandle(), CUBEMAP);
+        textureManager_.borrowAssignMaterials(ocean.getHandle(), skybox.getHandle(), CUBEMAP);
     }
 }
 
 void Renderer::createBuffers(Scene &scene)
 {
     // UBO
-    glCreateBuffers(1, &UBO);
-
-    glNamedBufferStorage(UBO, sizeof(PackedUBOData), nullptr, GL_DYNAMIC_STORAGE_BIT);
-
-    glBindBufferBase(GL_UNIFORM_BUFFER, 0, UBO);
-
-    // SSBO
-    glCreateBuffers(1, &SSBO);
-    std::size_t numInstances{0};
+    glCreateBuffers(1, &UBO_);
+    glNamedBufferStorage(UBO_, sizeof(PackedCameraData), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, UBO_);
 
     // Find total number of all instances across all scene objects
+    std::size_t numInstances{0};
     for (auto &[_, objectList] : scene.getRenderablesByShader())
         for (auto &renderable : objectList)
-            numInstances += renderable.object.get().getInstanceData().size();
+            numInstances += renderable.properties.visibleInstances;
 
-    ssboData.reserve(numInstances);
+    // Instanced model matrices
+    glCreateBuffers(1, &matricesSSBO_);
+    glNamedBufferStorage(matricesSSBO_, numInstances * sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, matricesSSBO_);
 
-    glNamedBufferStorage(SSBO, numInstances * sizeof(SSBOData), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    // Indices into the model matrices buffer
+    glCreateBuffers(1, &indicesSSBO_);
+    glNamedBufferStorage(indicesSSBO_, numInstances * sizeof(std::uint32_t), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indicesSSBO_);
 
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, SSBO);
+    // Fill the SSBOs with all instanced model data
+    populateSSBOs(scene, numInstances);
 }
 
 void Renderer::generateCubeMaps(Scene &scene)
@@ -267,7 +251,7 @@ void Renderer::generateCubeMaps(Scene &scene)
     Camera &camera{scene.getCamera()};
 
     // Half size render targets for water reflections
-    int size{std::max(graphicsSettings.screenWidth, graphicsSettings.screenHeight) / 2};
+    int size{std::max(graphicsSettings_.screenWidth, graphicsSettings_.screenHeight) / 2};
     int mipLevels = static_cast<int>(std::floor(std::log2(size)) + 1);
 
     // Save camera settings before we make it bounce around the scene
@@ -276,14 +260,19 @@ void Renderer::generateCubeMaps(Scene &scene)
     float originalYaw{camera.getYaw()};
     camera.setFOV(90.0f, 1.0f);
 
-    RenderTarget cubeFace(size, size, graphicsSettings.msaa, false);
+    RenderTarget cubeFace(size, size, graphicsSettings_.msaa, false);
     RenderTarget resolveTarget(size, size, 0, false);
 
-    for (auto &waterPlane : waters)
+    for (auto &renderable : waters)
     {
-        camera.setPosition(waterPlane.properties.transform.getPosition());
+        if (!std::holds_alternative<Transform>(renderable.properties.transform))
+            continue;
 
-        waterPlane.properties.isVisible = false;
+        Transform &transform{std::get<Transform>(renderable.properties.transform)};
+
+        camera.setPosition(transform.getPosition());
+
+        renderable.properties.isVisible = false;
 
         // Create the cubemap texture
         GLuint cubeMapTextureID{0};
@@ -309,9 +298,9 @@ void Renderer::generateCubeMaps(Scene &scene)
         glTextureParameteri(cubeMapTextureID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
         // Assign the texture
-        auto &obj = waterPlane.object.get();
-        textureManager.setMaterial(obj.getHandle(), CUBEMAP, cubeMapTextureID);
-        waterPlane.properties.isVisible = true;
+        auto &waterPlane = renderable.objectRef.get();
+        textureManager_.setMaterial(waterPlane.getHandle(), CUBEMAP, cubeMapTextureID);
+        renderable.properties.isVisible = true;
     }
 
     // Reset
@@ -323,48 +312,86 @@ void Renderer::generateCubeMaps(Scene &scene)
 
     // Restore default framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, graphicsSettings.screenWidth, graphicsSettings.screenHeight);
+    glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
 }
 
-void Renderer::populateSSBO(Scene &scene)
+void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
 {
+    // Reserve max amount for matrices
+    std::vector<glm::mat4> modelMatrices;
+    modelMatrices.reserve(totalInstanceCount);
+    instanceIndices_.reserve(totalInstanceCount);
+
     GLuint offset{0};
+    indicesOffset_ = 0;
+    instanceIndices_.clear();
 
-    for (auto &[_, objectList] : scene.getRenderablesByShader())
-        for (auto &renderable : objectList)
+    for (auto &[_, renderables] : scene.getRenderablesByShader())
+        for (auto &renderable : renderables)
         {
-            auto &object = renderable.object.get();
-
-            if (!object.getInstanceCount())
+            if (!renderable.properties.isInstanced())
                 continue;
 
-            // Keep track of where each model's start position is in the SSBO. Even
-            // with sorting and changing instance count, the starting offset into the
-            // SSBO will never change.
-            ssboOffsets.emplace(object.getHandle(), offset);
+            auto &object{renderable.objectRef.get()};
+            auto &instances{std::get<std::vector<InstancedData>>(renderable.properties.transform)};
 
-            // Build and track each instance's offset into the buffer
-            for (auto &instance : object.getInstanceData())
-                ssboData.emplace_back(instance.modelMatrix, instance.normalMatrix);
+            if (instances.empty())
+                continue;
 
-            offset += static_cast<GLuint>(object.getInstanceData().size());
+            // Keep track of start position for each model's matrices in the SSBO.
+            instancedBaseOffsets_.emplace(object.getHandle(), offset);
+
+            for (uint32_t i{0}; i < instances.size(); ++i)
+            {
+                // Add the model matrix to one SSBO
+                modelMatrices.emplace_back(instances[i].modelMatrix);
+
+                // And the indices to the other
+                ++renderable.properties.visibleInstances;
+                instanceIndices_.push_back(i);
+            }
+
+            offset += static_cast<GLuint>(instances.size());
+            indicesOffset_ += static_cast<std::uint32_t>(instances.size());
         }
 
-    glNamedBufferSubData(SSBO, 0, ssboData.size() * sizeof(SSBOData), ssboData.data());
+    glNamedBufferSubData(matricesSSBO_, 0, modelMatrices.size() * sizeof(glm::mat4), modelMatrices.data());
+    glNamedBufferSubData(indicesSSBO_, 0, instanceIndices_.size() * sizeof(std::uint32_t), instanceIndices_.data());
 }
 
 TextureManager &Renderer::getTextureManager()
 {
-    return textureManager;
+    return textureManager_;
 }
 
 void Renderer::deleteBuffers()
 {
-    glDeleteBuffers(1, &UBO);
-    glDeleteBuffers(1, &SSBO);
+    glDeleteBuffers(1, &UBO_);
+    glDeleteBuffers(1, &matricesSSBO_);
 }
 
 void Renderer::allResourcesLoaded()
 {
-    threadPool.stopAllThreads();
+    threadPool_.stopAllThreads();
+}
+
+void Renderer::loadInstancedData(Scene &scene)
+{
+    for (auto &[_, renderables] : scene.getRenderablesByShader())
+        for (auto &renderable : renderables)
+        {
+            // Make everything visible for cubemap generation
+            renderable.properties.isVisible = true;
+            renderable.objectRef.get().setVisibility(true);
+
+            auto &object = renderable.objectRef.get();
+
+            if (auto instancedData = object.generateInstancedData(); instancedData.has_value())
+            {
+                std::vector<InstancedData> data{instancedData.value()};
+
+                renderable.properties.visibleInstances = static_cast<uint32_t>(data.size());
+                renderable.properties.transform = std::move(data);
+            }
+        }
 }
