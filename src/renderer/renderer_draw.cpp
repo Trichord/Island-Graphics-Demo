@@ -1,3 +1,4 @@
+#include "cull_method.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "primitive.h"
@@ -5,7 +6,7 @@
 #include "renderer.h"
 #include "scene.h"
 #include "shader.h"
-#include "shader_types.h"
+#include "shader_type.h"
 #include "texture_manager.h"
 #include "texture_units.h"
 
@@ -19,7 +20,7 @@ void Renderer::renderAllSceneObjects(Scene &scene)
         if (objectList.empty())
             continue;
 
-        Shader &shader{shaders.at(shaderType)};
+        Shader &shader{shaders_.at(shaderType)};
         shader.use();
 
         if (shaderType == SKYBOX)
@@ -30,28 +31,37 @@ void Renderer::renderAllSceneObjects(Scene &scene)
             if (!renderable.properties.isVisible)
                 continue;
 
-            glm::mat4 modelMatrix{renderable.properties.transform.getModelMatrix()};
-            glm::mat3 normalMatrix{renderable.properties.transform.getNormalMatrix()};
+            auto &object = renderable.objectRef.get();
+            auto &properties = renderable.properties;
 
-            shader.setMat4("modelMatrix", modelMatrix);
-            shader.setMat3("normalMatrix", normalMatrix);
-            shader.setVec3("scale", renderable.properties.transform.getScale());
+            if (std::holds_alternative<Transform>(properties.transform))
+            {
+                Transform &transform{std::get<Transform>(properties.transform)};
 
-            auto &object = renderable.object.get();
-            if (auto iter = ssboOffsets.find(object.getHandle()); iter != ssboOffsets.end())
-                shader.setInt("index", iter->second);
+                shader.setMat4("modelMatrix", transform.getModelMatrix());
+                shader.setVec3("scale", transform.getScale());
+            }
+
+            if (auto iter = instancedBaseOffsets_.find(object.getHandle()); iter != instancedBaseOffsets_.end())
+            {
+                shader.setIntU("baseIndex", iter->second);
+                shader.setIntU("indicesOffset", renderable.properties.instancedIndicesOffset);
+            }
 
             // Draw it
-            renderObject(object);
+            renderObject(renderable);
         }
+
         if (shaderType == SKYBOX)
             glDepthFunc(GL_LESS);
     }
 }
 
-void Renderer::renderObject(IRenderable &object)
+void Renderer::renderObject(Renderable &renderable)
 {
-    const auto &materials{textureManager.getMaterials(object.getHandle())};
+    auto &object = renderable.objectRef.get();
+    auto &properties = renderable.properties;
+    const auto &materials{textureManager_.getMaterials(object.getHandle())};
 
     for (const Primitive::Mesh &mesh : object.getMeshes())
     {
@@ -60,7 +70,9 @@ void Renderer::renderObject(IRenderable &object)
 
         for (const Primitive &primitive : mesh.primitives)
         {
-            glState.setAlphaMode(primitive.getAlphaMode());
+            using enum CullMethod;
+
+            glState_.setAlphaMode(primitive.getAlphaMode());
 
             if (primitive.materialsExist())
             {
@@ -70,14 +82,16 @@ void Renderer::renderObject(IRenderable &object)
 
             glBindVertexArray(primitive.getVAO());
 
-            if (object.getInstanceCount())
+            GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
+
+            if (properties.cullMethod == INSTANCED)
             {
-                GLsizei instanceCount{static_cast<GLsizei>(object.getInstanceCount())};
-                glDrawElementsInstanced(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0, instanceCount);
+                GLsizei instanceCount{static_cast<GLsizei>(properties.visibleInstances)};
+                glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0, instanceCount);
             }
 
             else
-                glDrawElements(GL_TRIANGLES, primitive.getIndicesSize(), GL_UNSIGNED_INT, 0);
+                glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0);
         }
     }
 }
@@ -87,14 +101,14 @@ void Renderer::bindTextures(const Material &materials)
     using enum Texture;
 
     if (materials.albedo)
-        glState.bindTexture(ALBEDO, materials.albedo);
+        glState_.bindTexture(ALBEDO, materials.albedo);
 
     if (materials.occlusionRoughnessMetallic)
-        glState.bindTexture(ARM, materials.occlusionRoughnessMetallic);
+        glState_.bindTexture(ARM, materials.occlusionRoughnessMetallic);
 
     if (materials.normal)
-        glState.bindTexture(NORMAL, materials.normal);
+        glState_.bindTexture(NORMAL, materials.normal);
 
     if (materials.cubemap)
-        glState.bindTexture(CUBEMAP, materials.cubemap);
+        glState_.bindTexture(CUBEMAP, materials.cubemap);
 }

@@ -1,9 +1,6 @@
 #pragma once
 
-/* Included glad.h, as this is the very first header used by main. If it were
- * not here, GLFW would trigger a glad.h include error.
- */
-
+#include "player_physics.h"
 #include "config_window.h"
 #include "gl_context.h"
 #include "scene.h"
@@ -21,15 +18,20 @@ class Application
     Application &operator=(const Application &) = delete;
     Application(Application &&other) = delete;
     Application &operator=(Application &&other) = delete;
+    ~Application();
     void run();
 
- private:
-  float deltaTime{0.0f};
-  float lastFrame{0.0f};
-  float currentFrame{0.0f};
-  static inline float lastMouseX{0.0f};
-  static inline float lastMouseY{0.0f};
-  GLFWwindow* window{nullptr};
+  private: 
+    float deltaTime_{0.0f};
+    float lastFrame_{0.0f};
+    float currentFrame_{0.0f};
+    float accumulator_{0.0f};
+    static inline bool leftCtrlToggle_{false};
+    static inline bool leftShiftToggle_{false};
+    static inline bool firstMouse_{true};
+    static inline float lastMouseX_{0.0f};
+    static inline float lastMouseY_{0.0f};
+    GLFWwindow *window_{nullptr};
 
     /**
      * @brief Creates a GLFW window.  Display settings from the config window are
@@ -42,7 +44,7 @@ class Application
      *
      * @param scene The target scene.
      */
-    void processInput(Scene &scene);
+    void processKeyboard(Scene &scene, PlayerPhysics &physicsHandler);
 
     /**
      * @brief Registers OpenGL function pointers, creates an OpenGL viewport, and
@@ -64,26 +66,27 @@ class Application
      */
     void addGlfwUserParam(Scene &scene);
 
-  /**
-   * GLFW mouse callback. Recieves updated cursor coordinates.
-   *
-   * @param window The window that recieved the event
-   * @param xPos The new x-coordinate, in screen coordinates, of the cursor.
-   * @param yPos The new y-coordinate, in screen coordinates, of the cursor.
-   */
-  static void mouse_callback(GLFWwindow* window, double xPos, double yPos);
+    void initializeJolt();
 
-  /**
-   * GLFW key callback, triggered when a keyboard button is pressed, repeated or
-   * released.
-   *
-   * @param window The window that received the event.
-   * @param key The keyboard key that was pressed or released.
-   * @param scancode The system-specific scancode of the key.
-   * @param action The button action, such as GLFW_PRESS, GLFW_RELEASE or
-   * GLFW_REPEAT
-   * @param mods Bit field describing which modifier keys were held down.
-   */
-  static void keyCallback(GLFWwindow* window, int key, int scancode,
-                               int action, int mods);
+    /**
+     * GLFW mouse callback. Recieves updated cursor coordinates.
+     *
+     * @param window The window that recieved the event
+     * @param xPos The new x-coordinate, in screen coordinates, of the cursor.
+     * @param yPos The new y-coordinate, in screen coordinates, of the cursor.
+     */
+    static void mouse_callback(GLFWwindow *window, double xPos, double yPos);
+
+    /**
+     * GLFW key callback, triggered when a keyboard button is pressed, repeated or
+     * released.
+     *
+     * @param window The window that received the event.
+     * @param key The keyboard key that was pressed or released.
+     * @param scancode The system-specific scancode of the key.
+     * @param action The button action, such as GLFW_PRESS, GLFW_RELEASE or
+     * GLFW_REPEAT
+     * @param mods Bit field describing which modifier keys were held down.
+     */
+    static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
 };

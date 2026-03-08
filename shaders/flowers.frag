@@ -45,7 +45,7 @@ void main() {
     float NdotL = dot(normalizedNormal, lightDirection);
 
     //Diffuse
-    float diffuseStrength = NdotL * 0.5 + 0.5;
+    float diffuseStrength = NdotL * 0.5 + 0.6;
 
 	//Scale alpha by mip level 0
     vec2 texSize = vec2(textureSize(albedoMap, 0));

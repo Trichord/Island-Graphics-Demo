@@ -41,23 +41,26 @@ class Primitive
 
     GLuint getVAO() const;
     const AABB &getAABB() const;
-    GLsizei getIndicesSize() const;
-    std::size_t getMaterialIndex() const;
+    void setAABB(const AABB &otherAABB);
     fastgltf::AlphaMode getAlphaMode() const;
     std::span<const Vertex> getVertices() const;
-    void setMaterialIndex(std::size_t newIndex);
+    std::span<const std::uint32_t> getIndices() const;
+
     bool materialsExist() const;
+    std::size_t getMaterialIndex() const;
+    void setMaterialIndex(std::size_t newIndex);
+
+    std::span<Vertex> getMutableVertices();
+    void setupPrimitiveBuffers();
 
   private:
-    GLuint VAO{0};
-    GLuint VBO{0};
-    GLuint EBO{0};
-    std::vector<Vertex> vertices;
-    std::vector<std::uint32_t> indices;
-    AABB aabb;
-    bool hasMaterials{false};
-    std::size_t materialIndex{0};
-    fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
-
-    void setupPrimitiveBuffers();
+    GLuint VAO_{0};
+    GLuint VBO_{0};
+    GLuint EBO_{0};
+    std::vector<Vertex> vertices_;
+    std::vector<std::uint32_t> indices_;
+    AABB aabb_;
+    bool hasMaterials_{false};
+    std::size_t materialIndex_{0};
+    fastgltf::AlphaMode alphaMode_{fastgltf::AlphaMode::Opaque};  
 };

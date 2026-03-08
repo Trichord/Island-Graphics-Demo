@@ -18,9 +18,9 @@ class ThreadPool
     void stopAllThreads();
 
   private:
-    std::atomic<bool> stop{false};
-    std::vector<std::thread> threads;
-    std::queue<std::function<void()>> tasks;
-    std::mutex queueMutex;
-    std::condition_variable workCondition;
+    std::atomic<bool> stop_{false};
+    std::vector<std::thread> threads_;
+    std::queue<std::function<void()>> tasks_;
+    std::mutex queueMutex_;
+    std::condition_variable workCondition_;
 };

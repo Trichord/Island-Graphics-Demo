@@ -43,14 +43,9 @@ class TextureManager
     void allModelsLoaded();
 
   private:
-    float anisoLevel{0.0f};
-    bool globalAnisoEnabled{false};
-
-    ThreadPool &threadPool;
-
     // Each entry in the vector corresponds to a gltf material index. Materials vector can contain duplicate IDs
-    // (multiple materials referencing the same texture atlas, etc.). Unordered set keeps track of which IDs need to be
-    // freed on destruction. Lenders keeps track of who the textures were borrowed from.
+    // (multiple materials referencing the same texture atlas, etc.). glTextureHandles keeps track of which IDs need to be
+    // freed on destruction. Lender keeps track of who the textures were borrowed from.
     struct ModelResources
     {
         int refCount{1};
@@ -59,7 +54,11 @@ class TextureManager
         ModelHandle lender{-1};
     };
 
-    std::unordered_map<ModelHandle, ModelResources> textureCache;
+    float anisoLevel_{0.0f};
+    bool globalAnisoEnabled_{false};
+
+    ThreadPool &threadPool_;
+    std::unordered_map<ModelHandle, ModelResources> textureCache_;
 
     // From a fastgltf::asset
     void textureFromAsset(fastgltf::Asset &asset, ModelHandle handle, std::filesystem::path parentPath);

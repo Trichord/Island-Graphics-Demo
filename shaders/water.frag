@@ -26,10 +26,11 @@ in VS_OUT
 } fs_in;
 
 const float dudvStrength = 0.01;
-const float waveSpeed = 0.005;
 const float specularDamper = 0.2;
 const vec4 waterColor = vec4(0.01, 0.48, 0.68, 0.0) * 0.2;
 const float waterTransparency = 0.35;
+
+float waveSpeed = 0.05;
 
 void main() 
 {	
@@ -38,7 +39,7 @@ void main()
 	vec3 H = normalize(L + V);
 
 	// Move textures by time
-	float movement = time * waveSpeed;
+	float movement = time * waveSpeed * 1.0 / (1.0 + log(1.0 + scale.x));
 
 	//Repeat texture based off model scale
 	float tileFactor = scale.x / 12.0;

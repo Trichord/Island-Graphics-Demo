@@ -11,7 +11,7 @@
 #include "renderable.h"
 #include "scene.h"
 #include "shader.h"
-#include "shader_types.h"
+#include "shader_type.h"
 #include "texture_manager.h"
 #include "thread_pool.h"
 
@@ -36,11 +36,12 @@ class Renderer
     TextureManager &getTextureManager();
 
   private:
-    static constexpr float depthClear{1.0f};
-    static constexpr std::array<float, 4> clearColor{0.0f, 0.0f, 0.0f, 1.0f};
+    std::uint32_t indicesOffset_{0};
+    static constexpr float depthClear_{1.0f};
+    static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
 
     // Packed UBO data holds everything we want to share with all shaders
-    struct PackedUBOData
+    struct PackedCameraData
     {
         glm::mat4 viewMatrix{1.0f};
         glm::mat4 projectionMatrix{1.0f};
@@ -49,46 +50,51 @@ class Renderer
         glm::vec4 cameraPosition{0.0f};
     };
 
-    struct SSBOData
-    {
-        glm::mat4 modelMatrix{1.0f};
-        glm::mat4 normalMatrix{1.0f};
-    };
-
-    ThreadPool threadPool{threadCount};
+    ThreadPool threadPool_{threadCount};
 
     // UBO
-    GLuint UBO{0};
-    PackedUBOData uboData;
+    GLuint UBO_{0};
+    PackedCameraData uboCameraData_;
 
-    // SSBO
-    GLuint SSBO{0};
-    std::vector<SSBOData> ssboData;
-    std::unordered_map<ModelHandle, GLuint> ssboOffsets;
+    // SSBOs
+    GLuint indicesSSBO_{0};
+    GLuint matricesSSBO_{0};
+    std::unordered_map<ModelHandle, GLuint> instancedBaseOffsets_;
 
     // Owned objects
-    GLState glState;
-    TextureManager textureManager;
-    std::unordered_map<ShaderType, Shader> shaders;
-    const ConfigWindow::GraphicsSettings graphicsSettings;
+    GLState glState_;
+    TextureManager textureManager_;
+    std::vector<std::uint32_t> instanceIndices_;
+    std::unordered_map<ShaderType, Shader> shaders_;
+    const ConfigWindow::GraphicsSettings graphicsSettings_;
 
+    // Renderer initialization
     void loadShaders();
     void setupTextureManager();
+
+    // Scene initialization
+    void createBuffers(Scene &scene);
     void setupShader(Shader &shader);
-    void resetVisibility(Scene &scene);
+    void borrowSkyboxes(Scene &scene);
+    void generateCubeMaps(Scene &scene);
+    void loadInstancedData(Scene &scene);
+    void setSceneShaderUniforms(Scene &scene);
+    void populateSSBOs(Scene &scene, std::size_t totalInstanceCount);
+
+    // Rendering
     void updateShaderUniforms(Scene &scene);
+    void renderAllSceneObjects(Scene &scene);
+    void renderObject(Renderable &renderable);
     void bindTextures(const Material &materials);
+
+    // Culling
+    void resetVisibility(Scene &scene);
     void cullRenderables(Scene &scene);
-    void cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
-                       const std::array<glm::vec4, 6> &frustumPlanes, bool cullByDistance);
     void cullModel(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
     void cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
-    void renderAllSceneObjects(Scene &scene);
-    void renderObject(IRenderable &object);
-    void generateCubeMaps(Scene &scene);
-    void updateSSBO(IRenderable &object);
-    void createBuffers(Scene &scene);
-    void borrowSkyboxes(Scene &scene);
-    void populateSSBO(Scene &scene);
+    void cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
+                       const std::array<glm::vec4, 6> &frustumPlanes);
+
+    // Cleanup
     void deleteBuffers();
 };
