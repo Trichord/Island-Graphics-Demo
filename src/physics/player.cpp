@@ -1,17 +1,20 @@
-#include "jolt/Jolt.h"
-
 #include "player.h"
 
-#include <iostream>
+#include "jolt/Jolt.h"
 
-#include "glm/glm.hpp"
-#include "glm/gtc/quaternion.hpp"
+#include "jolt/Core/Reference.h"
+#include "jolt/Core/TempAllocator.h"
+#include "jolt/Geometry/Plane.h"
+#include "jolt/Math/Quat.h"
+#include "jolt/Math/Real.h"
+#include "jolt/Math/Vec3.h"
+#include "jolt/Physics/Character/CharacterBase.h"
 #include "jolt/Physics/Character/CharacterVirtual.h"
+#include "jolt/Physics/Collision/Shape/CapsuleShape.h"
+#include "jolt/Physics/Collision/Shape/RotatedTranslatedShape.h"
+#include "jolt/Physics/Collision/Shape/Shape.h"
 #include "jolt/Physics/PhysicsSystem.h"
 #include "jolt_impl.h"
-#include "world_vectors.h"
-#include <jolt/Physics/Collision/Shape/CapsuleShape.h>
-#include <jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 
 void Player::init(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator)
 {
@@ -45,7 +48,7 @@ void Player::init(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tem
             .Create()
             .Get();
 
-    // Create 'player' character
+    // Settings for the player capsule
     Ref<CharacterVirtualSettings> settings = new CharacterVirtualSettings();
     settings->mMaxSlopeAngle = maxSlopeAngle_;
     settings->mShape = standingShape_;
@@ -54,6 +57,8 @@ void Player::init(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tem
     settings->mEnhancedInternalEdgeRemoval = true;
     settings->mInnerBodyShape = innerStandingShape_;
     settings->mInnerBodyLayer = Layers::MOVING;
+
+    // Create the player's capsule
     player_ = new CharacterVirtual(settings, RVec3::sZero(), Quat::sIdentity(), 0, &physicsSystem);
 }
 
@@ -74,6 +79,12 @@ void Player::setPosition(JPH::Vec3 position)
     player_->SetPosition(position);
 }
 
+void Player::setVelocity(JPH::Vec3 velocity)
+{
+    player_->SetLinearVelocity(velocity);
+    desiredVelocity_ = JPH::Vec3::sZero();
+}
+
 void Player::toggleCrouch(bool enable)
 {
     using namespace JPH;
@@ -83,13 +94,15 @@ void Player::toggleCrouch(bool enable)
 
     crouched_ = !crouched_;
 
-    bool isStanding = player_->GetShape() == standingShape_;
-    const Shape *shape = isStanding ? crouchingShape_ : standingShape_;
+    // Toggle crouch based off the current shape of the capsule
+    bool isStanding{player_->GetShape() == standingShape_};
+    const Shape *shape{isStanding ? crouchingShape_ : standingShape_};
+
     if (player_->SetShape(shape, 1.5f * physicsSystem_->GetPhysicsSettings().mPenetrationSlop,
                           physicsSystem_->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
                           physicsSystem_->GetDefaultLayerFilter(Layers::MOVING), {}, {}, *tempAllocator_))
     {
-        const Shape *inner_shape = isStanding ? innerCrouchingShape_ : innerStandingShape_;
+        const Shape *inner_shape{isStanding ? innerCrouchingShape_ : innerStandingShape_};
         player_->SetInnerBodyShape(inner_shape);
     }
 }
@@ -110,10 +123,7 @@ void Player::handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime)
 
     if (playerControlsHorizontalVelocity)
     {
-        //Sprinting
         float speed{characterSprinting_ ? characterSpeed_ * characterSprintSpeedMultiplier_ : characterSpeed_};
-        
-        //Crouching
         speed *= crouched_ ? characterCrouchSpeedMultiplier : 1.0f;
 
         // Smooth the player input
@@ -133,9 +143,9 @@ void Player::handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime)
 
     // Determine new basic velocity
     Vec3 currentVerticalVelocity{player_->GetLinearVelocity().Dot(player_->GetUp()) * player_->GetUp()};
-    Vec3 ground_velocity{player_->GetGroundVelocity()};
+    Vec3 groundVelocity{player_->GetGroundVelocity()};
     Vec3 newVelocity;
-    bool movingTowardsGround{(currentVerticalVelocity.GetY() - ground_velocity.GetY()) < 0.1f};
+    bool movingTowardsGround{(currentVerticalVelocity.GetY() - groundVelocity.GetY()) < 0.1f};
     if (player_->GetGroundState() == CharacterVirtual::EGroundState::OnGround // If on ground
         && (enableCharacterInertia_
                 ? movingTowardsGround // Inertia enabled: And not moving away from ground
@@ -143,7 +153,7 @@ void Player::handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime)
                       player_->GetGroundNormal()))) // Inertia disabled: And not on a slope that is too steep
     {
         // Assume velocity of ground when on ground
-        newVelocity = ground_velocity;
+        newVelocity = groundVelocity;
 
         // Jump
         if (jump && movingTowardsGround)
@@ -171,13 +181,13 @@ void Player::handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime)
     player_->SetLinearVelocity(newVelocity);
 }
 
-void Player::prePhysicsUpdate(float deltaTime)
+void Player::physicsUpdate(float deltaTime)
 {
     using namespace JPH;
 
-    // Move character
-    CharacterVirtual::ExtendedUpdateSettings update_settings;
-    player_->ExtendedUpdate(deltaTime, physicsSystem_->GetGravity(), update_settings,
+    // Move character, using default update settings
+    CharacterVirtual::ExtendedUpdateSettings updateSettings;
+    player_->ExtendedUpdate(deltaTime, physicsSystem_->GetGravity(), updateSettings,
                             physicsSystem_->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
                             physicsSystem_->GetDefaultLayerFilter(Layers::MOVING), {}, {}, *tempAllocator_);
 }

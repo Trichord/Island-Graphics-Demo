@@ -109,103 +109,22 @@ This work is based on "Set of Modular Rocks" (https://sketchfab.com/3d-models/se
 
 
 
-**Point to Triangle and Segment to Segment Distance Functions**
-David Eberly, Geometric Tools, Redmond WA 98052
-
-Copyright (c) 1998-2025
-
-Distributed under the Boost Software License, Version 1.0.
-
-https://www.boost.org/LICENSE\_1\_0.txt
-
-https://www.geometrictools.com/License/Boost/LICENSE\_1\_0.txt
-
-File Version: 8.0.2025.05.10
-
-**Source SDK 2013**
-SOURCE 1 SDK LICENSE
+**Jolt Physics**
+Copyright 2021 Jorrit Rouwe
 
 
 
-Source SDK Copyright(c) Valve Corp.  
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
 
 
-THIS DOCUMENT DESCRIBES A CONTRACT BETWEEN YOU AND VALVE 
-
-CORPORATION ("Valve").  PLEASE READ IT BEFORE DOWNLOADING OR USING 
-
-THE SOURCE ENGINE SDK ("SDK"). BY DOWNLOADING AND/OR USING THE 
-
-SOURCE ENGINE SDK YOU ACCEPT THIS LICENSE. IF YOU DO NOT AGREE TO 
-
-THE TERMS OF THIS LICENSE PLEASE DON’T DOWNLOAD OR USE THE SDK.  
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 
 
-&nbsp; You may, free of charge, download and use the SDK to develop a modified Valve game 
-
-running on the Source engine.  You may distribute your modified Valve game in source and 
-
-object code form, but only for free. Terms of use for Valve games are found in the Steam 
-
-Subscriber Agreement located here: http://store.steampowered.com/subscriber\_agreement/ 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 
-&nbsp; You may copy, modify, and distribute the SDK and any modifications you make to the 
 
-SDK in source and object code form, but only for free.  Any distribution of this SDK must 
-
-include this LICENSE file and thirdpartylegalnotices.txt.  
-
-&nbsp;
-
-&nbsp; Any distribution of the SDK or a substantial portion of the SDK must include the above 
-
-copyright notice and the following: 
-
-
-
-&nbsp;   DISCLAIMER OF WARRANTIES.  THE SOURCE SDK AND ANY 
-
-&nbsp;   OTHER MATERIAL DOWNLOADED BY LICENSEE IS PROVIDED 
-
-&nbsp;   "AS IS".  VALVE AND ITS SUPPLIERS DISCLAIM ALL 
-
-&nbsp;   WARRANTIES WITH RESPECT TO THE SDK, EITHER EXPRESS 
-
-&nbsp;   OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, IMPLIED 
-
-&nbsp;   WARRANTIES OF MERCHANTABILITY, NON-INFRINGEMENT, 
-
-&nbsp;   TITLE AND FITNESS FOR A PARTICULAR PURPOSE.  
-
-
-
-&nbsp;   LIMITATION OF LIABILITY.  IN NO EVENT SHALL VALVE OR 
-
-&nbsp;   ITS SUPPLIERS BE LIABLE FOR ANY SPECIAL, INCIDENTAL, 
-
-&nbsp;   INDIRECT, OR CONSEQUENTIAL DAMAGES WHATSOEVER 
-
-&nbsp;   (INCLUDING, WITHOUT LIMITATION, DAMAGES FOR LOSS OF 
-
-&nbsp;   BUSINESS PROFITS, BUSINESS INTERRUPTION, LOSS OF 
-
-&nbsp;   BUSINESS INFORMATION, OR ANY OTHER PECUNIARY LOSS) 
-
-&nbsp;   ARISING OUT OF THE USE OF OR INABILITY TO USE THE 
-
-&nbsp;   ENGINE AND/OR THE SDK, EVEN IF VALVE HAS BEEN 
-
-&nbsp;   ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.  
-
-&nbsp;
-
-&nbsp;      
-
-If you would like to use the SDK for a commercial purpose, please contact Valve at 
-
-sourceengine@valvesoftware.com.
 

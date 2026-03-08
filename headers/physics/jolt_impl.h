@@ -3,6 +3,12 @@
 #include "jolt/Jolt.h"
 
 #include "glm/glm.hpp"
+#include "jolt/Core/Core.h"
+#include "jolt/Core/IssueReporting.h"
+#include "jolt/Math/Float3.h"
+#include "jolt/Math/Vec3.h"
+#include "jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h"
+#include "jolt/Physics/Collision/ObjectLayer.h"
 
 static inline glm::vec3 toGLM(const JPH::Vec3 &vec)
 {
@@ -21,16 +27,16 @@ static inline JPH::Float3 toJPHFloat3(const glm::vec3 &vec)
 
 namespace Layers
 {
-static constexpr JPH::ObjectLayer NON_MOVING = 0;
-static constexpr JPH::ObjectLayer MOVING = 1;
-static constexpr JPH::ObjectLayer NUM_LAYERS = 2;
+static constexpr JPH::ObjectLayer NON_MOVING{0};
+static constexpr JPH::ObjectLayer MOVING{1};
+static constexpr JPH::ObjectLayer NUM_LAYERS{2};
 }; // namespace Layers
 
 namespace BroadPhaseLayers
 {
-static constexpr JPH::BroadPhaseLayer NON_MOVING(0);
-static constexpr JPH::BroadPhaseLayer MOVING(1);
-static constexpr JPH::uint NUM_LAYERS(2);
+static constexpr JPH::BroadPhaseLayer NON_MOVING{0};
+static constexpr JPH::BroadPhaseLayer MOVING{1};
+static constexpr JPH::uint NUM_LAYERS{2};
 }; // namespace BroadPhaseLayers
 
 /// Class that determines if two object layers can collide
