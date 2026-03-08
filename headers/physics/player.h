@@ -4,9 +4,12 @@
 
 #include "glm/glm.hpp"
 #include "jolt/Core/Reference.h"
+#include "jolt/Core/TempAllocator.h"
+#include "jolt/Math/Vec3.h"
 #include "jolt/Physics/Character/Character.h"
 #include "jolt/Physics/Character/CharacterVirtual.h"
 #include "jolt/Physics/Collision/Shape/Shape.h"
+#include "jolt/Physics/PhysicsSystem.h"
 
 class Player
 {
@@ -18,13 +21,16 @@ class Player
     Player &operator=(Player &&other) = delete;
 
     void init(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator);
+
     JPH::Vec3 getCenter() const;
     JPH::Vec3 getPosition() const;
     void setPosition(JPH::Vec3 position);
+    void setVelocity(JPH::Vec3 velocity);
     void toggleCrouch(bool enable);
     void toggleSprint(bool enable);
+
+    void physicsUpdate(float deltaTime);
     void handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime);
-    void prePhysicsUpdate(float deltaTime);
 
   private:
     // Character size
@@ -35,31 +41,31 @@ class Player
     static constexpr float innerShapeFraction_{0.9f};
 
     // Terrain interaction
-    static constexpr float maxSlopeAngle_{glm::radians(45.0f)};
+    static constexpr float maxSlopeAngle_{JPH::DegreesToRadians(45.0f)};
 
     // Character movement properties
     static constexpr float jumpSpeed_{2.75f};
     static constexpr float characterSpeed_{4.0f};
-    static constexpr float characterSprintSpeedMultiplier_{1.1f};
     static constexpr float characterCrouchSpeedMultiplier{0.4f};
-    bool controlMovementDuringJump_{true}; // If false the character cannot change movement direction in mid air
+    static constexpr float characterSprintSpeedMultiplier_{1.1f};
     bool crouched_{false};
     bool allowSliding_{false};
     bool characterSprinting_{false};
     bool enableCharacterInertia_{true};
+    bool controlMovementDuringJump_{true}; // If false the character cannot change movement direction in mid air
 
     JPH::Vec3 desiredVelocity_{0.0f, 0.0f, 0.0f};
 
     // The different stances for the character
     JPH::RefConst<JPH::Shape> standingShape_;
+    JPH::RefConst<JPH::Shape> innerStandingShape_;
     JPH::RefConst<JPH::Shape> crouchingShape_;
     JPH::RefConst<JPH::Shape> innerCrouchingShape_;
-    JPH::RefConst<JPH::Shape> innerStandingShape_;
 
+    // Capsule
     JPH::Ref<JPH::CharacterVirtual> player_;
 
-    // Non-owning pointers. PlayerPhysics is the only one who should ever have a Player class, and both should be freed
-    // together
+    // Non-owning pointers
     JPH::PhysicsSystem *physicsSystem_{nullptr};
     JPH::TempAllocatorImpl *tempAllocator_{nullptr};
 };

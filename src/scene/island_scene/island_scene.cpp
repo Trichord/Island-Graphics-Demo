@@ -22,9 +22,7 @@ IslandScene::IslandScene(TextureManager &textureManager, const ConfigWindow::Gra
 void IslandScene::initializeScene(const ConfigWindow::GraphicsSettings &graphicsSettings)
 {
     setupCamera(graphicsSettings);
-    std::cout << "Loading Models...";
     addAllModelsToScene();
-    std::cout << " Done." << std::endl;
     setupEnvironment();
 }
 
