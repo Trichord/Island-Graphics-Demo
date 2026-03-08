@@ -12,7 +12,6 @@ constexpr float pitch{0.0f};
 constexpr float maxPitch{85.0f};
 constexpr float minPitch{-maxPitch};
 
-constexpr float speed{5.0f};
 constexpr float sensitivity{0.1f};
 
 constexpr float fov{45.0f};
@@ -21,26 +20,17 @@ constexpr float farPlane{850.0f};
 constexpr float aspectRatio{16.0f / 9.0f};
 } // namespace cameraDefaultValues
 
-enum class CameraMovement
-{
-    FORWARD,
-    BACKWARD,
-    LEFT,
-    RIGHT,
-    UP,
-    DOWN
-};
-
 class Camera
 {
   public:
     Camera(glm::vec3 position = glm::vec3{0.0f}, float yaw = cameraDefaultValues::yaw,
            float pitch = cameraDefaultValues::pitch);
 
-    bool hasUpdated();
+    [[nodiscard("Consumes 'updated' flag")]] bool hasUpdated();
 
     float getYaw() const;
     float getPitch() const;
+    const glm::vec3 getFront() const;
     const glm::vec3 &getPosition() const;
 
     const glm::mat4 &getViewMatrix();
@@ -56,23 +46,22 @@ class Camera
     void setWorldOrientation(WorldOrientation orientation);
 
     void processMouseMovement(float xOffset, float yOffset);
-    void processKeyboard(CameraMovement direction, float deltaTime, bool sprint = false);
 
   private:
-    float yaw{0.0f};
-    float pitch{0.0f};
-    glm::vec3 position{0.0f};
-    glm::mat4 viewMatrix{1.0f};
-    glm::mat4 projectionMatrix{1.0f};
-    glm::mat4 viewProjectionMatrix{1.0f};
+    float yaw_{0.0f};
+    float pitch_{0.0f};
+    glm::vec3 position_{0.0f};
+    glm::mat4 viewMatrix_{1.0f};
+    glm::mat4 projectionMatrix_{1.0f};
+    glm::mat4 viewProjectionMatrix_{1.0f};
 
-    bool hasChanged{false};
-    bool dirtyMatrices{true};
+    bool hasChanged_{false};
+    bool dirtyMatrices_{true};
 
     // Left, Right, Top, Bottom, Near, Far
-    std::array<glm::vec4, 6> frustumPlanes{glm::vec4{}, glm::vec4{}, glm::vec4{},
+    std::array<glm::vec4, 6> frustumPlanes_{glm::vec4{}, glm::vec4{}, glm::vec4{},
                                            glm::vec4{}, glm::vec4{}, glm::vec4{}};
 
     void updateMatrices();
-    glm::vec3 createFront();
+    glm::vec3 createFront() const;
 };

@@ -10,51 +10,64 @@
 #include "light.h"
 #include "point_light.h"
 #include "renderable.h"
-#include "shader_types.h"
+#include "shader_type.h"
 #include "texture_manager.h"
 #include "transform.h"
 
-Scene::Scene(TextureManager &textureManager) : sceneResources{textureManager}
+Scene::Scene(TextureManager &textureManager) : sceneResources_{textureManager}
 {
-    pointLights.reserve(sceneMaxObjects::maxLights);
+    using namespace sceneMaxObjects;
+
+    pointLights_.reserve(maxLights);
+    namedTransforms_.reserve(maxModels + maxLights);
 }
 
 std::map<ShaderType, std::vector<Renderable>> &Scene::getRenderablesByShader()
 {
-    return sceneRenderables;
+    return sceneRenderables_;
 }
 
 Transform &Scene::getObjectTransform(const std::string &key)
 {
-    return namedTransforms.at(key).get();
+    return namedTransforms_.at(key).get();
 }
 
 Light &Scene::getNamedLight(const std::string &key)
 {
-    return namedLights.at(key).get();
+    return namedLights_.at(key).get();
 }
 
 DirectionalLight &Scene::getGlobalLightSource()
 {
-    return globalLightSource;
+    return globalLightSource_;
 }
 
 std::vector<PointLight> &Scene::getPointLights()
 {
-    return pointLights;
+    return pointLights_;
 }
 
 glm::vec3 Scene::getAmbientLight() const
 {
-    return ambientLight;
+    return ambientLight_;
 }
 
 void Scene::setAmbientLight(const glm::vec3 &ambient)
 {
-    ambientLight = ambient;
+    ambientLight_ = ambient;
 }
 
 Camera &Scene::getCamera()
 {
-    return camera;
+    return camera_;
+}
+
+const glm::vec3 &Scene::getWindDirection() const
+{
+    return windDirection_;
+}
+
+float Scene::getWindStrength() const
+{
+    return windStrength_;
 }

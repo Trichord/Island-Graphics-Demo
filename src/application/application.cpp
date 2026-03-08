@@ -1,6 +1,9 @@
 #include "application.h"
 
+#include <cstdint>
 #include <iostream>
+
+#include "jolt/Jolt.h"
 
 #include "camera.h"
 #include "config_window.h"
@@ -8,8 +11,27 @@
 #include "glfw_callbacks.h"
 #include "glm/glm.hpp"
 #include "island_scene.h"
+#include "jolt/Core/Factory.h"
+#include "jolt/Core/Memory.h"
+#include "jolt/Core/TempAllocator.h"
+#include "jolt/Physics/PhysicsSystem.h"
+#include "jolt/registerTypes.h"
+#include "player_physics.h"
 #include "renderer.h"
 #include "scene.h"
+
+constexpr size_t joltStackSize{10 * 1024 * 1024}; // 10 MB for Jolt's internal stack space
+
+Application::~Application()
+{
+    using namespace JPH;
+
+    //Cleanup Jolt Physics
+    delete Factory::sInstance;
+    Factory::sInstance = nullptr;
+
+    glfwTerminate();
+}
 
 void Application::run()
 {
@@ -20,50 +42,65 @@ void Application::run()
         return;
 
     createWindow(graphicsSettings);
-    if (!window)
+    if (!window_)
         return;
 
     createOpenGLViewport(graphicsSettings);
     registerCallbacks();
+    initializeJolt();
 
+    // Create resources
+    std::cout << "Compiling Shaders... ";
     Renderer renderer(graphicsSettings);
+    std::cout << "Done" << std::endl;
 
+    std::cout << "Loading Models... ";
     IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
+    std::cout << "Done" << std::endl;
 
+    JPH::PhysicsSystem physicsSystem;
+    JPH::TempAllocatorImpl tempAllocator{joltStackSize};
+
+    // Initialize scene dependent resources
     renderer.initializeResources(islandScene);
     renderer.allResourcesLoaded();
+
+    std::cout << "Creating Collision Mesh... ";
+    PlayerPhysics physicsHandler(islandScene, physicsSystem, tempAllocator);
+    std::cout << "Done" << std::endl;
 
     addGlfwUserParam(islandScene);
 
     // Average FPS
-    double totalTime{0};
-    double framesRendered{0};
+    float totalTime{0};
+    unsigned long long framesRendered{0};
 
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(window_))
     {
         // Delta Time
-        currentFrame = (float)glfwGetTime();
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
+        currentFrame_ = (float)glfwGetTime();
+        deltaTime_ = currentFrame_ - lastFrame_;
+        lastFrame_ = currentFrame_;
 
         // Final FPS count
-        totalTime += deltaTime;
+        totalTime += deltaTime_;
         ++framesRendered;
 
         // Update scene objects
-        islandScene.onUpdate(deltaTime);
+        islandScene.onUpdate(deltaTime_);
+
+        // Physics
+        processKeyboard(islandScene, physicsHandler);
 
         // Draw
         renderer.renderScene(islandScene);
 
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(window_);
 
         // User input
         glfwPollEvents();
-        processInput(islandScene);
     }
 
-    glfwTerminate();
     std::cout << "Average FPS: " << framesRendered / totalTime << std::endl;
     return;
 }
@@ -86,18 +123,18 @@ void Application::createWindow(const ConfigWindow::GraphicsSettings &graphicsSet
     int height{graphicsSettings.screenHeight};
 
     if (graphicsSettings.fullscreen)
-        window = glfwCreateWindow(width, height, "Island Graphics Demo", glfwGetPrimaryMonitor(), nullptr);
+        window_ = glfwCreateWindow(width, height, "Island Graphics Demo", glfwGetPrimaryMonitor(), nullptr);
 
     else
-        window = glfwCreateWindow(width, height, "Island Graphics Demo", NULL, NULL);
+        window_ = glfwCreateWindow(width, height, "Island Graphics Demo", NULL, NULL);
 
-    if (!window)
+    if (!window_)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
     }
 
-    glfwMakeContextCurrent(window);
+    glfwMakeContextCurrent(window_);
 
     if (graphicsSettings.vsync)
         glfwSwapInterval(1);
@@ -129,51 +166,107 @@ void Application::createOpenGLViewport(const ConfigWindow::GraphicsSettings &gra
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-void Application::processInput(Scene &scene)
+void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
 {
-    using enum CameraMovement;
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    using enum CharacterMovement;
+
+    std::uint8_t direction{0};
+    bool jump{false};
+
+    Camera &camera{scene.getCamera()};
+    const glm::vec3 front{camera.getFront()};
+
+    glm::vec3 previousPos{physicsHandler.getPreviousPosition()};
+
+    accumulator_ += deltaTime_;
+
+    if (glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
+        glfwSetWindowShouldClose(window_, GLFW_TRUE);
         return;
     }
 
-    const bool sprint{glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS};
+    if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS)
+        direction |= FORWARD;
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        scene.getCamera().processKeyboard(FORWARD, deltaTime, sprint);
+    if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS)
+        direction |= BACKWARD;
 
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        scene.getCamera().processKeyboard(BACKWARD, deltaTime, sprint);
+    if (glfwGetKey(window_, GLFW_KEY_A) == GLFW_PRESS)
+        direction |= LEFT;
 
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        scene.getCamera().processKeyboard(LEFT, deltaTime, sprint);
+    if (glfwGetKey(window_, GLFW_KEY_D) == GLFW_PRESS)
+        direction |= RIGHT;
 
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        scene.getCamera().processKeyboard(RIGHT, deltaTime, sprint);
+    if (glfwGetKey(window_, GLFW_KEY_SPACE) == GLFW_PRESS)
+        jump = true;
 
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        scene.getCamera().processKeyboard(UP, deltaTime, sprint);
+    physicsHandler.toggleCrouch(leftCtrlToggle_);
+    physicsHandler.toggleSprint(leftShiftToggle_);
 
-    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-        scene.getCamera().processKeyboard(DOWN, deltaTime, sprint);
-}
-
-void Application::mouse_callback(GLFWwindow* window, double xPos, double yPos) {
-  static bool firstMouse{true};
-
-    if (firstMouse)
+    while (accumulator_ > physicsTick)
     {
-        lastMouseX = (float)xPos;
-        lastMouseY = (float)yPos;
-        firstMouse = false;
+        previousPos = physicsHandler.getPosition();
+        physicsHandler.update(direction, front, jump, leftCtrlToggle_, physicsTick);
+        accumulator_ -= physicsTick;
     }
 
-    float xOffset{(float)(xPos - lastMouseX)};
-    float yOffset{(float)(lastMouseY - yPos)};
+    // Interpolate camera between last position and latest physics tick (Glenn Fiedler)
+    float alpha{accumulator_ / physicsTick};
+    glm::vec3 interpolatedPos{glm::mix(previousPos, physicsHandler.getPosition(), alpha)};
 
-    lastMouseX = (float)xPos;
-    lastMouseY = (float)yPos;
+    camera.setPosition(interpolatedPos);
+
+    /*
+    //****************************************
+    // Object Positioning - For Testing Only *
+    //****************************************
+    Transform &transform{scene.getObjectTransform("spaceModel")};
+    constexpr float objectSpeed{0.5f};
+
+    // +- Z
+    if (glfwGetKey(window, GLFW_KEY_KP_8) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{0.0f, 0.0f, -objectSpeed * deltaTime});
+
+    if (glfwGetKey(window, GLFW_KEY_KP_5) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{0.0f, 0.0f, objectSpeed * deltaTime});
+
+    // +- X
+    if (glfwGetKey(window, GLFW_KEY_KP_4) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{-objectSpeed * deltaTime, -0.0f, 0.0f});
+
+    if (glfwGetKey(window, GLFW_KEY_KP_6) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{objectSpeed * deltaTime, 0.0f, 0.0f});
+
+    // +- Y
+    if (glfwGetKey(window, GLFW_KEY_KP_7) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{0.0f, -objectSpeed * deltaTime, 0.0f});
+
+    if (glfwGetKey(window, GLFW_KEY_KP_9) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{0.0f, objectSpeed * deltaTime, 0.0f});
+
+    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+    {
+        const glm::vec3 &pos{transform.getPosition()};
+        std::cout << "Transform at: (" << pos.x << ", " << pos.y << ", " << pos.z << ")" << std::endl;
+    }
+    */
+}
+
+void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
+{
+    if (firstMouse_)
+    {
+        lastMouseX_ = (float)xPos;
+        lastMouseY_ = (float)yPos;
+        firstMouse_ = false;
+    }
+
+    float xOffset{(float)(xPos - lastMouseX_)};
+    float yOffset{(float)(lastMouseY_ - yPos)};
+
+    lastMouseX_ = (float)xPos;
+    lastMouseY_ = (float)yPos;
 
     auto scenePointer = static_cast<IslandScene *>(glfwGetWindowUserPointer(window));
 
@@ -181,19 +274,33 @@ void Application::mouse_callback(GLFWwindow* window, double xPos, double yPos) {
         scenePointer->getCamera().processMouseMovement(xOffset, yOffset);
 }
 
-void Application::registerCallbacks() {
-  glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-  glfwSetKeyCallback(window, Application::keyCallback);
-  glfwSetCursorPosCallback(window, Application::mouse_callback);
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  glfwSetWindowIconifyCallback(window, window_iconify_callback);
+void Application::registerCallbacks()
+{
+    glfwSetFramebufferSizeCallback(window_, framebuffer_size_callback);
+    glfwSetKeyCallback(window_, Application::keyCallback);
+    glfwSetCursorPosCallback(window_, Application::mouse_callback);
+    glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetWindowIconifyCallback(window_, window_iconify_callback);
 }
 
-void Application::addGlfwUserParam(Scene& scene) {
-  glfwSetWindowUserPointer(window, &scene);
+void Application::addGlfwUserParam(Scene &scene)
+{
+    glfwSetWindowUserPointer(window_, &scene);
 }
 
-void Application::keyCallback(GLFWwindow* window, int key, int scancode, int action,
-                 int mods) {
-  // Anything that needs to avoid key bouncing
+void Application::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+    // Anything that needs to avoid key bouncing
+    if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS)
+        leftCtrlToggle_ = !leftCtrlToggle_;
+
+    if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
+        leftShiftToggle_ = !leftShiftToggle_;
+}
+
+void Application::initializeJolt()
+{
+    JPH::RegisterDefaultAllocator();
+    JPH::Factory::sInstance = new JPH::Factory();
+    JPH::RegisterTypes();
 }

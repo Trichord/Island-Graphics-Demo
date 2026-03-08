@@ -12,30 +12,30 @@
 #include "stb_image.h"
 #include "thread_pool.h"
 
-ImageLoader::ImageLoader(const std::filesystem::path &filepath) : numImages{1}, numImagesLoaded{0}
+ImageLoader::ImageLoader(const std::filesystem::path &filepath) : numImages_{1}, numImagesLoaded_{0}
 {
-    loadedImages.resize(numImages);
+    loadedImages_.resize(numImages_);
     loadFromFile(filepath, 0);
 }
 
 ImageLoader::ImageLoader(ThreadPool &threadPool, const std::filesystem::path &filepath)
-    : numImages{1}, numImagesLoaded{0}
+    : numImages_{1}, numImagesLoaded_{0}
 {
-    loadedImages.resize(numImages);
+    loadedImages_.resize(numImages_);
 
     threadPool.enqueue([this, filepath]() { loadFromFile(filepath, 0); });
 
     // Wait for all images to be loaded before leaving constructor
     {
-        std::unique_lock<std::mutex> lock(imagesMutex);
-        condition.wait(lock, [this] { return numImagesLoaded == numImages; });
+        std::unique_lock<std::mutex> lock(imagesMutex_);
+        condition_.wait(lock, [this] { return numImagesLoaded_ == numImages_; });
     }
 }
 
 ImageLoader::ImageLoader(ThreadPool &threadPool, const std::vector<std::filesystem::path> &filepaths)
-    : numImages{filepaths.size()}, numImagesLoaded{0}
+    : numImages_{filepaths.size()}, numImagesLoaded_{0}
 {
-    loadedImages.resize(numImages);
+    loadedImages_.resize(numImages_);
 
     // Queue up all filepaths in the thread pool
     for (unsigned int i = 0; i < filepaths.size(); ++i)
@@ -46,8 +46,8 @@ ImageLoader::ImageLoader(ThreadPool &threadPool, const std::vector<std::filesyst
 
     // Wait for all images to be loaded before leaving constructor
     {
-        std::unique_lock<std::mutex> lock(imagesMutex);
-        condition.wait(lock, [this] { return numImagesLoaded == numImages; });
+        std::unique_lock<std::mutex> lock(imagesMutex_);
+        condition_.wait(lock, [this] { return numImagesLoaded_ == numImages_; });
     }
 }
 
@@ -58,12 +58,12 @@ ImageLoader::~ImageLoader()
 
 const std::vector<LoadedImage> &ImageLoader::getImageData() const
 {
-    return loadedImages;
+    return loadedImages_;
 }
 
 void ImageLoader::freeImages()
 {
-    for (auto &image : loadedImages)
+    for (auto &image : loadedImages_)
         if (image.data)
         {
             stbi_image_free(image.data);
@@ -84,12 +84,12 @@ void ImageLoader::loadFromFile(const std::filesystem::path &path, unsigned int i
     // Lock and insert.  If stbi_load fails, we get a nullptr which is handled by
     // model.h
     {
-        std::unique_lock<std::mutex> lock{imagesMutex};
-        loadedImages[index] = LoadedImage{data, width, height, nrChannels};
+        std::unique_lock<std::mutex> lock{imagesMutex_};
+        loadedImages_[index] = LoadedImage{data, width, height, nrChannels};
 
-        ++numImagesLoaded;
+        ++numImagesLoaded_;
 
-        if (numImagesLoaded == numImages)
-            condition.notify_one();
+        if (numImagesLoaded_ == numImages_)
+            condition_.notify_one();
     }
 }
