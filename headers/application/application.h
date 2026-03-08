@@ -18,6 +18,7 @@ class Application
     Application &operator=(const Application &) = delete;
     Application(Application &&other) = delete;
     Application &operator=(Application &&other) = delete;
+    ~Application();
     void run();
 
   private: 

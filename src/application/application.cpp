@@ -11,14 +11,27 @@
 #include "glfw_callbacks.h"
 #include "glm/glm.hpp"
 #include "island_scene.h"
+#include "jolt/Core/Factory.h"
+#include "jolt/Core/Memory.h"
+#include "jolt/Core/TempAllocator.h"
+#include "jolt/Physics/PhysicsSystem.h"
 #include "jolt/registerTypes.h"
 #include "player_physics.h"
 #include "renderer.h"
 #include "scene.h"
 
-#include <cstdarg>
-
 constexpr size_t joltStackSize{10 * 1024 * 1024}; // 10 MB for Jolt's internal stack space
+
+Application::~Application()
+{
+    using namespace JPH;
+
+    //Cleanup Jolt Physics
+    delete Factory::sInstance;
+    Factory::sInstance = nullptr;
+
+    glfwTerminate();
+}
 
 void Application::run()
 {
@@ -37,15 +50,24 @@ void Application::run()
     initializeJolt();
 
     // Create resources
+    std::cout << "Compiling Shaders... ";
     Renderer renderer(graphicsSettings);
+    std::cout << "Done" << std::endl;
+
+    std::cout << "Loading Models... ";
     IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
+    std::cout << "Done" << std::endl;
+
     JPH::PhysicsSystem physicsSystem;
     JPH::TempAllocatorImpl tempAllocator{joltStackSize};
 
     // Initialize scene dependent resources
     renderer.initializeResources(islandScene);
     renderer.allResourcesLoaded();
+
+    std::cout << "Creating Collision Mesh... ";
     PlayerPhysics physicsHandler(islandScene, physicsSystem, tempAllocator);
+    std::cout << "Done" << std::endl;
 
     addGlfwUserParam(islandScene);
 
@@ -79,7 +101,6 @@ void Application::run()
         glfwPollEvents();
     }
 
-    glfwTerminate();
     std::cout << "Average FPS: " << framesRendered / totalTime << std::endl;
     return;
 }
@@ -148,13 +169,13 @@ void Application::createOpenGLViewport(const ConfigWindow::GraphicsSettings &gra
 void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
 {
     using enum CharacterMovement;
-    constexpr float objectSpeed{0.5f};
 
     std::uint8_t direction{0};
     bool jump{false};
 
     Camera &camera{scene.getCamera()};
     const glm::vec3 front{camera.getFront()};
+
     glm::vec3 previousPos{physicsHandler.getPreviousPosition()};
 
     accumulator_ += deltaTime_;
@@ -201,6 +222,7 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
     // Object Positioning - For Testing Only *
     //****************************************
     Transform &transform{scene.getObjectTransform("spaceModel")};
+    constexpr float objectSpeed{0.5f};
 
     // +- Z
     if (glfwGetKey(window, GLFW_KEY_KP_8) == GLFW_PRESS)
@@ -233,7 +255,6 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
 {
-
     if (firstMouse_)
     {
         lastMouseX_ = (float)xPos;

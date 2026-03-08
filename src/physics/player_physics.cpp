@@ -2,27 +2,37 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <iostream>
 #include <limits>
 #include <optional>
-#include <utility>
+#include <span>
+#include <variant>
+#include <vector>
 
 #include "jolt/jolt.h"
 
-#include "aabb.h"
+#include "cull_method.h"
 #include "glm/glm.hpp"
+#include "instance_data.h"
+#include "jolt/Core/Core.h"
+#include "jolt/Core/Factory.h"
+#include "jolt/Core/TempAllocator.h"
+#include "jolt/Geometry/Triangle.h"
+#include "jolt/Math/Quat.h"
 #include "jolt/Math/Real.h"
+#include "jolt/Math/Vec3.h"
 #include "jolt/Physics/Body/BodyCreationSettings.h"
+#include "jolt/Physics/Body/MotionType.h"
 #include "jolt/Physics/Collision/Shape/MeshShape.h"
-#include "jolt/registerTypes.h"
+#include "jolt/Physics/Collision/Shape/Shape.h"
+#include "jolt/Physics/EActivation.h"
+#include "jolt/Physics/PhysicsSystem.h"
 #include "jolt_impl.h"
 #include "primitive.h"
 #include "renderable.h"
 #include "scene.h"
-#include "shader_type.h"
+#include "transform.h"
 #include "world_vectors.h"
 
-JPH::TriangleList traverseSceneGraph(Scene &scene);
 void iterateVertices(JPH::TriangleList &triangles, const std::span<Primitive::Mesh> &meshes,
                      const glm::mat4 &modelMatrix, float &lowestPoint);
 
@@ -46,7 +56,6 @@ PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JP
 
     // Create terrain and flag it to survive this constructor call
     JPH::TriangleList terrain{traverseSceneGraph(scene)};
-
     MeshShapeSettings terrainShapeSettings{terrain};
     terrainShapeSettings.SetEmbedded();
 
@@ -55,7 +64,7 @@ PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JP
     ShapeRefC terrainShape{terrainResult.Get()};
 
     // Terrain properties
-    BodyCreationSettings terrainSettings{terrainShape, RVec3{0.0, 0.0f, 0.0f}, Quat::sIdentity(), EMotionType::Static,
+    BodyCreationSettings terrainSettings{terrainShape, RVec3::sZero(), Quat::sIdentity(), EMotionType::Static,
                                          Layers::NON_MOVING};
 
     // Create the actual rigid body
@@ -76,18 +85,16 @@ PlayerPhysics::~PlayerPhysics()
 
     bodyInterface_->RemoveBody(terrain_->GetID());
     bodyInterface_->DestroyBody(terrain_->GetID());
-
-    delete Factory::sInstance;
-    Factory::sInstance = nullptr;
 }
 
 void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime)
 {
-
+    // Player has fallen through the world
     if (player_.getPosition().GetY() < resetHeight_)
     {
         player_.setPosition(resetPosition_);
         previousPosition_ = toGLM(resetPosition_);
+        player_.setVelocity(JPH::Vec3{0.0f, 0.0f, 0.0f});
         return;
     }
 
@@ -120,7 +127,7 @@ void PlayerPhysics::movePlayer(std::uint8_t direction, const glm::vec3 &front, b
     glm::vec3 wishDir{forward * forwardMove + right * sideMove};
 
     player_.handleInput(toJPHVec3(wishDir), jump, deltaTime);
-    player_.prePhysicsUpdate(deltaTime);
+    player_.physicsUpdate(deltaTime);
 }
 
 glm::vec3 PlayerPhysics::getPosition() const
@@ -130,6 +137,7 @@ glm::vec3 PlayerPhysics::getPosition() const
 
 void PlayerPhysics::setPosition(const glm::vec3 &newPosition)
 {
+    player_.setPosition(toJPHVec3(newPosition));
 }
 
 const glm::vec3 &PlayerPhysics::getPreviousPosition() const
@@ -175,10 +183,10 @@ void iterateVertices(JPH::TriangleList &triangles, const std::span<Primitive::Me
 
 JPH::TriangleList PlayerPhysics::traverseSceneGraph(Scene &scene)
 {
-    float lowestPoint{std::numeric_limits<float>::infinity()};
     using enum CullMethod;
 
     JPH::TriangleList vertices;
+    float lowestPoint{std::numeric_limits<float>::infinity()};
 
     for (auto [_, renderables] : scene.getRenderablesByShader())
         for (auto &renderable : renderables)
