@@ -20,7 +20,6 @@
 	],
 	"materials":[
 		{
-			"alphaMode":"BLEND",
 			"doubleSided":true,
 			"name":"water",
 			"normalTexture":{
@@ -83,73 +82,73 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":4,
+			"count":25,
 			"max":[
-				0.5,
+				500,
 				0,
-				0.5
+				500
 			],
 			"min":[
-				-0.5,
+				-500,
 				0,
-				-0.5
+				-500
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":4,
+			"count":25,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":4,
+			"count":25,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":4,
+			"count":25,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
 			"componentType":5123,
-			"count":6,
+			"count":96,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":48,
+			"byteLength":300,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":48,
-			"byteOffset":48,
+			"byteLength":300,
+			"byteOffset":300,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":32,
-			"byteOffset":96,
+			"byteLength":200,
+			"byteOffset":600,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":64,
-			"byteOffset":128,
+			"byteLength":400,
+			"byteOffset":800,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":12,
-			"byteOffset":192,
+			"byteLength":192,
+			"byteOffset":1200,
 			"target":34963
 		}
 	],
@@ -161,7 +160,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":204,
+			"byteLength":1392,
 			"uri":"ocean.bin"
 		}
 	]

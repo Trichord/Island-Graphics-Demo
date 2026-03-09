@@ -7,7 +7,5 @@ enum Texture
     ARM,
     NORMAL,
     CUBEMAP,
-    REFLECTION,
-    REFRACTION,
     DEPTH
 };
