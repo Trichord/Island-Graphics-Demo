@@ -47,7 +47,7 @@ class Player
     static constexpr float jumpSpeed_{2.75f};
     static constexpr float characterSpeed_{4.0f};
     static constexpr float characterCrouchSpeedMultiplier{0.4f};
-    static constexpr float characterSprintSpeedMultiplier_{1.1f};
+    static constexpr float characterSprintSpeedMultiplier_{1.4f};
     bool crouched_{false};
     bool allowSliding_{false};
     bool characterSprinting_{false};

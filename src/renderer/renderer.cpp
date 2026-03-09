@@ -28,8 +28,8 @@
 #include "world_vectors.h"
 
 // Scale mipmaps and alpha cutoff for foliage
-constexpr float mipScale{0.25f};
-constexpr float alphaCutoff{0.5f};
+constexpr float mipScale{0.111f};
+constexpr float alphaCutoff{0.425f};
 
 Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings)
     : textureManager_{threadPool_}, graphicsSettings_{settings}
@@ -107,8 +107,6 @@ void Renderer::setupShader(Shader &shader)
     shader.setInt("armMap", ARM);
     shader.setInt("normalMap", NORMAL);
     shader.setInt("cubeMap", CUBEMAP);
-    shader.setInt("reflectionMap", REFLECTION);
-    shader.setInt("refractionMap", REFRACTION);
     shader.setInt("depthMap", DEPTH);
 
     shader.setFloat("nearPlane", cameraDefaultValues::nearPlane);
@@ -139,6 +137,7 @@ void Renderer::updateShaderUniforms(Scene &scene)
     for (auto &[_, shader] : shaders_)
     {
         using enum ShaderType;
+
         if (dirUpdated)
             shader.setVec3("lightDir", globalLight.getDirection());
         if (posUpdated)
@@ -163,8 +162,6 @@ void Renderer::setSceneShaderUniforms(Scene &scene)
 
 void Renderer::initializeResources(Scene &scene)
 {
-    scene.getCamera().setFOV(cameraDefaultValues::fov, static_cast<float>(graphicsSettings_.screenWidth) /
-                                                           static_cast<float>(graphicsSettings_.screenHeight));
     loadInstancedData(scene);
     createBuffers(scene);
     generateCubeMaps(scene);

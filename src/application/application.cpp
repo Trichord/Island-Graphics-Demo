@@ -26,7 +26,7 @@ Application::~Application()
 {
     using namespace JPH;
 
-    //Cleanup Jolt Physics
+    // Cleanup Jolt Physics
     delete Factory::sInstance;
     Factory::sInstance = nullptr;
 
@@ -257,16 +257,16 @@ void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
 {
     if (firstMouse_)
     {
-        lastMouseX_ = (float)xPos;
-        lastMouseY_ = (float)yPos;
+        lastMouseX_ = static_cast<float>(xPos);
+        lastMouseY_ = static_cast<float>(yPos);
         firstMouse_ = false;
     }
 
-    float xOffset{(float)(xPos - lastMouseX_)};
-    float yOffset{(float)(lastMouseY_ - yPos)};
+    float xOffset{static_cast<float>(xPos - lastMouseX_)};
+    float yOffset{static_cast<float>(lastMouseY_ - yPos)};
 
-    lastMouseX_ = (float)xPos;
-    lastMouseY_ = (float)yPos;
+    lastMouseX_ = static_cast<float>(xPos);
+    lastMouseY_ = static_cast<float>(yPos);
 
     auto scenePointer = static_cast<IslandScene *>(glfwGetWindowUserPointer(window));
 
