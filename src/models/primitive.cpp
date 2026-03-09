@@ -106,10 +106,7 @@ void Primitive::setMaterialIndex(std::size_t newIndex)
 void Primitive::setupPrimitiveBuffers()
 {
     if (!vertices_.size() || !indices_.size())
-    {
-        std::cout << "Error: missing either vertices or indices in mesh" << std::endl;
-        return;
-    }
+        throw std::runtime_error("ERROR: Primitive missing vertices or indices");
 
     glCreateVertexArrays(1, &VAO_);
 

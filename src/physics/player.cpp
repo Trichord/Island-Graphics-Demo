@@ -129,9 +129,6 @@ void Player::handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime)
         // Smooth the player input
         desiredVelocity_ = 0.25f * direction * speed + 0.75f * desiredVelocity_;
 
-        if (characterSprinting_)
-            desiredVelocity_ *= characterSprintSpeedMultiplier_;
-
         // True if the player intended to move
         allowSliding_ = !direction.IsNearZero();
     }
