@@ -25,7 +25,7 @@ in VS_OUT
 	vec4 clipSpace;
 } fs_in;
 
-const float dudvStrength = 0.065;
+const float dudvStrength = 0.025;
 const float waveSpeed = 0.01;
 const float specularDamper = 0.2;
 const float tileFactor = 100.0;
@@ -60,17 +60,13 @@ void main()
 	N = normalize(vec3(N.x, N.z, -N.y));
 
 	// Fresnel
-	float fresnel = max(0.0, min(1.0, pow(max(1 + dot(-V, N), 0.0), 5.0)));
-
-	// Specular
-	float specular = pow(max(dot(N, H), 0.0), 32.0);
-	vec3 specHighlight = lightColor * specular * specularDamper;
+	float fresnel = max(0.0, min(1.0, pow(max(1 + 0.85 * dot(-V, N), 0.0), 4.0)));
 
 	// Reflection 
 	vec3 reflectDir = reflect(-V, N);
 	vec3 reflection = texture(cubeMap, reflectDir).rgb;
 
-	vec3 oceanColor = mix(waterColor, reflection, fresnel) + specHighlight;
+	vec3 oceanColor = mix(waterColor, reflection, fresnel);
 
 	//Sample absolute skybox color
 	vec3 skybox = texture(cubeMap, -V).rgb;
@@ -80,7 +76,6 @@ void main()
 	float alpha = (fogEnd - dist) / (fogEnd - fogStart);
 	alpha = 1.0 - clamp(alpha, 0.0, 1.0);
 
-	//vec3 oceanColor = reflection + specHighlight + waterColor;
 	oceanColor = mix(oceanColor, skybox, alpha);
 
 	fragColor = vec4(oceanColor, 1.0);

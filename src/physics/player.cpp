@@ -123,8 +123,15 @@ void Player::handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime)
 
     if (playerControlsHorizontalVelocity)
     {
-        float speed{characterSprinting_ ? characterSpeed_ * characterSprintSpeedMultiplier_ : characterSpeed_};
-        speed *= crouched_ ? characterCrouchSpeedMultiplier : 1.0f;
+        float speed{0.0f};
+
+        if (characterSprinting_ && !crouched_)
+            speed = characterSpeed_ * characterSprintSpeedMultiplier_;
+        else
+            speed = characterSpeed_;
+
+        if (crouched_ && player_->IsSupported())
+            speed *= characterCrouchSpeedMultiplier;
 
         // Smooth the player input
         desiredVelocity_ = 0.25f * direction * speed + 0.75f * desiredVelocity_;
@@ -138,11 +145,13 @@ void Player::handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime)
         allowSliding_ = true;
     }
 
-    // Determine new basic velocity
+    // Current velocity
     Vec3 currentVerticalVelocity{player_->GetLinearVelocity().Dot(player_->GetUp()) * player_->GetUp()};
-    Vec3 groundVelocity{player_->GetGroundVelocity()};
-    Vec3 newVelocity;
+    Vec3 groundVelocity{player_->GetGroundVelocity()};  
     bool movingTowardsGround{(currentVerticalVelocity.GetY() - groundVelocity.GetY()) < 0.1f};
+
+    Vec3 newVelocity;
+
     if (player_->GetGroundState() == CharacterVirtual::EGroundState::OnGround // If on ground
         && (enableCharacterInertia_
                 ? movingTowardsGround // Inertia enabled: And not moving away from ground
