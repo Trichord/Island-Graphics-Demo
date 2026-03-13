@@ -27,7 +27,6 @@ in VS_OUT
 
 const float dudvStrength = 0.025;
 const float waveSpeed = 0.01;
-const float specularDamper = 0.2;
 const float tileFactor = 100.0;
 const float fogStart = 1142.0;
 const float fogEnd = 2186.0;

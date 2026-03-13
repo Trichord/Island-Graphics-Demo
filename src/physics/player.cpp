@@ -60,6 +60,7 @@ void Player::init(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tem
 
     // Create the player's capsule
     player_ = new CharacterVirtual(settings, RVec3::sZero(), Quat::sIdentity(), 0, &physicsSystem);
+    player_->SetListener(this);
 }
 
 // Returns the center of mass of the capsule
@@ -147,7 +148,7 @@ void Player::handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime)
 
     // Current velocity
     Vec3 currentVerticalVelocity{player_->GetLinearVelocity().Dot(player_->GetUp()) * player_->GetUp()};
-    Vec3 groundVelocity{player_->GetGroundVelocity()};  
+    Vec3 groundVelocity{player_->GetGroundVelocity()};
     bool movingTowardsGround{(currentVerticalVelocity.GetY() - groundVelocity.GetY()) < 0.1f};
 
     Vec3 newVelocity;
@@ -196,4 +197,20 @@ void Player::physicsUpdate(float deltaTime)
     player_->ExtendedUpdate(deltaTime, physicsSystem_->GetGravity(), updateSettings,
                             physicsSystem_->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
                             physicsSystem_->GetDefaultLayerFilter(Layers::MOVING), {}, {}, *tempAllocator_);
+}
+
+void Player::OnContactSolve(const JPH::CharacterVirtual *inCharacter, const JPH::BodyID &inBodyID2,
+                            const JPH::SubShapeID &inSubShapeID2, JPH::RVec3Arg inContactPosition,
+                            JPH::Vec3Arg inContactNormal, JPH::Vec3Arg inContactVelocity,
+                            const JPH::PhysicsMaterial *inContactMaterial, JPH::Vec3Arg inCharacterVelocity,
+                            JPH::Vec3 &ioNewCharacterVelocity)
+{
+    // Ignore callbacks for other characters than the player
+    if (inCharacter != player_)
+        return;
+
+    // Don't allow the player to slide down static not-too-steep surfaces when not actively moving and when not on a
+    // moving platform
+    if (!allowSliding_ && inContactVelocity.IsNearZero() && !inCharacter->IsSlopeTooSteep(inContactNormal))
+        ioNewCharacterVelocity = JPH::Vec3::sZero();
 }
