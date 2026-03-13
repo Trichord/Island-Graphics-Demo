@@ -157,8 +157,8 @@ void Camera::setWorldOrientation(WorldOrientation orientation)
     using enum WorldOrientation;
     using namespace WorldVectors;
 
-    glm::vec3 front;
-    glm::vec3 up;
+    glm::vec3 front{0.0f};
+    glm::vec3 up{0.0f};
 
     switch (orientation)
     {
