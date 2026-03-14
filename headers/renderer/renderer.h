@@ -8,6 +8,7 @@
 #include "gl_state.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
+#include "render_target.h"
 #include "renderable.h"
 #include "scene.h"
 #include "shader.h"
@@ -68,6 +69,10 @@ class Renderer
     std::unordered_map<ShaderType, Shader> shaders_;
     const ConfigWindow::GraphicsSettings graphicsSettings_;
 
+    // Textures
+    RenderTarget shadowPassTarget;
+    RenderTarget shadowBlitTarget;
+    
     // Renderer initialization
     void loadShaders();
     void setupTextureManager();
@@ -76,16 +81,19 @@ class Renderer
     void createBuffers(Scene &scene);
     void setupShader(Shader &shader);
     void borrowSkyboxes(Scene &scene);
-    void generateCubeMaps(Scene &scene);
+    void createCubemaps(Scene &scene);
+    void createShadowMaps(Scene &scene);
     void loadInstancedData(Scene &scene);
     void setSceneShaderUniforms(Scene &scene);
     void populateSSBOs(Scene &scene, std::size_t totalInstanceCount);
+    void createCubemapFaces(Scene &scene, RenderTarget &msaaTarget, RenderTarget &blitTarget, GLuint texture);
 
     // Rendering
-    void updateShaderUniforms(Scene &scene);
+    void updateShadowMaps(Scene &scene);
     void renderAllSceneObjects(Scene &scene);
     void renderObject(Renderable &renderable);
     void bindTextures(const Material &materials);
+    void updateShaderUniforms(Scene &scene, bool lightDirectionChanged);
 
     // Culling
     void resetVisibility(Scene &scene);
