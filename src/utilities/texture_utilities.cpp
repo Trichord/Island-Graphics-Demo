@@ -8,6 +8,28 @@
 #include "glad/glad.h"
 #include "image_loader.h"
 
+GLuint textureUtilities::generateEmptyTexture(int width, int height, float anisoLevel, GLenum internalFormat, Sampler sampler)
+{
+    GLuint textureID{0};
+
+    // Max mipmap
+    int maxDimension = std::max(width, height);
+    int mipLevels = static_cast<int>(std::floor(std::log2(maxDimension)) + 1);
+
+    glCreateTextures(GL_TEXTURE_2D, 1, &textureID);
+    glTextureStorage2D(textureID, mipLevels, internalFormat, width, height);
+
+    glTextureParameteri(textureID, GL_TEXTURE_WRAP_S, sampler.wrapS);
+    glTextureParameteri(textureID, GL_TEXTURE_WRAP_T, sampler.wrapT);
+    glTextureParameteri(textureID, GL_TEXTURE_MIN_FILTER, sampler.minFilter);
+    glTextureParameteri(textureID, GL_TEXTURE_MAG_FILTER, sampler.magFilter);
+
+    if (anisoLevel > 0.0f)
+        glTextureParameterf(textureID, GL_TEXTURE_MAX_ANISOTROPY, anisoLevel);
+
+    return textureID;
+}
+
 GLuint textureUtilities::generateTextureID(const LoadedImage &image, Sampler sampler, TextureDetails config,
                                            bool globalAnsioEnabled)
 {
@@ -136,10 +158,4 @@ GLuint textureUtilities::generateCubemapTextureID(const std::vector<LoadedImage>
     glTextureParameteri(cubemapTextureID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     return cubemapTextureID;
-}
-
-void textureUtilities::generateCubemapFace(GLuint cubeMap, GLuint texture, int size, int faceIndex)
-{
-    glCopyImageSubData(texture, GL_TEXTURE_2D, 0, 0, 0, 0, cubeMap, GL_TEXTURE_CUBE_MAP, 0, 0, 0, faceIndex, size, size,
-                       1);
 }

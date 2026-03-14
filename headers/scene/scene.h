@@ -43,14 +43,13 @@ class Scene
     glm::vec3 getAmbientLight() const;
     const glm::vec3 &getWindDirection() const;
     DirectionalLight &getGlobalLightSource();
-    std::vector<PointLight> &getPointLights();
-    Light &getNamedLight(const std::string &key);
     void setAmbientLight(const glm::vec3 &ambient);
     Transform &getObjectTransform(const std::string &key);
     std::map<ShaderType, std::vector<Renderable>> &getRenderablesByShader();
 
   protected:
     Camera camera_;
+    SceneResources sceneResources_;
 
     // Wind
     float windStrength_{0.0f};
@@ -58,10 +57,7 @@ class Scene
 
     // Lights
     glm::vec3 ambientLight_{0.2f};
-    SceneResources sceneResources_;
     DirectionalLight globalLightSource_;
-    std::vector<PointLight> pointLights_;
-    std::unordered_map<std::string, std::reference_wrapper<Light>> namedLights_;
 
     // Access points
     std::unordered_map<std::string, std::reference_wrapper<Transform>> namedTransforms_;
@@ -86,25 +82,5 @@ class Scene
         if (name.has_value())
             namedTransforms_.emplace(
                 name.value(), std::ref(std::get<Transform>(sceneRenderables_[shaderType].back().properties.transform)));
-    }
-
-    /**
-     * Adds a light to the scene.  Optional: name the light to reference it
-     * in Application's onUpdate()
-     * @param lightVec The vector to add the light to.
-     * @param light The light object to insert.
-     * @param name Optional name for later lookup.
-     */
-    template <typename LightType>
-    void addLightToScene(std::vector<LightType> &lightVec, LightType &&light,
-                         const std::optional<std::string> name = std::nullopt)
-    {
-        if (lightVec.size() >= sceneMaxObjects::maxLights)
-            throw std::runtime_error("Max number of lights reached");
-
-        lightVec.emplace_back(std::forward<LightType>(light));
-
-        if (name.has_value())
-            namedLights_.emplace(name.value(), std::ref(lightVec.back()));
     }
 };
