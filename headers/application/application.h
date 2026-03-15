@@ -1,8 +1,13 @@
 #pragma once
 
-#include "player_physics.h"
+#include "jolt/Jolt.h"
+
 #include "config_window.h"
 #include "gl_context.h"
+#include "jolt/Core/Core.h"
+#include "jolt/Core/JobSystemSingleThreaded.h"
+#include "jolt_impl.h"
+#include "player_physics.h"
 #include "scene.h"
 
 /**
@@ -21,7 +26,10 @@ class Application
     ~Application();
     void run();
 
-  private: 
+    static constexpr float physicsTick{1.0f / 60.0f};
+
+  private:
+    // Window and timing
     float deltaTime_{0.0f};
     float lastFrame_{0.0f};
     float currentFrame_{0.0f};
@@ -32,6 +40,18 @@ class Application
     static inline float lastMouseX_{0.0f};
     static inline float lastMouseY_{0.0f};
     GLFWwindow *window_{nullptr};
+
+    // Physics engine constants
+    static constexpr JPH::uint maxBodies{1024};
+    static constexpr JPH::uint maxBodyPairs{1024};
+    static constexpr JPH::uint maxPhysicsJobs_{2048};
+    static constexpr JPH::uint maxContactConstraints{1024};
+    static constexpr size_t joltStackSize{10 * 1024 * 1024}; // 10 MB
+
+    // Jolt Physics
+    BPLayerInterfaceImpl broadPhaseLayer_;
+    ObjectLayerPairFilterImpl objectLayerPairFilter_;
+    ObjectVsBroadPhaseLayerFilterImpl objectVsBroadPhaseLayerFilter_;
 
     /**
      * @brief Creates a GLFW window.  Display settings from the config window are
@@ -66,7 +86,7 @@ class Application
      */
     void addGlfwUserParam(Scene &scene);
 
-    void initializeJolt();
+    void registerJolt();
 
     /**
      * GLFW mouse callback. Recieves updated cursor coordinates.

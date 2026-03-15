@@ -26,8 +26,6 @@ enum CharacterMovement : std::uint8_t
     NONE = 16U
 };
 
-constexpr float physicsTick{1.0f / 60.0f};
-
 class PlayerPhysics
 {
   public:
@@ -48,21 +46,13 @@ class PlayerPhysics
     void update(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime);
 
   private:
-    static constexpr JPH::uint maxPhysicsJobs_{2048};
-
     float resetHeight_{0.0f};
     glm::vec3 previousPosition_{0.0f};
     JPH::Vec3 resetPosition_{0.0f, 0.0f, 0.0f};
 
     JPH::PhysicsSystem &physicsSystem_;
-
-    // Everything the physics system needs
-    JPH::BodyInterface *bodyInterface_;
-    BPLayerInterfaceImpl broadPhaseLayer_;
+    JPH::BodyInterface *bodyInterface_; 
     JPH::TempAllocatorImpl &tempAllocator_;
-    ObjectLayerPairFilterImpl objectLayerPairFilter_;
-    ObjectVsBroadPhaseLayerFilterImpl objectVsBroadPhaseLayerFilter_;
-    JPH::JobSystemSingleThreaded jobSystem_{maxPhysicsJobs_};
     
     // Physics body for terrain
     JPH::Body *terrain_{nullptr};
@@ -70,6 +60,5 @@ class PlayerPhysics
     //The player capsule
     Player player_;
 
-    JPH::TriangleList traverseSceneGraph(Scene &scene);
     void movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime);
 };

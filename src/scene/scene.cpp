@@ -26,9 +26,9 @@ std::map<ShaderType, std::vector<Renderable>> &Scene::getRenderablesByShader()
     return sceneRenderables_;
 }
 
-std::vector<Instance> &Scene::getObjectTransforms(const std::string &key)
+NamedInstance &Scene::getObjectTransforms(const std::string &key)
 {
-    return namedInstances_.at(key).get();
+    return namedInstances_.at(key);
 }
 
 DirectionalLight &Scene::getGlobalLightSource()
@@ -59,4 +59,9 @@ const glm::vec3 &Scene::getWindDirection() const
 float Scene::getWindStrength() const
 {
     return windStrength_;
+}
+
+std::unordered_set<ModelHandle> &Scene::getTransformsUpdated()
+{
+    return transformsUpdated_;
 }

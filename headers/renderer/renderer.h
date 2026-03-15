@@ -67,7 +67,19 @@ class Renderer
      *
      * Renderer uploads a static SSBO containing every renderable's model matrix. An indices SSBO capable of
      * holding the same number of elements is reserved in GPU memory. A fresh vector of indices is computed and uploaded
-     * every frame, representing the visible indices into that buffer
+     * every frame, representing the visible indices in the static buffer.
+     *
+     * e.g.
+     *
+     *                  Matrices
+     *
+     *  | Model 1   | Model 2            | M3  | M4  |
+     * [0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 0, 1, 0, 1, 2]
+     *
+     *                  Indices
+     *  | M1  | M2   |  (M3 and M4 not visible this frame)
+     * [2, 3, 0, 5, 6]
+     *
      */
     GLuint indicesSSBO_{0};
     GLuint matricesSSBO_{0};
@@ -103,6 +115,7 @@ class Renderer
 
     // Rendering
     void updateShadowMaps(Scene &scene);
+    void updateSceneTransforms(Scene &scene);
     void renderAllSceneObjects(Scene &scene);
     void renderObject(Renderable &renderable);
     void bindTextures(const Material &materials);
