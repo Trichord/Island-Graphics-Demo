@@ -29,6 +29,12 @@
  * safer ownership model.
  */
 
+struct NamedInstance
+{
+    ModelHandle handle;
+    std::reference_wrapper<std::vector<Instance>> instances;
+};
+
 class Scene
 {
   public:
@@ -42,10 +48,11 @@ class Scene
     Camera &getCamera();
     float getWindStrength() const;
     glm::vec3 getAmbientLight() const;
-    const glm::vec3 &getWindDirection() const;
     DirectionalLight &getGlobalLightSource();
+    const glm::vec3 &getWindDirection() const;
     void setAmbientLight(const glm::vec3 &ambient);
-    std::vector<Instance> &getObjectTransforms(const std::string &key);
+    std::unordered_set<ModelHandle> &getTransformsUpdated();
+    NamedInstance &getObjectTransforms(const std::string &key);
     std::map<ShaderType, std::vector<Renderable>> &getRenderablesByShader();
 
   protected:
@@ -61,8 +68,9 @@ class Scene
     DirectionalLight globalLightSource_;
 
     // Access points
-    std::unordered_map<std::string, std::reference_wrapper<std::vector<Instance>>> namedInstances_;
+    std::unordered_set<ModelHandle> transformsUpdated_;
     std::map<ShaderType, std::vector<Renderable>> sceneRenderables_;
+    std::unordered_map<std::string, NamedInstance> namedInstances_;
 
     virtual void addAllModelsToScene() = 0;
     virtual void setupEnvironment() = 0;
@@ -85,6 +93,8 @@ class Scene
         sceneRenderables_[shaderType].emplace_back(Renderable{std::ref(modelRef), std::move(properties)});
 
         if (name.has_value())
-            namedInstances_.emplace(name.value(), std::ref(sceneRenderables_[shaderType].back().properties.instances));
+            namedInstances_.emplace(name.value(),
+                                    NamedInstance{modelRef.getHandle(),
+                                                  std::ref(sceneRenderables_[shaderType].back().properties.instances)});
     }
 };
