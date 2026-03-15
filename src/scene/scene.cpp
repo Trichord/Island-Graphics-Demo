@@ -18,7 +18,7 @@ Scene::Scene(TextureManager &textureManager) : sceneResources_{textureManager}
 {
     using namespace sceneMaxObjects;
 
-    namedTransforms_.reserve(maxModels);
+    namedInstances_.reserve(maxModels);
 }
 
 std::map<ShaderType, std::vector<Renderable>> &Scene::getRenderablesByShader()
@@ -26,9 +26,9 @@ std::map<ShaderType, std::vector<Renderable>> &Scene::getRenderablesByShader()
     return sceneRenderables_;
 }
 
-Transform &Scene::getObjectTransform(const std::string &key)
+std::vector<Instance> &Scene::getObjectTransforms(const std::string &key)
 {
-    return namedTransforms_.at(key).get();
+    return namedInstances_.at(key).get();
 }
 
 DirectionalLight &Scene::getGlobalLightSource()

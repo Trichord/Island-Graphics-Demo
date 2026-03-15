@@ -33,20 +33,16 @@ void Renderer::renderAllSceneObjects(Scene &scene)
 
             auto &object = renderable.objectRef.get();
             auto &properties = renderable.properties;
+            auto iter = modelBaseIndices_.find(object.getHandle());
 
-            if (std::holds_alternative<Transform>(properties.transform))
-            {
-                Transform &transform{std::get<Transform>(properties.transform)};
+            if (iter == modelBaseIndices_.end())
+                throw std::runtime_error("ERROR: Missing handle in SSBO lookup map");
 
-                shader.setMat4("modelMatrix", transform.getModelMatrix());
-                shader.setVec3("scale", transform.getScale());
-            }
+            ssboOffsets offsets{iter->second};
 
-            if (auto iter = instancedBaseOffsets_.find(object.getHandle()); iter != instancedBaseOffsets_.end())
-            {
-                shader.setIntU("baseIndex", iter->second);
-                shader.setIntU("indicesOffset", renderable.properties.instancedIndicesOffset);
-            }
+            shader.setIntU("matricesOffset", offsets.matricesOffset);
+            shader.setIntU("indicesOffset", offsets.indicesOffset);
+            shader.setVec3("scale", properties.instances[0].transform.getScale());
 
             // Draw it
             renderObject(renderable);
@@ -84,14 +80,9 @@ void Renderer::renderObject(Renderable &renderable)
 
             GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
 
-            if (properties.cullMethod == INSTANCED)
-            {
-                GLsizei instanceCount{static_cast<GLsizei>(properties.visibleInstances)};
-                glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0, instanceCount);
-            }
+            GLsizei instanceCount{static_cast<GLsizei>(properties.visibleInstances)};
 
-            else
-                glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0);
+            glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0, instanceCount);
         }
     }
 }
