@@ -320,7 +320,7 @@ void ConfigWindow::loadConfigWindowImage()
     if (!imageData.size())
         return;
 
-    textureID = textureUtilities::generateTextureID(imageData[0], Sampler{}, TextureDetails{}, false);
+    textureID = textureUtilities::generateTextureID(imageData[0], Sampler{}, TextureDetails{});
 }
 
 void ConfigWindow::updateResolution(GraphicsSettings &settings, int index)

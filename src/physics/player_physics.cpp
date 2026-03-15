@@ -12,7 +12,6 @@
 
 #include "cull_method.h"
 #include "glm/glm.hpp"
-#include "instance_data.h"
 #include "jolt/Core/Core.h"
 #include "jolt/Core/Factory.h"
 #include "jolt/Core/TempAllocator.h"
@@ -189,40 +188,32 @@ JPH::TriangleList PlayerPhysics::traverseSceneGraph(Scene &scene)
     float lowestPoint{std::numeric_limits<float>::infinity()};
 
     for (auto [_, renderables] : scene.getRenderablesByShader())
+    {
         for (auto &renderable : renderables)
         {
             auto &object = renderable.objectRef.get();
 
-            // Always use the terrain's actual mesh
-            if (renderable.properties.cullMethod == TERRAIN)
-            {
-                auto meshes = object.getMeshes();
-                Transform &transform{std::get<Transform>(renderable.properties.transform)};
-                iterateVertices(vertices, meshes, transform.getModelMatrix(), lowestPoint);
-            }
-            // Otherwise, use the collision mesh if it exists
-            else
-            {
-                auto meshes = object.loadCollisionMesh();
+            auto collisionMesh = object.loadCollisionMesh();
+            auto meshes = object.getMeshes();
 
-                if (!meshes.has_value())
-                    continue;
-
-                // Single instance
-                if (std::holds_alternative<Transform>(renderable.properties.transform))
+            for (auto &instance : renderable.properties.instances)
+            {
+                // Always use the terrain's actual mesh
+                if (renderable.properties.cullMethod == TERRAIN)
                 {
-                    Transform &transform{std::get<Transform>(renderable.properties.transform)};
-                    iterateVertices(vertices, meshes.value(), transform.getModelMatrix(), lowestPoint);
+                    iterateVertices(vertices, meshes, instance.transform.getModelMatrix(), lowestPoint);
                 }
-                // Instanced model
+                // Otherwise, use the collision mesh if it exists
                 else
                 {
-                    auto &transform{std::get<std::vector<InstancedData>>(renderable.properties.transform)};
-                    for (InstancedData &data : transform)
-                        iterateVertices(vertices, meshes.value(), data.modelMatrix, lowestPoint);
+                    if (!collisionMesh.has_value())
+                        continue;
+
+                    iterateVertices(vertices, collisionMesh.value(), instance.transform.getModelMatrix(), lowestPoint);
                 }
             }
         }
+    }
 
     resetHeight_ = lowestPoint;
 

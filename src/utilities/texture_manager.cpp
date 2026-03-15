@@ -15,7 +15,8 @@
 #include "texture_utilities.h"
 #include "thread_pool.h"
 
-TextureManager::TextureManager(ThreadPool &threadPool) : threadPool_{threadPool}
+TextureManager::TextureManager(ThreadPool &threadPool, const ConfigWindow::GraphicsSettings &settings)
+    : globalAnisotropicDegree_{static_cast<float>(settings.anisotropicFiltering)}, threadPool_{threadPool}
 {
 }
 
@@ -109,10 +110,10 @@ void TextureManager::textureFromAsset(fastgltf::Asset &asset, ModelHandle handle
 
         if (inserted)
         {
-            TextureDetails details{sRGB, anisotropic, anisoLevel_};
+            // Assume gltf models always want mipmaps
+            TextureDetails details{sRGB, true, anisotropic ? globalAnisotropicDegree_ : 0.0f};
 
-            GLuint id{
-                textureUtilities::generateTextureID(rawImageData[imageIndex], sampler, details, globalAnisoEnabled_)};
+            GLuint id{textureUtilities::generateTextureID(rawImageData[imageIndex], sampler, details)};
 
             // Record new ID as seen
             seenIndices->second = id;
@@ -133,7 +134,7 @@ void TextureManager::textureFromAsset(fastgltf::Asset &asset, ModelHandle handle
 
         if (material.pbrData.baseColorTexture.has_value())
         {
-            // Albedo textures always get albdeo. Try to force aniso and let the global setting resolve whether it gets
+            // Albedo textures always get sRGB. Try to force aniso and let the global setting resolve whether it gets
             // applied
             auto &albedo = material.pbrData.baseColorTexture.value();
             materials[i].albedo = getOrCreateTextureID(albedo, true, true);
@@ -163,6 +164,9 @@ void TextureManager::cubemapFromPaths(ModelHandle handle, const std::vector<std:
     if (iter == textureCache_.end())
         throw std::runtime_error("ERROR: Could not create cubemap, handle does not exist");
 
+    // Assume cubemaps never want anisotropic filtering
+    TextureDetails textureDetails{sRGB, mipmaps, 0.0f};
+
     // Resize to 1, since we only have one material
     iter->second.materials.resize(1);
 
@@ -171,7 +175,7 @@ void TextureManager::cubemapFromPaths(ModelHandle handle, const std::vector<std:
     std::vector<LoadedImage> loadedImages{imageLoader.getImageData()};
 
     // Create new id, assign it, and track it for eventual release
-    GLuint texID{textureUtilities::generateCubemapTextureID(loadedImages, mipmaps, sRGB)};
+    GLuint texID{textureUtilities::generateCubemapTextureID(loadedImages, textureDetails)};
     iter->second.materials[0].cubemap = texID;
     iter->second.glTextureHandles.insert(texID);
 }
@@ -229,12 +233,6 @@ const std::vector<Material> &TextureManager::borrowAssignMaterials(ModelHandle s
     selfEntry.lender = other;
 
     return selfIter->second.materials;
-}
-
-void TextureManager::setAnisoLevel(float level)
-{
-    globalAnisoEnabled_ = true;
-    anisoLevel_ = level;
 }
 
 // Assumes caller is giving up control of their texture ID, overwriting anything in that slot

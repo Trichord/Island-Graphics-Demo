@@ -19,11 +19,11 @@ constexpr float mipScale{0.111f};
 constexpr float alphaCutoff{0.425f};
 
 Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings)
-    : textureManager_{threadPool_}, graphicsSettings_{settings},
-      shadowPassTarget{2048, 2048, settings.msaa, GL_RG32F, GL_DEPTH_COMPONENT32F, FBODepth::RBO},
-      shadowBlitTarget{2048, 2048, 0, GL_RG32F, GL_NONE, FBODepth::NONE}
+    : textureManager_{threadPool_, settings}, graphicsSettings_{settings},
+      shadowPassTarget_{shadowMapRes, shadowMapRes, settings.msaa, GL_RG32F, GL_DEPTH_COMPONENT32F, FBODepth::RBO},
+      shadowBlitTarget_{shadowMapRes, shadowMapRes, 0, GL_RG32F, GL_NONE, FBODepth::NONE},
+      shadowPassShader_{Shader{"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"}}
 {
-    setupTextureManager();
     loadShaders();
 
     for (auto &[_, shader] : shaders_)
@@ -70,22 +70,13 @@ void Renderer::updateUBO(Scene &scene)
     glNamedBufferSubData(UBO_, 0, sizeof(PackedCameraData), &uboCameraData_);
 }
 
-void Renderer::setupTextureManager()
-{
-    if (graphicsSettings_.anisotropicFiltering)
-        textureManager_.setAnisoLevel(static_cast<float>(graphicsSettings_.anisotropicFiltering));
-}
-
 void Renderer::loadShaders()
 {
     using enum ShaderType;
 
     shaders_.emplace(FLOWERS, Shader{"./shaders/flowers.vert", "./shaders/flowers.frag"});
     shaders_.emplace(TREES, Shader{"./shaders/trees.vert", "./shaders/trees.frag"});
-    shaders_.emplace(POINT_PBR, Shader{"./shaders/point_PBR.vert", "./shaders/point_PBR.frag"});
     shaders_.emplace(DIRECTIONAL_PBR, Shader{"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"});
-    shaders_.emplace(DIRECTIONAL_PBR_INSTANCED,
-                     Shader{"./shaders/directional_PBR_instanced.vert", "./shaders/directional_PBR.frag"});
     shaders_.emplace(REFLECTIVE, Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"});
     shaders_.emplace(SKYBOX, Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"});
     shaders_.emplace(WATER, Shader{"./shaders/water.vert", "./shaders/water.frag"});
@@ -162,6 +153,7 @@ TextureManager &Renderer::getTextureManager()
 void Renderer::deleteBuffers()
 {
     glDeleteBuffers(1, &UBO_);
+    glDeleteBuffers(1, &indicesSSBO_);
     glDeleteBuffers(1, &matricesSSBO_);
 }
 
