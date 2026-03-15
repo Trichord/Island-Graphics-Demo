@@ -16,11 +16,10 @@
 #include "jolt/Core/TempAllocator.h"
 #include "jolt/Physics/PhysicsSystem.h"
 #include "jolt/registerTypes.h"
+#include "jolt_impl.h"
 #include "player_physics.h"
 #include "renderer.h"
 #include "scene.h"
-
-constexpr size_t joltStackSize{10 * 1024 * 1024}; // 10 MB for Jolt's internal stack space
 
 Application::~Application()
 {
@@ -47,7 +46,14 @@ void Application::run()
 
     createOpenGLViewport(graphicsSettings);
     registerCallbacks();
-    initializeJolt();
+
+    //Jolt Phyysics
+    registerJolt();
+    JPH::PhysicsSystem physicsSystem;
+    JPH::TempAllocatorImpl tempAllocator{joltStackSize};
+    JPH::JobSystemSingleThreaded jobSystem_{maxPhysicsJobs_};
+    physicsSystem.Init(maxBodies, 0, maxBodyPairs, maxContactConstraints, broadPhaseLayer_,
+                       objectVsBroadPhaseLayerFilter_, objectLayerPairFilter_);
 
     // Create resources
     std::cout << "Compiling Shaders... ";
@@ -57,9 +63,6 @@ void Application::run()
     std::cout << "Loading Models... ";
     IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
     std::cout << "Done" << std::endl;
-
-    JPH::PhysicsSystem physicsSystem;
-    JPH::TempAllocatorImpl tempAllocator{joltStackSize};
 
     // Initialize scene dependent resources
     renderer.initializeResources(islandScene);
@@ -298,7 +301,7 @@ void Application::keyCallback(GLFWwindow *window, int key, int scancode, int act
         leftShiftToggle_ = !leftShiftToggle_;
 }
 
-void Application::initializeJolt()
+void Application::registerJolt()
 {
     JPH::RegisterDefaultAllocator();
     JPH::Factory::sInstance = new JPH::Factory();

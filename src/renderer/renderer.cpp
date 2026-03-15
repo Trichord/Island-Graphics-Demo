@@ -40,6 +40,8 @@ void Renderer::renderScene(Scene &scene)
     glClearNamedFramebufferfv(0, GL_COLOR, 0, clearColor_.data());
     glClearNamedFramebufferfv(0, GL_DEPTH, 0, &depthClear_);
 
+    updateSceneTransforms(scene);
+
     if (scene.getGlobalLightSource().directionHasUpdated())
     {
         updateShadowMaps(scene);
@@ -142,6 +144,7 @@ void Renderer::initializeResources(Scene &scene)
     createShadowMaps(scene);
     updateUBO(scene);
     setSceneShaderUniforms(scene);
+    resetVisibility(scene);
     cullRenderables(scene);
 }
 
@@ -164,4 +167,19 @@ void Renderer::allResourcesLoaded()
 
 void Renderer::updateShadowMaps(Scene &scene)
 {
+}
+
+void Renderer::updateSceneTransforms(Scene &scene)
+{
+    std::unordered_set<ModelHandle> updatedTransformHandles{scene.getTransformsUpdated()};
+
+    for (ModelHandle handle : updatedTransformHandles)
+    {
+        ssboOffsets &bufferOffset = modelBaseIndices_.at(handle); 
+
+        std::vector<glm::mat4> updatedTransforms;
+
+        for ()
+
+    }
 }
