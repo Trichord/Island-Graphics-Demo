@@ -12,7 +12,6 @@
 #include "config_window.h"
 #include "gl_context.h"
 #include "glm/glm.hpp"
-#include "instance_data.h"
 #include "render_target.h"
 #include "renderable.h"
 #include "scene.h"
@@ -30,16 +29,16 @@ void Renderer::loadInstancedData(Scene &scene)
         {
             // Make everything visible for cubemap generation
             renderable.properties.isVisible = true;
-            renderable.objectRef.get().setVisibility(true);
+            renderable.objectRef.get().setMeshVisibility(true);
 
             auto &object = renderable.objectRef.get();
 
             if (auto instancedData = object.generateInstancedData(); instancedData.has_value())
             {
-                std::vector<InstancedData> data{instancedData.value()};
+                std::vector<Instance> data{instancedData.value()};
 
                 renderable.properties.visibleInstances = static_cast<uint32_t>(data.size());
-                renderable.properties.transform = std::move(data);
+                renderable.properties.instances = std::move(data);
             }
         }
 }
@@ -79,7 +78,7 @@ void Renderer::createBuffers(Scene &scene)
     std::size_t numInstances{0};
     for (auto &[_, objectList] : scene.getRenderablesByShader())
         for (auto &renderable : objectList)
-            numInstances += renderable.properties.visibleInstances;
+            numInstances += renderable.properties.instances.size();
 
     // Instanced model matrices
     glCreateBuffers(1, &matricesSSBO_);
@@ -112,7 +111,7 @@ void Renderer::createCubemaps(Scene &scene)
 
     RenderTarget cubeFace(renderTargetSize, renderTargetSize, graphicsSettings_.msaa, GL_SRGB8, GL_DEPTH_COMPONENT24,
                           FBODepth::RBO);
-    RenderTarget resolveTarget(renderTargetSize, renderTargetSize, 0, GL_SRGB8, GL_DEPTH_COMPONENT24, FBODepth::NONE);
+    RenderTarget resolveTarget(renderTargetSize, renderTargetSize, 0, GL_SRGB8, GL_NONE, FBODepth::NONE);
 
     // Save camera settings before we make it bounce around the scene
     const glm::vec3 originalPos{camera.getPosition()};
@@ -122,12 +121,13 @@ void Renderer::createCubemaps(Scene &scene)
 
     for (auto &renderable : waters)
     {
-        // Water should not be instanced
-        if (!std::holds_alternative<Transform>(renderable.properties.transform))
+        auto &instances = renderable.properties.instances;
+
+        if (instances.empty())
             continue;
 
-        // Set the camera in the center of the water plane
-        Transform &transform{std::get<Transform>(renderable.properties.transform)};
+        // Set the camera in the center of the water plane. Water should not be instanced
+        Transform &transform{instances[0].transform};
         camera.setPosition(transform.getPosition());
 
         // Hide self
@@ -136,7 +136,7 @@ void Renderer::createCubemaps(Scene &scene)
         // Create the cubemap texture
         GLuint cubeMapTextureID{0};
         glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &cubeMapTextureID);
-        glTextureStorage2D(cubeMapTextureID, mipLevels, GL_SRGB8_ALPHA8, renderTargetSize, renderTargetSize);
+        glTextureStorage2D(cubeMapTextureID, mipLevels, GL_SRGB8, renderTargetSize, renderTargetSize);
 
         createCubemapFaces(scene, cubeFace, resolveTarget, cubeMapTextureID);
 
@@ -205,36 +205,36 @@ void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
     modelMatrices.reserve(totalInstanceCount);
     instanceIndices_.reserve(totalInstanceCount);
 
-    GLuint offset{0};
-    indicesOffset_ = 0;
+    GLuint matricesOffset{0};
     instanceIndices_.clear();
 
     for (auto &[_, renderables] : scene.getRenderablesByShader())
         for (auto &renderable : renderables)
         {
-            if (!renderable.properties.isInstanced())
-                continue;
-
             auto &object{renderable.objectRef.get()};
-            auto &instances{std::get<std::vector<InstancedData>>(renderable.properties.transform)};
+            auto &instances{renderable.properties.instances};
 
             if (instances.empty())
                 continue;
 
-            renderable.properties.visibleInstances = static_cast<uint32_t>(instances.size());
+            GLuint numInstances{static_cast<GLuint>(instances.size())};
 
-            // Keep track of start position for each model's matrices in the SSBO.
-            instancedBaseOffsets_.emplace(object.getHandle(), offset);
+            renderable.properties.visibleInstances = numInstances;
 
-            for (uint32_t i{0}; i < instances.size(); ++i)
+            // Keep track of start position for each model's matrices in the SSBO. Before any culling there is a 1:1
+            // mapping of the model matrices and indices
+            modelBaseIndices_.emplace(object.getHandle(), ssboOffsets{matricesOffset, matricesOffset});
+
+            for (std::size_t i{0}; i < instances.size(); ++i)
             {
-                // Add the model matrix to SSBO
-                modelMatrices.emplace_back(instances[i].modelMatrix);
-                instanceIndices_.push_back(i);
+                // Build up the vector of matrices to eventually pass to the SSBO
+                modelMatrices.emplace_back(instances[i].transform.getModelMatrix());
+
+                // Add each index as well (offset + index will give the proper model matrix)
+                instanceIndices_.push_back(static_cast<GLuint>(i));
             }
 
-            offset += static_cast<GLuint>(instances.size());
-            indicesOffset_ += renderable.properties.visibleInstances;
+            matricesOffset += numInstances;
         }
 
     glNamedBufferSubData(matricesSSBO_, 0, modelMatrices.size() * sizeof(glm::mat4), modelMatrices.data());
@@ -243,5 +243,44 @@ void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
 
 void Renderer::createShadowMaps(Scene &scene)
 {
+    constexpr float lightFrustumSize{300.0f};
+    /*
+    glViewport(0, 0, shadowMapRes, shadowMapRes);
 
+    //Matrices
+    glm::mat4 lightPerspective{glm::ortho(-lightFrustumSize, lightFrustumSize, -lightFrustumSize, lightFrustumSize,
+                                          cameraDefaultValues::nearPlane, cameraDefaultValues::farPlane)};
+    glm::mat4 lightView{
+        glm::lookAt(-scene.getGlobalLightSource().getDirection(), glm::vec3{0.0f}, WorldVectors::worldUp)};
+    glm::mat4 lightViewPerspective{lightPerspective * lightView};
+    shadowPassShader_.setMat4("lightViewPerspectiveMat", lightViewPerspective);
+
+    //Shadow pass
+    for (auto &[shaderType, renderables] : scene.getRenderablesByShader())
+    {
+        using enum ShaderType;
+
+        if (shaderType == SKYBOX || shaderType == FLOWERS)
+            continue;
+
+        for (auto &renderable : renderables)
+        {
+            auto &object = renderable.objectRef.get();
+            auto &properties = renderable.properties;
+
+            if (std::holds_alternative<Transform>(properties.transform))
+            {
+                Transform &transform{std::get<Transform>(properties.transform)};
+
+                shadowPassShader_.setMat4("modelMatrix", transform.getModelMatrix());
+            }
+
+            if (auto iter = instancedBaseOffsets_.find(object.getHandle()); iter != instancedBaseOffsets_.end())
+            {
+                shadowPassShader_.setIntU("baseIndex", iter->second);
+                shadowPassShader_.setIntU("indicesOffset", renderable.properties.instancedIndicesOffset);
+            }
+        }
+    }
+    */
 }

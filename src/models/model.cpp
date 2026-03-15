@@ -13,15 +13,24 @@
 #include "fastgltf/types.hpp"
 #include "fastgltf_loader.h"
 #include "glm/glm.hpp"
-#include "instance_data.h"
 #include "primitive.h"
+#include "renderable.h"
 #include "texture_manager.h"
+
+void findMaterials(std::vector<Primitive::Mesh> &meshes, bool &hasMaterials)
+{
+    for (const auto &mesh : meshes)
+        for (const auto &primitive : mesh.primitives)
+            if (primitive.materialsExist())
+                hasMaterials = true;
+}
 
 Model::Model(TextureManager &textureManager, const std::filesystem::path &path)
     : handle_{textureManager.assignHandle()}, textureManager_{textureManager}, filePath_{path}
 {
     loadModel(path, false);
     calculateAABB();
+    findMaterials(meshes_, hasMaterials_);
 }
 
 Model::Model(TextureManager &textureManager, const ModelHandle borrowHandle, const std::filesystem::path &path)
@@ -30,6 +39,7 @@ Model::Model(TextureManager &textureManager, const ModelHandle borrowHandle, con
     textureManager.borrowAssignMaterials(handle_, borrowHandle);
     loadModel(path, true);
     calculateAABB();
+    findMaterials(meshes_, hasMaterials_);
 }
 
 Model::Model(Model &&other) noexcept
@@ -55,7 +65,7 @@ std::span<Primitive::Mesh> Model::getMeshes()
     return meshes_;
 }
 
-std::optional<std::vector<InstancedData>> Model::generateInstancedData()
+std::optional<std::vector<Instance>> Model::generateInstancedData()
 {
     return std::nullopt;
 }
@@ -80,16 +90,13 @@ void Model::assignMaterialIndex(std::size_t newIndex)
     for (auto &mesh : meshes_)
         for (auto &primitive : mesh.primitives)
             primitive.setMaterialIndex(newIndex);
+
+    hasMaterials_ = true;
 }
 
 bool Model::hasMaterials() const
 {
-    for (const auto &mesh : meshes_)
-        for (const auto &primitive : mesh.primitives)
-            if (primitive.materialsExist())
-                return true;
-
-    return false;
+    return hasMaterials_;
 }
 
 void Model::calculateAABB()
@@ -109,7 +116,7 @@ void Model::calculateAABB()
     aabb_ = AABB{min, max};
 }
 
-void Model::setVisibility(bool visible)
+void Model::setMeshVisibility(bool visible)
 {
     for (auto &mesh : meshes_)
         mesh.isVisible = visible;

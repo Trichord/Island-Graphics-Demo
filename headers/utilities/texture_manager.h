@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "config_window.h"
 #include "glad/glad.h"
 #include "texture_units.h"
 #include "thread_pool.h"
@@ -24,7 +25,7 @@ struct Material
 class TextureManager
 {
   public:
-    explicit TextureManager(ThreadPool &threadPool);
+    explicit TextureManager(ThreadPool &threadPool, const ConfigWindow::GraphicsSettings& settings);
 
     ModelHandle assignHandle();
     void releaseHandle(ModelHandle handle);
@@ -38,14 +39,12 @@ class TextureManager
     void loadCubemap(const ModelHandle handle, std::vector<std::filesystem::path> images,
                      const std::filesystem::path &parentPath = "./", bool mipmaps = true, bool sRGB = true);
     void loadModel(const ModelHandle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath);
-
-    void setAnisoLevel(float anisoLevel);
     void allModelsLoaded();
 
   private:
     // Each entry in the vector corresponds to a gltf material index. Materials vector can contain duplicate IDs
-    // (multiple materials referencing the same texture atlas, etc.). glTextureHandles keeps track of which IDs need to be
-    // freed on destruction. Lender keeps track of who the textures were borrowed from.
+    // (multiple materials referencing the same texture atlas, etc.). glTextureHandles keeps track of which IDs need to
+    // be freed on destruction. Lender keeps track of who the textures were borrowed from.
     struct ModelResources
     {
         int refCount{1};
@@ -54,7 +53,7 @@ class TextureManager
         ModelHandle lender{-1};
     };
 
-    float anisoLevel_{0.0f};
+    float globalAnisotropicDegree_{0.0f};
     bool globalAnisoEnabled_{false};
 
     ThreadPool &threadPool_;

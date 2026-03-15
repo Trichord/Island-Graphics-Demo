@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <iostream>
 #include <map>
 #include <optional>
 #include <stdexcept>
@@ -44,7 +45,7 @@ class Scene
     const glm::vec3 &getWindDirection() const;
     DirectionalLight &getGlobalLightSource();
     void setAmbientLight(const glm::vec3 &ambient);
-    Transform &getObjectTransform(const std::string &key);
+    std::vector<Instance> &getObjectTransforms(const std::string &key);
     std::map<ShaderType, std::vector<Renderable>> &getRenderablesByShader();
 
   protected:
@@ -60,7 +61,7 @@ class Scene
     DirectionalLight globalLightSource_;
 
     // Access points
-    std::unordered_map<std::string, std::reference_wrapper<Transform>> namedTransforms_;
+    std::unordered_map<std::string, std::reference_wrapper<std::vector<Instance>>> namedInstances_;
     std::map<ShaderType, std::vector<Renderable>> sceneRenderables_;
 
     virtual void addAllModelsToScene() = 0;
@@ -74,13 +75,16 @@ class Scene
      * it in a scene's onUpdate() method.
      */
     template <typename T>
-    void addObjectToScene(T &modelRef, ShaderType shaderType, ObjectProperties properties = {},
+        requires std::derived_from<T, Model>
+    void addObjectToScene(T &modelRef, ShaderType shaderType, ObjectProperties &&properties = {},
                           const std::optional<std::string> name = std::nullopt)
     {
+        if (properties.instances.empty())
+            properties.instances.emplace_back(Transform{}, modelRef.getAABB());
+
         sceneRenderables_[shaderType].emplace_back(Renderable{std::ref(modelRef), std::move(properties)});
 
         if (name.has_value())
-            namedTransforms_.emplace(
-                name.value(), std::ref(std::get<Transform>(sceneRenderables_[shaderType].back().properties.transform)));
+            namedInstances_.emplace(name.value(), std::ref(sceneRenderables_[shaderType].back().properties.instances));
     }
 };

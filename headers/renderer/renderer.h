@@ -18,6 +18,7 @@
 
 // Desired threadcount for the texture loading threadpool
 constexpr unsigned int threadCount{6u};
+constexpr int shadowMapRes{2048};
 
 class Renderer
 {
@@ -37,7 +38,12 @@ class Renderer
     TextureManager &getTextureManager();
 
   private:
-    std::uint32_t indicesOffset_{0};
+    struct ssboOffsets
+    {
+        GLuint matricesOffset{0};
+        GLuint indicesOffset{0};
+    };
+
     static constexpr float depthClear_{1.0f};
     static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
 
@@ -57,27 +63,34 @@ class Renderer
     GLuint UBO_{0};
     PackedCameraData uboCameraData_;
 
-    // SSBOs
+    /* SSBOs
+     *
+     * Renderer uploads a static SSBO containing every renderable's model matrix. An indices SSBO capable of
+     * holding the same number of elements is reserved in GPU memory. A fresh vector of indices is computed and uploaded
+     * every frame, representing the visible indices into that buffer
+     */
     GLuint indicesSSBO_{0};
     GLuint matricesSSBO_{0};
-    std::unordered_map<ModelHandle, GLuint> instancedBaseOffsets_;
+    std::unordered_map<ModelHandle, ssboOffsets> modelBaseIndices_;
 
     // Owned objects
     GLState glState_;
     TextureManager textureManager_;
-    std::vector<std::uint32_t> instanceIndices_;
+    std::vector<GLuint> instanceIndices_;
     std::unordered_map<ShaderType, Shader> shaders_;
     const ConfigWindow::GraphicsSettings graphicsSettings_;
 
     // Textures
-    RenderTarget shadowPassTarget;
-    RenderTarget shadowBlitTarget;
-    
+    RenderTarget shadowPassTarget_;
+    RenderTarget shadowBlitTarget_;
+
+    // Shaders
+    Shader shadowPassShader_;
+
     // Renderer initialization
     void loadShaders();
-    void setupTextureManager();
 
-    // Scene initialization
+    // Scene dependent initialization
     void createBuffers(Scene &scene);
     void setupShader(Shader &shader);
     void borrowSkyboxes(Scene &scene);
@@ -98,10 +111,10 @@ class Renderer
     // Culling
     void resetVisibility(Scene &scene);
     void cullRenderables(Scene &scene);
-    void cullModel(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
-    void cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
+    void cullNone(Renderable &renderable, GLuint &currentOffset);
+    void cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
     void cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
-                       const std::array<glm::vec4, 6> &frustumPlanes);
+                       const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
 
     // Cleanup
     void deleteBuffers();

@@ -5,7 +5,6 @@
 #include "aabb.h"
 #include "camera.h"
 #include "glm/glm.hpp"
-#include "instance_data.h"
 #include "renderable.h"
 #include "renderer.h"
 #include "scene.h"
@@ -13,7 +12,7 @@
 
 void Renderer::cullRenderables(Scene &scene)
 {
-    indicesOffset_ = 0;
+    GLuint indicesOffset{0};
     instanceIndices_.clear();
 
     Camera &camera{scene.getCamera()};
@@ -28,22 +27,16 @@ void Renderer::cullRenderables(Scene &scene)
 
             switch (cull)
             {
-            case MODEL:
-                cullModel(renderable, frustumPlanes);
+            case INSTANCED:
+                cullInstanced(renderable, camera.getPosition(), frustumPlanes, indicesOffset);
                 break;
 
             case TERRAIN:
-                cullByMesh(renderable, frustumPlanes);
-                break;
-
-            case INSTANCED:
-                cullInstanced(renderable, camera.getPosition(), frustumPlanes);
+                cullByMesh(renderable, frustumPlanes, indicesOffset);
                 break;
 
             case NONE: {
-                auto &object = renderable.objectRef.get();
-                object.setVisibility(true);
-                renderable.properties.isVisible = true;
+                cullNone(renderable, indicesOffset);
                 break;
             }
 
@@ -55,33 +48,15 @@ void Renderer::cullRenderables(Scene &scene)
     glNamedBufferSubData(indicesSSBO_, 0, instanceIndices_.size() * sizeof(std::uint32_t), instanceIndices_.data());
 }
 
-void Renderer::cullModel(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
-{
-    auto &object = renderable.objectRef.get();
-    auto &properties = renderable.properties;
-
-    if (properties.isInstanced())
-        return;
-
-    Transform &transform{std::get<Transform>(properties.transform)};
-
-    const glm::mat4 &modelMatrix{transform.getModelMatrix()};
-    const AABB &aabb{object.getAABB()};
-
-    properties.isVisible = aabb.intersects(frustumPlanes, modelMatrix);
-
-    if (properties.isVisible)
-        object.setVisibility(true);
-}
-
 void Renderer::cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
-                             const std::array<glm::vec4, 6> &frustumPlanes)
+                             const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset)
 {
     bool anyVisible{false};
-
     auto &object = renderable.objectRef.get();
-    auto &instances = std::get<std::vector<InstancedData>>(renderable.properties.transform);
+    auto &instances = renderable.properties.instances;
+    auto &offsets{modelBaseIndices_[object.getHandle()]};
 
+    // Build up the visible indices for the SSBO
     for (uint32_t i{0}; i < instances.size(); ++i)
     {
         if (instances[i].worldAABB.intersectsWorldSpace(frustumPlanes))
@@ -96,37 +71,55 @@ void Renderer::cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
     if (anyVisible)
     {
         renderable.properties.isVisible = true;
-        object.setVisibility(true);
+        object.setMeshVisibility(true);
 
-        // Update render's count for the draw call
-        renderable.properties.instancedIndicesOffset = indicesOffset_;
+        offsets.indicesOffset = currentOffset;
 
-        // Keep track of where each model's instances start in the vector of indices
-        indicesOffset_ += renderable.properties.visibleInstances;
+        currentOffset += renderable.properties.visibleInstances;
     }
 }
 
-void Renderer::cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes)
+void Renderer::cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset)
 {
+    bool anyVisible{false};
     auto &object = renderable.objectRef.get();
     auto &properties = renderable.properties;
+    auto &instances = properties.instances;
+    auto &offsets{modelBaseIndices_[object.getHandle()]};
 
-    properties.isVisible = false;
-    Transform &transform{std::get<Transform>(properties.transform)};
-
-    for (auto &mesh : object.getMeshes())
+    for (uint32_t i{0}; i < instances.size(); ++i)
     {
-        mesh.isVisible = false;
+        bool instanceVisible{false};
 
-        for (const auto &primitive : mesh.primitives)
+        for (auto &mesh : object.getMeshes())
         {
-            if (primitive.getAABB().intersects(frustumPlanes, transform.getModelMatrix()))
+            for (auto &primitive : mesh.primitives)
             {
-                mesh.isVisible = true;
-                properties.isVisible = true;
-                break;
+                if (primitive.getAABB().intersects(frustumPlanes, instances[i].transform.getModelMatrix()))
+                {
+                    anyVisible = true;
+                    mesh.isVisible = true;
+                    instanceVisible = true;
+                    properties.isVisible = true;
+                }
             }
         }
+
+        if (instanceVisible)
+        {
+            instanceIndices_.push_back(i);
+            ++renderable.properties.visibleInstances;
+        }
+    }
+
+    if (anyVisible)
+    {
+        renderable.properties.isVisible = true;
+        object.setMeshVisibility(true);
+
+        offsets.indicesOffset = currentOffset;
+
+        currentOffset += renderable.properties.visibleInstances;
     }
 }
 
@@ -140,13 +133,29 @@ void Renderer::resetVisibility(Scene &scene)
 
             ObjectProperties &properties{renderable.properties};
             auto &object = renderable.objectRef.get();
+            auto &offsets{modelBaseIndices_[object.getHandle()]};
 
-            if (properties.isVisible)
-            {
-                properties.isVisible = false;
-                properties.visibleInstances = 0;
-                properties.instancedIndicesOffset = 0;
-                object.setVisibility(false);
-            }
+            offsets.indicesOffset = 0;
+            properties.isVisible = false;
+            properties.visibleInstances = 0;
+            object.setMeshVisibility(false);
         }
+}
+
+void Renderer::cullNone(Renderable &renderable, GLuint &currentOffset)
+{
+    auto &properties = renderable.properties;
+    auto &object = renderable.objectRef.get();
+    auto &instances = renderable.properties.instances;
+    auto &offsets{modelBaseIndices_[object.getHandle()]};
+
+    object.setMeshVisibility(true);
+    properties.isVisible = true;
+    properties.visibleInstances = static_cast<GLuint>(instances.size());
+
+    for (GLuint i{0}; i < static_cast<GLuint>(instances.size()); ++i)
+        instanceIndices_.push_back(i);
+
+    offsets.indicesOffset = currentOffset;
+    currentOffset += properties.visibleInstances;
 }
