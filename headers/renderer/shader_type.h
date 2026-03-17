@@ -6,11 +6,12 @@
 
 enum class ShaderType
 {
-    FLOWERS,
-    TREES,
     DIRECTIONAL_PBR,
     REFLECTIVE,
     WATER,
     OCEAN,
-    SKYBOX
+    TREES,
+    FLOWERS,
+    SKYBOX,
+    COUNT
 };

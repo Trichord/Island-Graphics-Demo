@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <functional>
 #include <iostream>
 #include <map>
@@ -29,10 +30,12 @@
  * safer ownership model.
  */
 
-struct NamedInstance
+using Instances = std::reference_wrapper<std::vector<Instance>>;
+
+struct ModelInstances
 {
     ModelHandle handle;
-    std::reference_wrapper<std::vector<Instance>> instances;
+    Instances instances;
 };
 
 class Scene
@@ -52,8 +55,9 @@ class Scene
     const glm::vec3 &getWindDirection() const;
     void setAmbientLight(const glm::vec3 &ambient);
     std::unordered_set<ModelHandle> &getTransformsUpdated();
-    NamedInstance &getObjectTransforms(const std::string &key);
+    ModelInstances &getInstancesByName(const std::string &key);
     std::map<ShaderType, std::vector<Renderable>> &getRenderablesByShader();
+    std::vector<Instance>& getInstancesByHandle(ModelHandle handle) const;
 
   protected:
     Camera camera_;
@@ -70,7 +74,8 @@ class Scene
     // Access points
     std::unordered_set<ModelHandle> transformsUpdated_;
     std::map<ShaderType, std::vector<Renderable>> sceneRenderables_;
-    std::unordered_map<std::string, NamedInstance> namedInstances_;
+    std::unordered_map<std::string, ModelInstances> namedInstances_;
+    std::unordered_map<ModelHandle, Instances> instancesByHandle_;
 
     virtual void addAllModelsToScene() = 0;
     virtual void setupEnvironment() = 0;
@@ -79,7 +84,7 @@ class Scene
     virtual void initializeScene(const ConfigWindow::GraphicsSettings &graphicsSettings) = 0;
 
     /**
-     * @brief Adds an object to the scene.  Optional: give the object a name to reference
+     * @brief Adds an object to the scene.  Optional: give the object a name to access
      * it in a scene's onUpdate() method.
      */
     template <typename T>
@@ -90,11 +95,17 @@ class Scene
         if (properties.instances.empty())
             properties.instances.emplace_back(Transform{}, modelRef.getAABB());
 
+        // Store a reference to the stable vector in Scene Resources, organized by shader
         sceneRenderables_[shaderType].emplace_back(Renderable{std::ref(modelRef), std::move(properties)});
 
+        ModelHandle handle{modelRef.getHandle()};
+        std::vector<Instance> &instances{sceneRenderables_[shaderType].back().properties.instances};
+
+        // Store an access point to the instances, by model handle
+        instancesByHandle_.emplace(handle, std::ref(instances));
+
+        // Add a lookup to get a reference to a model's instances by a user-defined name
         if (name.has_value())
-            namedInstances_.emplace(name.value(),
-                                    NamedInstance{modelRef.getHandle(),
-                                                  std::ref(sceneRenderables_[shaderType].back().properties.instances)});
+            namedInstances_.emplace(name.value(), ModelInstances{handle, std::ref(instances)});
     }
 };

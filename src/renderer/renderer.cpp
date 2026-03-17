@@ -141,11 +141,13 @@ void Renderer::initializeResources(Scene &scene)
     createBuffers(scene);
     createCubemaps(scene);
     borrowSkyboxes(scene);
-    createShadowMaps(scene);
+    updateShadowMaps(scene);
     updateUBO(scene);
     setSceneShaderUniforms(scene);
     resetVisibility(scene);
     cullRenderables(scene);
+
+    threadPool_.stopAllThreads();
 }
 
 TextureManager &Renderer::getTextureManager()
@@ -160,26 +162,68 @@ void Renderer::deleteBuffers()
     glDeleteBuffers(1, &matricesSSBO_);
 }
 
-void Renderer::allResourcesLoaded()
-{
-    threadPool_.stopAllThreads();
-}
-
 void Renderer::updateShadowMaps(Scene &scene)
 {
+    constexpr float lightFrustumSize{300.0f};
+    /*
+    glViewport(0, 0, shadowMapRes, shadowMapRes);
+
+    //Matrices
+    glm::mat4 lightPerspective{glm::ortho(-lightFrustumSize, lightFrustumSize, -lightFrustumSize, lightFrustumSize,
+                                          cameraDefaultValues::nearPlane, cameraDefaultValues::farPlane)};
+    glm::mat4 lightView{
+        glm::lookAt(-scene.getGlobalLightSource().getDirection(), glm::vec3{0.0f}, WorldVectors::worldUp)};
+    glm::mat4 lightViewPerspective{lightPerspective * lightView};
+    shadowPassShader_.setMat4("lightViewPerspectiveMat", lightViewPerspective);
+
+    //Shadow pass
+    for (auto &[shaderType, renderables] : scene.getRenderablesByShader())
+    {
+        using enum ShaderType;
+
+        if (shaderType == SKYBOX || shaderType == FLOWERS)
+            continue;
+
+        for (auto &renderable : renderables)
+        {
+            auto &object = renderable.objectRef.get();
+            auto &properties = renderable.properties;
+
+            if (std::holds_alternative<Transform>(properties.transform))
+            {
+                Transform &transform{std::get<Transform>(properties.transform)};
+
+                shadowPassShader_.setMat4("modelMatrix", transform.getModelMatrix());
+            }
+
+            if (auto iter = instancedBaseOffsets_.find(object.getHandle()); iter != instancedBaseOffsets_.end())
+            {
+                shadowPassShader_.setIntU("baseIndex", iter->second);
+                shadowPassShader_.setIntU("indicesOffset", renderable.properties.instancedIndicesOffset);
+            }
+        }
+    }
+    */
 }
 
 void Renderer::updateSceneTransforms(Scene &scene)
 {
-    std::unordered_set<ModelHandle> updatedTransformHandles{scene.getTransformsUpdated()};
+    std::unordered_set<ModelHandle> &updatedTransformHandles{scene.getTransformsUpdated()};
 
     for (ModelHandle handle : updatedTransformHandles)
     {
-        ssboOffsets &bufferOffset = modelBaseIndices_.at(handle); 
+        ssboOffsets &bufferOffset = modelBaseIndices_.at(handle);
+        std::span<Instance> updatedTransforms{scene.getInstancesByHandle(handle)};
 
-        std::vector<glm::mat4> updatedTransforms;
+        std::vector<glm::mat4> matrices;
+        matrices.reserve(updatedTransforms.size());
 
-        for ()
+        for (auto &instance : updatedTransforms)
+            matrices.emplace_back(instance.transform.getModelMatrix());
 
+        glNamedBufferSubData(matricesSSBO_, bufferOffset.matricesOffset * sizeof(glm::mat4),
+                             sizeof(glm::mat4) * matrices.size(), matrices.data());
     }
+
+    updatedTransformHandles.clear();
 }
