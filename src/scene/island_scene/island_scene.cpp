@@ -268,12 +268,11 @@ void IslandScene::setupCamera(const ConfigWindow::GraphicsSettings &graphicsSett
 void IslandScene::onUpdate(float deltaTime)
 {
     // Rotate the fancy space model
-    auto& namedInstance = getObjectTransforms("spaceModel");
+    auto &spaceModelInstances = getInstancesByName("spaceModel");
+    auto &instances = spaceModelInstances.instances.get();
 
-    auto &instances = namedInstance.instances.get();
+    for (auto &instance : instances)
+        instance.transform.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});
 
-    for (std::size_t i{0}; i < instances.size(); ++i)
-        instances[i].transform.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f}); 
-
-    transformsUpdated.insert(namedInstance.handle);
+    transformsUpdated_.insert(spaceModelInstances.handle);
 }

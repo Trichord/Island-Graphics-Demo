@@ -24,9 +24,10 @@ layout(binding = 1, std430) readonly buffer indicesSSBO {
 out vec2 texCoords;
 out vec3 normal;
 
-const float minVertexHeight = 0.001;
-const float maxVertexHeight = 1.0;
 const float swaySpeed = 0.5;
+const float maxVertexHeight = 1.0;
+const float minVertexHeight = 0.001;
+const float PI = 3.14159265358979323846;
 
 uniform uint matricesOffset;
 uniform uint indicesOffset;
@@ -39,11 +40,10 @@ float random(vec2 st) {
 }
 
 vec3 calcWindTranslation(mat4 transform, float timeStamp, vec3 windDir, float windStr){
-	vec3 centerPos = transform[3].xyz;
-	float vertexOffset = random(transform[0].xy) * 0.7;
+	float vertexOffset = random(vec2(gl_InstanceID * PI, gl_InstanceID)) * 0.7;
 	
-	float time1 = sin(timeStamp + random(centerPos.xz) + vertexOffset);
-	float time2 = cos(timeStamp + random(centerPos.xz * 1.337));
+	float time1 = sin(timeStamp + random(vec2(gl_InstanceID, gl_InstanceID + vertexOffset)));
+	float time2 = cos(timeStamp + random(vec2(gl_InstanceID, gl_InstanceID) * 1.337));
 
 	// Remap waves from [-1, 1] to [-0.05, 0.95] 
 	float wave = (time1 * 0.5 + 0.45) * (time2 * 0.5 + 0.45);

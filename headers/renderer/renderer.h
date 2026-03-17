@@ -32,20 +32,19 @@ class Renderer
     ~Renderer();
 
     void renderScene(Scene &scene);
-    void updateUBO(Scene &scene);
     void initializeResources(Scene &scene);
-    void allResourcesLoaded();
     TextureManager &getTextureManager();
 
   private:
+    static constexpr float depthClear_{1.0f};
+    static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
+
+    //Stores offsets as an integer index into the buffer
     struct ssboOffsets
     {
         GLuint matricesOffset{0};
         GLuint indicesOffset{0};
     };
-
-    static constexpr float depthClear_{1.0f};
-    static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
 
     // Packed UBO data holds everything we want to share with all shaders
     struct PackedCameraData
@@ -107,19 +106,15 @@ class Renderer
     void setupShader(Shader &shader);
     void borrowSkyboxes(Scene &scene);
     void createCubemaps(Scene &scene);
-    void createShadowMaps(Scene &scene);
     void loadInstancedData(Scene &scene);
     void setSceneShaderUniforms(Scene &scene);
     void populateSSBOs(Scene &scene, std::size_t totalInstanceCount);
     void createCubemapFaces(Scene &scene, RenderTarget &msaaTarget, RenderTarget &blitTarget, GLuint texture);
 
     // Rendering
-    void updateShadowMaps(Scene &scene);
-    void updateSceneTransforms(Scene &scene);
     void renderAllSceneObjects(Scene &scene);
     void renderObject(Renderable &renderable);
     void bindTextures(const Material &materials);
-    void updateShaderUniforms(Scene &scene, bool lightDirectionChanged);
 
     // Culling
     void resetVisibility(Scene &scene);
@@ -128,6 +123,12 @@ class Renderer
     void cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
     void cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
                        const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
+
+    // Updates
+    void updateUBO(Scene &scene);
+    void updateShadowMaps(Scene &scene);
+    void updateSceneTransforms(Scene &scene);
+    void updateShaderUniforms(Scene &scene, bool lightDirectionChanged);
 
     // Cleanup
     void deleteBuffers();
