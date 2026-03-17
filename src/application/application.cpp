@@ -47,7 +47,7 @@ void Application::run()
     createOpenGLViewport(graphicsSettings);
     registerCallbacks();
 
-    //Jolt Phyysics
+    // Jolt Phyysics
     registerJolt();
     JPH::PhysicsSystem physicsSystem;
     JPH::TempAllocatorImpl tempAllocator{joltStackSize};
@@ -66,7 +66,6 @@ void Application::run()
 
     // Initialize scene dependent resources
     renderer.initializeResources(islandScene);
-    renderer.allResourcesLoaded();
 
     std::cout << "Creating Collision Mesh... ";
     PlayerPhysics physicsHandler(islandScene, physicsSystem, tempAllocator);
@@ -224,31 +223,33 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
     //****************************************
     // Object Positioning - For Testing Only *
     //****************************************
-    Transform &transform{scene.getObjectTransform("spaceModel")};
     constexpr float objectSpeed{0.5f};
 
-    // +- Z
-    if (glfwGetKey(window, GLFW_KEY_KP_8) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{0.0f, 0.0f, -objectSpeed * deltaTime});
+    auto &transforms{scene.getInstancesByName("spaceModel")};
+    Transform &transform{transforms.instances.get().front().transform};
 
-    if (glfwGetKey(window, GLFW_KEY_KP_5) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{0.0f, 0.0f, objectSpeed * deltaTime});
+    // +- Z
+    if (glfwGetKey(window_, GLFW_KEY_KP_8) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{0.0f, 0.0f, -objectSpeed * deltaTime_});
+
+    if (glfwGetKey(window_, GLFW_KEY_KP_5) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{0.0f, 0.0f, objectSpeed * deltaTime_});
 
     // +- X
-    if (glfwGetKey(window, GLFW_KEY_KP_4) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{-objectSpeed * deltaTime, -0.0f, 0.0f});
+    if (glfwGetKey(window_, GLFW_KEY_KP_4) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{-objectSpeed * deltaTime_, -0.0f, 0.0f});
 
-    if (glfwGetKey(window, GLFW_KEY_KP_6) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{objectSpeed * deltaTime, 0.0f, 0.0f});
+    if (glfwGetKey(window_, GLFW_KEY_KP_6) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{objectSpeed * deltaTime_, 0.0f, 0.0f});
 
     // +- Y
-    if (glfwGetKey(window, GLFW_KEY_KP_7) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{0.0f, -objectSpeed * deltaTime, 0.0f});
+    if (glfwGetKey(window_, GLFW_KEY_KP_7) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{0.0f, -objectSpeed * deltaTime_, 0.0f});
 
-    if (glfwGetKey(window, GLFW_KEY_KP_9) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{0.0f, objectSpeed * deltaTime, 0.0f});
+    if (glfwGetKey(window_, GLFW_KEY_KP_9) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{0.0f, objectSpeed * deltaTime_, 0.0f});
 
-    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+    if (glfwGetKey(window_, GLFW_KEY_P) == GLFW_PRESS)
     {
         const glm::vec3 &pos{transform.getPosition()};
         std::cout << "Transform at: (" << pos.x << ", " << pos.y << ", " << pos.z << ")" << std::endl;

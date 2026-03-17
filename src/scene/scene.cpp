@@ -14,11 +14,12 @@
 #include "texture_manager.h"
 #include "transform.h"
 
+constexpr int maxModels{50};
+
 Scene::Scene(TextureManager &textureManager) : sceneResources_{textureManager}
 {
-    using namespace sceneMaxObjects;
-
-    namedInstances_.reserve(maxModels);
+    for (int i{0}; i < static_cast<int>(ShaderType::COUNT); ++i)
+        sceneRenderables_[static_cast<ShaderType>(i)].reserve(maxModels);
 }
 
 std::map<ShaderType, std::vector<Renderable>> &Scene::getRenderablesByShader()
@@ -26,7 +27,7 @@ std::map<ShaderType, std::vector<Renderable>> &Scene::getRenderablesByShader()
     return sceneRenderables_;
 }
 
-NamedInstance &Scene::getObjectTransforms(const std::string &key)
+ModelInstances &Scene::getInstancesByName(const std::string &key)
 {
     return namedInstances_.at(key);
 }
@@ -64,4 +65,9 @@ float Scene::getWindStrength() const
 std::unordered_set<ModelHandle> &Scene::getTransformsUpdated()
 {
     return transformsUpdated_;
+}
+
+std::vector<Instance> &Scene::getInstancesByHandle(ModelHandle handle) const
+{
+    return instancesByHandle_.at(handle);
 }
