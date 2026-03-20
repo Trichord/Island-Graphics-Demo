@@ -28,11 +28,14 @@ out VS_OUT
 	vec3 lightDir;
 	vec3 fragPos;
 	vec2 texCoords;
+	vec4 worldLightFragPos;
+	vec4 worldFragPos;
 } vs_out;
 
 uniform uint matricesOffset;
 uniform uint indicesOffset;
 uniform vec3 lightDir;
+uniform mat4 lightViewProjection;
 
 void main () 
 {
@@ -48,7 +51,9 @@ void main ()
 	mat3 TBN = transpose(mat3(T, B, N));
 
 	vs_out.texCoords = aTexCoords;
-	vs_out.fragPos = TBN * (modelMatrix * vec4(aPos, 1.0)).xyz;
+	vs_out.worldFragPos = modelMatrix * vec4(aPos, 1.0);
+	vs_out.fragPos = TBN * vs_out.worldFragPos.xyz;
+	vs_out.worldLightFragPos = lightViewProjection * vs_out.worldFragPos;
 	vs_out.lightDir = TBN * lightDir;
 	vs_out.cameraPos = TBN * cameraPosition.xyz;
 	

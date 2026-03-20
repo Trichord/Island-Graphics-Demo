@@ -47,13 +47,13 @@ void Renderer::borrowSkyboxes(Scene &scene)
 {
     using enum ShaderType;
 
-    auto &map = scene.getRenderablesByShader();
+    auto &shaderMap = scene.getRenderablesByShader();
 
-    if (!map.contains(SKYBOX) || !map.contains(OCEAN))
+    if (!shaderMap.contains(SKYBOX) || !shaderMap.contains(OCEAN))
         return;
 
-    auto &skyboxes = map[SKYBOX];
-    auto &oceans = map[OCEAN];
+    auto &skyboxes = shaderMap[SKYBOX];
+    auto &oceans = shaderMap[OCEAN];
 
     if (skyboxes.empty() || oceans.empty())
         return;
@@ -63,7 +63,7 @@ void Renderer::borrowSkyboxes(Scene &scene)
         auto &ocean = oceans[i].objectRef.get();
         auto &skybox = skyboxes[i].objectRef.get();
 
-        textureManager_.borrowAssignMaterials(ocean.getHandle(), skybox.getHandle(), CUBEMAP);
+        textureManager_.borrowAssignMaterials(ocean.getHandle(), skybox.getHandle(), Texture::CUBEMAP);
     }
 }
 
@@ -109,10 +109,6 @@ void Renderer::createCubemaps(Scene &scene)
     int renderTargetSize{std::max(graphicsSettings_.screenWidth, graphicsSettings_.screenHeight) / 2};
     int mipLevels = static_cast<int>(std::floor(std::log2(renderTargetSize)) + 1);
 
-    RenderTarget cubeFace(renderTargetSize, renderTargetSize, graphicsSettings_.msaa, GL_SRGB8, GL_DEPTH_COMPONENT24,
-                          FBODepth::RBO);
-    RenderTarget resolveTarget(renderTargetSize, renderTargetSize, 0, GL_SRGB8, GL_NONE, FBODepth::NONE);
-
     // Save camera settings before we make it bounce around the scene
     const glm::vec3 originalPos{camera.getPosition()};
     float originalPitch{camera.getPitch()};
@@ -138,7 +134,7 @@ void Renderer::createCubemaps(Scene &scene)
         glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &cubeMapTextureID);
         glTextureStorage2D(cubeMapTextureID, mipLevels, GL_SRGB8, renderTargetSize, renderTargetSize);
 
-        createCubemapFaces(scene, cubeFace, resolveTarget, cubeMapTextureID);
+        createCubemapFaces(scene, renderTargetSize, cubeMapTextureID);
 
         // Texture params
         glGenerateTextureMipmap(cubeMapTextureID);
@@ -150,7 +146,7 @@ void Renderer::createCubemaps(Scene &scene)
 
         // Assign the texture
         auto &waterPlane = renderable.objectRef.get();
-        textureManager_.setMaterial(waterPlane.getHandle(), CUBEMAP, cubeMapTextureID);
+        textureManager_.setMaterial(waterPlane.getHandle(), Texture::CUBEMAP, cubeMapTextureID);
         renderable.properties.isVisible = true;
     }
 
@@ -166,7 +162,7 @@ void Renderer::createCubemaps(Scene &scene)
     glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
 }
 
-void Renderer::createCubemapFaces(Scene &scene, RenderTarget &msaaTarget, RenderTarget &blitTarget, GLuint texture)
+void Renderer::createCubemapFaces(Scene &scene, int targetResolution, GLuint texture)
 {
     // For iterating cubemap faces
     constexpr std::array<WorldOrientation, 6> faces{WorldOrientation::RIGHT, WorldOrientation::LEFT,
@@ -177,25 +173,32 @@ void Renderer::createCubemapFaces(Scene &scene, RenderTarget &msaaTarget, Render
     auto renderFace = [&](RenderTarget &target, WorldOrientation orientation, Camera &camera) {
         camera.setWorldOrientation(orientation);
         updateUBO(scene);
-        target.bind();
         target.clear();
         renderAllSceneObjects(scene);
     };
 
-    const int renderTargetSize{msaaTarget.getWidth()};
+    RenderTarget cubeFace(targetResolution, targetResolution, graphicsSettings_.msaa, GL_SRGB8, GL_DEPTH_COMPONENT24,
+                          FBODepth::RBO);
+    RenderTarget blitTarget(targetResolution, targetResolution, 0, GL_SRGB8, GL_NONE, FBODepth::NONE);
+
+    const int renderTargetSize{cubeFace.getWidth()};
     Camera &camera{scene.getCamera()};
     GLuint blitTargetTexture{blitTarget.getColorTextureID()};
+
+    cubeFace.bind();
 
     // Copy each MSAA direction into a cubemap face
     for (GLuint i{0}; i < 6; ++i)
     {
-        msaaTarget.clear();
+        cubeFace.clear();
         blitTarget.clear();
-        renderFace(msaaTarget, faces[i], camera);
-        msaaTarget.blitTo(blitTarget);
+        renderFace(cubeFace, faces[i], camera);
+        cubeFace.blitTo(blitTarget);
         glCopyImageSubData(blitTargetTexture, GL_TEXTURE_2D, 0, 0, 0, 0, texture, GL_TEXTURE_CUBE_MAP, 0, 0, 0, i,
                            renderTargetSize, renderTargetSize, 1);
     }
+
+    cubeFace.unbind();
 }
 
 void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
@@ -232,6 +235,7 @@ void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
 
                 // Add each index as well (offset + index will give the proper model matrix)
                 instanceIndices_.push_back(static_cast<GLuint>(i));
+                originalIndices_.push_back(static_cast<GLuint>(i));
             }
 
             matricesOffset += numInstances;

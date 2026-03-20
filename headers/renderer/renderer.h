@@ -39,7 +39,7 @@ class Renderer
     static constexpr float depthClear_{1.0f};
     static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
 
-    //Stores offsets as an integer index into the buffer
+    // Stores offsets as an integer index into the buffer
     struct ssboOffsets
     {
         GLuint matricesOffset{0};
@@ -64,9 +64,10 @@ class Renderer
 
     /* SSBOs
      *
-     * Renderer uploads a static SSBO containing every renderable's model matrix. An indices SSBO capable of
+     * Renderer uploads a static-sized SSBO containing every renderable's model matrix. An indices SSBO capable of
      * holding the same number of elements is reserved in GPU memory. A fresh vector of indices is computed and uploaded
-     * every frame, representing the visible indices in the static buffer.
+     * every frame, representing the visible indices in the static buffer. The shader starts at model offset and indices
+     * offset, and iterates through its indices.
      *
      * e.g.
      *
@@ -82,6 +83,7 @@ class Renderer
      */
     GLuint indicesSSBO_{0};
     GLuint matricesSSBO_{0};
+    std::vector<GLuint> originalIndices_;
     std::unordered_map<ModelHandle, ssboOffsets> modelBaseIndices_;
 
     // Owned objects
@@ -95,9 +97,6 @@ class Renderer
     RenderTarget shadowPassTarget_;
     RenderTarget shadowBlitTarget_;
 
-    // Shaders
-    Shader shadowPassShader_;
-
     // Renderer initialization
     void loadShaders();
 
@@ -109,7 +108,7 @@ class Renderer
     void loadInstancedData(Scene &scene);
     void setSceneShaderUniforms(Scene &scene);
     void populateSSBOs(Scene &scene, std::size_t totalInstanceCount);
-    void createCubemapFaces(Scene &scene, RenderTarget &msaaTarget, RenderTarget &blitTarget, GLuint texture);
+    void createCubemapFaces(Scene &scene, int renderTargetSize, GLuint texture);
 
     // Rendering
     void renderAllSceneObjects(Scene &scene);
@@ -117,8 +116,8 @@ class Renderer
     void bindTextures(const Material &materials);
 
     // Culling
-    void resetVisibility(Scene &scene);
     void cullRenderables(Scene &scene);
+    void resetVisibility(Scene &scene);
     void cullNone(Renderable &renderable, GLuint &currentOffset);
     void cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
     void cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
