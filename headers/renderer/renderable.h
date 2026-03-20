@@ -15,21 +15,28 @@
 struct Instance
 {
     Transform transform;
+    AABB modelAABB;
     AABB worldAABB;
 
     Instance() = default;
 
     template <typename T>
         requires std::constructible_from<Transform, T &&>
-    Instance(T &&instanceTransform, const AABB &modelSpaceAABB) : transform{std::forward<T>(instanceTransform)}
+    Instance(T &&instanceTransform, const AABB &modelSpaceAABB)
+        : transform{std::forward<T>(instanceTransform)}, modelAABB{modelSpaceAABB}
+    {
+        updateWorldAABB();
+    }
+
+    void updateWorldAABB()
     {
         glm::mat4 &modelMatrix{transform.getModelMatrix()};
 
         glm::mat3 RS{glm::mat3{modelMatrix}};
         glm::mat3 absRS{glm::abs(RS[0]), glm::abs(RS[1]), glm::abs(RS[2])};
 
-        glm::vec3 worldCenter{modelMatrix * glm::vec4(modelSpaceAABB.getCenter(), 1.0f)};
-        glm::vec3 worldExtent{absRS * modelSpaceAABB.getExtent()};
+        glm::vec3 worldCenter{modelMatrix * glm::vec4(modelAABB.getCenter(), 1.0f)};
+        glm::vec3 worldExtent{absRS * modelAABB.getExtent()};
 
         worldAABB = AABB{worldCenter - worldExtent, worldCenter + worldExtent};
     }

@@ -10,8 +10,6 @@
 #include "scene.h"
 #include "shader_type.h"
 
-#include <iostream>
-
 // Cull and build up the visible indices for the SSBO
 void Renderer::cullRenderables(Scene &scene)
 {
@@ -48,7 +46,7 @@ void Renderer::cullRenderables(Scene &scene)
             }
         }
 
-    glNamedBufferSubData(indicesSSBO_, 0, instanceIndices_.size() * sizeof(std::uint32_t), instanceIndices_.data());
+    glNamedBufferSubData(indicesSSBO_, 0, instanceIndices_.size() * sizeof(GLuint), instanceIndices_.data());
 }
 
 void Renderer::cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
@@ -127,31 +125,32 @@ void Renderer::resetVisibility(Scene &scene)
     for (auto &[shader, renderables] : scene.getRenderablesByShader())
         for (auto &renderable : renderables)
         {
-            ObjectProperties &properties{renderable.properties};
             auto &object = renderable.objectRef.get();
             auto &offsets{modelBaseIndices_[object.getHandle()]};
+            ObjectProperties &properties{renderable.properties};
+            GLuint instanceCount{static_cast<GLuint>(properties.instances.size())};
 
-            offsets.indicesOffset = 0;
             properties.isVisible = false;
             properties.visibleInstances = 0;
             object.setMeshVisibility(false);
+            offsets.indicesOffset = 0;
         }
 }
 
-void Renderer::cullNone(Renderable &renderable, GLuint &ssboIndicesOffset)
-{
-    auto &properties = renderable.properties;
-    auto &object = renderable.objectRef.get();
-    auto &instances = renderable.properties.instances;
-    auto &modelBufferOffsets{modelBaseIndices_[object.getHandle()]};
+    void Renderer::cullNone(Renderable & renderable, GLuint & ssboIndicesOffset)
+    {
+        auto &properties = renderable.properties;
+        auto &object = renderable.objectRef.get();
+        auto &instances = renderable.properties.instances;
+        auto &modelBufferOffsets{modelBaseIndices_[object.getHandle()]};
 
-    object.setMeshVisibility(true);
-    properties.isVisible = true;
-    properties.visibleInstances = static_cast<GLuint>(instances.size());
+        object.setMeshVisibility(true);
+        properties.isVisible = true;
+        properties.visibleInstances = static_cast<GLuint>(instances.size());
 
-    for (GLuint i{0}; i < static_cast<GLuint>(instances.size()); ++i)
-        instanceIndices_.push_back(i);
+        for (GLuint i{0}; i < static_cast<GLuint>(instances.size()); ++i)
+            instanceIndices_.push_back(i);
 
-    modelBufferOffsets.indicesOffset = ssboIndicesOffset;
-    ssboIndicesOffset += properties.visibleInstances;
-}
+        modelBufferOffsets.indicesOffset = ssboIndicesOffset;
+        ssboIndicesOffset += properties.visibleInstances;
+    }

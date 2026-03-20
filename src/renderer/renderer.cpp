@@ -21,13 +21,14 @@ constexpr float alphaCutoff{0.425f};
 Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings)
     : textureManager_{threadPool_, settings}, graphicsSettings_{settings},
       shadowPassTarget_{shadowMapRes, shadowMapRes, settings.msaa, GL_RG32F, GL_DEPTH_COMPONENT32F, FBODepth::RBO},
-      shadowBlitTarget_{shadowMapRes, shadowMapRes, 0, GL_RG32F, GL_NONE, FBODepth::NONE},
-      shadowPassShader_{Shader{"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"}}
+      shadowBlitTarget_{shadowMapRes, shadowMapRes, 0, GL_RG32F, GL_NONE, FBODepth::NONE}
 {
     loadShaders();
 
     for (auto &[_, shader] : shaders_)
         setupShader(shader);
+
+    glBindTextureUnit(static_cast<GLuint>(Texture::SHADOW), shadowBlitTarget_.getColorTextureID());
 }
 
 Renderer::~Renderer()
@@ -40,15 +41,16 @@ void Renderer::renderScene(Scene &scene)
     glClearNamedFramebufferfv(0, GL_COLOR, 0, clearColor_.data());
     glClearNamedFramebufferfv(0, GL_DEPTH, 0, &depthClear_);
 
-    updateSceneTransforms(scene);
+    const bool globalLightUpdated{scene.getGlobalLightSource().directionHasUpdated()};
+    const bool sceneUpdated{!scene.getTransformsUpdated().empty()};
 
-    if (scene.getGlobalLightSource().directionHasUpdated())
+    updateSceneTransforms(scene);
+    updateShaderUniforms(scene, globalLightUpdated);
+
+    if (globalLightUpdated || sceneUpdated)
     {
         updateShadowMaps(scene);
-        updateShaderUniforms(scene, true);
     }
-    else
-        updateShaderUniforms(scene, false);
 
     if (scene.getCamera().hasUpdated())
     {
@@ -83,6 +85,7 @@ void Renderer::loadShaders()
     shaders_.emplace(SKYBOX, Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"});
     shaders_.emplace(WATER, Shader{"./shaders/water.vert", "./shaders/water.frag"});
     shaders_.emplace(OCEAN, Shader{"./shaders/water.vert", "./shaders/ocean.frag"});
+    shaders_.emplace(SHADOW_MAP, Shader{"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"});
 }
 
 void Renderer::setupShader(Shader &shader)
@@ -91,11 +94,11 @@ void Renderer::setupShader(Shader &shader)
 
     shader.setUniformBlock("matrices", 0);
 
-    shader.setInt("albedoMap", ALBEDO);
-    shader.setInt("armMap", ARM);
-    shader.setInt("normalMap", NORMAL);
-    shader.setInt("cubeMap", CUBEMAP);
-    shader.setInt("depthMap", DEPTH);
+    shader.setInt("albedoMap", static_cast<GLuint>(ALBEDO));
+    shader.setInt("armMap", static_cast<GLuint>(ARM));
+    shader.setInt("normalMap", static_cast<GLuint>(NORMAL));
+    shader.setInt("cubeMap", static_cast<GLuint>(CUBEMAP));
+    shader.setInt("shadowMap", static_cast<GLuint>(SHADOW));
 
     shader.setFloat("nearPlane", cameraDefaultValues::nearPlane);
     shader.setFloat("farPlane", cameraDefaultValues::farPlane);
@@ -109,26 +112,29 @@ void Renderer::setupShader(Shader &shader)
 void Renderer::updateShaderUniforms(Scene &scene, bool lightDirectionChanged)
 {
     DirectionalLight &globalLight{scene.getGlobalLightSource()};
+    const glm::mat4 &lightViewProjectionMatrix{globalLight.getViewProjectionMatrix()};
 
-    // Set uniforms
     for (auto &[_, shader] : shaders_)
     {
-        using enum ShaderType;
-
         shader.setFloat("time", (float)glfwGetTime());
 
         if (lightDirectionChanged)
+        {
+            shader.setMat4("lightViewProjection", lightViewProjectionMatrix);
             shader.setVec3("lightDir", globalLight.getDirection());
+        }
     }
 }
 
 void Renderer::setSceneShaderUniforms(Scene &scene)
 {
-    // Set uniforms
+    const glm::mat4 &lightViewProjectionMatrix{scene.getGlobalLightSource().getViewProjectionMatrix()};
+
     for (auto &[_, shader] : shaders_)
     {
         shader.setVec3("ambientLight", scene.getAmbientLight());
         shader.setVec3("lightColor", scene.getGlobalLightSource().getColor());
+        shader.setMat4("lightViewProjection", lightViewProjectionMatrix);
 
         shader.setFloat("windStrength", scene.getWindStrength());
         shader.setVec3("windDirection", scene.getWindDirection());
@@ -141,9 +147,9 @@ void Renderer::initializeResources(Scene &scene)
     createBuffers(scene);
     createCubemaps(scene);
     borrowSkyboxes(scene);
-    updateShadowMaps(scene);
     updateUBO(scene);
     setSceneShaderUniforms(scene);
+    updateShadowMaps(scene);
     resetVisibility(scene);
     cullRenderables(scene);
 
@@ -160,50 +166,6 @@ void Renderer::deleteBuffers()
     glDeleteBuffers(1, &UBO_);
     glDeleteBuffers(1, &indicesSSBO_);
     glDeleteBuffers(1, &matricesSSBO_);
-}
-
-void Renderer::updateShadowMaps(Scene &scene)
-{
-    constexpr float lightFrustumSize{300.0f};
-    /*
-    glViewport(0, 0, shadowMapRes, shadowMapRes);
-
-    //Matrices
-    glm::mat4 lightPerspective{glm::ortho(-lightFrustumSize, lightFrustumSize, -lightFrustumSize, lightFrustumSize,
-                                          cameraDefaultValues::nearPlane, cameraDefaultValues::farPlane)};
-    glm::mat4 lightView{
-        glm::lookAt(-scene.getGlobalLightSource().getDirection(), glm::vec3{0.0f}, WorldVectors::worldUp)};
-    glm::mat4 lightViewPerspective{lightPerspective * lightView};
-    shadowPassShader_.setMat4("lightViewPerspectiveMat", lightViewPerspective);
-
-    //Shadow pass
-    for (auto &[shaderType, renderables] : scene.getRenderablesByShader())
-    {
-        using enum ShaderType;
-
-        if (shaderType == SKYBOX || shaderType == FLOWERS)
-            continue;
-
-        for (auto &renderable : renderables)
-        {
-            auto &object = renderable.objectRef.get();
-            auto &properties = renderable.properties;
-
-            if (std::holds_alternative<Transform>(properties.transform))
-            {
-                Transform &transform{std::get<Transform>(properties.transform)};
-
-                shadowPassShader_.setMat4("modelMatrix", transform.getModelMatrix());
-            }
-
-            if (auto iter = instancedBaseOffsets_.find(object.getHandle()); iter != instancedBaseOffsets_.end())
-            {
-                shadowPassShader_.setIntU("baseIndex", iter->second);
-                shadowPassShader_.setIntU("indicesOffset", renderable.properties.instancedIndicesOffset);
-            }
-        }
-    }
-    */
 }
 
 void Renderer::updateSceneTransforms(Scene &scene)

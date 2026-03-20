@@ -14,6 +14,11 @@
 #include "texture_manager.h"
 #include "transform.h"
 
+constexpr float lightFrustumSize{300.0f};
+constexpr float lightDistance{300.0f};
+constexpr float lightNearPlane{0.1f};
+constexpr float lightFarPlane{650.0f};
+
 IslandScene::IslandScene(TextureManager &textureManager, const ConfigWindow::GraphicsSettings &graphicsSettings)
     : Scene(textureManager)
 {
@@ -256,6 +261,11 @@ void IslandScene::setupEnvironment()
 
     windDirection_ = windDir;
     windStrength_ = windStrength;
+
+    // Global light source frustum
+    globalLightSource_.setProjectionMatrix(-lightFrustumSize, lightFrustumSize, -lightFrustumSize, lightFrustumSize,
+                                           lightNearPlane, lightFarPlane);
+    globalLightSource_.setViewProjectionMatrix(-sunDirection * lightDistance, glm::vec3{0.0f}, WorldVectors::worldUp);
 }
 
 void IslandScene::setupCamera(const ConfigWindow::GraphicsSettings &graphicsSettings)
@@ -272,7 +282,10 @@ void IslandScene::onUpdate(float deltaTime)
     auto &instances = spaceModelInstances.instances.get();
 
     for (auto &instance : instances)
+    {
         instance.transform.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});
+        instance.updateWorldAABB();
+    }
 
     transformsUpdated_.insert(spaceModelInstances.handle);
 }

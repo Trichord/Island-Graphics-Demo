@@ -1,6 +1,7 @@
 #include "cull_method.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 #include "primitive.h"
 #include "renderable.h"
 #include "renderer.h"
@@ -66,8 +67,6 @@ void Renderer::renderObject(Renderable &renderable)
 
         for (const Primitive &primitive : mesh.primitives)
         {
-            using enum CullMethod;
-
             glState_.setAlphaMode(primitive.getAlphaMode());
 
             if (primitive.materialsExist())
@@ -79,7 +78,6 @@ void Renderer::renderObject(Renderable &renderable)
             glBindVertexArray(primitive.getVAO());
 
             GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
-
             GLsizei instanceCount{static_cast<GLsizei>(properties.visibleInstances)};
 
             glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0, instanceCount);
@@ -92,14 +90,68 @@ void Renderer::bindTextures(const Material &materials)
     using enum Texture;
 
     if (materials.albedo)
-        glState_.bindTexture(ALBEDO, materials.albedo);
+        glState_.bindTexture(static_cast<GLuint>(ALBEDO), materials.albedo);
 
     if (materials.occlusionRoughnessMetallic)
-        glState_.bindTexture(ARM, materials.occlusionRoughnessMetallic);
+        glState_.bindTexture(static_cast<GLuint>(ARM), materials.occlusionRoughnessMetallic);
 
     if (materials.normal)
-        glState_.bindTexture(NORMAL, materials.normal);
+        glState_.bindTexture(static_cast<GLuint>(NORMAL), materials.normal);
 
     if (materials.cubemap)
-        glState_.bindTexture(CUBEMAP, materials.cubemap);
+        glState_.bindTexture(static_cast<GLuint>(CUBEMAP), materials.cubemap);
+}
+
+void Renderer::updateShadowMaps(Scene &scene)
+{
+    glViewport(0, 0, shadowMapRes, shadowMapRes);
+
+    Shader &shadowPassShader{shaders_[ShaderType::SHADOW_MAP]};
+    shadowPassShader.use();
+    shadowPassTarget_.bind();
+    shadowPassTarget_.clear();
+
+    // Shadow pass
+    for (auto &[shaderType, renderables] : scene.getRenderablesByShader())
+    {
+        using enum ShaderType;
+
+        if (shaderType == SKYBOX || shaderType == OCEAN)
+            continue;
+
+        for (auto &renderable : renderables)
+        {
+            auto &object = renderable.objectRef.get();
+            auto &properties = renderable.properties;
+            auto iter = modelBaseIndices_.find(object.getHandle());
+
+            if (iter == modelBaseIndices_.end())
+                throw std::runtime_error("ERROR: Missing handle in SSBO lookup map");
+
+            ssboOffsets offsets{iter->second};
+
+            shadowPassShader.setIntU("matricesOffset", offsets.matricesOffset);
+
+            for (const Primitive::Mesh &mesh : object.getMeshes())
+            {
+                for (const Primitive &primitive : mesh.primitives)
+                {
+                    glBindVertexArray(primitive.getVAO());
+
+                    GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
+                    GLsizei instanceCount{static_cast<GLsizei>(properties.instances.size())};
+
+                    glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0, instanceCount);
+                }
+            }
+        }
+    }
+
+    shadowPassTarget_.blitTo(shadowBlitTarget_);
+    GLuint shadowTexture{shadowBlitTarget_.getColorTextureID()};
+    glGenerateTextureMipmap(shadowTexture);
+
+    shadowPassTarget_.unbind();
+
+    glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
 }

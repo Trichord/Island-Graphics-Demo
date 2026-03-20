@@ -5,11 +5,13 @@ out vec4 fragColor;
 uniform sampler2D albedoMap;
 uniform sampler2D armMap;
 uniform sampler2D normalMap;
+uniform sampler2D shadowMap;
 uniform vec3 ambientLight;
 uniform vec3 lightColor;
 uniform float gamma;
 
 const float INVERSE_PI = 0.31830988618;
+const float minVariance = 0.000001;
 
 //Positions in tangent view space
 in VS_OUT {
@@ -17,6 +19,8 @@ in VS_OUT {
 	vec3 lightDir;
 	vec3 fragPos;
 	vec2 texCoords;
+	vec4 worldLightFragPos;
+	vec4 worldFragPos;
 } fs_in;
 
 //Trowbridge-Reitz GGX for normal distribution function
@@ -68,6 +72,28 @@ float burleyDiffuseFactor(float FD90, float NdotL, float NdotV){
 	float FDminusOne = FD90 - 1.0;
 
 	return (1.0 + FDminusOne * L5) * (1.0 + FDminusOne * V5); 
+}
+
+//Andrew Lauritzen - "Summed-Area Variance Shadow Maps"
+float ChebyshevUpperBound(vec2 moments, float t)
+{
+  // One-tailed inequality valid if t > Moments.x
+  float p = step(t, moments.x);
+  // Compute variance.
+  float variance = moments.y - (moments.x * moments.x);
+  variance = max(variance, minVariance);
+  // Compute probabilistic upper bound.
+  float d = t - moments.x;
+  float pMax = variance / (variance + d * d);
+  return max(p, pMax);
+}
+
+float ShadowContribution(vec2 LightTexCoord, float DistanceToLight)
+{
+  // Read the moments from the variance shadow map.
+  vec2 moments = texture(shadowMap, LightTexCoord).rg;
+  // Compute the Chebyshev upper bound.
+  return ChebyshevUpperBound(moments, DistanceToLight);
 }
 
 //ACES film tone mapping (Krzysztof Narkowicz)
@@ -135,8 +161,14 @@ void main() {
 	//add to outgoing radiance Lo
 	Lo += (diffuse + specular) * lightColor * NdotL;
 
+	//Shadows
+	vec3 shadowCoords = fs_in.worldLightFragPos.xyz;
+	shadowCoords = shadowCoords * 0.5 + 0.5;
+	float shadow = ShadowContribution(shadowCoords.xy, shadowCoords.z);
+	//pMax = smoothstep(lightBleedReduction, 1.0, pMax); where lightBleedReduction is artist-tuned constant
+
 	vec3 ambient = ambientLight * albedo.rgb * ao;
-	vec3 color = ambient + Lo;
+	vec3 color = ambient + Lo * shadow;
 
 	//ACES tone mapping
 	color = ACESFilm(color);
