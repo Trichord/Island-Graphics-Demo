@@ -171,5 +171,5 @@ void RenderTarget::deleteResources()
 void RenderTarget::blitTo(const RenderTarget &target)
 {
     glBlitNamedFramebuffer(FBO_, target.FBO_, 0, 0, width_, height_, 0, 0, target.width_, target.height_,
-                           GL_COLOR_BUFFER_BIT, GL_LINEAR);
+                           GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }

@@ -2,14 +2,17 @@
 
 layout (location = 0) in vec3 aPos;
 
-uniform mat4 lightViewPerspectiveMat;
-uniform mat4 modelMatrix;
+layout(binding = 0, std430) readonly buffer matricesSSBO {
+    mat4 instances[];
+};
 
-out VS_OUT {
-	centroid float fragDepth; //Depth after light transform, only good to interpolate for directional light
-} vs_out;
+uniform uint matricesOffset;
+uniform mat4 lightViewProjection;
 
 void main()
-{
-	//vs_out.fragDepth = (lightViewPerspectiveMat * modelMatrix * vec4(aPos, 1.0)).z;
+{	
+	mat4 modelMatrix = instances[matricesOffset + gl_InstanceID];
+	vec4 vertexPos = lightViewProjection * modelMatrix * vec4(aPos, 1.0);
+
+	gl_Position = vertexPos;
 }

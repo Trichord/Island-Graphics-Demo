@@ -13,5 +13,6 @@ enum class ShaderType
     TREES,
     FLOWERS,
     SKYBOX,
+    SHADOW_MAP,
     COUNT
 };

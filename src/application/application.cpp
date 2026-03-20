@@ -205,7 +205,7 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
 
     physicsHandler.toggleCrouch(leftCtrlToggle_);
     physicsHandler.toggleSprint(leftShiftToggle_);
-
+    
     while (accumulator_ > physicsTick)
     {
         previousPos = physicsHandler.getPosition();
@@ -218,7 +218,7 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
     glm::vec3 interpolatedPos{glm::mix(previousPos, physicsHandler.getPosition(), alpha)};
 
     camera.setPosition(interpolatedPos);
-
+    
     /*
     //****************************************
     // Object Positioning - For Testing Only *
