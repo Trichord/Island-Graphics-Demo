@@ -111,8 +111,16 @@ void Renderer::updateShadowMaps(Scene &scene)
     shadowPassTarget_.bind();
     shadowPassTarget_.clear();
 
-    // Shadow pass
-    for (auto &[shaderType, renderables] : scene.getRenderablesByShader())
+    // Setup the shader
+    glm::mat4 projectionMatrix{glm::ortho(-lightFrustumSize, lightFrustumSize, -lightFrustumSize, lightFrustumSize,
+                                           lightNearPlane, lightFarPlane)};
+    glm::mat4 viewMatrix{glm::lookAt(-scene.getGlobalLightSource().getDirection() * lightDistance, glm::vec3{0.0f}, WorldVectors::worldUp)};
+
+    shadowPassShader.setMat4("lightViewProjection", projectionMatrix * viewMatrix);
+    shaders_[ShaderType::DIRECTIONAL_PBR].setMat4("lightViewProjection", projectionMatrix * viewMatrix);
+
+        // Shadow pass
+        for (auto &[shaderType, renderables] : scene.getRenderablesByShader())
     {
         using enum ShaderType;
 
@@ -149,7 +157,6 @@ void Renderer::updateShadowMaps(Scene &scene)
 
     shadowPassTarget_.blitTo(shadowBlitTarget_);
     GLuint shadowTexture{shadowBlitTarget_.getColorTextureID()};
-    glGenerateTextureMipmap(shadowTexture);
 
     shadowPassTarget_.unbind();
 

@@ -3,6 +3,7 @@
 #include <array>
 
 #include "camera.h"
+#include "cascade_shadow.h"
 #include "config_window.h"
 #include "directional_light.h"
 #include "gl_context.h"
@@ -20,8 +21,17 @@ constexpr float alphaCutoff{0.425f};
 
 Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings)
     : textureManager_{threadPool_, settings}, graphicsSettings_{settings},
-      shadowPassTarget_{shadowMapRes, shadowMapRes, settings.msaa, GL_RG32F, GL_DEPTH_COMPONENT32F, FBODepth::RBO},
-      shadowBlitTarget_{shadowMapRes, shadowMapRes, 0, GL_RG32F, GL_NONE, FBODepth::NONE}
+      shadowPassTarget_{shadowMapRes,
+                        shadowMapRes,
+                        {
+                            settings.msaa,
+                            RenderTarget::DepthType::RBO,
+                            GL_RG32F,
+                            GL_DEPTH_COMPONENT32F,
+                        }},
+      shadowBlitTarget_{shadowMapRes,
+                        shadowMapRes,
+                        {0, RenderTarget::DepthType::NONE, GL_RG32F, GL_NONE, true, CascadeShadow::cascadeCount}}
 {
     loadShaders();
 
@@ -43,16 +53,17 @@ void Renderer::renderScene(Scene &scene)
 
     const bool globalLightUpdated{scene.getGlobalLightSource().directionHasUpdated()};
     const bool sceneUpdated{!scene.getTransformsUpdated().empty()};
+    const bool cameraUpdated{scene.getCamera().hasUpdated()};
 
     updateSceneTransforms(scene);
     updateShaderUniforms(scene, globalLightUpdated);
 
-    if (globalLightUpdated || sceneUpdated)
+    if (globalLightUpdated || sceneUpdated || cameraUpdated)
     {
         updateShadowMaps(scene);
     }
 
-    if (scene.getCamera().hasUpdated())
+    if (cameraUpdated)
     {
         updateUBO(scene);
         resetVisibility(scene);
@@ -78,7 +89,7 @@ void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    shaders_.emplace(FLOWERS, Shader{"./shaders/flowers.vert", "./shaders/flowers.frag"});
+    shaders_.emplace(GRASS, Shader{"./shaders/grass.vert", "./shaders/grass.frag"});
     shaders_.emplace(TREES, Shader{"./shaders/trees.vert", "./shaders/trees.frag"});
     shaders_.emplace(DIRECTIONAL_PBR, Shader{"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"});
     shaders_.emplace(REFLECTIVE, Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"});
@@ -100,9 +111,6 @@ void Renderer::setupShader(Shader &shader)
     shader.setInt("cubeMap", static_cast<GLuint>(CUBEMAP));
     shader.setInt("shadowMap", static_cast<GLuint>(SHADOW));
 
-    shader.setFloat("nearPlane", cameraDefaultValues::nearPlane);
-    shader.setFloat("farPlane", cameraDefaultValues::farPlane);
-
     shader.setFloat("mipScale", mipScale);
     shader.setFloat("alphaCutoff", alphaCutoff);
 
@@ -112,29 +120,22 @@ void Renderer::setupShader(Shader &shader)
 void Renderer::updateShaderUniforms(Scene &scene, bool lightDirectionChanged)
 {
     DirectionalLight &globalLight{scene.getGlobalLightSource()};
-    const glm::mat4 &lightViewProjectionMatrix{globalLight.getViewProjectionMatrix()};
 
     for (auto &[_, shader] : shaders_)
     {
         shader.setFloat("time", (float)glfwGetTime());
 
         if (lightDirectionChanged)
-        {
-            shader.setMat4("lightViewProjection", lightViewProjectionMatrix);
             shader.setVec3("lightDir", globalLight.getDirection());
-        }
     }
 }
 
 void Renderer::setSceneShaderUniforms(Scene &scene)
 {
-    const glm::mat4 &lightViewProjectionMatrix{scene.getGlobalLightSource().getViewProjectionMatrix()};
-
     for (auto &[_, shader] : shaders_)
     {
         shader.setVec3("ambientLight", scene.getAmbientLight());
         shader.setVec3("lightColor", scene.getGlobalLightSource().getColor());
-        shader.setMat4("lightViewProjection", lightViewProjectionMatrix);
 
         shader.setFloat("windStrength", scene.getWindStrength());
         shader.setVec3("windDirection", scene.getWindDirection());
@@ -149,7 +150,13 @@ void Renderer::initializeResources(Scene &scene)
     borrowSkyboxes(scene);
     updateUBO(scene);
     setSceneShaderUniforms(scene);
+
+    //Setup for cascade shadow maps
+    Camera &camera{scene.getCamera()};
+    cascadeShadow_ = CascadeShadow(camera.getViewMatrix(), scene.getGlobalLightSource(), camera.getNearPlane(),
+                                   camera.getFarPlane());
     updateShadowMaps(scene);
+
     resetVisibility(scene);
     cullRenderables(scene);
 
