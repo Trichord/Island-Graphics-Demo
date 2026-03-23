@@ -13,9 +13,6 @@
 class Shader
 {
   public:
-    // Shader program ID
-    GLuint ID{0};
-
     Shader() = default;
     Shader(const std::filesystem::path &vertexPath, const std::filesystem::path &fragmentPath);
     Shader(const Shader &) = delete;
@@ -24,12 +21,13 @@ class Shader
     Shader &operator=(Shader &&other) noexcept;
     inline explicit operator bool() const noexcept
     {
-        return ID != 0;
+        return id_ != 0;
     }
     ~Shader();
 
     void use();
 
+    GLuint getID() const;
     void setBool(const std::string &name, bool value);
     void setIntU(const std::string &name, unsigned int value);
     void setInt(const std::string &name, int value);
@@ -42,6 +40,7 @@ class Shader
     void setUniformBlock(const std::string &name, unsigned int index);
 
   private:
+    GLuint id_{0};
     std::unordered_map<std::string, GLint> uniformLocations_;
     std::unordered_map<std::string, GLuint> blockLocations_;
 

@@ -12,6 +12,7 @@ uniform float gamma;
 
 const float INVERSE_PI = 0.31830988618;
 const float minVariance = 0.000001;
+uniform float lightBleedReduction = 0.2;
 
 //Positions in tangent view space
 in VS_OUT {
@@ -79,12 +80,17 @@ float ChebyshevUpperBound(vec2 moments, float t)
 {
   // One-tailed inequality valid if t > Moments.x
   float p = step(t, moments.x);
+
   // Compute variance.
   float variance = moments.y - (moments.x * moments.x);
   variance = max(variance, minVariance);
+
   // Compute probabilistic upper bound.
   float d = t - moments.x;
   float pMax = variance / (variance + d * d);
+
+  //Reduce light bleeding
+  pMax = smoothstep(lightBleedReduction, 1.0, pMax);
   return max(p, pMax);
 }
 
@@ -165,7 +171,6 @@ void main() {
 	vec3 shadowCoords = fs_in.worldLightFragPos.xyz;
 	shadowCoords = shadowCoords * 0.5 + 0.5;
 	float shadow = ShadowContribution(shadowCoords.xy, shadowCoords.z);
-	//pMax = smoothstep(lightBleedReduction, 1.0, pMax); where lightBleedReduction is artist-tuned constant
 
 	vec3 ambient = ambientLight * albedo.rgb * ao;
 	vec3 color = ambient + Lo * shadow;
