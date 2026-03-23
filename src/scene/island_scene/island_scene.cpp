@@ -14,11 +14,6 @@
 #include "texture_manager.h"
 #include "transform.h"
 
-constexpr float lightFrustumSize{300.0f};
-constexpr float lightDistance{300.0f};
-constexpr float lightNearPlane{0.1f};
-constexpr float lightFarPlane{650.0f};
-
 IslandScene::IslandScene(TextureManager &textureManager, const ConfigWindow::GraphicsSettings &graphicsSettings)
     : Scene(textureManager)
 {
@@ -79,37 +74,37 @@ void IslandScene::addAllModelsToScene()
     // Grass
     auto &grass = sceneResources_.loadInstancedModel("./res/models/vegetation/grass/grass.gltf",
                                                      "./res/positions/grass.txt", 0.3f, 0.5, 1497);
-    addObjectToScene(grass, FLOWERS, {.cullMethod = INSTANCED});
+    addObjectToScene(grass, GRASS, {.cullMethod = INSTANCED});
 
     // White flowers
     auto &whiteFlowers = sceneResources_.loadInstancedModel("./res/models/vegetation/whiteflower/whiteflower.gltf",
                                                             "./res/positions/whiteflower.txt", 0.9f, 1.1f, 488);
-    addObjectToScene(whiteFlowers, FLOWERS, {.cullMethod = INSTANCED});
+    addObjectToScene(whiteFlowers, GRASS, {.cullMethod = INSTANCED});
     ModelHandle whiteFlowerHandle{whiteFlowers.getHandle()};
 
     // Blue flowers
     auto &blueFlowers =
         sceneResources_.loadInstancedModel(whiteFlowerHandle, "./res/models/vegetation/blueflower/blueflower.gltf",
                                            "./res/positions/blueflower.txt", 0.9f, 1.1f, 212);
-    addObjectToScene(blueFlowers, FLOWERS, {.cullMethod = INSTANCED});
+    addObjectToScene(blueFlowers, GRASS, {.cullMethod = INSTANCED});
 
     // Purple flowers
     auto &purpleFlowers =
         sceneResources_.loadInstancedModel(whiteFlowerHandle, "./res/models/vegetation/purpleflower/purpleflower.gltf",
                                            "./res/positions/purpleflower.txt", 0.9f, 1.1f, 328);
-    addObjectToScene(purpleFlowers, FLOWERS, {.cullMethod = INSTANCED});
+    addObjectToScene(purpleFlowers, GRASS, {.cullMethod = INSTANCED});
 
     // Dandelions
     auto &dandelions =
         sceneResources_.loadInstancedModel(whiteFlowerHandle, "./res/models/vegetation/dandelion/dandelion.gltf",
                                            "./res/positions/dandelion.txt", 1.0f, 1.5f, 944);
-    addObjectToScene(dandelions, FLOWERS, {.cullMethod = INSTANCED});
+    addObjectToScene(dandelions, GRASS, {.cullMethod = INSTANCED});
 
     // Strawberry flowers
     auto &strawberries =
         sceneResources_.loadInstancedModel(whiteFlowerHandle, "./res/models/vegetation/strawberry/strawberry.gltf",
                                            "./res/positions/strawberry.txt", 0.8f, 1.2f, 120);
-    addObjectToScene(strawberries, FLOWERS, {.cullMethod = INSTANCED});
+    addObjectToScene(strawberries, GRASS, {.cullMethod = INSTANCED});
 
     /*********
      *       *
@@ -261,17 +256,14 @@ void IslandScene::setupEnvironment()
 
     windDirection_ = windDir;
     windStrength_ = windStrength;
-
-    // Global light source frustum
-    globalLightSource_.setProjectionMatrix(-lightFrustumSize, lightFrustumSize, -lightFrustumSize, lightFrustumSize,
-                                           lightNearPlane, lightFarPlane);
-    globalLightSource_.setViewProjectionMatrix(-sunDirection * lightDistance, glm::vec3{0.0f}, WorldVectors::worldUp);
 }
 
 void IslandScene::setupCamera(const ConfigWindow::GraphicsSettings &graphicsSettings)
 {
+    constexpr float cameraFOV{45.0f};
+
     camera_ = Camera{CAMERA_START_POS, -100.0f};
-    camera_.setFOV(cameraDefaultValues::fov, static_cast<float>(graphicsSettings.screenWidth) /
+    camera_.setFOV(cameraFOV, static_cast<float>(graphicsSettings.screenWidth) /
                                                  static_cast<float>(graphicsSettings.screenHeight));
 }
 

@@ -11,7 +11,7 @@ enum class ShaderType
     WATER,
     OCEAN,
     TREES,
-    FLOWERS,
+    GRASS,
     SKYBOX,
     SHADOW_MAP,
     COUNT

@@ -113,6 +113,9 @@ void Renderer::createCubemaps(Scene &scene)
     const glm::vec3 originalPos{camera.getPosition()};
     float originalPitch{camera.getPitch()};
     float originalYaw{camera.getYaw()};
+    float originalFOV{camera.getFOV()};
+
+    // 90 degrees for cubemap
     camera.setFOV(90.0f, 1.0f);
 
     for (auto &renderable : waters)
@@ -151,7 +154,7 @@ void Renderer::createCubemaps(Scene &scene)
     }
 
     // Reset
-    camera.resetFOV();
+    camera.setFOV(originalFOV, graphicsSettings_.screenWidth / static_cast<float>(graphicsSettings_.screenHeight));
     camera.setPosition(originalPos);
     camera.setPitch(originalPitch);
     camera.setYaw(originalYaw);
@@ -177,9 +180,9 @@ void Renderer::createCubemapFaces(Scene &scene, int targetResolution, GLuint tex
         renderAllSceneObjects(scene);
     };
 
-    RenderTarget cubeFace(targetResolution, targetResolution, graphicsSettings_.msaa, GL_SRGB8, GL_DEPTH_COMPONENT24,
-                          FBODepth::RBO);
-    RenderTarget blitTarget(targetResolution, targetResolution, 0, GL_SRGB8, GL_NONE, FBODepth::NONE);
+    RenderTarget cubeFace(targetResolution, targetResolution,
+                          {graphicsSettings_.msaa, RenderTarget::DepthType::RBO, GL_SRGB8, GL_DEPTH_COMPONENT24});
+    RenderTarget blitTarget(targetResolution, targetResolution, {0, RenderTarget::DepthType::NONE, GL_SRGB8, GL_NONE});
 
     const int renderTargetSize{cubeFace.getWidth()};
     Camera &camera{scene.getCamera()};

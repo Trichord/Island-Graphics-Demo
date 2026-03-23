@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "cascade_shadow.h"
 #include "config_window.h"
 #include "gl_state.h"
 #include "glad/glad.h"
@@ -19,6 +20,10 @@
 // Desired threadcount for the texture loading threadpool
 constexpr unsigned int threadCount{6u};
 constexpr int shadowMapRes{2048};
+constexpr float lightFrustumSize{300.0f};
+constexpr float lightDistance{300.0f};
+constexpr float lightNearPlane{0.1f};
+constexpr float lightFarPlane{650.0f};
 
 class Renderer
 {
@@ -94,6 +99,7 @@ class Renderer
     const ConfigWindow::GraphicsSettings graphicsSettings_;
 
     // Textures
+    CascadeShadow cascadeShadow_;
     RenderTarget shadowPassTarget_;
     RenderTarget shadowBlitTarget_;
 

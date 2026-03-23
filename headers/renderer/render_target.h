@@ -4,17 +4,28 @@
 
 #include "glad/glad.h"
 
-enum class FBODepth
-{
-    NONE,
-    RBO,
-    TEXTURE
-};
-
 class RenderTarget
 {
   public:
-    RenderTarget(int width, int height, int msaaLevel, GLenum internalFormat, GLenum depthFormat, FBODepth depthType);
+    enum class DepthType
+    {
+        NONE,
+        RBO,
+        TEXTURE
+    };
+
+    struct Settings
+    {
+        int msaa{2};
+        DepthType depthType{DepthType::RBO};
+        GLenum internalFormat{GL_SRGB8};
+        GLenum depthFormat{GL_DEPTH_COMPONENT24};
+        bool textureArray{false};
+        GLsizei textureArrayDepth{1};
+        bool generateMipmaps{false};
+    };
+
+    RenderTarget(int width, int height, Settings settings);
     RenderTarget(const RenderTarget &other) = delete;
     RenderTarget &operator=(const RenderTarget &) = delete;
     RenderTarget(RenderTarget &&other) noexcept;
@@ -44,7 +55,6 @@ class RenderTarget
     GLuint depthMapTextureID_{0};
 
     void deleteResources();
-    void createRenderTarget(int width, int height, GLenum internalFormat, GLenum depthFormat, FBODepth depthType);
-    void createMSAARenderTarget(int width, int height, int msaaLevel, GLenum internalFormat, GLenum depthFormat,
-                                FBODepth depthType);
+    void createRenderTarget(int width, int height, const Settings &settings);
+    void createMSAARenderTarget(int width, int height, const Settings &settings);
 };
