@@ -18,7 +18,7 @@ void Renderer::renderAllSceneObjects(Scene &scene)
 
     for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
     {
-        if (objectList.empty())
+        if (objectList.empty() || shaderType == COUNT)
             continue;
 
         Shader &shader{shaders_.at(shaderType)};
@@ -102,6 +102,17 @@ void Renderer::bindTextures(const Material &materials)
         glState_.bindTexture(static_cast<GLuint>(CUBEMAP), materials.cubemap);
 }
 
+void Renderer::updateCascadeShadowUBO(const CascadeShadow::CascadeSplits &cascades,
+                                      const CascadeShadow::LightMatrices &matrices)
+{
+    static_assert(CascadeShadow::cascadeCount == 3);
+
+    packedShadowCascadeData_.splits = {cascades.splits[0].far, cascades.splits[1].far, cascades.splits[2].far, 0.0f};
+    memcpy(packedShadowCascadeData_.matrices, matrices.viewProjections, sizeof(packedShadowCascadeData_.matrices));
+
+    glNamedBufferSubData(shadowCascadesUBO_, 0, sizeof(PackedShadowCascadeData), &packedShadowCascadeData_);
+}
+
 void Renderer::updateShadowMaps(Scene &scene)
 {
     glViewport(0, 0, shadowMapRes, shadowMapRes);
@@ -109,56 +120,62 @@ void Renderer::updateShadowMaps(Scene &scene)
     Shader &shadowPassShader{shaders_[ShaderType::SHADOW_MAP]};
     shadowPassShader.use();
     shadowPassTarget_.bind();
-    shadowPassTarget_.clear();
+   
+    // Get the new orthographic projections and upload to a UBO
+    cascadeShadow_.updateCascadeShadows(scene.getCamera().getViewProjectionMatrix(), scene.getGlobalLightSource());
+    auto &splitDistances = cascadeShadow_.getSplitDistances();
+    auto &lightMatrices = cascadeShadow_.getLightMatrices();
+    updateCascadeShadowUBO(splitDistances, lightMatrices);
 
-    // Setup the shader
-    glm::mat4 projectionMatrix{glm::ortho(-lightFrustumSize, lightFrustumSize, -lightFrustumSize, lightFrustumSize,
-                                           lightNearPlane, lightFarPlane)};
-    glm::mat4 viewMatrix{glm::lookAt(-scene.getGlobalLightSource().getDirection() * lightDistance, glm::vec3{0.0f}, WorldVectors::worldUp)};
-
-    shadowPassShader.setMat4("lightViewProjection", projectionMatrix * viewMatrix);
-    shaders_[ShaderType::DIRECTIONAL_PBR].setMat4("lightViewProjection", projectionMatrix * viewMatrix);
-
-        // Shadow pass
-        for (auto &[shaderType, renderables] : scene.getRenderablesByShader())
+    // Shadow pass
+    for (std::size_t cascade{0}; cascade < CascadeShadow::cascadeCount; ++cascade)
     {
-        using enum ShaderType;
+        shadowPassTarget_.clear();
 
-        if (shaderType == SKYBOX || shaderType == OCEAN)
-            continue;
+        const glm::mat4 lightVP{lightMatrices.viewProjections[cascade]};
+        cullRenderables(scene, lightVP);
 
-        for (auto &renderable : renderables)
+        shadowPassShader.setMat4("lightViewProjection", lightVP);
+
+        for (auto &[shaderType, renderables] : scene.getRenderablesByShader())
         {
-            auto &object = renderable.objectRef.get();
-            auto &properties = renderable.properties;
-            auto iter = modelBaseIndices_.find(object.getHandle());
+            using enum ShaderType;
 
-            if (iter == modelBaseIndices_.end())
-                throw std::runtime_error("ERROR: Missing handle in SSBO lookup map");
+            if (shaderType == SKYBOX || shaderType == OCEAN || shaderType == COUNT)
+                continue;
 
-            ssboOffsets offsets{iter->second};
-
-            shadowPassShader.setIntU("matricesOffset", offsets.matricesOffset);
-
-            for (const Primitive::Mesh &mesh : object.getMeshes())
+            for (auto &renderable : renderables)
             {
-                for (const Primitive &primitive : mesh.primitives)
+                auto &object = renderable.objectRef.get();
+                auto &properties = renderable.properties;
+                auto iter = modelBaseIndices_.find(object.getHandle());
+
+                if (iter == modelBaseIndices_.end())
+                    throw std::runtime_error("ERROR: Missing handle in SSBO lookup map");
+
+                ssboOffsets offsets{iter->second};
+
+                shadowPassShader.setIntU("matricesOffset", offsets.matricesOffset);
+
+                for (const Primitive::Mesh &mesh : object.getMeshes())
                 {
-                    glBindVertexArray(primitive.getVAO());
+                    for (const Primitive &primitive : mesh.primitives)
+                    {
+                        glBindVertexArray(primitive.getVAO());
 
-                    GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
-                    GLsizei instanceCount{static_cast<GLsizei>(properties.instances.size())};
+                        GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
+                        GLsizei instanceCount{static_cast<GLsizei>(properties.instances.size())};
 
-                    glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0, instanceCount);
+                        glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0, instanceCount);
+                    }
                 }
             }
         }
+
+        shadowBlitTarget_.setTextureLayer(static_cast<GLuint>(cascade));
+        shadowPassTarget_.blitTo(shadowBlitTarget_);
     }
 
-    shadowPassTarget_.blitTo(shadowBlitTarget_);
-    GLuint shadowTexture{shadowBlitTarget_.getColorTextureID()};
-
     shadowPassTarget_.unbind();
-
     glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
 }

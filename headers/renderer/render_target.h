@@ -34,11 +34,15 @@ class RenderTarget
 
     void bind();
     void unbind();
+
     int getWidth() const;
     int getHeight() const;
-    void generateMipMaps();
     GLuint getColorTextureID() const;
     GLuint getDepthMapTextureID() const;
+
+    void setTextureLayer(GLuint layer);
+
+    void generateMipMaps();
     void blitTo(const RenderTarget &target);
     void clear(bool color = true, bool depth = true);
 

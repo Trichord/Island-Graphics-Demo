@@ -162,30 +162,12 @@ void Shader::setVec4(const std::string &name, glm::vec4 value)
         glProgramUniform4fv(id_, location, 1, glm::value_ptr(value));
 }
 
-void Shader::setUniformBlock(const std::string &name, unsigned int index)
-{
-    GLuint blockID{getCachedBlock(name)};
-
-    if (blockID != GL_INVALID_INDEX)
-        glUniformBlockBinding(id_, blockID, index);
-}
-
 GLint Shader::getCachedUniform(const std::string &name)
 {
     auto [iter, inserted] = uniformLocations_.try_emplace(name, -1);
 
     if (inserted)
         iter->second = glGetUniformLocation(id_, name.c_str());
-
-    return iter->second;
-}
-
-GLuint Shader::getCachedBlock(const std::string &name)
-{
-    auto [iter, inserted] = blockLocations_.try_emplace(name, GL_INVALID_INDEX);
-
-    if (inserted)
-        iter->second = glGetUniformBlockIndex(id_, name.c_str());
 
     return iter->second;
 }

@@ -24,7 +24,6 @@ class Camera
     const glm::mat4 &getViewMatrix();
     const glm::mat4 &getProjectionMatrix();
     const glm::mat4 &getViewProjectionMatrix();
-    const std::array<glm::vec4, 6> &getFrustumPlanes();
 
     void setYaw(float newYaw);
     void setPitch(float newPitch);
@@ -57,9 +56,6 @@ class Camera
     float nearPlane_{0.1f};
     float farPlane_{2000.0f};
     
-    // Planes are order of: Left, Right, Top, Bottom, Near, Far
-    std::array<glm::vec4, 6> frustumPlanes_{};
-
     void updateMatrices();
     glm::vec3 createFront() const;
 };
