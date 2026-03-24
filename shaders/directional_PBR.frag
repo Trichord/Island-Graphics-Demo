@@ -1,11 +1,17 @@
 #version 460 core
 
+layout (std140, binding = 1) uniform shadowCascadeData
+{
+	mat4 matrices[3];
+	vec4 splits;
+};
+
 out vec4 fragColor;
 
 uniform sampler2D albedoMap;
 uniform sampler2D armMap;
 uniform sampler2D normalMap;
-uniform sampler2D shadowMap;
+uniform sampler2DArray shadowMap;
 uniform vec3 ambientLight;
 uniform vec3 lightColor;
 uniform float gamma;
@@ -15,17 +21,18 @@ const float minVariance = 0.000001;
 uniform float lightBleedReduction = 0.2;
 
 //Positions in tangent view space
-in VS_OUT {
+in VS_OUT 
+{
 	vec3 cameraPos;
 	vec3 lightDir;
-	vec3 fragPos;
+	vec3 tangentFragPos;
 	vec2 texCoords;
-	vec4 worldLightFragPos;
 	vec4 worldFragPos;
 } fs_in;
 
 //Trowbridge-Reitz GGX for normal distribution function
-float distributionGGX(float NdotH, float roughness){
+float distributionGGX(float NdotH, float roughness)
+{
 	float a = roughness * roughness;
 	float a2 = a * a;
 	float NdotH2 = NdotH * NdotH;
@@ -36,7 +43,8 @@ float distributionGGX(float NdotH, float roughness){
 }
 
 //Smith's method with Schlick-GGX for geometric shadowing.  k = (a + 1)^2 / 8
-float geometrySmith(float NdotV, float NdotL, float roughness){
+float geometrySmith(float NdotV, float NdotL, float roughness)
+{
 	float r = roughness + 1.0;
 	float k = r * r * 0.125;
 	float invK = 1.0 - k;
@@ -49,7 +57,8 @@ float geometrySmith(float NdotV, float NdotL, float roughness){
 }
 
 //Fresnel-Schlick approximation (unrolled x^5)
-vec3 fresnelSchlick(float cosTheta, vec3 F0){
+vec3 fresnelSchlick(float cosTheta, vec3 F0)
+{
 	float x = clamp(1.0 - cosTheta, 0.0, 1.0);
 	float x2 = x * x;
 	float x4 = x2 * x2;
@@ -59,7 +68,8 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0){
 }
 
 //Burely diffuse (unrolled)
-float burleyDiffuseFactor(float FD90, float NdotL, float NdotV){
+float burleyDiffuseFactor(float FD90, float NdotL, float NdotV)
+{
 	float L = 1.0 - NdotL;
 	float L2 = L * L;
 	float L4 = L2 * L2;
@@ -79,38 +89,40 @@ float burleyDiffuseFactor(float FD90, float NdotL, float NdotV){
 float ChebyshevUpperBound(vec2 moments, float t)
 {
   // One-tailed inequality valid if t > Moments.x
-  float p = step(t, moments.x);
+	float p = step(t, moments.x);
 
-  // Compute variance.
-  float variance = moments.y - (moments.x * moments.x);
-  variance = max(variance, minVariance);
+	// Compute variance.
+	float variance = moments.y - (moments.x * moments.x);
+	variance = max(variance, minVariance);
 
-  // Compute probabilistic upper bound.
-  float d = t - moments.x;
-  float pMax = variance / (variance + d * d);
+	// Compute probabilistic upper bound.
+	float d = t - moments.x;
+	float pMax = variance / (variance + d * d);
 
-  //Reduce light bleeding
-  pMax = smoothstep(lightBleedReduction, 1.0, pMax);
-  return max(p, pMax);
+	//Reduce light bleeding
+	pMax = smoothstep(lightBleedReduction, 1.0, pMax);
+	return max(p, pMax);
 }
 
-float ShadowContribution(vec2 LightTexCoord, float DistanceToLight)
-{
-  // Read the moments from the variance shadow map.
-  vec2 moments = texture(shadowMap, LightTexCoord).rg;
-  // Compute the Chebyshev upper bound.
-  return ChebyshevUpperBound(moments, DistanceToLight);
+float ShadowContribution(vec2 LightTexCoord, float DistanceToLight, float textureDepth)
+{	
+	// Read the moments from the variance shadow map.
+	vec2 moments = texture(shadowMap, vec3(LightTexCoord.xy, textureDepth)).rg;
+	
+	// Compute the Chebyshev upper bound.
+	return ChebyshevUpperBound(moments, DistanceToLight);
 }
 
 //ACES film tone mapping (Krzysztof Narkowicz)
-vec3 ACESFilm(vec3 x) {
-const float a = 2.51;
-const float b = 0.03;
-const float c = 2.43;
-const float d = 0.59;
-const float e = 0.14;
+vec3 ACESFilm(vec3 x) 
+{
+	const float a = 2.51;
+	const float b = 0.03;
+	const float c = 2.43;
+	const float d = 0.59;
+	const float e = 0.14;
 
-return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+	return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
 void main() {
@@ -121,7 +133,7 @@ void main() {
 
 	//vectors
 	vec3 N = normalize(normal);
-	vec3 V = normalize(fs_in.cameraPos -fs_in.fragPos);
+	vec3 V = normalize(fs_in.cameraPos -fs_in.tangentFragPos);
 	vec3 L = normalize(-fs_in.lightDir);
 	vec3 H = normalize(L + V);
 	
@@ -167,10 +179,14 @@ void main() {
 	//add to outgoing radiance Lo
 	Lo += (diffuse + specular) * lightColor * NdotL;
 
+	//Pick shadow cascade off frag depth
+	float depth = fs_in.worldFragPos.z;
+	int layer = int(step(splits.x, depth)) + int(step(splits.y, depth)) + int(step(splits.z, depth));
+
 	//Shadows
-	vec3 shadowCoords = fs_in.worldLightFragPos.xyz;
+	vec3 shadowCoords = vec3(matrices[layer] * fs_in.worldFragPos);
 	shadowCoords = shadowCoords * 0.5 + 0.5;
-	float shadow = ShadowContribution(shadowCoords.xy, shadowCoords.z);
+	float shadow = ShadowContribution(shadowCoords.xy, shadowCoords.z, float(layer));
 
 	vec3 ambient = ambientLight * albedo.rgb * ao;
 	vec3 color = ambient + Lo * shadow;

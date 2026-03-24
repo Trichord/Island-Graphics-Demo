@@ -5,7 +5,7 @@ layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
 
-layout (std140) uniform matrices {
+layout (std140, binding = 0) uniform cameraData {
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionMatrix;
 	layout (offset = 128) mat4 projectionViewMatrix;

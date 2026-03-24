@@ -10,20 +10,29 @@ class CascadeShadow
   public:
     static constexpr int cascadeCount{3};
 
-    struct SplitDistance
+    struct Split
     {
-        float near;
-        float far;
+        float near{0.0f};
+        float far{0.0f};
+    };
+
+    struct CascadeSplits
+    {
+        Split splits[cascadeCount];
+    };
+
+    struct LightMatrices
+    {
+        glm::mat4 viewProjections[cascadeCount];
     };
 
     CascadeShadow() = default;
-    CascadeShadow(const glm::mat4 &cameraViewMatrix, const DirectionalLight &light, float nearPlane, float farPlane);
+    CascadeShadow(float nearPlane, float farPlane);
 
-    const std::array<SplitDistance, cascadeCount> &getSplitDistances() const;
-    const std::array<glm::mat4, cascadeCount> &getLightVPMatrices() const;
+    const CascadeSplits &getSplitDistances() const;
+    const LightMatrices &getLightMatrices() const;
 
-    void updateCascadeShadows(const glm::mat4 cameraViewMatrix, const glm::mat4 &cameraProjMatrix,
-                              const DirectionalLight &light);
+    void updateCascadeShadows(const glm::mat4 &cameraViewProjectionMatrix, const DirectionalLight &light);
 
   private:
     struct FrustumSphere
@@ -32,15 +41,15 @@ class CascadeShadow
         float radius;
     };
 
-    float minZ_{0.0f};
-    float maxZ_{0.0f};
+    float nearPlane_{0.0f};
+    float farPlane_{0.0f};
     float range_{0.0f};
     float ratio_{0.0f};
 
-    std::array<SplitDistance, cascadeCount> cascadeSplits_;
-    std::array<glm::mat4, cascadeCount> lightVPMatrices_;
+    CascadeSplits frustumSplits_;
+    LightMatrices lightVPMatrices_{};
 
     void calculateCascadeSplits();
-    FrustumSphere getFrustumSphere(const std::array<glm::vec3, 8> corners);
+    FrustumSphere getFrustumSphere(const std::array<glm::vec3, 8> &corners);
     std::array<glm::vec3, 8> getFrustumCornersWorldSpace(const glm::mat4 &invViewProjection);
 };

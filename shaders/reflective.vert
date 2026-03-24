@@ -3,7 +3,7 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNorm;
 
-layout (std140) uniform matrices {
+layout (std140, binding = 0) uniform cameraData {
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionMatrix;
 	layout (offset = 128) mat4 projectionViewMatrix;

@@ -69,10 +69,14 @@ void Renderer::borrowSkyboxes(Scene &scene)
 
 void Renderer::createBuffers(Scene &scene)
 {
-    // UBO
-    glCreateBuffers(1, &UBO_);
-    glNamedBufferStorage(UBO_, sizeof(PackedCameraData), nullptr, GL_DYNAMIC_STORAGE_BIT);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 0, UBO_);
+    // UBOs
+    glCreateBuffers(1, &cameraUBO_);
+    glNamedBufferStorage(cameraUBO_, sizeof(PackedCameraData), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, cameraUBO_);
+
+    glCreateBuffers(1, &shadowCascadesUBO_);
+    glNamedBufferStorage(shadowCascadesUBO_, sizeof(PackedShadowCascadeData), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 1, shadowCascadesUBO_);
 
     // Find total number of all instances across all scene objects
     std::size_t numInstances{0};
@@ -158,7 +162,7 @@ void Renderer::createCubemaps(Scene &scene)
     camera.setPosition(originalPos);
     camera.setPitch(originalPitch);
     camera.setYaw(originalYaw);
-    updateUBO(scene);
+    updateCameraUBO(scene);
 
     // Restore default framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -175,7 +179,7 @@ void Renderer::createCubemapFaces(Scene &scene, int targetResolution, GLuint tex
     // Helper for rendering the scene
     auto renderFace = [&](RenderTarget &target, WorldOrientation orientation, Camera &camera) {
         camera.setWorldOrientation(orientation);
-        updateUBO(scene);
+        updateCameraUBO(scene);
         target.clear();
         renderAllSceneObjects(scene);
     };

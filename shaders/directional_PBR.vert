@@ -5,7 +5,7 @@ layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
 
-layout (std140) uniform matrices 
+layout (std140) uniform cameraData 
 {
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionMatrix;
@@ -26,9 +26,8 @@ out VS_OUT
 {
 	vec3 cameraPos;
 	vec3 lightDir;
-	vec3 fragPos;
+	vec3 tangentFragPos;
 	vec2 texCoords;
-	vec4 worldLightFragPos;
 	vec4 worldFragPos;
 } vs_out;
 
@@ -52,8 +51,7 @@ void main ()
 
 	vs_out.texCoords = aTexCoords;
 	vs_out.worldFragPos = modelMatrix * vec4(aPos, 1.0);
-	vs_out.fragPos = TBN * vs_out.worldFragPos.xyz;
-	vs_out.worldLightFragPos = lightViewProjection * vs_out.worldFragPos;
+	vs_out.tangentFragPos = TBN * vs_out.worldFragPos.xyz;
 	vs_out.lightDir = TBN * lightDir;
 	vs_out.cameraPos = TBN * cameraPosition.xyz;
 	

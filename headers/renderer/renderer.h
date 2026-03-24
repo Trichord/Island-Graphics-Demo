@@ -61,11 +61,19 @@ class Renderer
         glm::vec4 cameraPosition{0.0f};
     };
 
+    struct PackedShadowCascadeData
+    {
+        glm::mat4 matrices[CascadeShadow::cascadeCount];
+        glm::vec4 splits;
+    };
+
     ThreadPool threadPool_{threadCount};
 
     // UBO
-    GLuint UBO_{0};
-    PackedCameraData uboCameraData_;
+    GLuint cameraUBO_{0};
+    GLuint shadowCascadesUBO_{0};
+    PackedCameraData packedCameraData_;
+    PackedShadowCascadeData packedShadowCascadeData_;
 
     /* SSBOs
      *
@@ -121,19 +129,20 @@ class Renderer
     void renderObject(Renderable &renderable);
     void bindTextures(const Material &materials);
 
-    // Culling
-    void cullRenderables(Scene &scene);
+    // Culling  
     void resetVisibility(Scene &scene);
     void cullNone(Renderable &renderable, GLuint &currentOffset);
+    void cullRenderables(Scene &scene, const glm::mat4 &cullMatrix);
     void cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
-    void cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
-                       const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
+    void cullInstanced(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
 
     // Updates
-    void updateUBO(Scene &scene);
+    void updateCameraUBO(Scene &scene);
     void updateShadowMaps(Scene &scene);
     void updateSceneTransforms(Scene &scene);
     void updateShaderUniforms(Scene &scene, bool lightDirectionChanged);
+    void updateCascadeShadowUBO(const CascadeShadow::CascadeSplits &cascades,
+                                const CascadeShadow::LightMatrices &matrices);
 
     // Cleanup
     void deleteBuffers();

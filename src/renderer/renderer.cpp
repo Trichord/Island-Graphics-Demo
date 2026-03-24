@@ -65,24 +65,23 @@ void Renderer::renderScene(Scene &scene)
 
     if (cameraUpdated)
     {
-        updateUBO(scene);
-        resetVisibility(scene);
-        cullRenderables(scene);
+        updateCameraUBO(scene);
+        cullRenderables(scene, scene.getCamera().getViewProjectionMatrix());
     }
 
     renderAllSceneObjects(scene);
 }
 
-void Renderer::updateUBO(Scene &scene)
+void Renderer::updateCameraUBO(Scene &scene)
 {
     Camera &camera{scene.getCamera()};
-    uboCameraData_.viewMatrix = camera.getViewMatrix();
-    uboCameraData_.projectionMatrix = camera.getProjectionMatrix();
-    uboCameraData_.viewProjectionMatrix = camera.getViewProjectionMatrix();
-    uboCameraData_.inverseViewProjectMatrix = glm::inverse(uboCameraData_.viewProjectionMatrix);
-    uboCameraData_.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
+    packedCameraData_.viewMatrix = camera.getViewMatrix();
+    packedCameraData_.projectionMatrix = camera.getProjectionMatrix();
+    packedCameraData_.viewProjectionMatrix = camera.getViewProjectionMatrix();
+    packedCameraData_.inverseViewProjectMatrix = glm::inverse(packedCameraData_.viewProjectionMatrix);
+    packedCameraData_.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
 
-    glNamedBufferSubData(UBO_, 0, sizeof(PackedCameraData), &uboCameraData_);
+    glNamedBufferSubData(cameraUBO_, 0, sizeof(PackedCameraData), &packedCameraData_);
 }
 
 void Renderer::loadShaders()
@@ -102,8 +101,6 @@ void Renderer::loadShaders()
 void Renderer::setupShader(Shader &shader)
 {
     using enum Texture;
-
-    shader.setUniformBlock("matrices", 0);
 
     shader.setInt("albedoMap", static_cast<GLuint>(ALBEDO));
     shader.setInt("armMap", static_cast<GLuint>(ARM));
@@ -148,17 +145,13 @@ void Renderer::initializeResources(Scene &scene)
     createBuffers(scene);
     createCubemaps(scene);
     borrowSkyboxes(scene);
-    updateUBO(scene);
+    updateCameraUBO(scene);
     setSceneShaderUniforms(scene);
 
-    //Setup for cascade shadow maps
+    // Setup for cascade shadow maps
     Camera &camera{scene.getCamera()};
-    cascadeShadow_ = CascadeShadow(camera.getViewMatrix(), scene.getGlobalLightSource(), camera.getNearPlane(),
-                                   camera.getFarPlane());
+    cascadeShadow_ = CascadeShadow(camera.getNearPlane(), camera.getFarPlane());
     updateShadowMaps(scene);
-
-    resetVisibility(scene);
-    cullRenderables(scene);
 
     threadPool_.stopAllThreads();
 }
@@ -170,7 +163,9 @@ TextureManager &Renderer::getTextureManager()
 
 void Renderer::deleteBuffers()
 {
-    glDeleteBuffers(1, &UBO_);
+    glDeleteBuffers(1, &cameraUBO_);
+    glDeleteBuffers(1, &shadowCascadesUBO_);
+
     glDeleteBuffers(1, &indicesSSBO_);
     glDeleteBuffers(1, &matricesSSBO_);
 }

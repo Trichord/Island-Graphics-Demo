@@ -73,49 +73,6 @@ const glm::mat4 &Camera::getViewProjectionMatrix()
     return viewProjectionMatrix_;
 }
 
-void normalizePlane(glm::vec4 &vec)
-{
-    float length = glm::length(glm::vec3{vec});
-    vec /= length;
-}
-
-const std::array<glm::vec4, 6> &Camera::getFrustumPlanes()
-{
-    if (dirtyMatrices_)
-    {
-        updateMatrices();
-        dirtyMatrices_ = false;
-    }
-
-    const glm::vec4 row0{glm::row(viewProjectionMatrix_, 0)};
-    const glm::vec4 row1{glm::row(viewProjectionMatrix_, 1)};
-    const glm::vec4 row2{glm::row(viewProjectionMatrix_, 2)};
-    const glm::vec4 row3{glm::row(viewProjectionMatrix_, 3)};
-
-    // Left
-    frustumPlanes_[0] = row3 + row0;
-
-    // Right
-    frustumPlanes_[1] = row3 - row0;
-
-    // Top
-    frustumPlanes_[2] = row3 - row1;
-
-    // Bottom
-    frustumPlanes_[3] = row3 + row1;
-
-    // Near
-    frustumPlanes_[4] = row3 + row2;
-
-    // Far
-    frustumPlanes_[5] = row3 - row2;
-
-    for (auto &vec : frustumPlanes_)
-        normalizePlane(vec);
-
-    return frustumPlanes_;
-}
-
 void Camera::setYaw(float newYaw)
 {
     yaw_ = std::fmod(newYaw, 360.0f);
