@@ -37,14 +37,12 @@ class Shader
     void setVec4(const std::string &name, glm::vec4 value);
     void setMat3(const std::string &name, const glm::mat3 &value);
     void setMat4(const std::string &name, const glm::mat4 &value);
-    void setUniformBlock(const std::string &name, unsigned int index);
 
   private:
     GLuint id_{0};
     std::unordered_map<std::string, GLint> uniformLocations_;
     std::unordered_map<std::string, GLuint> blockLocations_;
 
-    GLuint getCachedBlock(const std::string &name);
     GLint getCachedUniform(const std::string &name);
     GLuint createShaderID(GLenum type, const std::filesystem::path &path);
 };
