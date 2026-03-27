@@ -263,8 +263,9 @@ void IslandScene::setupCamera(const ConfigWindow::GraphicsSettings &graphicsSett
     constexpr float cameraFOV{45.0f};
 
     camera_ = Camera{CAMERA_START_POS, -100.0f};
-    camera_.setFOV(cameraFOV, static_cast<float>(graphicsSettings.screenWidth) /
-                                                 static_cast<float>(graphicsSettings.screenHeight));
+    camera_.setFOV(cameraFOV);
+    camera_.setAspectRatio(static_cast<float>(graphicsSettings.screenWidth) /
+                           static_cast<float>(graphicsSettings.screenHeight));
 }
 
 void IslandScene::onUpdate(float deltaTime)

@@ -12,11 +12,11 @@
 #include "glm/glm.hpp"
 #include "island_scene.h"
 #include "jolt/Core/Factory.h"
+#include "jolt/Core/JobSystemSingleThreaded.h"
 #include "jolt/Core/Memory.h"
 #include "jolt/Core/TempAllocator.h"
 #include "jolt/Physics/PhysicsSystem.h"
 #include "jolt/registerTypes.h"
-#include "jolt_impl.h"
 #include "player_physics.h"
 #include "renderer.h"
 #include "scene.h"
@@ -118,6 +118,10 @@ void Application::createWindow(const ConfigWindow::GraphicsSettings &graphicsSet
     glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
     glfwWindowHint(GLFW_DEPTH_BITS, 32);
 
+#ifdef DEBUG
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
+#endif // DEBUG
+
     if (graphicsSettings.msaa)
         glfwWindowHint(GLFW_SAMPLES, graphicsSettings.msaa);
 
@@ -166,6 +170,13 @@ void Application::createOpenGLViewport(const ConfigWindow::GraphicsSettings &gra
     glEnable(GL_FRAMEBUFFER_SRGB);
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+#ifdef DEBUG
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(glDebugOutput, nullptr);
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+#endif // DEBUG
 }
 
 void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
@@ -205,7 +216,7 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
 
     physicsHandler.toggleCrouch(leftCtrlToggle_);
     physicsHandler.toggleSprint(leftShiftToggle_);
-    
+
     while (accumulator_ > physicsTick)
     {
         previousPos = physicsHandler.getPosition();
@@ -218,7 +229,7 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
     glm::vec3 interpolatedPos{glm::mix(previousPos, physicsHandler.getPosition(), alpha)};
 
     camera.setPosition(interpolatedPos);
-    
+
     /*
     //****************************************
     // Object Positioning - For Testing Only *
@@ -230,29 +241,30 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
 
     // +- Z
     if (glfwGetKey(window_, GLFW_KEY_KP_8) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{0.0f, 0.0f, -objectSpeed * deltaTime_});
+        minVariance += 0.000000001f;
 
     if (glfwGetKey(window_, GLFW_KEY_KP_5) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{0.0f, 0.0f, objectSpeed * deltaTime_});
+        minVariance -= 0.000000001f;
 
     // +- X
     if (glfwGetKey(window_, GLFW_KEY_KP_4) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{-objectSpeed * deltaTime_, -0.0f, 0.0f});
+        lightBleedReduction -= 0.00005f;
 
     if (glfwGetKey(window_, GLFW_KEY_KP_6) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{objectSpeed * deltaTime_, 0.0f, 0.0f});
+        lightBleedReduction += 0.00005f;
 
     // +- Y
     if (glfwGetKey(window_, GLFW_KEY_KP_7) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{0.0f, -objectSpeed * deltaTime_, 0.0f});
+        radiusMultiplier -= 0.0005f;
 
     if (glfwGetKey(window_, GLFW_KEY_KP_9) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{0.0f, objectSpeed * deltaTime_, 0.0f});
+        radiusMultiplier += 0.0005f;
 
     if (glfwGetKey(window_, GLFW_KEY_P) == GLFW_PRESS)
     {
         const glm::vec3 &pos{transform.getPosition()};
-        std::cout << "Transform at: (" << pos.x << ", " << pos.y << ", " << pos.z << ")" << std::endl;
+        std::cout << "min variance: " << minVariance << ", light bleed reduction " << lightBleedReduction
+                  << ", radius multiplier: " << radiusMultiplier << std::endl;
     }
     */
 }
@@ -308,3 +320,89 @@ void Application::registerJolt()
     JPH::Factory::sInstance = new JPH::Factory();
     JPH::RegisterTypes();
 }
+
+#ifdef DEBUG
+void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length,
+                            const char *message, const void *userParam)
+{
+    // ignore non-significant error/warning codes
+    if (id == 131169 || id == 131185 || id == 131218 || id == 131204)
+        return;
+
+    std::cout << "---------------" << std::endl;
+    std::cout << "Debug message (" << id << "): " << message << std::endl;
+
+    switch (source)
+    {
+    case GL_DEBUG_SOURCE_API:
+        std::cout << "Source: API";
+        break;
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+        std::cout << "Source: Window System";
+        break;
+    case GL_DEBUG_SOURCE_SHADER_COMPILER:
+        std::cout << "Source: Shader Compiler";
+        break;
+    case GL_DEBUG_SOURCE_THIRD_PARTY:
+        std::cout << "Source: Third Party";
+        break;
+    case GL_DEBUG_SOURCE_APPLICATION:
+        std::cout << "Source: Application";
+        break;
+    case GL_DEBUG_SOURCE_OTHER:
+        std::cout << "Source: Other";
+        break;
+    }
+    std::cout << std::endl;
+
+    switch (type)
+    {
+    case GL_DEBUG_TYPE_ERROR:
+        std::cout << "Type: Error";
+        break;
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+        std::cout << "Type: Deprecated Behaviour";
+        break;
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+        std::cout << "Type: Undefined Behaviour";
+        break;
+    case GL_DEBUG_TYPE_PORTABILITY:
+        std::cout << "Type: Portability";
+        break;
+    case GL_DEBUG_TYPE_PERFORMANCE:
+        std::cout << "Type: Performance";
+        break;
+    case GL_DEBUG_TYPE_MARKER:
+        std::cout << "Type: Marker";
+        break;
+    case GL_DEBUG_TYPE_PUSH_GROUP:
+        std::cout << "Type: Push Group";
+        break;
+    case GL_DEBUG_TYPE_POP_GROUP:
+        std::cout << "Type: Pop Group";
+        break;
+    case GL_DEBUG_TYPE_OTHER:
+        std::cout << "Type: Other";
+        break;
+    }
+    std::cout << std::endl;
+
+    switch (severity)
+    {
+    case GL_DEBUG_SEVERITY_HIGH:
+        std::cout << "Severity: high";
+        break;
+    case GL_DEBUG_SEVERITY_MEDIUM:
+        std::cout << "Severity: medium";
+        break;
+    case GL_DEBUG_SEVERITY_LOW:
+        std::cout << "Severity: low";
+        break;
+    case GL_DEBUG_SEVERITY_NOTIFICATION:
+        std::cout << "Severity: notification";
+        break;
+    }
+    std::cout << std::endl;
+    std::cout << std::endl;
+}
+#endif // DEBUG

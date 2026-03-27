@@ -27,12 +27,13 @@ class CascadeShadow
     };
 
     CascadeShadow() = default;
-    CascadeShadow(float nearPlane, float farPlane);
+    CascadeShadow(float nearPlane);
 
     const CascadeSplits &getSplitDistances() const;
     const LightMatrices &getLightMatrices() const;
 
-    void updateCascadeShadows(const glm::mat4 &cameraViewProjectionMatrix, const DirectionalLight &light);
+    void updateCascadeShadows(const glm::mat4 &cameraViewProjectionMatrix, const DirectionalLight &light,
+                              float farPlane);
 
   private:
     struct FrustumSphere
@@ -42,14 +43,11 @@ class CascadeShadow
     };
 
     float nearPlane_{0.0f};
-    float farPlane_{0.0f};
-    float range_{0.0f};
-    float ratio_{0.0f};
 
     CascadeSplits frustumSplits_;
     LightMatrices lightVPMatrices_{};
 
-    void calculateCascadeSplits();
+    void calculateCascadeSplits(float farPlane);
     FrustumSphere getFrustumSphere(const std::array<glm::vec3, 8> &corners);
     std::array<glm::vec3, 8> getFrustumCornersWorldSpace(const glm::mat4 &invViewProjection);
 };

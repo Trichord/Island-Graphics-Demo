@@ -10,21 +10,19 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "world_vectors.h"
 
-static constexpr float maxShadowFarPlane{325.0f};
-
-CascadeShadow::CascadeShadow(float nearPlane, float farPlane)
-    : nearPlane_{nearPlane}, farPlane_{farPlane}, range_{farPlane - nearPlane}, ratio_{maxShadowFarPlane / nearPlane}
+CascadeShadow::CascadeShadow(float nearPlane) : nearPlane_{nearPlane}
 {
-    calculateCascadeSplits();
 }
 
-// Credit: Rouslan Dimitrov & NVIDIA Corporation
-/* Computes the near and far distances for every frustum slice in camera eye space - that is, at what distance does a
- * slice start and end */
-void CascadeShadow::calculateCascadeSplits()
+/* Credit: Rouslan Dimitrov & NVIDIA Corporation
+Computes the near and far distances for every frustum slice in camera eye space - that is, at what distance does a
+slice start and end */
+void CascadeShadow::calculateCascadeSplits(float farPlane)
 {
     constexpr float cascadeOverlap{1.005f};
-    static constexpr float splitWeight_{0.6f};
+    constexpr float splitWeight_{0.8f};
+
+    float ratio{farPlane / nearPlane_};
 
     frustumSplits_.splits[0].near = nearPlane_;
 
@@ -32,17 +30,19 @@ void CascadeShadow::calculateCascadeSplits()
     {
         float si{i / static_cast<float>(cascadeCount)};
 
-        frustumSplits_.splits[i].near = splitWeight_ * (nearPlane_ * std::pow(ratio_, si)) +
-                                        (1 - splitWeight_) * (nearPlane_ + (maxShadowFarPlane - nearPlane_) * si);
+        frustumSplits_.splits[i].near = splitWeight_ * (nearPlane_ * std::pow(ratio, si)) +
+                                        (1 - splitWeight_) * (nearPlane_ + (farPlane - nearPlane_) * si);
         frustumSplits_.splits[i - 1].far = frustumSplits_.splits[i].near * cascadeOverlap;
     }
 
-    frustumSplits_.splits[cascadeCount - 1].far = maxShadowFarPlane;
+    frustumSplits_.splits[cascadeCount - 1].far = farPlane;
 }
 
+// Returns the bounding sphere of a frustum
 CascadeShadow::FrustumSphere CascadeShadow::getFrustumSphere(const std::array<glm::vec3, 8> &corners)
 {
-    static constexpr float snapResolution_{16.0f}; // Snaps the orthographic projection to the nearest amount
+    // Snaps radius to the nearest 1/16th to reduce shimmer
+    constexpr float snapResolution_{16.0f}; 
 
     glm::vec3 center{0.0f};
 
@@ -61,12 +61,17 @@ CascadeShadow::FrustumSphere CascadeShadow::getFrustumSphere(const std::array<gl
     return {center, std::ceil(radius * snapResolution_) / snapResolution_};
 }
 
-// Credit: Antonio Hernández Bejarano
-void CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraViewProjectionMatrix, const DirectionalLight &light)
+// Main technique: Antonio Hernandez Bejarano, texel snapping: Alex Tardiff
+void CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraViewProjectionMatrix, const DirectionalLight &light,
+                                         float farPlane)
 {
+    constexpr float radiusMultiplier{2.75f};
+
     const glm::mat4 inverseVPMatrix{glm::inverse(cameraViewProjectionMatrix)};
     const std::array<glm::vec3, 8> fullFrustumCorners{getFrustumCornersWorldSpace(inverseVPMatrix)};
     const glm::vec3 lightDir{glm::normalize(light.getDirection())};
+
+    calculateCascadeSplits(farPlane);
 
     for (int i{0}; i < cascadeCount; ++i)
     {
@@ -74,8 +79,8 @@ void CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraViewProjectionMa
         Split cascadeSplit{frustumSplits_.splits[i]};
 
         // Linearly interpolate to get the frustum split's near and far planes into [0,1]
-        float splitDistance{(cascadeSplit.far - nearPlane_) / (farPlane_ - nearPlane_)};
-        float lastSplitDist{(cascadeSplit.near - nearPlane_) / (farPlane_ - nearPlane_)};
+        float splitDistance{(cascadeSplit.far - nearPlane_) / (farPlane - nearPlane_)};
+        float lastSplitDist{(cascadeSplit.near - nearPlane_) / (farPlane - nearPlane_)};
 
         // Corners for this split
         for (int j{0}; j < 4; ++j)
@@ -85,15 +90,28 @@ void CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraViewProjectionMa
             frustumCorners[j] = glm::vec3{frustumCorners[j] + dist * lastSplitDist};
         }
 
-        // Bounding sphere of the split
+        // Get center of frustum and texel density
         CascadeShadow::FrustumSphere frustumSphere{getFrustumSphere(frustumCorners)};
+        float texelsPerUnit{1024.0f / (frustumSphere.radius * 2.0f)};
 
-        glm::vec3 maxExtent{frustumSphere.radius};
-        glm::vec3 minExtent{-maxExtent};
-        glm::vec3 eye{frustumSphere.center - lightDir * frustumSphere.radius};
-        glm::mat4 lightView{glm::lookAt(eye, frustumSphere.center, WorldVectors::worldUp)};
-        glm::mat4 lightProjection{
-            glm::ortho(minExtent.x, maxExtent.x, minExtent.y, maxExtent.y, 0.0f, maxExtent.z - minExtent.z)};
+        // Create a base lookAt with our light direction
+        glm::mat4 scalarMatrix{glm::scale(glm::mat4{1.0f}, glm::vec3{texelsPerUnit})};
+        glm::mat4 lookAt{glm::lookAt(glm::vec3{0.0f}, -lightDir, WorldVectors::worldUp)};
+        lookAt *= scalarMatrix;
+        glm::mat4 invLookAt{glm::inverse(lookAt)};
+
+        // Snap to the nearest texel in light space, then return to original space with inverse
+        glm::vec3 frustumCenter{lookAt * glm::vec4{frustumSphere.center, 1.0f}};
+        frustumCenter.x = std::floor(frustumCenter.x); // Clamp to texel
+        frustumCenter.y = std::floor(frustumCenter.y); // Clamp to texel
+        frustumCenter = invLookAt * glm::vec4{frustumCenter, 1.0f};
+
+        // Final view projection matrix (near and far plane multiplied so that no objects are clipped)
+        glm::vec3 eye{frustumCenter - (lightDir * frustumSphere.radius * 2.0f)};
+        glm::mat4 lightView{glm::lookAt(eye, frustumCenter, WorldVectors::worldUp)};
+        glm::mat4 lightProjection{glm::ortho(-frustumSphere.radius, frustumSphere.radius, -frustumSphere.radius,
+                                             frustumSphere.radius, -frustumSphere.radius * radiusMultiplier,
+                                             frustumSphere.radius * radiusMultiplier)};
 
         lightVPMatrices_.viewProjections[i] = lightProjection * lightView;
     }
