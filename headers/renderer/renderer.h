@@ -19,11 +19,7 @@
 
 // Desired threadcount for the texture loading threadpool
 constexpr unsigned int threadCount{6u};
-constexpr int shadowMapRes{2048};
-constexpr float lightFrustumSize{300.0f};
-constexpr float lightDistance{300.0f};
-constexpr float lightNearPlane{0.1f};
-constexpr float lightFarPlane{650.0f};
+constexpr int shadowMapRes{1024};
 
 class Renderer
 {

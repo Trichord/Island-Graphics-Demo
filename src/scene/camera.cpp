@@ -12,11 +12,10 @@
 constexpr float maxPitch{85.0f};
 constexpr float minPitch{-maxPitch};
 constexpr float sensitivity{0.1f};
-constexpr float defaultAspectRatio{16.0f / 9.0f};
 
 Camera::Camera(glm::vec3 position, float yaw, float pitch)
     : yaw_{yaw}, pitch_{pitch}, position_{position},
-      projectionMatrix_{glm::perspective(glm::radians(fov_), defaultAspectRatio, nearPlane_, farPlane_)}
+      projectionMatrix_{glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_)}
 {
 }
 
@@ -29,6 +28,11 @@ bool Camera::hasUpdated()
     }
     else
         return false;
+}
+
+float Camera::getAspectRatio() const
+{
+    return aspectRatio_;
 }
 
 float Camera::getYaw() const
@@ -80,9 +84,9 @@ void Camera::setYaw(float newYaw)
     dirtyMatrices_ = true;
 }
 
-void Camera::setFOV(float fov, float aspectRatio)
+void Camera::setFOV(float fov)
 {
-    projectionMatrix_ = glm::perspective(glm::radians(fov), aspectRatio, nearPlane_, farPlane_);
+    fov_ = fov;
     hasChanged_ = true;
     dirtyMatrices_ = true;
 }
@@ -143,10 +147,10 @@ void Camera::setWorldOrientation(WorldOrientation orientation)
         break;
     }
 
+    projectionMatrix_ = glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_);
     viewMatrix_ = glm::lookAt(position_, position_ + front, up);
     viewProjectionMatrix_ = projectionMatrix_ * viewMatrix_;
 
-    // We assume
     hasChanged_ = true;
     dirtyMatrices_ = false;
 }
@@ -175,6 +179,8 @@ void Camera::updateMatrices()
     glm::vec3 up{glm::cross(right, front)};
 
     viewMatrix_ = glm::lookAt(position_, position_ + front, up);
+    projectionMatrix_ = glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_);
+
     viewProjectionMatrix_ = projectionMatrix_ * viewMatrix_;
     inverseVPMatrix_ = glm::inverse(viewProjectionMatrix_);
 
@@ -217,7 +223,6 @@ float Camera::getNearPlane() const
 void Camera::setFarPlane(float farPlane)
 {
     farPlane_ = farPlane;
-    projectionMatrix_ = glm::perspective(glm::radians(fov_), defaultAspectRatio, nearPlane_, farPlane_);
     dirtyMatrices_ = true;
     hasChanged_ = true;
 }
@@ -225,7 +230,25 @@ void Camera::setFarPlane(float farPlane)
 void Camera::setNearPlane(float nearPlane)
 {
     nearPlane_ = nearPlane;
-    projectionMatrix_ = glm::perspective(glm::radians(fov_), defaultAspectRatio, nearPlane_, farPlane_);
     dirtyMatrices_ = true;
     hasChanged_ = true;
+}
+
+void Camera::setAspectRatio(float aspectRatio)
+{
+    aspectRatio_ = aspectRatio;
+    dirtyMatrices_ = true;
+    hasChanged_ = true;
+}
+
+glm::mat4 Camera::getResizedViewProjectionMatrix(float ratio)
+{
+    if (dirtyMatrices_)
+    {
+        updateMatrices();
+        dirtyMatrices_ = false;
+    }
+
+    const glm::mat4 projectionMatrix{glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_ * ratio)};
+    return projectionMatrix * viewMatrix_;
 }

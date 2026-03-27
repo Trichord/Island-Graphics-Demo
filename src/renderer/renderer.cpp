@@ -121,7 +121,7 @@ void Renderer::updateShaderUniforms(Scene &scene, bool lightDirectionChanged)
     for (auto &[_, shader] : shaders_)
     {
         shader.setFloat("time", (float)glfwGetTime());
-
+        
         if (lightDirectionChanged)
             shader.setVec3("lightDir", globalLight.getDirection());
     }
@@ -141,18 +141,18 @@ void Renderer::setSceneShaderUniforms(Scene &scene)
 
 void Renderer::initializeResources(Scene &scene)
 {
+    setSceneShaderUniforms(scene);
     loadInstancedData(scene);
     createBuffers(scene);
-    createCubemaps(scene);
     borrowSkyboxes(scene);
-    updateCameraUBO(scene);
-    setSceneShaderUniforms(scene);
-
+    createCubemaps(scene);
+    
     // Setup for cascade shadow maps
     Camera &camera{scene.getCamera()};
-    cascadeShadow_ = CascadeShadow(camera.getNearPlane(), camera.getFarPlane());
+    cascadeShadow_ = CascadeShadow(camera.getNearPlane());
     updateShadowMaps(scene);
 
+    updateCameraUBO(scene); 
     threadPool_.stopAllThreads();
 }
 

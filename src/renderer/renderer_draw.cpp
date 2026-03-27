@@ -11,6 +11,9 @@
 #include "texture_manager.h"
 #include "texture_units.h"
 
+// Reduce the distance of the camera's far plane by 80% for shadow cascades.
+constexpr float farPlaneReduction{0.2f};
+
 // Render objects, grouped by shader type
 void Renderer::renderAllSceneObjects(Scene &scene)
 {
@@ -120,20 +123,26 @@ void Renderer::updateShadowMaps(Scene &scene)
     Shader &shadowPassShader{shaders_[ShaderType::SHADOW_MAP]};
     shadowPassShader.use();
     shadowPassTarget_.bind();
-   
+
     // Get the new orthographic projections and upload to a UBO
-    cascadeShadow_.updateCascadeShadows(scene.getCamera().getViewProjectionMatrix(), scene.getGlobalLightSource());
+    Camera &camera{scene.getCamera()};
+    cascadeShadow_.updateCascadeShadows(camera.getResizedViewProjectionMatrix(farPlaneReduction),
+                                        scene.getGlobalLightSource(), camera.getFarPlane() * farPlaneReduction);
+
     auto &splitDistances = cascadeShadow_.getSplitDistances();
     auto &lightMatrices = cascadeShadow_.getLightMatrices();
     updateCascadeShadowUBO(splitDistances, lightMatrices);
 
     // Shadow pass
-    for (std::size_t cascade{0}; cascade < CascadeShadow::cascadeCount; ++cascade)
+    for (int cascade{CascadeShadow::cascadeCount - 1}; cascade >= 0; --cascade)
     {
         shadowPassTarget_.clear();
 
         const glm::mat4 lightVP{lightMatrices.viewProjections[cascade]};
-        cullRenderables(scene, lightVP);
+
+        // No culling on fully zoomed out cascade (should cover the whole scene)
+        if (cascade != 2)
+            cullRenderables(scene, lightVP);
 
         shadowPassShader.setMat4("lightViewProjection", lightVP);
 
@@ -144,8 +153,15 @@ void Renderer::updateShadowMaps(Scene &scene)
             if (shaderType == SKYBOX || shaderType == OCEAN || shaderType == COUNT)
                 continue;
 
+            // Only draw grass on the closest casade
+            if (cascade != 0 && shaderType == GRASS)
+                continue;
+
             for (auto &renderable : renderables)
             {
+                if (!renderable.properties.isVisible)
+                    continue;
+
                 auto &object = renderable.objectRef.get();
                 auto &properties = renderable.properties;
                 auto iter = modelBaseIndices_.find(object.getHandle());

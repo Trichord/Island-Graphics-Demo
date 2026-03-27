@@ -118,9 +118,11 @@ void Renderer::createCubemaps(Scene &scene)
     float originalPitch{camera.getPitch()};
     float originalYaw{camera.getYaw()};
     float originalFOV{camera.getFOV()};
+    float originalAspect{camera.getAspectRatio()};
 
     // 90 degrees for cubemap
-    camera.setFOV(90.0f, 1.0f);
+    camera.setFOV(90.0f);
+    camera.setAspectRatio(1.0f);
 
     for (auto &renderable : waters)
     {
@@ -158,7 +160,8 @@ void Renderer::createCubemaps(Scene &scene)
     }
 
     // Reset
-    camera.setFOV(originalFOV, graphicsSettings_.screenWidth / static_cast<float>(graphicsSettings_.screenHeight));
+    camera.setFOV(originalFOV);
+    camera.setAspectRatio(originalAspect);
     camera.setPosition(originalPos);
     camera.setPitch(originalPitch);
     camera.setYaw(originalYaw);

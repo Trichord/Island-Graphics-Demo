@@ -12,6 +12,9 @@ RenderTarget::RenderTarget(int width, int height, Settings settings) : width_{wi
         createMSAARenderTarget(width, height, settings);
     else
         createRenderTarget(width, height, settings);
+
+    glNamedFramebufferDrawBuffer(FBO_, GL_COLOR_ATTACHMENT0);
+    glNamedFramebufferReadBuffer(FBO_, GL_COLOR_ATTACHMENT0);
 }
 
 int calculateMipmapLevels(int width, int height)

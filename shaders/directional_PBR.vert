@@ -28,6 +28,7 @@ out VS_OUT
 	vec3 lightDir;
 	vec3 tangentFragPos;
 	vec2 texCoords;
+	vec4 viewFragPos;
 	vec4 worldFragPos;
 } vs_out;
 
@@ -49,11 +50,14 @@ void main ()
 	vec3 B = normalize(cross(N, T) * aTangent.w);
 	mat3 TBN = transpose(mat3(T, B, N));
 
-	vs_out.texCoords = aTexCoords;
 	vs_out.worldFragPos = modelMatrix * vec4(aPos, 1.0);
+	vs_out.viewFragPos = viewMatrix * vs_out.worldFragPos;
 	vs_out.tangentFragPos = TBN * vs_out.worldFragPos.xyz;
+
 	vs_out.lightDir = TBN * lightDir;
 	vs_out.cameraPos = TBN * cameraPosition.xyz;
+
+	vs_out.texCoords = aTexCoords;
 	
 	gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0);
 }

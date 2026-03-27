@@ -18,7 +18,8 @@ uniform float gamma;
 
 const float INVERSE_PI = 0.31830988618;
 const float minVariance = 0.000001;
-uniform float lightBleedReduction = 0.2;
+const int cascadeCount = 3;
+const float lightBleedReduction = 0.2;
 
 //Positions in tangent view space
 in VS_OUT 
@@ -27,6 +28,7 @@ in VS_OUT
 	vec3 lightDir;
 	vec3 tangentFragPos;
 	vec2 texCoords;
+	vec4 viewFragPos;
 	vec4 worldFragPos;
 } fs_in;
 
@@ -104,10 +106,22 @@ float ChebyshevUpperBound(vec2 moments, float t)
 	return max(p, pMax);
 }
 
-float ShadowContribution(vec2 LightTexCoord, float DistanceToLight, float textureDepth)
+int calculateCascadeIndex(float depth)
+{
+	if (splits.x > depth)
+		return 0;
+
+	else if (splits.y > depth)
+		return 1;
+
+	else
+		return 2;
+}
+
+float ShadowContribution(vec2 LightTexCoord, float DistanceToLight, int layer)
 {	
 	// Read the moments from the variance shadow map.
-	vec2 moments = texture(shadowMap, vec3(LightTexCoord.xy, textureDepth)).rg;
+	vec2 moments = texture(shadowMap, vec3(LightTexCoord.xy, float(layer))).rg;
 	
 	// Compute the Chebyshev upper bound.
 	return ChebyshevUpperBound(moments, DistanceToLight);
@@ -180,13 +194,12 @@ void main() {
 	Lo += (diffuse + specular) * lightColor * NdotL;
 
 	//Pick shadow cascade off frag depth
-	float depth = fs_in.worldFragPos.z;
-	int layer = int(step(splits.x, depth)) + int(step(splits.y, depth)) + int(step(splits.z, depth));
+	int layer = calculateCascadeIndex(-fs_in.viewFragPos.z);
 
 	//Shadows
 	vec3 shadowCoords = vec3(matrices[layer] * fs_in.worldFragPos);
 	shadowCoords = shadowCoords * 0.5 + 0.5;
-	float shadow = ShadowContribution(shadowCoords.xy, shadowCoords.z, float(layer));
+	float shadow = ShadowContribution(shadowCoords.xy, shadowCoords.z, layer);
 
 	vec3 ambient = ambientLight * albedo.rgb * ao;
 	vec3 color = ambient + Lo * shadow;
