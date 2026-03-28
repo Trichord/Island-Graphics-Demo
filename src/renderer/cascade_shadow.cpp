@@ -65,6 +65,7 @@ CascadeShadow::FrustumSphere CascadeShadow::getFrustumSphere(const std::array<gl
 void CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraViewProjectionMatrix, const DirectionalLight &light,
                                          float farPlane)
 {
+    //Pushes the radius for light projection near / far plane to avoid clipping geometry
     constexpr float radiusMultiplier{2.75f};
 
     const glm::mat4 inverseVPMatrix{glm::inverse(cameraViewProjectionMatrix)};

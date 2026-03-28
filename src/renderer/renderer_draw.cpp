@@ -11,8 +11,9 @@
 #include "texture_manager.h"
 #include "texture_units.h"
 
-// Reduce the distance of the camera's far plane by 80% for shadow cascades.
+// Reduce the distance of the camera's far plane by 80% for shadow cascades. (1024 res)
 constexpr float farPlaneReduction{0.2f};
+
 
 // Render objects, grouped by shader type
 void Renderer::renderAllSceneObjects(Scene &scene)
@@ -118,7 +119,7 @@ void Renderer::updateCascadeShadowUBO(const CascadeShadow::CascadeSplits &cascad
 
 void Renderer::updateShadowMaps(Scene &scene)
 {
-    glViewport(0, 0, shadowMapRes, shadowMapRes);
+    glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
 
     Shader &shadowPassShader{shaders_[ShaderType::SHADOW_MAP]};
     shadowPassShader.use();
@@ -140,9 +141,17 @@ void Renderer::updateShadowMaps(Scene &scene)
 
         const glm::mat4 lightVP{lightMatrices.viewProjections[cascade]};
 
-        // No culling on fully zoomed out cascade (should cover the whole scene)
-        if (cascade != 2)
+        // Only show grass on the closest cascade
+        if (cascade == 0)
+            shadowPassShader.setBool("useIndices", true);
+
+        else if (cascade == 1)
+        {
             cullRenderables(scene, lightVP);
+            shadowPassShader.setBool("useIndices", false);
+        }
+        else
+            shadowPassShader.setBool("useIndices", false);
 
         shadowPassShader.setMat4("lightViewProjection", lightVP);
 
@@ -153,8 +162,7 @@ void Renderer::updateShadowMaps(Scene &scene)
             if (shaderType == SKYBOX || shaderType == OCEAN || shaderType == COUNT)
                 continue;
 
-            // Only draw grass on the closest casade
-            if (cascade != 0 && shaderType == GRASS)
+            if (shaderType == GRASS && cascade != 0)
                 continue;
 
             for (auto &renderable : renderables)
@@ -173,6 +181,9 @@ void Renderer::updateShadowMaps(Scene &scene)
 
                 shadowPassShader.setIntU("matricesOffset", offsets.matricesOffset);
 
+                if (cascade == 0)
+                    shadowPassShader.setIntU("indicesOffset", offsets.indicesOffset);
+
                 for (const Primitive::Mesh &mesh : object.getMeshes())
                 {
                     for (const Primitive &primitive : mesh.primitives)
@@ -180,7 +191,12 @@ void Renderer::updateShadowMaps(Scene &scene)
                         glBindVertexArray(primitive.getVAO());
 
                         GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
-                        GLsizei instanceCount{static_cast<GLsizei>(properties.instances.size())};
+
+                        GLsizei instanceCount{0};
+                        if (cascade == 0)
+                            instanceCount = properties.visibleInstances;
+                        else
+                            instanceCount = static_cast<GLsizei>(properties.instances.size());
 
                         glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0, instanceCount);
                     }
