@@ -16,10 +16,11 @@ class ConfigWindow
     {
         int screenWidth{2560};
         int screenHeight{1440};
-        bool fullscreen{true};
-        bool vsync{false};
         int msaa{8};
         int anisotropicFiltering{16};
+        int shadowResolution{1024};
+        bool fullscreen{true};
+        bool vsync{false};
         float gamma{1.0f};
     };
 
@@ -47,15 +48,22 @@ class ConfigWindow
 
     inline static const std::array<const char *, 3> msaaLevel{"2x", "4x", "8x"};
     inline static const std::array<int, 3> msaaTable{2, 4, 8};
+
     inline static const std::array<const char *, 5> anisoLevel{"Off", "2x", "4x", "8x", "16x"};
     inline static const std::array<int, 5> anisoTable{0, 2, 4, 8, 16};
+
+    inline static const std::array<const char *, 3> shadowQuality{"Off", "Medium", "High"};
+    inline static const std::array<int, 3> shadowTable{1, 1024, 2048};
 
     inline static int resolutionSelectedIndex{1};
     inline static int msaaSelectedIndex{2};
     inline static int anisoSelectedIndex{4};
-    inline static const char *resolutionPreviewValue{resolutions[resolutionSelectedIndex]};
+    inline static int shadowSelectedIndex{1};
+
     inline static const char *msaaPreviewValue{msaaLevel[msaaSelectedIndex]};
     inline static const char *anisoPreviewValue{anisoLevel[anisoSelectedIndex]};
+    inline static const char *shadowPreviewValue{shadowQuality[shadowSelectedIndex]};
+    inline static const char *resolutionPreviewValue{resolutions[resolutionSelectedIndex]};
 
     GLuint textureID{0};
 
@@ -102,4 +110,10 @@ class ConfigWindow
      * @param index The anisotropic filtering drop-down selected index.
      */
     void updateAniso(GraphicsSettings &settings, int index);
+
+    /**
+     * @brief Helper function for shadow-quality drop-down menu.
+     * @param The requested index from the drop-down menu.
+     */
+    void updateShadowQuality(GraphicsSettings &settings, int index);
 };

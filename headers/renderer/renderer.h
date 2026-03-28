@@ -19,7 +19,6 @@
 
 // Desired threadcount for the texture loading threadpool
 constexpr unsigned int threadCount{6u};
-constexpr int shadowMapRes{1024};
 
 class Renderer
 {
@@ -34,8 +33,10 @@ class Renderer
 
     void renderScene(Scene &scene);
     void initializeResources(Scene &scene);
-    TextureManager &getTextureManager();
 
+    std::uint32_t getFrameCount() const;
+    TextureManager &getTextureManager();
+       
   private:
     static constexpr float depthClear_{1.0f};
     static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
@@ -63,6 +64,7 @@ class Renderer
         glm::vec4 splits;
     };
 
+    std::uint32_t framesRendered_{0};
     ThreadPool threadPool_{threadCount};
 
     // UBO

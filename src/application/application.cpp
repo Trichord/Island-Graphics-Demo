@@ -75,7 +75,6 @@ void Application::run()
 
     // Average FPS
     float totalTime{0};
-    unsigned long long framesRendered{0};
 
     while (!glfwWindowShouldClose(window_))
     {
@@ -86,7 +85,6 @@ void Application::run()
 
         // Final FPS count
         totalTime += deltaTime_;
-        ++framesRendered;
 
         // Update scene objects
         islandScene.onUpdate(deltaTime_);
@@ -103,7 +101,7 @@ void Application::run()
         glfwPollEvents();
     }
 
-    std::cout << "Average FPS: " << framesRendered / totalTime << std::endl;
+    std::cout << "Average FPS: " << renderer.getFrameCount() / totalTime << std::endl;
     return;
 }
 
@@ -234,37 +232,34 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
     //****************************************
     // Object Positioning - For Testing Only *
     //****************************************
-    constexpr float objectSpeed{0.5f};
+    constexpr float objectSpeed{0.0005f};
 
     auto &transforms{scene.getInstancesByName("spaceModel")};
     Transform &transform{transforms.instances.get().front().transform};
+    DirectionalLight &light{scene.getGlobalLightSource()};
+    glm::vec3 dir{light.getDirection()};
 
-    // +- Z
     if (glfwGetKey(window_, GLFW_KEY_KP_8) == GLFW_PRESS)
-        minVariance += 0.000000001f;
+        light.setDirection(glm::vec3{dir.x, dir.y + objectSpeed, dir.z});
 
     if (glfwGetKey(window_, GLFW_KEY_KP_5) == GLFW_PRESS)
-        minVariance -= 0.000000001f;
+        light.setDirection(glm::vec3{dir.x, dir.y - objectSpeed, dir.z});
 
-    // +- X
     if (glfwGetKey(window_, GLFW_KEY_KP_4) == GLFW_PRESS)
-        lightBleedReduction -= 0.00005f;
+        light.setDirection(glm::vec3{dir.x + objectSpeed, dir.y, dir.z});
 
     if (glfwGetKey(window_, GLFW_KEY_KP_6) == GLFW_PRESS)
-        lightBleedReduction += 0.00005f;
+        light.setDirection(glm::vec3{dir.x - objectSpeed, dir.y, dir.z});
 
-    // +- Y
     if (glfwGetKey(window_, GLFW_KEY_KP_7) == GLFW_PRESS)
-        radiusMultiplier -= 0.0005f;
+        light.setDirection(glm::vec3{dir.x, dir.y, dir.z + objectSpeed});
 
     if (glfwGetKey(window_, GLFW_KEY_KP_9) == GLFW_PRESS)
-        radiusMultiplier += 0.0005f;
-
+        light.setDirection(glm::vec3{dir.x, dir.y, dir.z - objectSpeed});
+    
     if (glfwGetKey(window_, GLFW_KEY_P) == GLFW_PRESS)
     {
-        const glm::vec3 &pos{transform.getPosition()};
-        std::cout << "min variance: " << minVariance << ", light bleed reduction " << lightBleedReduction
-                  << ", radius multiplier: " << radiusMultiplier << std::endl;
+        //Print stuff
     }
     */
 }

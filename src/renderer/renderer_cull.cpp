@@ -61,6 +61,7 @@ void Renderer::cullRenderables(Scene &scene, const glm::mat4 &cullMatrix)
     const std::array<glm::vec4, 6> planes{getFrustumPlanes(cullMatrix)};
 
     for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
+    {
         for (auto &renderable : objectList)
         {
             using enum CullMethod;
@@ -86,6 +87,7 @@ void Renderer::cullRenderables(Scene &scene, const glm::mat4 &cullMatrix)
                 std::cerr << "ERROR: unknown enum in cull strategy" << std::endl;
             }
         }
+    }
 
     glNamedBufferSubData(indicesSSBO_, 0, instanceIndices_.size() * sizeof(GLuint), instanceIndices_.data());
 }
