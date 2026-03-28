@@ -18,19 +18,20 @@
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.111f};
 constexpr float alphaCutoff{0.425f};
+constexpr int shadowMapMSAA{2};
 
 Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings)
     : textureManager_{threadPool_, settings}, graphicsSettings_{settings},
-      shadowPassTarget_{shadowMapRes,
-                        shadowMapRes,
+      shadowPassTarget_{settings.shadowResolution,
+                        settings.shadowResolution,
                         {
-                            settings.msaa,
+                            shadowMapMSAA,
                             RenderTarget::DepthType::RBO,
                             GL_RG32F,
                             GL_DEPTH_COMPONENT32F,
                         }},
-      shadowBlitTarget_{shadowMapRes,
-                        shadowMapRes,
+      shadowBlitTarget_{settings.shadowResolution,
+                        settings.shadowResolution,
                         {0, RenderTarget::DepthType::NONE, GL_RG32F, GL_NONE, true, CascadeShadow::cascadeCount}}
 {
     loadShaders();
@@ -48,6 +49,8 @@ Renderer::~Renderer()
 
 void Renderer::renderScene(Scene &scene)
 {
+    ++framesRendered_;
+
     glClearNamedFramebufferfv(0, GL_COLOR, 0, clearColor_.data());
     glClearNamedFramebufferfv(0, GL_DEPTH, 0, &depthClear_);
 
@@ -58,10 +61,8 @@ void Renderer::renderScene(Scene &scene)
     updateSceneTransforms(scene);
     updateShaderUniforms(scene, globalLightUpdated);
 
-    if (globalLightUpdated || sceneUpdated || cameraUpdated)
-    {
+    if (framesRendered_ % 2u && graphicsSettings_.shadowResolution > 1)
         updateShadowMaps(scene);
-    }
 
     if (cameraUpdated)
     {
@@ -90,12 +91,17 @@ void Renderer::loadShaders()
 
     shaders_.emplace(GRASS, Shader{"./shaders/grass.vert", "./shaders/grass.frag"});
     shaders_.emplace(TREES, Shader{"./shaders/trees.vert", "./shaders/trees.frag"});
-    shaders_.emplace(DIRECTIONAL_PBR, Shader{"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"});
     shaders_.emplace(REFLECTIVE, Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"});
     shaders_.emplace(SKYBOX, Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"});
     shaders_.emplace(WATER, Shader{"./shaders/water.vert", "./shaders/water.frag"});
     shaders_.emplace(OCEAN, Shader{"./shaders/water.vert", "./shaders/ocean.frag"});
     shaders_.emplace(SHADOW_MAP, Shader{"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"});
+
+    if (graphicsSettings_.shadowResolution > 1)
+        shaders_.emplace(DIRECTIONAL_PBR,
+                         Shader{"./shaders/directional_PBR_shadow.vert", "./shaders/directional_PBR_shadow.frag"});
+    else
+        shaders_.emplace(DIRECTIONAL_PBR, Shader{"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"});
 }
 
 void Renderer::setupShader(Shader &shader)
@@ -121,7 +127,7 @@ void Renderer::updateShaderUniforms(Scene &scene, bool lightDirectionChanged)
     for (auto &[_, shader] : shaders_)
     {
         shader.setFloat("time", (float)glfwGetTime());
-        
+
         if (lightDirectionChanged)
             shader.setVec3("lightDir", globalLight.getDirection());
     }
@@ -146,13 +152,13 @@ void Renderer::initializeResources(Scene &scene)
     createBuffers(scene);
     borrowSkyboxes(scene);
     createCubemaps(scene);
-    
+
     // Setup for cascade shadow maps
     Camera &camera{scene.getCamera()};
     cascadeShadow_ = CascadeShadow(camera.getNearPlane());
     updateShadowMaps(scene);
 
-    updateCameraUBO(scene); 
+    updateCameraUBO(scene);
     threadPool_.stopAllThreads();
 }
 
@@ -190,4 +196,9 @@ void Renderer::updateSceneTransforms(Scene &scene)
     }
 
     updatedTransformHandles.clear();
+}
+
+std::uint32_t Renderer::getFrameCount() const
+{
+    return framesRendered_;
 }

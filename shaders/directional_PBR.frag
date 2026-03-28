@@ -11,15 +11,11 @@ out vec4 fragColor;
 uniform sampler2D albedoMap;
 uniform sampler2D armMap;
 uniform sampler2D normalMap;
-uniform sampler2DArray shadowMap;
 uniform vec3 ambientLight;
 uniform vec3 lightColor;
 uniform float gamma;
 
 const float INVERSE_PI = 0.31830988618;
-const float minVariance = 0.000001;
-const int cascadeCount = 3;
-const float lightBleedReduction = 0.2;
 
 //Positions in tangent view space
 in VS_OUT 
@@ -28,8 +24,6 @@ in VS_OUT
 	vec3 lightDir;
 	vec3 tangentFragPos;
 	vec2 texCoords;
-	vec4 viewFragPos;
-	vec4 worldFragPos;
 } fs_in;
 
 //Trowbridge-Reitz GGX for normal distribution function
@@ -85,46 +79,6 @@ float burleyDiffuseFactor(float FD90, float NdotL, float NdotV)
 	float FDminusOne = FD90 - 1.0;
 
 	return (1.0 + FDminusOne * L5) * (1.0 + FDminusOne * V5); 
-}
-
-//Andrew Lauritzen - "Summed-Area Variance Shadow Maps"
-float ChebyshevUpperBound(vec2 moments, float t)
-{
-  // One-tailed inequality valid if t > Moments.x
-	float p = step(t, moments.x);
-
-	// Compute variance.
-	float variance = moments.y - (moments.x * moments.x);
-	variance = max(variance, minVariance);
-
-	// Compute probabilistic upper bound.
-	float d = t - moments.x;
-	float pMax = variance / (variance + d * d);
-
-	//Reduce light bleeding
-	pMax = smoothstep(lightBleedReduction, 1.0, pMax);
-	return max(p, pMax);
-}
-
-int calculateCascadeIndex(float depth)
-{
-	if (splits.x > depth)
-		return 0;
-
-	else if (splits.y > depth)
-		return 1;
-
-	else
-		return 2;
-}
-
-float ShadowContribution(vec2 LightTexCoord, float DistanceToLight, int layer)
-{	
-	// Read the moments from the variance shadow map.
-	vec2 moments = texture(shadowMap, vec3(LightTexCoord.xy, float(layer))).rg;
-	
-	// Compute the Chebyshev upper bound.
-	return ChebyshevUpperBound(moments, DistanceToLight);
 }
 
 //ACES film tone mapping (Krzysztof Narkowicz)
@@ -193,16 +147,8 @@ void main() {
 	//add to outgoing radiance Lo
 	Lo += (diffuse + specular) * lightColor * NdotL;
 
-	//Pick shadow cascade off frag depth
-	int layer = calculateCascadeIndex(-fs_in.viewFragPos.z);
-
-	//Shadows
-	vec3 shadowCoords = vec3(matrices[layer] * fs_in.worldFragPos);
-	shadowCoords = shadowCoords * 0.5 + 0.5;
-	float shadow = ShadowContribution(shadowCoords.xy, shadowCoords.z, layer);
-
 	vec3 ambient = ambientLight * albedo.rgb * ao;
-	vec3 color = ambient + Lo * shadow;
+	vec3 color = ambient + Lo;
 
 	//ACES tone mapping
 	color = ACESFilm(color);
