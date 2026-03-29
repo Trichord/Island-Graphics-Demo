@@ -39,10 +39,10 @@ void CascadeShadow::calculateCascadeSplits(float farPlane)
 }
 
 // Returns the bounding sphere of a frustum
-CascadeShadow::FrustumSphere CascadeShadow::getFrustumSphere(const std::array<glm::vec3, 8> &corners)
+CascadeShadow::FrustumSphere CascadeShadow::getFrustumSphere(const std::array<glm::vec3, 8> &corners, int textureResolution)
 {
-    // Snaps radius to the nearest 1/16th to reduce shimmer
-    constexpr float snapResolution_{16.0f};
+    // Snaps radius to the nearest 1/amount to reduce shimmer
+    float snapResolution_{textureResolution < 1024 ? 2.0f : 16.0f};
 
     glm::vec3 center{0.0f};
 
@@ -92,7 +92,7 @@ void CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraViewProjectionMa
         }
 
         // Get center of frustum and texel density
-        CascadeShadow::FrustumSphere frustumSphere{getFrustumSphere(frustumCorners)};
+        CascadeShadow::FrustumSphere frustumSphere{getFrustumSphere(frustumCorners, textureResolution)};
         float texelsPerUnit{textureResolution / (frustumSphere.radius * 2.0f)};
 
         // Create a base lookAt with our light direction
