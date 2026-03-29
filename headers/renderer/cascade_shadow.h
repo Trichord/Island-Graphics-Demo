@@ -33,7 +33,7 @@ class CascadeShadow
     const LightMatrices &getLightMatrices() const;
 
     void updateCascadeShadows(const glm::mat4 &cameraViewProjectionMatrix, const DirectionalLight &light,
-                              float farPlane);
+                              int textureResolution, float farPlane);
 
   private:
     struct FrustumSphere

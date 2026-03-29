@@ -121,7 +121,8 @@ void Renderer::updateShadowMaps(Scene &scene)
     // Get the new orthographic projections and upload to a UBO
     Camera &camera{scene.getCamera()};
     cascadeShadow_.updateCascadeShadows(camera.getResizedViewProjectionMatrix(farPlaneReduction),
-                                        scene.getGlobalLightSource(), camera.getFarPlane() * farPlaneReduction);
+                                        scene.getGlobalLightSource(), graphicsSettings_.shadowResolution,
+                                        camera.getFarPlane() * farPlaneReduction);
 
     const auto &splitDistances = cascadeShadow_.getSplitDistances();
     const auto &lightMatrices = cascadeShadow_.getLightMatrices();
