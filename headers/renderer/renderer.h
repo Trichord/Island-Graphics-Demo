@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "cascade_shadow.h"
-#include "config_window.h"
+#include "settings_window.h"
 #include "gl_state.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
@@ -24,7 +24,7 @@ class Renderer
 {
   public:
     Renderer() = delete;
-    explicit Renderer(const ConfigWindow::GraphicsSettings &graphicsSettings);
+    explicit Renderer(const GraphicsSettings &graphicsSettings);
     Renderer(const Renderer &) = delete;
     Renderer &operator=(const Renderer &) = delete;
     Renderer(Renderer &&other) = delete;
@@ -102,7 +102,7 @@ class Renderer
     TextureManager textureManager_;
     std::vector<GLuint> instanceIndices_;
     std::unordered_map<ShaderType, Shader> shaders_;
-    const ConfigWindow::GraphicsSettings graphicsSettings_;
+    const GraphicsSettings graphicsSettings_;
 
     // Textures
     CascadeShadow cascadeShadow_;

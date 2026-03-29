@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "camera.h"
-#include "config_window.h"
+#include "settings_window.h"
 #include "directional_light.h"
 #include "glm/glm.hpp"
 #include "light.h"
@@ -80,8 +80,8 @@ class Scene
     virtual void addAllModelsToScene() = 0;
     virtual void setupEnvironment() = 0;
     virtual void onUpdate(float deltaTime) = 0;
-    virtual void setupCamera(const ConfigWindow::GraphicsSettings &graphicsSettings) = 0;
-    virtual void initializeScene(const ConfigWindow::GraphicsSettings &graphicsSettings) = 0;
+    virtual void setupCamera(const GraphicsSettings &graphicsSettings) = 0;
+    virtual void initializeScene(const GraphicsSettings &graphicsSettings) = 0;
 
     /**
      * @brief Adds an object to the scene.  Optional: give the object a name to access

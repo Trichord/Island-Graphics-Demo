@@ -1,6 +1,8 @@
-#include "config_window.h"
+#include "settings_window.h"
 
 #include <iostream>
+#include <map>
+#include <string>
 #include <vector>
 
 #include "gl_context.h"
@@ -11,11 +13,11 @@
 #include "texture_utilities.h"
 
 constexpr int GUIWidth{1024};
-constexpr int GUIHeight{625};
+constexpr int GUIHeight{650};
 constexpr int numColumns{2};
 constexpr float baseFontSize = 22.0f;
 
-ConfigWindow::~ConfigWindow()
+SettingsWindow::~SettingsWindow()
 {
     if (textureID)
         glDeleteTextures(1, &textureID);
@@ -26,7 +28,7 @@ static void glfw_error_callback(int error, const char *description)
     std::cerr << "GLFW Error " << error << description << std::endl;
 }
 
-bool ConfigWindow::launchSettingsWindow(GraphicsSettings &settings)
+bool SettingsWindow::launchSettingsWindow(GraphicsSettings &settings)
 {
     if (!createWindow())
         return false;
@@ -34,6 +36,8 @@ bool ConfigWindow::launchSettingsWindow(GraphicsSettings &settings)
     loadConfigWindowImage();
 
     setupImGui();
+
+    matchSettingsToGUI(settings);
 
     bool settingsConfirmed{renderImGui(settings)};
 
@@ -51,7 +55,7 @@ bool ConfigWindow::launchSettingsWindow(GraphicsSettings &settings)
     return settingsConfirmed;
 }
 
-bool ConfigWindow::createWindow()
+bool SettingsWindow::createWindow()
 {
     // Init window
     glfwSetErrorCallback(glfw_error_callback);
@@ -68,7 +72,7 @@ bool ConfigWindow::createWindow()
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 
-    window = glfwCreateWindow(GUIWidth, GUIHeight, "Island Graphics Demo - Display Settings", nullptr, nullptr);
+    window = glfwCreateWindow(GUIWidth, GUIHeight, "Island Graphics Demo", nullptr, nullptr);
 
     if (!window)
         return false;
@@ -92,7 +96,7 @@ bool ConfigWindow::createWindow()
     return true;
 }
 
-void ConfigWindow::setupImGui()
+void SettingsWindow::setupImGui()
 {
     // Create ImGui context
     const char *glsl_version = "#version 460";
@@ -123,7 +127,7 @@ void ConfigWindow::setupImGui()
     style.Colors[ImGuiCol_PopupBg] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
-bool ConfigWindow::renderImGui(GraphicsSettings &settings)
+bool SettingsWindow::renderImGui(GraphicsSettings &settings)
 {
     bool settingsConfirmed{false};
 
@@ -159,6 +163,8 @@ bool ConfigWindow::renderImGui(GraphicsSettings &settings)
         BeginGroup();
 
         SeparatorText("Display Settings");
+        Spacing();
+
         Text("Resolution");
         if (BeginCombo("##resolutionCombo", resolutionPreviewValue, ImGuiComboFlags_HeightLargest))
         {
@@ -184,6 +190,12 @@ bool ConfigWindow::renderImGui(GraphicsSettings &settings)
         if (IsItemHovered(ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_NoSharedDelay))
             SetTooltip("Ctrl + Click to edit", GetStyle().HoverDelayShort);
 
+        Spacing();
+
+        if (Button("Reset Gamma"))
+            settings.gamma = 1.0f;
+
+        Dummy(dummySpacing);
         Dummy(dummySpacing);
 
         Checkbox("Fullscreen", &settings.fullscreen);
@@ -194,11 +206,9 @@ bool ConfigWindow::renderImGui(GraphicsSettings &settings)
 
         Dummy(dummySpacing);
         Dummy(dummySpacing);
-        Dummy(dummySpacing);
 
         SeparatorText("Advanced Options");
-
-        Dummy(dummySpacing);
+        Spacing();
 
         Text("Anisotropic Filtering");
         if (BeginCombo("##anisoCombo", anisoPreviewValue))
@@ -243,13 +253,13 @@ bool ConfigWindow::renderImGui(GraphicsSettings &settings)
         Text("Shadow Quality");
         if (BeginCombo("##shadowCombo", shadowPreviewValue))
         {
-            for (int i{0}; i < shadowQuality.size(); ++i)
+            for (int i{0}; i < shadowLevel.size(); ++i)
             {
                 const bool isShadowSelected{shadowSelectedIndex == i};
-                if (Selectable(shadowQuality[i], isShadowSelected))
+                if (Selectable(shadowLevel[i], isShadowSelected))
                 {
                     shadowSelectedIndex = i;
-                    shadowPreviewValue = shadowQuality[shadowSelectedIndex];
+                    shadowPreviewValue = shadowLevel[shadowSelectedIndex];
                     updateShadowQuality(settings, i);
                 }
                 if (isShadowSelected)
@@ -267,6 +277,8 @@ bool ConfigWindow::renderImGui(GraphicsSettings &settings)
 
         // start of right column (image)
         BeginGroup();
+        Dummy(dummySpacing);
+        Dummy(dummySpacing);
 
         Image((ImTextureID)(intptr_t)textureID, ImVec2(GetContentRegionAvail().x, GetContentRegionAvail().x));
 
@@ -276,12 +288,11 @@ bool ConfigWindow::renderImGui(GraphicsSettings &settings)
         // end of settings and image row
         EndGroup();
 
+        // Cancel button
         const float buttonHeight{GetFrameHeight()};
         const ImVec2 windowPadding{GetStyle().WindowPadding};
         const ImVec2 windowSize{GetWindowSize()};
         const ImVec2 windowPosition{GetWindowPos()};
-
-        // Cancel button
         float cancelX{windowPadding.x};
         float cancelY{windowPosition.y + windowSize.y - buttonHeight - windowPadding.y};
 
@@ -324,7 +335,7 @@ bool ConfigWindow::renderImGui(GraphicsSettings &settings)
     return settingsConfirmed;
 }
 
-void ConfigWindow::loadConfigWindowImage()
+void SettingsWindow::loadConfigWindowImage()
 {
     ImageLoader imageLoader{"./res/textures/wireframe_sphere.png"};
     std::vector<LoadedImage> imageData{imageLoader.getImageData()};
@@ -341,7 +352,7 @@ void ConfigWindow::loadConfigWindowImage()
     textureID = textureUtilities::generateTextureID(imageData[0], Sampler{}, TextureDetails{});
 }
 
-void ConfigWindow::updateResolution(GraphicsSettings &settings, int index)
+void SettingsWindow::updateResolution(GraphicsSettings &settings, int index)
 {
     if (index < resolutionTable.size())
     {
@@ -350,19 +361,60 @@ void ConfigWindow::updateResolution(GraphicsSettings &settings, int index)
     }
 }
 
-void ConfigWindow::updateMSAA(GraphicsSettings &settings, int index)
+void SettingsWindow::updateMSAA(GraphicsSettings &settings, int index)
 {
     if (index < msaaTable.size())
         settings.msaa = msaaTable[index];
 }
-void ConfigWindow::updateAniso(GraphicsSettings &settings, int index)
+void SettingsWindow::updateAniso(GraphicsSettings &settings, int index)
 {
     if (index < anisoTable.size())
         settings.anisotropicFiltering = anisoTable[index];
 }
 
-void ConfigWindow::updateShadowQuality(GraphicsSettings &settings, int index)
+void SettingsWindow::updateShadowQuality(GraphicsSettings &settings, int index)
 {
     if (index < shadowTable.size())
         settings.shadowResolution = shadowTable[index];
+}
+
+void SettingsWindow::matchSettingsToGUI(const GraphicsSettings &settings)
+{
+    for (int i{0}; i < static_cast<int>(resolutionTable.size()); ++i)
+    {
+        const auto &[width, height]{resolutionTable[i]};
+
+        if (width == settings.screenWidth && height == settings.screenHeight)
+            resolutionSelectedIndex = i;
+    }
+
+    for (int i{0}; i < static_cast<int>(msaaTable.size()); ++i)
+    {
+        if (msaaTable[i] == settings.msaa)
+            msaaSelectedIndex = i;
+    }
+
+    for (int i{0}; i < static_cast<int>(anisoTable.size()); ++i)
+    {
+        if (anisoTable[i] == settings.anisotropicFiltering)
+            anisoSelectedIndex = i;
+    }
+
+    for (int i{0}; i < static_cast<int>(shadowTable.size()); ++i)
+    {
+        if (shadowTable[i] == settings.shadowResolution)
+            shadowSelectedIndex = i;
+    }
+
+    if (resolutionSelectedIndex < resolutions.size())
+        resolutionPreviewValue = resolutions[resolutionSelectedIndex];
+
+    if (msaaSelectedIndex < msaaLevel.size())
+        msaaPreviewValue = msaaLevel[msaaSelectedIndex];
+
+    if (anisoSelectedIndex < anisoLevel.size())
+        anisoPreviewValue = anisoLevel[anisoSelectedIndex];
+
+    if (shadowSelectedIndex < shadowLevel.size())
+        shadowPreviewValue = shadowLevel[shadowSelectedIndex];
 }
