@@ -11,7 +11,7 @@
 #include "jolt/Physics/Collision/Shape/Shape.h"
 #include "jolt/Physics/PhysicsSystem.h"
 
-class Player
+class Player : public JPH::CharacterContactListener
 {
   public:
     Player() = default;
@@ -31,6 +31,12 @@ class Player
 
     void physicsUpdate(float deltaTime);
     void handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime);
+
+    void OnContactSolve(const JPH::CharacterVirtual *inCharacter, const JPH::BodyID &inBodyID2,
+                        const JPH::SubShapeID &inSubShapeID2, JPH::RVec3Arg inContactPosition,
+                        JPH::Vec3Arg inContactNormal, JPH::Vec3Arg inContactVelocity,
+                        const JPH::PhysicsMaterial *inContactMaterial, JPH::Vec3Arg inCharacterVelocity,
+                        JPH::Vec3 &ioNewCharacterVelocity) override;
 
   private:
     // Character size

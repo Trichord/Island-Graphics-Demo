@@ -4,12 +4,14 @@
 #include <unordered_map>
 #include <vector>
 
-#include "config_window.h"
+#include "cascade_shadow.h"
 #include "gl_state.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
+#include "render_target.h"
 #include "renderable.h"
 #include "scene.h"
+#include "settings_window.h"
 #include "shader.h"
 #include "shader_type.h"
 #include "texture_manager.h"
@@ -22,7 +24,7 @@ class Renderer
 {
   public:
     Renderer() = delete;
-    explicit Renderer(const ConfigWindow::GraphicsSettings &graphicsSettings);
+    explicit Renderer(const GraphicsSettings &graphicsSettings);
     Renderer(const Renderer &) = delete;
     Renderer &operator=(const Renderer &) = delete;
     Renderer(Renderer &&other) = delete;
@@ -30,15 +32,21 @@ class Renderer
     ~Renderer();
 
     void renderScene(Scene &scene);
-    void updateUBO(Scene &scene);
     void initializeResources(Scene &scene);
-    void allResourcesLoaded();
+
+    std::uint32_t getFrameCount() const;
     TextureManager &getTextureManager();
 
   private:
-    std::uint32_t indicesOffset_{0};
     static constexpr float depthClear_{1.0f};
     static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
+
+    // Stores offsets as an integer index into the buffer
+    struct ssboOffsets
+    {
+        GLuint matricesOffset{0};
+        GLuint indicesOffset{0};
+    };
 
     // Packed UBO data holds everything we want to share with all shaders
     struct PackedCameraData
@@ -50,50 +58,91 @@ class Renderer
         glm::vec4 cameraPosition{0.0f};
     };
 
+    struct PackedShadowCascadeData
+    {
+        glm::mat4 matrices[CascadeShadow::cascadeCount];
+        glm::vec4 splits;
+    };
+
+    std::uint32_t framesRendered_{0};
     ThreadPool threadPool_{threadCount};
 
     // UBO
-    GLuint UBO_{0};
-    PackedCameraData uboCameraData_;
+    GLuint cameraUBO_{0};
+    GLuint shadowCascadesUBO_{0};
+    PackedCameraData packedCameraData_;
+    PackedShadowCascadeData packedShadowCascadeData_;
 
-    // SSBOs
+    /* SSBOs
+     *
+     * Renderer uploads a static-sized SSBO containing every renderable's model matrix. An indices SSBO capable of
+     * holding the same number of elements is reserved in GPU memory. A fresh vector of indices is computed and uploaded
+     * every frame, representing the visible indices in the static buffer. The shader starts at model offset and indices
+     * offset, and iterates through its indices.
+     *
+     * e.g.
+     *
+     *                  Matrices
+     *
+     *  | Model 1   | Model 2            | M3  | M4  |
+     * [0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 0, 1, 0, 1, 2]
+     *
+     *                  Indices
+     *  | M1  | M2   |  (M3 and M4 not visible this frame)
+     * [2, 3, 0, 5, 6]
+     *
+     */
     GLuint indicesSSBO_{0};
     GLuint matricesSSBO_{0};
-    std::unordered_map<ModelHandle, GLuint> instancedBaseOffsets_;
+    std::vector<GLuint> originalIndices_;
+    std::unordered_map<ModelHandle, ssboOffsets> modelBaseIndices_;
 
     // Owned objects
     GLState glState_;
     TextureManager textureManager_;
-    std::vector<std::uint32_t> instanceIndices_;
+    std::vector<GLuint> instanceIndices_;
     std::unordered_map<ShaderType, Shader> shaders_;
-    const ConfigWindow::GraphicsSettings graphicsSettings_;
+    const GraphicsSettings graphicsSettings_;
+
+    // Textures
+    CascadeShadow cascadeShadow_;
+    RenderTarget shadowPassTarget_;
+    RenderTarget shadowBlitTarget_;
 
     // Renderer initialization
     void loadShaders();
-    void setupTextureManager();
 
-    // Scene initialization
+    // Scene dependent initialization
     void createBuffers(Scene &scene);
     void setupShader(Shader &shader);
     void borrowSkyboxes(Scene &scene);
-    void generateCubeMaps(Scene &scene);
+    void createCubemaps(Scene &scene);
     void loadInstancedData(Scene &scene);
     void setSceneShaderUniforms(Scene &scene);
     void populateSSBOs(Scene &scene, std::size_t totalInstanceCount);
+    void createCubemapFaces(Scene &scene, int renderTargetSize, GLuint texture);
 
     // Rendering
-    void updateShaderUniforms(Scene &scene);
     void renderAllSceneObjects(Scene &scene);
     void renderObject(Renderable &renderable);
     void bindTextures(const Material &materials);
+    void shadowPass(Scene &scene, const CascadeShadow::LightMatrices &lightMatrices, Shader &shader, int cascade,
+                    bool drawAlphaTested);
 
     // Culling
     void resetVisibility(Scene &scene);
-    void cullRenderables(Scene &scene);
-    void cullModel(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
-    void cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
-    void cullInstanced(Renderable &renderable, const glm::vec3 &cameraPos,
-                       const std::array<glm::vec4, 6> &frustumPlanes);
+    void cullNone(Renderable &renderable, GLuint &currentOffset);
+    void cullRenderables(Scene &scene, const glm::mat4 &cullMatrix);
+    void cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
+    void cullInstanced(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
+
+    // Updates
+    void updateCameraUBO(Scene &scene);
+    void updateShadowMaps(Scene &scene);
+    void updateSceneTransforms(Scene &scene);
+    void updateShaderUniforms(Scene &scene, bool lightDirectionChanged);
+    void updateCascadeShadowUBO(const CascadeShadow::CascadeSplits &cascades,
+                                const CascadeShadow::LightMatrices &matrices);
 
     // Cleanup
     void deleteBuffers();

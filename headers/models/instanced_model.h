@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "glad/glad.h"
-#include "instance_data.h"
 #include "model.h"
+#include "renderable.h"
 #include "texture_manager.h"
 
 class InstancedModel : public Model
@@ -20,7 +20,7 @@ class InstancedModel : public Model
                    float minSize = 1.0f, float maxSize = 1.0f, unsigned int numPositions = 0);
 
     // Load positions from storage and generate matrices
-    std::optional<std::vector<InstancedData>> generateInstancedData() override;
+    std::optional<std::vector<Instance>> generateInstancedData() override;
 
   private:
     unsigned int numInstances_{0};
@@ -28,7 +28,6 @@ class InstancedModel : public Model
     float maxSize_{0.0f};
     std::filesystem::path positionsPath_;
 
-    bool loadPositions(std::vector<InstancedData>& instances);
-    void generateInstanceMatrices(std::vector<InstancedData> &instances);
-    void generateWorldAABBs(std::vector<InstancedData> &instances);
+    std::vector<glm::vec3> loadPositions();
+    std::vector<Instance> randomizeRotationScale(std::vector<glm::vec3> &positions);
 };
