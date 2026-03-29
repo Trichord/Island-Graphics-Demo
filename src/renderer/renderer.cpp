@@ -4,7 +4,7 @@
 
 #include "camera.h"
 #include "cascade_shadow.h"
-#include "config_window.h"
+#include "settings_window.h"
 #include "directional_light.h"
 #include "gl_context.h"
 #include "glm/glm.hpp"
@@ -20,7 +20,7 @@ constexpr float mipScale{0.111f};
 constexpr float alphaCutoff{0.425f};
 constexpr int shadowMapMSAA{2};
 
-Renderer::Renderer(const ConfigWindow::GraphicsSettings &settings)
+Renderer::Renderer(const GraphicsSettings &settings)
     : textureManager_{threadPool_, settings}, graphicsSettings_{settings},
       shadowPassTarget_{settings.shadowResolution,
                         settings.shadowResolution,

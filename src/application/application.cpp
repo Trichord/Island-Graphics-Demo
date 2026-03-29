@@ -3,13 +3,12 @@
 #include <cstdint>
 #include <iostream>
 
-#include "jolt/Jolt.h"
-
 #include "camera.h"
-#include "config_window.h"
+#include "settings_window.h"
 #include "gl_context.h"
 #include "glfw_callbacks.h"
 #include "glm/glm.hpp"
+#include "graphics_settings.h"
 #include "island_scene.h"
 #include "jolt/Core/Factory.h"
 #include "jolt/Core/JobSystemSingleThreaded.h"
@@ -17,6 +16,7 @@
 #include "jolt/Core/TempAllocator.h"
 #include "jolt/Physics/PhysicsSystem.h"
 #include "jolt/registerTypes.h"
+#include "json_loader.h"
 #include "player_physics.h"
 #include "renderer.h"
 #include "scene.h"
@@ -34,11 +34,13 @@ Application::~Application()
 
 void Application::run()
 {
-    ConfigWindow configWindow;
-    ConfigWindow::GraphicsSettings graphicsSettings;
+    SettingsWindow settingsWindow;
+    GraphicsSettings graphicsSettings{jsonLoader::loadSettingsFromJSON(savePath)};
 
-    if (!configWindow.launchSettingsWindow(graphicsSettings))
+    if (!settingsWindow.launchSettingsWindow(graphicsSettings))
         return;
+
+    jsonLoader::saveConfigToJSON(graphicsSettings, savePath);
 
     createWindow(graphicsSettings);
     if (!window_)
@@ -105,7 +107,7 @@ void Application::run()
     return;
 }
 
-void Application::createWindow(const ConfigWindow::GraphicsSettings &graphicsSettings)
+void Application::createWindow(const GraphicsSettings &graphicsSettings)
 {
     glfwInit();
 
@@ -147,7 +149,7 @@ void Application::createWindow(const ConfigWindow::GraphicsSettings &graphicsSet
         glfwSwapInterval(0);
 }
 
-void Application::createOpenGLViewport(const ConfigWindow::GraphicsSettings &graphicsSettings)
+void Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
 {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -256,7 +258,7 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
 
     if (glfwGetKey(window_, GLFW_KEY_KP_9) == GLFW_PRESS)
         light.setDirection(glm::vec3{dir.x, dir.y, dir.z - objectSpeed});
-    
+
     if (glfwGetKey(window_, GLFW_KEY_P) == GLFW_PRESS)
     {
         //Print stuff

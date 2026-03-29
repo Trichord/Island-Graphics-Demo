@@ -7,7 +7,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "config_window.h"
+#include "settings_window.h"
 #include "glad/glad.h"
 #include "texture_units.h"
 #include "thread_pool.h"
@@ -25,7 +25,7 @@ struct Material
 class TextureManager
 {
   public:
-    explicit TextureManager(ThreadPool &threadPool, const ConfigWindow::GraphicsSettings& settings);
+    explicit TextureManager(ThreadPool &threadPool, const GraphicsSettings& settings);
 
     ModelHandle assignHandle();
     void releaseHandle(ModelHandle handle);
