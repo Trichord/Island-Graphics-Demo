@@ -183,8 +183,8 @@ void Renderer::updateSceneTransforms(Scene &scene)
 
     for (ModelHandle handle : updatedTransformHandles)
     {
-        ssboOffsets &bufferOffset = modelBaseIndices_.at(handle);
-        std::span<Instance> updatedTransforms{scene.getInstancesByHandle(handle)};
+        const ssboOffsets &bufferOffset = modelBaseIndices_.at(handle);
+        const std::span<Instance> updatedTransforms{scene.getInstancesByHandle(handle)};
 
         std::vector<glm::mat4> matrices;
         matrices.reserve(updatedTransforms.size());
