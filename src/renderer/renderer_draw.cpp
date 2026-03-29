@@ -35,9 +35,9 @@ void Renderer::renderAllSceneObjects(Scene &scene)
             if (!renderable.properties.isVisible)
                 continue;
 
-            auto &object = renderable.objectRef.get();
-            auto &properties = renderable.properties;
-            auto iter = modelBaseIndices_.find(object.getHandle());
+            const auto &object = renderable.objectRef.get();
+            const auto &properties = renderable.properties;
+            const auto iter = modelBaseIndices_.find(object.getHandle());
 
             if (iter == modelBaseIndices_.end())
                 throw std::runtime_error("ERROR: Missing handle in SSBO lookup map");
@@ -123,8 +123,8 @@ void Renderer::updateShadowMaps(Scene &scene)
     cascadeShadow_.updateCascadeShadows(camera.getResizedViewProjectionMatrix(farPlaneReduction),
                                         scene.getGlobalLightSource(), camera.getFarPlane() * farPlaneReduction);
 
-    auto &splitDistances = cascadeShadow_.getSplitDistances();
-    auto &lightMatrices = cascadeShadow_.getLightMatrices();
+    const auto &splitDistances = cascadeShadow_.getSplitDistances();
+    const auto &lightMatrices = cascadeShadow_.getLightMatrices();
     updateCascadeShadowUBO(splitDistances, lightMatrices);
 
     shadowPassTarget_.bind();
@@ -137,6 +137,10 @@ void Renderer::updateShadowMaps(Scene &scene)
         Shader &shadowShader{shaders_[ShaderType::SHADOW_MAP]};
         shadowShader.use();
         shadowPass(scene, lightMatrices, shadowShader, cascade, false);
+
+        // Use culling and indexed drawing for the inner 2 cascades
+        if (cascade == 1)
+            cullRenderables(scene, lightMatrices.viewProjections[cascade]);
 
         // Alpha tested geometry
         Shader &shadowAlphaShader{shaders_[ShaderType::SHADOW_MAP_ALPHA]};
@@ -156,11 +160,6 @@ void Renderer::shadowPass(Scene &scene, const CascadeShadow::LightMatrices &ligh
 {
     const glm::mat4 lightVP{lightMatrices.viewProjections[cascade]};
     shader.setMat4("lightViewProjection", lightVP);
-
-    // Use culling and indexed drawing for the inner 2 cascades
-    if (cascade == 1)
-        cullRenderables(scene, lightVP);
-
     shader.setBool("useIndices", cascade != 2);
 
     for (auto &[shaderType, renderables] : scene.getRenderablesByShader())
@@ -212,9 +211,7 @@ void Renderer::shadowPass(Scene &scene, const CascadeShadow::LightMatrices &ligh
             {
                 for (const Primitive &primitive : mesh.primitives)
                 {
-                    glBindVertexArray(primitive.getVAO());
-
-                    GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
+                    const GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
 
                     if (primitive.materialsExist() && drawAlphaTested)
                     {
@@ -222,6 +219,7 @@ void Renderer::shadowPass(Scene &scene, const CascadeShadow::LightMatrices &ligh
                         bindTextures(materials[materialIndex]);
                     }
 
+                    glBindVertexArray(primitive.getVAO());
                     glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0, instanceCount);
                 }
             }

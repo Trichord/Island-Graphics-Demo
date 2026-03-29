@@ -40,7 +40,7 @@ void Application::run()
     if (!settingsWindow.launchSettingsWindow(graphicsSettings))
         return;
 
-    jsonLoader::saveConfigToJSON(graphicsSettings, savePath);
+    jsonLoader::saveSettingsToJSON(graphicsSettings, savePath);
 
     createWindow(graphicsSettings);
     if (!window_)
