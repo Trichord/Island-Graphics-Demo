@@ -122,7 +122,7 @@ float ShadowContribution(vec2 LightTexCoord, float DistanceToLight, int layer)
 {	
 	// Read the moments from the variance shadow map.
 	vec2 moments = texture(shadowMap, vec3(LightTexCoord.xy, float(layer))).rg;
-	
+
 	// Compute the Chebyshev upper bound.
 	return ChebyshevUpperBound(moments, DistanceToLight);
 }

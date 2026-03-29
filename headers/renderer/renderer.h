@@ -5,13 +5,13 @@
 #include <vector>
 
 #include "cascade_shadow.h"
-#include "settings_window.h"
 #include "gl_state.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "render_target.h"
 #include "renderable.h"
 #include "scene.h"
+#include "settings_window.h"
 #include "shader.h"
 #include "shader_type.h"
 #include "texture_manager.h"
@@ -36,7 +36,7 @@ class Renderer
 
     std::uint32_t getFrameCount() const;
     TextureManager &getTextureManager();
-       
+
   private:
     static constexpr float depthClear_{1.0f};
     static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
@@ -126,8 +126,10 @@ class Renderer
     void renderAllSceneObjects(Scene &scene);
     void renderObject(Renderable &renderable);
     void bindTextures(const Material &materials);
+    void shadowPass(Scene &scene, const CascadeShadow::LightMatrices &lightMatrices, Shader &shader, int cascade,
+                    bool drawAlphaTested);
 
-    // Culling  
+    // Culling
     void resetVisibility(Scene &scene);
     void cullNone(Renderable &renderable, GLuint &currentOffset);
     void cullRenderables(Scene &scene, const glm::mat4 &cullMatrix);

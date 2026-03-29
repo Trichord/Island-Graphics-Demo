@@ -7,13 +7,13 @@
 
 struct GraphicsSettings
 {
-    int screenWidth{2560};
-    int screenHeight{1440};
-    int msaa{8};
-    int anisotropicFiltering{16};
+    int screenWidth{1920};
+    int screenHeight{1080};
+    int msaa{4};
+    int anisotropicFiltering{8};
     int shadowResolution{1024};
     bool fullscreen{true};
-    bool vsync{false};
+    bool vsync{true};
     float gamma{1.0f};
 };
 
