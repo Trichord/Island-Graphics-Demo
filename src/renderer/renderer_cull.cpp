@@ -13,7 +13,7 @@
 
 static void normalizePlane(glm::vec4 &vec)
 {
-    float length = glm::length(glm::vec3{vec});
+    const float length = glm::length(glm::vec3{vec});
     vec /= length;
 }
 
@@ -97,7 +97,7 @@ void Renderer::cullInstanced(Renderable &renderable, const std::array<glm::vec4,
 {
     bool anyVisible{false};
     auto &object = renderable.objectRef.get();
-    auto &instances = renderable.properties.instances;
+    const auto &instances = renderable.properties.instances;
     auto &modelBufferOffsets{modelBaseIndices_[object.getHandle()]};
 
     for (uint32_t i{0}; i < instances.size(); ++i)

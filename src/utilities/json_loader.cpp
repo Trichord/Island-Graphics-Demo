@@ -34,7 +34,7 @@ GraphicsSettings jsonLoader::loadSettingsFromJSON(const std::filesystem::path &p
     }
 }
 
-void jsonLoader::saveConfigToJSON(const GraphicsSettings &settings, const std::filesystem::path target)
+void jsonLoader::saveSettingsToJSON(const GraphicsSettings &settings, const std::filesystem::path target)
 {
     json outputJSON = settings;
     std::ofstream out(target);

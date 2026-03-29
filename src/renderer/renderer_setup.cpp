@@ -115,10 +115,10 @@ void Renderer::createCubemaps(Scene &scene)
 
     // Save camera settings before we make it bounce around the scene
     const glm::vec3 originalPos{camera.getPosition()};
-    float originalPitch{camera.getPitch()};
-    float originalYaw{camera.getYaw()};
-    float originalFOV{camera.getFOV()};
-    float originalAspect{camera.getAspectRatio()};
+    const float originalPitch{camera.getPitch()};
+    const float originalYaw{camera.getYaw()};
+    const float originalFOV{camera.getFOV()};
+    const float originalAspect{camera.getAspectRatio()};
 
     // 90 degrees for cubemap
     camera.setFOV(90.0f);
@@ -190,11 +190,11 @@ void Renderer::createCubemapFaces(Scene &scene, int targetResolution, GLuint tex
     RenderTarget cubeFace(targetResolution, targetResolution,
                           {graphicsSettings_.msaa, RenderTarget::DepthType::RBO, GL_SRGB8, GL_DEPTH_COMPONENT24});
     RenderTarget blitTarget(targetResolution, targetResolution, {0, RenderTarget::DepthType::NONE, GL_SRGB8, GL_NONE});
-
+    
+     Camera &camera{scene.getCamera()};
     const int renderTargetSize{cubeFace.getWidth()};
-    Camera &camera{scene.getCamera()};
-    GLuint blitTargetTexture{blitTarget.getColorTextureID()};
-
+    const GLuint blitTargetTexture{blitTarget.getColorTextureID()};
+   
     cubeFace.bind();
 
     // Copy each MSAA direction into a cubemap face
@@ -230,7 +230,7 @@ void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
             if (instances.empty())
                 continue;
 
-            GLuint numInstances{static_cast<GLuint>(instances.size())};
+            const GLuint numInstances{static_cast<GLuint>(instances.size())};
 
             renderable.properties.visibleInstances = numInstances;
 
