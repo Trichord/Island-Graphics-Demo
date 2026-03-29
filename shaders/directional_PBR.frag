@@ -1,5 +1,11 @@
 #version 460 core
 
+layout (std140, binding = 1) uniform shadowCascadeData
+{
+	mat4 matrices[3];
+	vec4 splits;
+};
+
 out vec4 fragColor;
 
 uniform sampler2D albedoMap;
@@ -12,15 +18,17 @@ uniform float gamma;
 const float INVERSE_PI = 0.31830988618;
 
 //Positions in tangent view space
-in VS_OUT {
+in VS_OUT 
+{
 	vec3 cameraPos;
 	vec3 lightDir;
-	vec3 fragPos;
+	vec3 tangentFragPos;
 	vec2 texCoords;
 } fs_in;
 
 //Trowbridge-Reitz GGX for normal distribution function
-float distributionGGX(float NdotH, float roughness){
+float distributionGGX(float NdotH, float roughness)
+{
 	float a = roughness * roughness;
 	float a2 = a * a;
 	float NdotH2 = NdotH * NdotH;
@@ -31,7 +39,8 @@ float distributionGGX(float NdotH, float roughness){
 }
 
 //Smith's method with Schlick-GGX for geometric shadowing.  k = (a + 1)^2 / 8
-float geometrySmith(float NdotV, float NdotL, float roughness){
+float geometrySmith(float NdotV, float NdotL, float roughness)
+{
 	float r = roughness + 1.0;
 	float k = r * r * 0.125;
 	float invK = 1.0 - k;
@@ -44,7 +53,8 @@ float geometrySmith(float NdotV, float NdotL, float roughness){
 }
 
 //Fresnel-Schlick approximation (unrolled x^5)
-vec3 fresnelSchlick(float cosTheta, vec3 F0){
+vec3 fresnelSchlick(float cosTheta, vec3 F0)
+{
 	float x = clamp(1.0 - cosTheta, 0.0, 1.0);
 	float x2 = x * x;
 	float x4 = x2 * x2;
@@ -54,7 +64,8 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0){
 }
 
 //Burely diffuse (unrolled)
-float burleyDiffuseFactor(float FD90, float NdotL, float NdotV){
+float burleyDiffuseFactor(float FD90, float NdotL, float NdotV)
+{
 	float L = 1.0 - NdotL;
 	float L2 = L * L;
 	float L4 = L2 * L2;
@@ -71,14 +82,15 @@ float burleyDiffuseFactor(float FD90, float NdotL, float NdotV){
 }
 
 //ACES film tone mapping (Krzysztof Narkowicz)
-vec3 ACESFilm(vec3 x) {
-const float a = 2.51;
-const float b = 0.03;
-const float c = 2.43;
-const float d = 0.59;
-const float e = 0.14;
+vec3 ACESFilm(vec3 x) 
+{
+	const float a = 2.51;
+	const float b = 0.03;
+	const float c = 2.43;
+	const float d = 0.59;
+	const float e = 0.14;
 
-return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+	return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
 void main() {
@@ -89,7 +101,7 @@ void main() {
 
 	//vectors
 	vec3 N = normalize(normal);
-	vec3 V = normalize(fs_in.cameraPos -fs_in.fragPos);
+	vec3 V = normalize(fs_in.cameraPos -fs_in.tangentFragPos);
 	vec3 L = normalize(-fs_in.lightDir);
 	vec3 H = normalize(L + V);
 	

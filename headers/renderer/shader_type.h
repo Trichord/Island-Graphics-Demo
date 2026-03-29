@@ -6,14 +6,14 @@
 
 enum class ShaderType
 {
-    FLOWERS,
-    TREES,
     DIRECTIONAL_PBR,
-    DIRECTIONAL_PBR_INSTANCED,
-    POINT_PBR,
     REFLECTIVE,
-    LIGHT_SOURCE,
     WATER,
     OCEAN,
-    SKYBOX
+    TREES,
+    GRASS,
+    SKYBOX,
+    SHADOW_MAP,
+    SHADOW_MAP_ALPHA,
+    COUNT
 };

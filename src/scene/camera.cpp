@@ -9,10 +9,13 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "world_vectors.h"
 
+constexpr float maxPitch{85.0f};
+constexpr float minPitch{-maxPitch};
+constexpr float sensitivity{0.1f};
+
 Camera::Camera(glm::vec3 position, float yaw, float pitch)
     : yaw_{yaw}, pitch_{pitch}, position_{position},
-      projectionMatrix_{glm::perspective(glm::radians(cameraDefaultValues::fov), cameraDefaultValues::aspectRatio,
-                                        cameraDefaultValues::nearPlane, cameraDefaultValues::farPlane)}
+      projectionMatrix_{glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_)}
 {
 }
 
@@ -25,6 +28,11 @@ bool Camera::hasUpdated()
     }
     else
         return false;
+}
+
+float Camera::getAspectRatio() const
+{
+    return aspectRatio_;
 }
 
 float Camera::getYaw() const
@@ -69,57 +77,6 @@ const glm::mat4 &Camera::getViewProjectionMatrix()
     return viewProjectionMatrix_;
 }
 
-void normalizePlane(glm::vec4 &vec)
-{
-    float length = glm::length(glm::vec3{vec});
-    vec /= length;
-}
-
-const std::array<glm::vec4, 6> &Camera::getFrustumPlanes()
-{
-    if (dirtyMatrices_)
-    {
-        updateMatrices();
-        dirtyMatrices_ = false;
-    }
-
-    const glm::vec4 row0{glm::row(viewProjectionMatrix_, 0)};
-    const glm::vec4 row1{glm::row(viewProjectionMatrix_, 1)};
-    const glm::vec4 row2{glm::row(viewProjectionMatrix_, 2)};
-    const glm::vec4 row3{glm::row(viewProjectionMatrix_, 3)};
-
-    // Left
-    frustumPlanes_[0] = row3 + row0;
-
-    // Right
-    frustumPlanes_[1] = row3 - row0;
-
-    // Top
-    frustumPlanes_[2] = row3 - row1;
-
-    // Bottom
-    frustumPlanes_[3] = row3 + row1;
-
-    // Near
-    frustumPlanes_[4] = row3 + row2;
-
-    // Far
-    frustumPlanes_[5] = row3 - row2;
-
-    for (auto &vec : frustumPlanes_)
-        normalizePlane(vec);
-
-    return frustumPlanes_;
-}
-
-void Camera::resetFOV()
-{
-    projectionMatrix_ = glm::perspective(glm::radians(cameraDefaultValues::fov), cameraDefaultValues::aspectRatio,
-                                        cameraDefaultValues::nearPlane, cameraDefaultValues::farPlane);
-    hasChanged_ = true;
-    dirtyMatrices_ = true;
-}
-
 void Camera::setYaw(float newYaw)
 {
     yaw_ = std::fmod(newYaw, 360.0f);
@@ -127,18 +84,15 @@ void Camera::setYaw(float newYaw)
     dirtyMatrices_ = true;
 }
 
-void Camera::setFOV(float fov, float aspectRatio)
+void Camera::setFOV(float fov)
 {
-    projectionMatrix_ =
-        glm::perspective(glm::radians(fov), aspectRatio, cameraDefaultValues::nearPlane, cameraDefaultValues::farPlane);
+    fov_ = fov;
     hasChanged_ = true;
     dirtyMatrices_ = true;
 }
 
 void Camera::setPitch(float newPitch)
 {
-    using namespace cameraDefaultValues;
-
     pitch_ = std::clamp(newPitch, minPitch, maxPitch);
     hasChanged_ = true;
     dirtyMatrices_ = true;
@@ -157,8 +111,8 @@ void Camera::setWorldOrientation(WorldOrientation orientation)
     using enum WorldOrientation;
     using namespace WorldVectors;
 
-    glm::vec3 front;
-    glm::vec3 up;
+    glm::vec3 front{0.0f};
+    glm::vec3 up{0.0f};
 
     switch (orientation)
     {
@@ -193,6 +147,7 @@ void Camera::setWorldOrientation(WorldOrientation orientation)
         break;
     }
 
+    projectionMatrix_ = glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_);
     viewMatrix_ = glm::lookAt(position_, position_ + front, up);
     viewProjectionMatrix_ = projectionMatrix_ * viewMatrix_;
 
@@ -202,8 +157,6 @@ void Camera::setWorldOrientation(WorldOrientation orientation)
 
 void Camera::processMouseMovement(float xOffset, float yOffset)
 {
-    using namespace cameraDefaultValues;
-
     xOffset *= sensitivity;
     yOffset *= sensitivity;
 
@@ -226,7 +179,12 @@ void Camera::updateMatrices()
     glm::vec3 up{glm::cross(right, front)};
 
     viewMatrix_ = glm::lookAt(position_, position_ + front, up);
+    projectionMatrix_ = glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_);
+
     viewProjectionMatrix_ = projectionMatrix_ * viewMatrix_;
+    inverseVPMatrix_ = glm::inverse(viewProjectionMatrix_);
+
+    dirtyMatrices_ = false;
 }
 
 glm::vec3 Camera::createFront() const
@@ -243,7 +201,54 @@ glm::vec3 Camera::createFront() const
     return front;
 }
 
+float Camera::getFOV() const
+{
+    return fov_;
+}
+
 const glm::vec3 Camera::getFront() const
 {
     return createFront();
+}
+float Camera::getFarPlane() const
+{
+    return farPlane_;
+}
+
+float Camera::getNearPlane() const
+{
+    return nearPlane_;
+}
+
+void Camera::setFarPlane(float farPlane)
+{
+    farPlane_ = farPlane;
+    dirtyMatrices_ = true;
+    hasChanged_ = true;
+}
+
+void Camera::setNearPlane(float nearPlane)
+{
+    nearPlane_ = nearPlane;
+    dirtyMatrices_ = true;
+    hasChanged_ = true;
+}
+
+void Camera::setAspectRatio(float aspectRatio)
+{
+    aspectRatio_ = aspectRatio;
+    dirtyMatrices_ = true;
+    hasChanged_ = true;
+}
+
+glm::mat4 Camera::getResizedViewProjectionMatrix(float ratio)
+{
+    if (dirtyMatrices_)
+    {
+        updateMatrices();
+        dirtyMatrices_ = false;
+    }
+
+    const glm::mat4 projectionMatrix{glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_ * ratio)};
+    return projectionMatrix * viewMatrix_;
 }

@@ -19,7 +19,7 @@ glm::vec3 DirectionalLight::getDirection() const
 }
 
 void DirectionalLight::setDirection(const glm::vec3 &newDirection)
-{
+{  
     direction_ = newDirection;
     directionUpdated_ = true;
 }

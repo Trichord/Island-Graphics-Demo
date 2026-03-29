@@ -2,16 +2,16 @@
 #include <fstream>
 #include <iostream>
 #include <random>
+#include <span>
 #include <utility>
 
 #include "aabb.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
-#include "instance_data.h"
 #include "model.h"
 #include "texture_manager.h"
-#include <span>
+#include "world_vectors.h"
 
 InstancedModel::InstancedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
                                const std::filesystem::path &positionsPath, float minSize, float maxSize,
@@ -29,21 +29,21 @@ InstancedModel::InstancedModel(TextureManager &textureManager, const ModelHandle
 {
 }
 
-std::optional<std::vector<InstancedData>> InstancedModel::generateInstancedData()
+std::optional<std::vector<Instance>> InstancedModel::generateInstancedData()
 {
-    std::vector<InstancedData> instances;
+    std::vector<glm::vec3> positions{loadPositions()};
 
-    if (!loadPositions(instances))
+    if (positions.empty())
         return std::nullopt;
-    
-    generateInstanceMatrices(instances);
-    generateWorldAABBs(instances);
+
+    std::vector<Instance> instances{randomizeRotationScale(positions)};
 
     return instances;
 }
 
-bool InstancedModel::loadPositions(std::vector<InstancedData> &instances)
+std::vector<glm::vec3> InstancedModel::loadPositions()
 {
+    std::vector<glm::vec3> instances;
     instances.reserve(numInstances_);
 
     float x{0.0f};
@@ -55,54 +55,42 @@ bool InstancedModel::loadPositions(std::vector<InstancedData> &instances)
     if (!positionsFile.is_open())
     {
         std::cerr << "Unable to open " << positionsPath_ << std::endl;
-        return false;
+        return {};
     }
 
     while (positionsFile >> x >> y >> z)
-    {
-        instances.emplace_back();
-        instances.back().position = glm::vec3{x, y, z};
-    }
+        instances.emplace_back(glm::vec3{x, y, z});
 
     if (instances.size() != numInstances_ && numInstances_ != 0)
         std::cout << positionsPath_ << " expected " << numInstances_ << " allocated " << instances.size() << std::endl;
 
-    return true;
+    return instances;
 }
 
-void InstancedModel::generateInstanceMatrices(std::vector<InstancedData> &instances)
+std::vector<Instance> InstancedModel::randomizeRotationScale(std::vector<glm::vec3> &positions)
 {
     std::random_device rd;
     std::mt19937 mt(rd());
+
+    std::vector<Instance> instances;
+    instances.reserve(positions.size());
 
     // Rotate the model somewhere in the 360 degree range
     std::uniform_real_distribution<float> randRotation{0.0f, 360.0f};
     std::uniform_real_distribution<float> randScale{minSize_, maxSize_};
 
-    for (auto &instance : instances)
+    for (auto &position : positions)
     {
         float instanceRotation{randRotation(mt)};
         float instanceScale{randScale(mt)};
 
-        glm::mat4 modelMatrix{1.0f};
-        modelMatrix = glm::translate(modelMatrix, instance.position);
-        modelMatrix = glm::rotate(modelMatrix, glm::radians(instanceRotation), glm::vec3{0.0f, 1.0f, 0.0f});
-        modelMatrix = glm::scale(modelMatrix, glm::vec3{instanceScale});
+        Transform transform{position};
 
-        instance.modelMatrix = modelMatrix;
+        transform.rotateAroundAxis(instanceRotation, WorldVectors::worldUp);
+        transform.setAbsoluteScale(instanceScale);
+
+        instances.emplace_back(std::move(transform), aabb_);
     }
-}
 
-void InstancedModel::generateWorldAABBs(std::vector<InstancedData> &instances)
-{
-    for (auto &instance : instances)
-    {
-        glm::mat3 RS{glm::mat3{instance.modelMatrix}};
-        glm::mat3 absRS{glm::abs(RS[0]), glm::abs(RS[1]), glm::abs(RS[2])};
-
-        glm::vec3 worldCenter{instance.modelMatrix * glm::vec4(aabb_.getCenter(), 1.0f)};
-        glm::vec3 worldExtent{absRS * aabb_.getExtent()};
-
-        instance.worldAABB = AABB{worldCenter - worldExtent, worldCenter + worldExtent};
-    }
+    return instances;
 }

@@ -2,7 +2,7 @@
 
 out vec4 fragColor;
 
-layout (std140) uniform matrices {
+layout (std140, binding = 0) uniform cameraData {
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionMatrix;
 	layout (offset = 128) mat4 projectionViewMatrix;
@@ -27,7 +27,6 @@ in VS_OUT
 
 const float dudvStrength = 0.025;
 const float waveSpeed = 0.01;
-const float specularDamper = 0.2;
 const float tileFactor = 100.0;
 const float fogStart = 1142.0;
 const float fogEnd = 2186.0;

@@ -14,12 +14,12 @@
 #include "texture_manager.h"
 #include "transform.h"
 
+constexpr int maxModels{50};
+
 Scene::Scene(TextureManager &textureManager) : sceneResources_{textureManager}
 {
-    using namespace sceneMaxObjects;
-
-    pointLights_.reserve(maxLights);
-    namedTransforms_.reserve(maxModels + maxLights);
+    for (int i{0}; i < static_cast<int>(ShaderType::COUNT); ++i)
+        sceneRenderables_[static_cast<ShaderType>(i)].reserve(maxModels);
 }
 
 std::map<ShaderType, std::vector<Renderable>> &Scene::getRenderablesByShader()
@@ -27,24 +27,14 @@ std::map<ShaderType, std::vector<Renderable>> &Scene::getRenderablesByShader()
     return sceneRenderables_;
 }
 
-Transform &Scene::getObjectTransform(const std::string &key)
+ModelInstances &Scene::getInstancesByName(const std::string &key)
 {
-    return namedTransforms_.at(key).get();
-}
-
-Light &Scene::getNamedLight(const std::string &key)
-{
-    return namedLights_.at(key).get();
+    return namedInstances_.at(key);
 }
 
 DirectionalLight &Scene::getGlobalLightSource()
 {
     return globalLightSource_;
-}
-
-std::vector<PointLight> &Scene::getPointLights()
-{
-    return pointLights_;
 }
 
 glm::vec3 Scene::getAmbientLight() const
@@ -70,4 +60,14 @@ const glm::vec3 &Scene::getWindDirection() const
 float Scene::getWindStrength() const
 {
     return windStrength_;
+}
+
+std::unordered_set<ModelHandle> &Scene::getTransformsUpdated()
+{
+    return transformsUpdated_;
+}
+
+std::vector<Instance> &Scene::getInstancesByHandle(ModelHandle handle) const
+{
+    return instancesByHandle_.at(handle);
 }
