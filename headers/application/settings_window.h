@@ -41,13 +41,13 @@ class SettingsWindow
     inline static const std::array<const char *, 5> anisoLevel{"Off", "2x", "4x", "8x", "16x"};
     static constexpr std::array<int, 5> anisoTable_{0, 2, 4, 8, 16};
 
-    inline static const std::array<const char *, 3> shadowLevel{"Off", "Medium", "High"};
-    static constexpr std::array<int, 3> shadowTable_{1, 1024, 2048};
+    inline static const std::array<const char *, 4> shadowLevel{"Off", "Low", "Medium", "High"};
+    static constexpr std::array<int, 4> shadowTable_{1, 512, 1024, 2048};
 
     int resolutionSelectedIndex_{2};
     int msaaSelectedIndex_{1};
     int anisoSelectedIndex_{2};
-    int shadowSelectedIndex_{1};
+    int shadowSelectedIndex_{2};
 
     const char *msaaPreviewValue_{msaaLevel_[msaaSelectedIndex_]};
     const char *anisoPreviewValue_{anisoLevel[anisoSelectedIndex_]};

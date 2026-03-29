@@ -48,6 +48,6 @@ class CascadeShadow
     LightMatrices lightVPMatrices_{};
 
     void calculateCascadeSplits(float farPlane);
-    FrustumSphere getFrustumSphere(const std::array<glm::vec3, 8> &corners);
+    FrustumSphere getFrustumSphere(const std::array<glm::vec3, 8> &corners, int textureResolution);
     std::array<glm::vec3, 8> getFrustumCornersWorldSpace(const glm::mat4 &invViewProjection);
 };
