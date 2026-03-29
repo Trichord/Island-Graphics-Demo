@@ -4,12 +4,12 @@
 
 #include "camera.h"
 #include "cascade_shadow.h"
-#include "settings_window.h"
 #include "directional_light.h"
 #include "gl_context.h"
 #include "glm/glm.hpp"
 #include "renderable.h"
 #include "scene.h"
+#include "settings_window.h"
 #include "shader.h"
 #include "shader_type.h"
 #include "texture_manager.h"
@@ -96,6 +96,7 @@ void Renderer::loadShaders()
     shaders_.emplace(WATER, Shader{"./shaders/water.vert", "./shaders/water.frag"});
     shaders_.emplace(OCEAN, Shader{"./shaders/water.vert", "./shaders/ocean.frag"});
     shaders_.emplace(SHADOW_MAP, Shader{"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"});
+    shaders_.emplace(SHADOW_MAP_ALPHA, Shader{"./shaders/shadow_pass_alpha.vert", "./shaders/shadow_pass_alpha.frag"});
 
     if (graphicsSettings_.shadowResolution > 1)
         shaders_.emplace(DIRECTIONAL_PBR,

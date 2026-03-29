@@ -21,9 +21,6 @@ layout(binding = 1, std430) readonly buffer indicesSSBO {
     uint indices[];
 };
 
-out vec2 texCoords;
-out vec3 normal;
-
 const float swaySpeed = 0.5;
 const float maxVertexHeight = 1.0;
 const float minVertexHeight = 0.001;
@@ -31,9 +28,13 @@ const float PI = 3.14159265358979323846;
 
 uniform uint matricesOffset;
 uniform uint indicesOffset;
+
 uniform float time;
 uniform float windStrength;
 uniform vec3 windDirection;
+
+out vec2 texCoords;
+out vec3 normal;
 
 float random(vec2 st) {
     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
