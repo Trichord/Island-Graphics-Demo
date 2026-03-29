@@ -29,32 +29,32 @@ class SettingsWindow
 
   private:
     GLFWwindow *window{nullptr};
-    inline static const std::array<const char *, 6> resolutions{"3840 x 2160", "2560 x 1440", "1920 x 1080",
+    inline static const std::array<const char *, 6> resolutions_{"3840 x 2160", "2560 x 1440", "1920 x 1080",
                                                                 "1600 x 900",  "1366 x 768",  "1280 x 720"};
 
-    inline static const std::array<std::pair<int, int>, 6> resolutionTable{
+    inline static const std::array<std::pair<int, int>, 6> resolutionTable_{
         {{3840, 2160}, {2560, 1440}, {1920, 1080}, {1600, 900}, {1366, 768}, {1280, 720}}};
 
-    inline static const std::array<const char *, 3> msaaLevel{"2x", "4x", "8x"};
-    static constexpr std::array<int, 3> msaaTable{2, 4, 8};
+    inline static const std::array<const char *, 3> msaaLevel_{"2x", "4x", "8x"};
+    static constexpr std::array<int, 3> msaaTable_{2, 4, 8};
 
     inline static const std::array<const char *, 5> anisoLevel{"Off", "2x", "4x", "8x", "16x"};
-    static constexpr std::array<int, 5> anisoTable{0, 2, 4, 8, 16};
+    static constexpr std::array<int, 5> anisoTable_{0, 2, 4, 8, 16};
 
     inline static const std::array<const char *, 3> shadowLevel{"Off", "Medium", "High"};
-    static constexpr std::array<int, 3> shadowTable{1, 1024, 2048};
+    static constexpr std::array<int, 3> shadowTable_{1, 1024, 2048};
 
-    int resolutionSelectedIndex{1};
-    int msaaSelectedIndex{2};
-    int anisoSelectedIndex{4};
-    int shadowSelectedIndex{1};
+    int resolutionSelectedIndex_{2};
+    int msaaSelectedIndex_{1};
+    int anisoSelectedIndex_{2};
+    int shadowSelectedIndex_{1};
 
-    const char *msaaPreviewValue{msaaLevel[msaaSelectedIndex]};
-    const char *anisoPreviewValue{anisoLevel[anisoSelectedIndex]};
-    const char *shadowPreviewValue{shadowLevel[shadowSelectedIndex]};
-    const char *resolutionPreviewValue{resolutions[resolutionSelectedIndex]};
+    const char *msaaPreviewValue_{msaaLevel_[msaaSelectedIndex_]};
+    const char *anisoPreviewValue_{anisoLevel[anisoSelectedIndex_]};
+    const char *shadowPreviewValue_{shadowLevel[shadowSelectedIndex_]};
+    const char *resolutionPreviewValue_{resolutions_[resolutionSelectedIndex_]};
 
-    GLuint textureID{0};
+    GLuint textureID_{0};
 
     /**
      * @brief Creates the GLFW window, centered and scaled by monitor zoom.

@@ -14,5 +14,6 @@ enum class ShaderType
     GRASS,
     SKYBOX,
     SHADOW_MAP,
+    SHADOW_MAP_ALPHA,
     COUNT
 };

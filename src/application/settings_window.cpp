@@ -19,8 +19,8 @@ constexpr float baseFontSize = 22.0f;
 
 SettingsWindow::~SettingsWindow()
 {
-    if (textureID)
-        glDeleteTextures(1, &textureID);
+    if (textureID_)
+        glDeleteTextures(1, &textureID_);
 }
 
 static void glfw_error_callback(int error, const char *description)
@@ -49,8 +49,8 @@ bool SettingsWindow::launchSettingsWindow(GraphicsSettings &settings)
     glfwDestroyWindow(window);
     glfwTerminate();
 
-    if (textureID)
-        glDeleteTextures(1, &textureID);
+    if (textureID_)
+        glDeleteTextures(1, &textureID_);
 
     return settingsConfirmed;
 }
@@ -163,18 +163,18 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
         BeginGroup();
 
         SeparatorText("Display Settings");
-        Spacing();
+        Dummy(dummySpacing);
 
         Text("Resolution");
-        if (BeginCombo("##resolutionCombo", resolutionPreviewValue, ImGuiComboFlags_HeightLargest))
+        if (BeginCombo("##resolutionCombo", resolutionPreviewValue_, ImGuiComboFlags_HeightLargest))
         {
-            for (int i = 0; i < resolutions.size(); ++i)
+            for (int i = 0; i < resolutions_.size(); ++i)
             {
-                const bool isResolutionSelected{resolutionSelectedIndex == i};
-                if (Selectable(resolutions[i], isResolutionSelected))
+                const bool isResolutionSelected{resolutionSelectedIndex_ == i};
+                if (Selectable(resolutions_[i], isResolutionSelected))
                 {
-                    resolutionSelectedIndex = i;
-                    resolutionPreviewValue = resolutions[resolutionSelectedIndex];
+                    resolutionSelectedIndex_ = i;
+                    resolutionPreviewValue_ = resolutions_[resolutionSelectedIndex_];
                     updateResolution(settings, i);
                 }
                 if (isResolutionSelected)
@@ -192,9 +192,6 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
 
         Spacing();
 
-        if (Button("Reset Gamma"))
-            settings.gamma = 1.0f;
-
         Dummy(dummySpacing);
         Dummy(dummySpacing);
 
@@ -206,20 +203,22 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
 
         Dummy(dummySpacing);
         Dummy(dummySpacing);
-
-        SeparatorText("Advanced Options");
+        Spacing();
         Spacing();
 
+        SeparatorText("Advanced Options");
+        Dummy(dummySpacing);
+
         Text("Anisotropic Filtering");
-        if (BeginCombo("##anisoCombo", anisoPreviewValue))
+        if (BeginCombo("##anisoCombo", anisoPreviewValue_))
         {
             for (int i{0}; i < anisoLevel.size(); ++i)
             {
-                const bool isAnisoSelected{anisoSelectedIndex == i};
+                const bool isAnisoSelected{anisoSelectedIndex_ == i};
                 if (Selectable(anisoLevel[i], isAnisoSelected))
                 {
-                    anisoSelectedIndex = i;
-                    anisoPreviewValue = anisoLevel[anisoSelectedIndex];
+                    anisoSelectedIndex_ = i;
+                    anisoPreviewValue_ = anisoLevel[anisoSelectedIndex_];
                     updateAniso(settings, i);
                 }
                 if (isAnisoSelected)
@@ -231,15 +230,15 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
         Dummy(dummySpacing);
 
         Text("MSAA");
-        if (BeginCombo("##msaaCombo", msaaPreviewValue))
+        if (BeginCombo("##msaaCombo", msaaPreviewValue_))
         {
-            for (int i{0}; i < msaaLevel.size(); ++i)
+            for (int i{0}; i < msaaLevel_.size(); ++i)
             {
-                const bool isMSAASelected{msaaSelectedIndex == i};
-                if (Selectable(msaaLevel[i], isMSAASelected))
+                const bool isMSAASelected{msaaSelectedIndex_ == i};
+                if (Selectable(msaaLevel_[i], isMSAASelected))
                 {
-                    msaaSelectedIndex = i;
-                    msaaPreviewValue = msaaLevel[msaaSelectedIndex];
+                    msaaSelectedIndex_ = i;
+                    msaaPreviewValue_ = msaaLevel_[msaaSelectedIndex_];
                     updateMSAA(settings, i);
                 }
                 if (isMSAASelected)
@@ -251,15 +250,15 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
         Dummy(dummySpacing);
 
         Text("Shadow Quality");
-        if (BeginCombo("##shadowCombo", shadowPreviewValue))
+        if (BeginCombo("##shadowCombo", shadowPreviewValue_))
         {
             for (int i{0}; i < shadowLevel.size(); ++i)
             {
-                const bool isShadowSelected{shadowSelectedIndex == i};
+                const bool isShadowSelected{shadowSelectedIndex_ == i};
                 if (Selectable(shadowLevel[i], isShadowSelected))
                 {
-                    shadowSelectedIndex = i;
-                    shadowPreviewValue = shadowLevel[shadowSelectedIndex];
+                    shadowSelectedIndex_ = i;
+                    shadowPreviewValue_ = shadowLevel[shadowSelectedIndex_];
                     updateShadowQuality(settings, i);
                 }
                 if (isShadowSelected)
@@ -280,19 +279,33 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
         Dummy(dummySpacing);
         Dummy(dummySpacing);
 
-        Image((ImTextureID)(intptr_t)textureID, ImVec2(GetContentRegionAvail().x, GetContentRegionAvail().x));
+        // Image
+        Image((ImTextureID)(intptr_t)textureID_, ImVec2(GetContentRegionAvail().x, GetContentRegionAvail().x));
 
-        // end of right column
+        Dummy(dummySpacing);
+
+        // Reset button
+        float resetButtonWidth{CalcTextSize("Reset").x + GetStyle().FramePadding.x * 2.0f};
+        SetCursorPosX(GetCursorPosX() + GetContentRegionAvail().x - resetButtonWidth);
+        if (Button("Reset"))
+        {
+            settings = GraphicsSettings{};
+            matchSettingsToGUI(settings);
+        }
+
+        // End of right column
         EndGroup();
 
-        // end of settings and image row
+        // End of settings and image row
         EndGroup();
 
-        // Cancel button
+        // Buttons
         const float buttonHeight{GetFrameHeight()};
         const ImVec2 windowPadding{GetStyle().WindowPadding};
         const ImVec2 windowSize{GetWindowSize()};
         const ImVec2 windowPosition{GetWindowPos()};
+
+        // Cancel button
         float cancelX{windowPadding.x};
         float cancelY{windowPosition.y + windowSize.y - buttonHeight - windowPadding.y};
 
@@ -349,72 +362,72 @@ void SettingsWindow::loadConfigWindowImage()
     if (!imageData.size())
         return;
 
-    textureID = textureUtilities::generateTextureID(imageData[0], Sampler{}, TextureDetails{});
+    textureID_ = textureUtilities::generateTextureID(imageData[0], Sampler{}, TextureDetails{});
 }
 
 void SettingsWindow::updateResolution(GraphicsSettings &settings, int index)
 {
-    if (index < resolutionTable.size())
+    if (index < resolutionTable_.size())
     {
-        settings.screenWidth = resolutionTable[index].first;
-        settings.screenHeight = resolutionTable[index].second;
+        settings.screenWidth = resolutionTable_[index].first;
+        settings.screenHeight = resolutionTable_[index].second;
     }
 }
 
 void SettingsWindow::updateMSAA(GraphicsSettings &settings, int index)
 {
-    if (index < msaaTable.size())
-        settings.msaa = msaaTable[index];
+    if (index < msaaTable_.size())
+        settings.msaa = msaaTable_[index];
 }
 void SettingsWindow::updateAniso(GraphicsSettings &settings, int index)
 {
-    if (index < anisoTable.size())
-        settings.anisotropicFiltering = anisoTable[index];
+    if (index < anisoTable_.size())
+        settings.anisotropicFiltering = anisoTable_[index];
 }
 
 void SettingsWindow::updateShadowQuality(GraphicsSettings &settings, int index)
 {
-    if (index < shadowTable.size())
-        settings.shadowResolution = shadowTable[index];
+    if (index < shadowTable_.size())
+        settings.shadowResolution = shadowTable_[index];
 }
 
 void SettingsWindow::matchSettingsToGUI(const GraphicsSettings &settings)
 {
-    for (int i{0}; i < static_cast<int>(resolutionTable.size()); ++i)
+    for (int i{0}; i < static_cast<int>(resolutionTable_.size()); ++i)
     {
-        const auto &[width, height]{resolutionTable[i]};
+        const auto &[width, height]{resolutionTable_[i]};
 
         if (width == settings.screenWidth && height == settings.screenHeight)
-            resolutionSelectedIndex = i;
+            resolutionSelectedIndex_ = i;
     }
 
-    for (int i{0}; i < static_cast<int>(msaaTable.size()); ++i)
+    for (int i{0}; i < static_cast<int>(msaaTable_.size()); ++i)
     {
-        if (msaaTable[i] == settings.msaa)
-            msaaSelectedIndex = i;
+        if (msaaTable_[i] == settings.msaa)
+            msaaSelectedIndex_ = i;
     }
 
-    for (int i{0}; i < static_cast<int>(anisoTable.size()); ++i)
+    for (int i{0}; i < static_cast<int>(anisoTable_.size()); ++i)
     {
-        if (anisoTable[i] == settings.anisotropicFiltering)
-            anisoSelectedIndex = i;
+        if (anisoTable_[i] == settings.anisotropicFiltering)
+            anisoSelectedIndex_ = i;
     }
 
-    for (int i{0}; i < static_cast<int>(shadowTable.size()); ++i)
+    for (int i{0}; i < static_cast<int>(shadowTable_.size()); ++i)
     {
-        if (shadowTable[i] == settings.shadowResolution)
-            shadowSelectedIndex = i;
+        if (shadowTable_[i] == settings.shadowResolution)
+            shadowSelectedIndex_ = i;
     }
 
-    if (resolutionSelectedIndex < resolutions.size())
-        resolutionPreviewValue = resolutions[resolutionSelectedIndex];
+    if (resolutionSelectedIndex_ < resolutions_.size())
+        resolutionPreviewValue_ = resolutions_[resolutionSelectedIndex_];
 
-    if (msaaSelectedIndex < msaaLevel.size())
-        msaaPreviewValue = msaaLevel[msaaSelectedIndex];
+    if (msaaSelectedIndex_ < msaaLevel_.size())
+        msaaPreviewValue_ = msaaLevel_[msaaSelectedIndex_];
 
-    if (anisoSelectedIndex < anisoLevel.size())
-        anisoPreviewValue = anisoLevel[anisoSelectedIndex];
+    if (anisoSelectedIndex_ < anisoLevel.size())
+        anisoPreviewValue_ = anisoLevel[anisoSelectedIndex_];
 
-    if (shadowSelectedIndex < shadowLevel.size())
-        shadowPreviewValue = shadowLevel[shadowSelectedIndex];
+    if (shadowSelectedIndex_ < shadowLevel.size())
+        shadowPreviewValue_ = shadowLevel[shadowSelectedIndex_];
 }
