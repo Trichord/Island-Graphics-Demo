@@ -4,32 +4,21 @@
 #include <utility>
 
 #include "gl_context.h"
+#include "graphics_settings.h"
 
 /**
  * @brief Creates a GLFW window, using Dear ImGUI as a user interface.  Allows
  * the user to adjust display settings.
  */
-class ConfigWindow
+class SettingsWindow
 {
   public:
-    struct GraphicsSettings
-    {
-        int screenWidth{2560};
-        int screenHeight{1440};
-        int msaa{8};
-        int anisotropicFiltering{16};
-        int shadowResolution{1024};
-        bool fullscreen{true};
-        bool vsync{false};
-        float gamma{1.0f};
-    };
-
-    ConfigWindow() = default;
-    ConfigWindow(const ConfigWindow &) = delete;
-    ConfigWindow &operator=(const ConfigWindow &) = delete;
-    ConfigWindow(ConfigWindow &&other) = delete;
-    ConfigWindow &operator=(ConfigWindow &&other) = delete;
-    ~ConfigWindow();
+    SettingsWindow() = default;
+    SettingsWindow(const SettingsWindow &) = delete;
+    SettingsWindow &operator=(const SettingsWindow &) = delete;
+    SettingsWindow(SettingsWindow &&other) = delete;
+    SettingsWindow &operator=(SettingsWindow &&other) = delete;
+    ~SettingsWindow();
 
     /**
      * @brief Creates the Display Settings window.
@@ -47,23 +36,23 @@ class ConfigWindow
         {{3840, 2160}, {2560, 1440}, {1920, 1080}, {1600, 900}, {1366, 768}, {1280, 720}}};
 
     inline static const std::array<const char *, 3> msaaLevel{"2x", "4x", "8x"};
-    inline static const std::array<int, 3> msaaTable{2, 4, 8};
+    static constexpr std::array<int, 3> msaaTable{2, 4, 8};
 
     inline static const std::array<const char *, 5> anisoLevel{"Off", "2x", "4x", "8x", "16x"};
-    inline static const std::array<int, 5> anisoTable{0, 2, 4, 8, 16};
+    static constexpr std::array<int, 5> anisoTable{0, 2, 4, 8, 16};
 
-    inline static const std::array<const char *, 3> shadowQuality{"Off", "Medium", "High"};
-    inline static const std::array<int, 3> shadowTable{1, 1024, 2048};
+    inline static const std::array<const char *, 3> shadowLevel{"Off", "Medium", "High"};
+    static constexpr std::array<int, 3> shadowTable{1, 1024, 2048};
 
-    inline static int resolutionSelectedIndex{1};
-    inline static int msaaSelectedIndex{2};
-    inline static int anisoSelectedIndex{4};
-    inline static int shadowSelectedIndex{1};
+    int resolutionSelectedIndex{1};
+    int msaaSelectedIndex{2};
+    int anisoSelectedIndex{4};
+    int shadowSelectedIndex{1};
 
-    inline static const char *msaaPreviewValue{msaaLevel[msaaSelectedIndex]};
-    inline static const char *anisoPreviewValue{anisoLevel[anisoSelectedIndex]};
-    inline static const char *shadowPreviewValue{shadowQuality[shadowSelectedIndex]};
-    inline static const char *resolutionPreviewValue{resolutions[resolutionSelectedIndex]};
+    const char *msaaPreviewValue{msaaLevel[msaaSelectedIndex]};
+    const char *anisoPreviewValue{anisoLevel[anisoSelectedIndex]};
+    const char *shadowPreviewValue{shadowLevel[shadowSelectedIndex]};
+    const char *resolutionPreviewValue{resolutions[resolutionSelectedIndex]};
 
     GLuint textureID{0};
 
@@ -116,4 +105,6 @@ class ConfigWindow
      * @param The requested index from the drop-down menu.
      */
     void updateShadowQuality(GraphicsSettings &settings, int index);
+
+    void matchSettingsToGUI(const GraphicsSettings &settings);
 };

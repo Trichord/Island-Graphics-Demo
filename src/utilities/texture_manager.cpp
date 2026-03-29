@@ -15,7 +15,7 @@
 #include "texture_utilities.h"
 #include "thread_pool.h"
 
-TextureManager::TextureManager(ThreadPool &threadPool, const ConfigWindow::GraphicsSettings &settings)
+TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings)
     : globalAnisotropicDegree_{static_cast<float>(settings.anisotropicFiltering)}, threadPool_{threadPool}
 {
 }

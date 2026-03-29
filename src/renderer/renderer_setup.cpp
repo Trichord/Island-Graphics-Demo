@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "camera.h"
-#include "config_window.h"
+#include "settings_window.h"
 #include "gl_context.h"
 #include "glm/glm.hpp"
 #include "render_target.h"

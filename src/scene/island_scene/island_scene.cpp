@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "camera.h"
-#include "config_window.h"
+#include "settings_window.h"
 #include "glm/glm.hpp"
 #include "object_positions.h"
 #include "renderable.h"
@@ -14,13 +14,13 @@
 #include "texture_manager.h"
 #include "transform.h"
 
-IslandScene::IslandScene(TextureManager &textureManager, const ConfigWindow::GraphicsSettings &graphicsSettings)
+IslandScene::IslandScene(TextureManager &textureManager, const GraphicsSettings &graphicsSettings)
     : Scene(textureManager)
 {
     initializeScene(graphicsSettings);
 }
 
-void IslandScene::initializeScene(const ConfigWindow::GraphicsSettings &graphicsSettings)
+void IslandScene::initializeScene(const GraphicsSettings &graphicsSettings)
 {
     setupCamera(graphicsSettings);
     addAllModelsToScene();
@@ -258,7 +258,7 @@ void IslandScene::setupEnvironment()
     windStrength_ = windStrength;
 }
 
-void IslandScene::setupCamera(const ConfigWindow::GraphicsSettings &graphicsSettings)
+void IslandScene::setupCamera(const GraphicsSettings &graphicsSettings)
 {
     constexpr float cameraFOV{45.0f};
 

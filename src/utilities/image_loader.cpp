@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-#include "stb_image.h"
+#include "stb_image/stb_image.h"
 #include "thread_pool.h"
 
 ImageLoader::ImageLoader(const std::filesystem::path &filepath) : numImages_{1}, numImagesLoaded_{0}

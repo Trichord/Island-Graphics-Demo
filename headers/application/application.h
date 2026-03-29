@@ -2,7 +2,7 @@
 
 #include "jolt/Jolt.h"
 
-#include "config_window.h"
+#include "settings_window.h"
 #include "gl_context.h"
 #include "jolt/Core/Core.h"
 #include "jolt/Core/JobSystemSingleThreaded.h"
@@ -41,6 +41,9 @@ class Application
     static inline float lastMouseY_{0.0f};
     GLFWwindow *window_{nullptr};
 
+    // Settings Window
+    std::filesystem::path savePath{"./settings.json"};
+
     // Physics engine constants
     static constexpr JPH::uint maxBodies{1024};
     static constexpr JPH::uint maxBodyPairs{1024};
@@ -57,7 +60,7 @@ class Application
      * @brief Creates a GLFW window.  Display settings from the config window are
      * passed to GLFW here.
      */
-    void createWindow(const ConfigWindow::GraphicsSettings &graphicsSettings);
+    void createWindow(const GraphicsSettings &graphicsSettings);
 
     /**
      * @brief Checks for GLFW key presses and passes info to the scene.
@@ -70,7 +73,7 @@ class Application
      * @brief Registers OpenGL function pointers, creates an OpenGL viewport, and
      * optionally sets MSAA.
      */
-    void createOpenGLViewport(const ConfigWindow::GraphicsSettings &graphicsSettings);
+    void createOpenGLViewport(const GraphicsSettings &graphicsSettings);
 
     /**
      * @brief Registers GLFW callbacks.  Mouse callback is seperate and should be
