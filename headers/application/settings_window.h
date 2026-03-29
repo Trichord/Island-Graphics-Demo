@@ -4,31 +4,21 @@
 #include <utility>
 
 #include "gl_context.h"
+#include "graphics_settings.h"
 
 /**
  * @brief Creates a GLFW window, using Dear ImGUI as a user interface.  Allows
  * the user to adjust display settings.
  */
-class ConfigWindow
+class SettingsWindow
 {
   public:
-    struct GraphicsSettings
-    {
-        int screenWidth{2560};
-        int screenHeight{1440};
-        bool fullscreen{true};
-        bool vsync{false};
-        int msaa{8};
-        int anisotropicFiltering{16};
-        float gamma{1.0f};
-    };
-
-    ConfigWindow() = default;
-    ConfigWindow(const ConfigWindow &) = delete;
-    ConfigWindow &operator=(const ConfigWindow &) = delete;
-    ConfigWindow(ConfigWindow &&other) = delete;
-    ConfigWindow &operator=(ConfigWindow &&other) = delete;
-    ~ConfigWindow();
+    SettingsWindow() = default;
+    SettingsWindow(const SettingsWindow &) = delete;
+    SettingsWindow &operator=(const SettingsWindow &) = delete;
+    SettingsWindow(SettingsWindow &&other) = delete;
+    SettingsWindow &operator=(SettingsWindow &&other) = delete;
+    ~SettingsWindow();
 
     /**
      * @brief Creates the Display Settings window.
@@ -39,25 +29,32 @@ class ConfigWindow
 
   private:
     GLFWwindow *window{nullptr};
-    inline static const std::array<const char *, 6> resolutions{"3840 x 2160", "2560 x 1440", "1920 x 1080",
+    inline static const std::array<const char *, 6> resolutions_{"3840 x 2160", "2560 x 1440", "1920 x 1080",
                                                                 "1600 x 900",  "1366 x 768",  "1280 x 720"};
 
-    inline static const std::array<std::pair<int, int>, 6> resolutionTable{
+    inline static const std::array<std::pair<int, int>, 6> resolutionTable_{
         {{3840, 2160}, {2560, 1440}, {1920, 1080}, {1600, 900}, {1366, 768}, {1280, 720}}};
 
-    inline static const std::array<const char *, 3> msaaLevel{"2x", "4x", "8x"};
-    inline static const std::array<int, 3> msaaTable{2, 4, 8};
+    inline static const std::array<const char *, 3> msaaLevel_{"2x", "4x", "8x"};
+    static constexpr std::array<int, 3> msaaTable_{2, 4, 8};
+
     inline static const std::array<const char *, 5> anisoLevel{"Off", "2x", "4x", "8x", "16x"};
-    inline static const std::array<int, 5> anisoTable{0, 2, 4, 8, 16};
+    static constexpr std::array<int, 5> anisoTable_{0, 2, 4, 8, 16};
 
-    inline static int resolutionSelectedIndex{1};
-    inline static int msaaSelectedIndex{2};
-    inline static int anisoSelectedIndex{4};
-    inline static const char *resolutionPreviewValue{resolutions[resolutionSelectedIndex]};
-    inline static const char *msaaPreviewValue{msaaLevel[msaaSelectedIndex]};
-    inline static const char *anisoPreviewValue{anisoLevel[anisoSelectedIndex]};
+    inline static const std::array<const char *, 3> shadowLevel{"Off", "Medium", "High"};
+    static constexpr std::array<int, 3> shadowTable_{1, 1024, 2048};
 
-    GLuint textureID{0};
+    int resolutionSelectedIndex_{2};
+    int msaaSelectedIndex_{1};
+    int anisoSelectedIndex_{2};
+    int shadowSelectedIndex_{1};
+
+    const char *msaaPreviewValue_{msaaLevel_[msaaSelectedIndex_]};
+    const char *anisoPreviewValue_{anisoLevel[anisoSelectedIndex_]};
+    const char *shadowPreviewValue_{shadowLevel[shadowSelectedIndex_]};
+    const char *resolutionPreviewValue_{resolutions_[resolutionSelectedIndex_]};
+
+    GLuint textureID_{0};
 
     /**
      * @brief Creates the GLFW window, centered and scaled by monitor zoom.
@@ -102,4 +99,12 @@ class ConfigWindow
      * @param index The anisotropic filtering drop-down selected index.
      */
     void updateAniso(GraphicsSettings &settings, int index);
+
+    /**
+     * @brief Helper function for shadow-quality drop-down menu.
+     * @param The requested index from the drop-down menu.
+     */
+    void updateShadowQuality(GraphicsSettings &settings, int index);
+
+    void matchSettingsToGUI(const GraphicsSettings &settings);
 };

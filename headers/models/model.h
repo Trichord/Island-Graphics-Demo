@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "aabb.h"
-#include "instance_data.h"
 #include "primitive.h"
 #include "renderable.h"
 #include "texture_manager.h"
@@ -22,11 +21,11 @@ class Model : public IRenderable
     ~Model();
 
     AABB &getAABB() override;
-    void setVisibility(bool visible) override;
+    void setMeshVisibility(bool visible) override;
     const ModelHandle getHandle() const override;
     std::span<Primitive::Mesh> getMeshes() override;
     std::optional<std::vector<Primitive::Mesh>> loadCollisionMesh() override;
-    std::optional<std::vector<InstancedData>> generateInstancedData() override;
+    std::optional<std::vector<Instance>> generateInstancedData() override;
 
   protected:
     ModelHandle handle_{0};
@@ -34,6 +33,7 @@ class Model : public IRenderable
     std::filesystem::path filePath_;
     std::vector<Primitive::Mesh> meshes_;
     AABB aabb_;
+    bool hasMaterials_{false};
 
     void loadModel(const std::filesystem::path &path, bool borrowed);
     void calculateAABB();

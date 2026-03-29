@@ -7,3 +7,4 @@ OpenGL.vcxproj
 OpenGL.vcxproj.user
 OpenGL.vcxproj.filters
 imgui.ini
+settings.json

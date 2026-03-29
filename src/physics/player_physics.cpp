@@ -1,22 +1,11 @@
 #include "player_physics.h"
 
-#include <algorithm>
 #include <cstdint>
-#include <limits>
-#include <optional>
-#include <span>
-#include <variant>
-#include <vector>
 
 #include "jolt/jolt.h"
 
-#include "cull_method.h"
 #include "glm/glm.hpp"
-#include "instance_data.h"
-#include "jolt/Core/Core.h"
-#include "jolt/Core/Factory.h"
 #include "jolt/Core/TempAllocator.h"
-#include "jolt/Geometry/Triangle.h"
 #include "jolt/Math/Quat.h"
 #include "jolt/Math/Real.h"
 #include "jolt/Math/Vec3.h"
@@ -27,19 +16,9 @@
 #include "jolt/Physics/EActivation.h"
 #include "jolt/Physics/PhysicsSystem.h"
 #include "jolt_impl.h"
-#include "primitive.h"
-#include "renderable.h"
+#include "physics_utilities.h"
 #include "scene.h"
-#include "transform.h"
 #include "world_vectors.h"
-
-void iterateVertices(JPH::TriangleList &triangles, const std::span<Primitive::Mesh> &meshes,
-                     const glm::mat4 &modelMatrix, float &lowestPoint);
-
-// Physics engine
-constexpr JPH::uint maxBodies{1024};
-constexpr JPH::uint maxBodyPairs{1024};
-constexpr JPH::uint maxContactConstraints{1024};
 
 PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator)
     : resetPosition_{toJPHVec3(scene.getCamera().getPosition())}, physicsSystem_{physicsSystem},
@@ -47,16 +26,16 @@ PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JP
 {
     using namespace JPH;
 
-    physicsSystem_.Init(maxBodies, 0, maxBodyPairs, maxContactConstraints, broadPhaseLayer_,
-                        objectVsBroadPhaseLayerFilter_, objectLayerPairFilter_);
-
     bodyInterface_ = &physicsSystem_.GetBodyInterfaceNoLock();
 
     player_.init(physicsSystem, tempAllocator);
 
+    //Build the static collision mesh from scene
+    physicsUtilities::CollisionMesh collisionMesh{physicsUtilities::buildCollisionMesh(scene)};
+    resetHeight_ = collisionMesh.minimumHeight;
+
     // Create terrain and flag it to survive this constructor call
-    JPH::TriangleList terrain{traverseSceneGraph(scene)};
-    MeshShapeSettings terrainShapeSettings{terrain};
+    MeshShapeSettings terrainShapeSettings{collisionMesh.mesh};
     terrainShapeSettings.SetEmbedded();
 
     // Create the shape
@@ -153,78 +132,4 @@ void PlayerPhysics::toggleCrouch(bool enable)
 void PlayerPhysics::toggleSprint(bool enable)
 {
     player_.toggleSprint(enable);
-}
-
-void iterateVertices(JPH::TriangleList &triangles, const std::span<Primitive::Mesh> &meshes,
-                     const glm::mat4 &modelMatrix, float &lowestPoint)
-{
-    for (auto &mesh : meshes)
-        for (auto &primitive : mesh.primitives)
-        {
-            auto vertices = primitive.getVertices();
-            auto indices = primitive.getIndices();
-
-            for (std::uint32_t i{0}; i < indices.size(); i += 3)
-            {
-                glm::vec3 a{vertices[indices[i]].position};
-                glm::vec3 b{vertices[indices[i + 1]].position};
-                glm::vec3 c{vertices[indices[i + 2]].position};
-
-                a = glm::vec3{modelMatrix * glm::vec4{a, 1.0}};
-                b = glm::vec3{modelMatrix * glm::vec4{b, 1.0}};
-                c = glm::vec3{modelMatrix * glm::vec4{c, 1.0}};
-
-                lowestPoint = std::min({lowestPoint, a.y, b.y, c.y});
-
-                triangles.emplace_back(toJPHFloat3(a), toJPHFloat3(b), toJPHFloat3(c));
-            }
-        }
-}
-
-JPH::TriangleList PlayerPhysics::traverseSceneGraph(Scene &scene)
-{
-    using enum CullMethod;
-
-    JPH::TriangleList vertices;
-    float lowestPoint{std::numeric_limits<float>::infinity()};
-
-    for (auto [_, renderables] : scene.getRenderablesByShader())
-        for (auto &renderable : renderables)
-        {
-            auto &object = renderable.objectRef.get();
-
-            // Always use the terrain's actual mesh
-            if (renderable.properties.cullMethod == TERRAIN)
-            {
-                auto meshes = object.getMeshes();
-                Transform &transform{std::get<Transform>(renderable.properties.transform)};
-                iterateVertices(vertices, meshes, transform.getModelMatrix(), lowestPoint);
-            }
-            // Otherwise, use the collision mesh if it exists
-            else
-            {
-                auto meshes = object.loadCollisionMesh();
-
-                if (!meshes.has_value())
-                    continue;
-
-                // Single instance
-                if (std::holds_alternative<Transform>(renderable.properties.transform))
-                {
-                    Transform &transform{std::get<Transform>(renderable.properties.transform)};
-                    iterateVertices(vertices, meshes.value(), transform.getModelMatrix(), lowestPoint);
-                }
-                // Instanced model
-                else
-                {
-                    auto &transform{std::get<std::vector<InstancedData>>(renderable.properties.transform)};
-                    for (InstancedData &data : transform)
-                        iterateVertices(vertices, meshes.value(), data.modelMatrix, lowestPoint);
-                }
-            }
-        }
-
-    resetHeight_ = lowestPoint;
-
-    return vertices;
 }

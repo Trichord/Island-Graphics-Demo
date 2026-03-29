@@ -1,8 +1,13 @@
 #pragma once
 
-#include "player_physics.h"
-#include "config_window.h"
+#include "jolt/Jolt.h"
+
+#include "settings_window.h"
 #include "gl_context.h"
+#include "jolt/Core/Core.h"
+#include "jolt/Core/JobSystemSingleThreaded.h"
+#include "jolt_impl.h"
+#include "player_physics.h"
 #include "scene.h"
 
 /**
@@ -21,7 +26,10 @@ class Application
     ~Application();
     void run();
 
-  private: 
+    static constexpr float physicsTick{1.0f / 60.0f};
+
+  private:
+    // Window and timing
     float deltaTime_{0.0f};
     float lastFrame_{0.0f};
     float currentFrame_{0.0f};
@@ -33,11 +41,26 @@ class Application
     static inline float lastMouseY_{0.0f};
     GLFWwindow *window_{nullptr};
 
+    // Settings Window
+    std::filesystem::path savePath{"./settings.json"};
+
+    // Physics engine constants
+    static constexpr JPH::uint maxBodies{1024};
+    static constexpr JPH::uint maxBodyPairs{1024};
+    static constexpr JPH::uint maxPhysicsJobs_{2048};
+    static constexpr JPH::uint maxContactConstraints{1024};
+    static constexpr size_t joltStackSize{10 * 1024 * 1024}; // 10 MB
+
+    // Jolt Physics
+    BPLayerInterfaceImpl broadPhaseLayer_;
+    ObjectLayerPairFilterImpl objectLayerPairFilter_;
+    ObjectVsBroadPhaseLayerFilterImpl objectVsBroadPhaseLayerFilter_;
+
     /**
      * @brief Creates a GLFW window.  Display settings from the config window are
      * passed to GLFW here.
      */
-    void createWindow(const ConfigWindow::GraphicsSettings &graphicsSettings);
+    void createWindow(const GraphicsSettings &graphicsSettings);
 
     /**
      * @brief Checks for GLFW key presses and passes info to the scene.
@@ -50,7 +73,7 @@ class Application
      * @brief Registers OpenGL function pointers, creates an OpenGL viewport, and
      * optionally sets MSAA.
      */
-    void createOpenGLViewport(const ConfigWindow::GraphicsSettings &graphicsSettings);
+    void createOpenGLViewport(const GraphicsSettings &graphicsSettings);
 
     /**
      * @brief Registers GLFW callbacks.  Mouse callback is seperate and should be
@@ -66,7 +89,7 @@ class Application
      */
     void addGlfwUserParam(Scene &scene);
 
-    void initializeJolt();
+    void registerJolt();
 
     /**
      * GLFW mouse callback. Recieves updated cursor coordinates.
@@ -90,3 +113,8 @@ class Application
      */
     static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
 };
+
+#ifdef DEBUG
+void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length,
+                            const char *message, const void *userParam);
+#endif // DEBUG

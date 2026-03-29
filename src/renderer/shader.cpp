@@ -23,23 +23,23 @@ Shader::Shader(const std::filesystem::path &vertexPath, const std::filesystem::p
     vertexShaderID = createShaderID(GL_VERTEX_SHADER, vertexPath);
     fragmentShaderID = createShaderID(GL_FRAGMENT_SHADER, fragmentPath);
 
-    ID = glCreateProgram();
+    id_ = glCreateProgram();
 
-    glAttachShader(ID, vertexShaderID);
-    glAttachShader(ID, fragmentShaderID);
-    glLinkProgram(ID);
+    glAttachShader(id_, vertexShaderID);
+    glAttachShader(id_, fragmentShaderID);
+    glLinkProgram(id_);
 
     int success{0};
-    glGetProgramiv(ID, GL_LINK_STATUS, &success);
+    glGetProgramiv(id_, GL_LINK_STATUS, &success);
 
     if (!success)
     {
         std::string infoLog;
         GLint logLength;
-        glGetProgramiv(ID, GL_INFO_LOG_LENGTH, &logLength);
+        glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &logLength);
         infoLog.resize(logLength);
 
-        glGetProgramInfoLog(ID, logLength, NULL, infoLog.data());
+        glGetProgramInfoLog(id_, logLength, NULL, infoLog.data());
         std::cerr << "ERROR: Shader Program - Linking Failed" << std::endl << infoLog.data() << std::endl;
 
         glDeleteShader(vertexShaderID);
@@ -54,21 +54,21 @@ Shader::Shader(const std::filesystem::path &vertexPath, const std::filesystem::p
 
 Shader::Shader(Shader &&other) noexcept
 {
-    ID = other.ID;
+    id_ = other.id_;
     uniformLocations_ = std::move(other.uniformLocations_);
-    other.ID = 0;
+    other.id_ = 0;
 };
 
 Shader &Shader::operator=(Shader &&other) noexcept
 {
     if (this != &other)
     {
-        if (ID)
-            glDeleteProgram(ID);
+        if (id_)
+            glDeleteProgram(id_);
 
-        ID = other.ID;
+        id_ = other.id_;
         uniformLocations_ = std::move(other.uniformLocations_);
-        other.ID = 0;
+        other.id_ = 0;
     }
 
     return *this;
@@ -76,13 +76,18 @@ Shader &Shader::operator=(Shader &&other) noexcept
 
 Shader::~Shader()
 {
-    if (ID)
-        glDeleteProgram(ID);
+    if (id_)
+        glDeleteProgram(id_);
 }
 
 void Shader::use()
 {
-    glUseProgram(ID);
+    glUseProgram(id_);
+}
+
+GLuint Shader::getID() const
+{
+    return id_;
 }
 
 void Shader::setBool(const std::string &name, bool value)
@@ -90,7 +95,7 @@ void Shader::setBool(const std::string &name, bool value)
     GLint location{getCachedUniform(name)};
 
     if (location != -1)
-        glProgramUniform1i(ID, location, value);
+        glProgramUniform1i(id_, location, value);
 }
 
 void Shader::setIntU(const std::string &name, unsigned int value)
@@ -98,7 +103,7 @@ void Shader::setIntU(const std::string &name, unsigned int value)
     GLint location{getCachedUniform(name)};
 
     if (location != -1)
-        glProgramUniform1ui(ID, location, value);
+        glProgramUniform1ui(id_, location, value);
 }
 
 void Shader::setInt(const std::string &name, int value)
@@ -106,7 +111,7 @@ void Shader::setInt(const std::string &name, int value)
     GLint location{getCachedUniform(name)};
 
     if (location != -1)
-        glProgramUniform1i(ID, location, value);
+        glProgramUniform1i(id_, location, value);
 }
 
 void Shader::setFloat(const std::string &name, float value)
@@ -114,7 +119,7 @@ void Shader::setFloat(const std::string &name, float value)
     GLint location{getCachedUniform(name)};
 
     if (location != -1)
-        glProgramUniform1f(ID, location, value);
+        glProgramUniform1f(id_, location, value);
 }
 
 void Shader::setMat3(const std::string &name, const glm::mat3 &value)
@@ -122,7 +127,7 @@ void Shader::setMat3(const std::string &name, const glm::mat3 &value)
     GLint location{getCachedUniform(name)};
 
     if (location != -1)
-        glProgramUniformMatrix3fv(ID, location, 1, GL_FALSE, glm::value_ptr(value));
+        glProgramUniformMatrix3fv(id_, location, 1, GL_FALSE, glm::value_ptr(value));
 }
 
 void Shader::setMat4(const std::string &name, const glm::mat4 &value)
@@ -130,7 +135,7 @@ void Shader::setMat4(const std::string &name, const glm::mat4 &value)
     GLint location{getCachedUniform(name)};
 
     if (location != -1)
-        glProgramUniformMatrix4fv(ID, location, 1, GL_FALSE, glm::value_ptr(value));
+        glProgramUniformMatrix4fv(id_, location, 1, GL_FALSE, glm::value_ptr(value));
 }
 
 void Shader::setVec2(const std::string &name, glm::vec2 value)
@@ -138,7 +143,7 @@ void Shader::setVec2(const std::string &name, glm::vec2 value)
     GLint location{getCachedUniform(name)};
 
     if (location != -1)
-        glProgramUniform2fv(ID, location, 1, glm::value_ptr(value));
+        glProgramUniform2fv(id_, location, 1, glm::value_ptr(value));
 }
 
 void Shader::setVec3(const std::string &name, glm::vec3 value)
@@ -146,7 +151,7 @@ void Shader::setVec3(const std::string &name, glm::vec3 value)
     GLint location{getCachedUniform(name)};
 
     if (location != -1)
-        glProgramUniform3fv(ID, location, 1, glm::value_ptr(value));
+        glProgramUniform3fv(id_, location, 1, glm::value_ptr(value));
 }
 
 void Shader::setVec4(const std::string &name, glm::vec4 value)
@@ -154,15 +159,7 @@ void Shader::setVec4(const std::string &name, glm::vec4 value)
     GLint location{getCachedUniform(name)};
 
     if (location != -1)
-        glProgramUniform4fv(ID, location, 1, glm::value_ptr(value));
-}
-
-void Shader::setUniformBlock(const std::string &name, unsigned int index)
-{
-    GLuint blockID{getCachedBlock(name)};
-
-    if (blockID != GL_INVALID_INDEX)
-        glUniformBlockBinding(ID, blockID, index);
+        glProgramUniform4fv(id_, location, 1, glm::value_ptr(value));
 }
 
 GLint Shader::getCachedUniform(const std::string &name)
@@ -170,17 +167,7 @@ GLint Shader::getCachedUniform(const std::string &name)
     auto [iter, inserted] = uniformLocations_.try_emplace(name, -1);
 
     if (inserted)
-        iter->second = glGetUniformLocation(ID, name.c_str());
-
-    return iter->second;
-}
-
-GLuint Shader::getCachedBlock(const std::string &name)
-{
-    auto [iter, inserted] = blockLocations_.try_emplace(name, GL_INVALID_INDEX);
-
-    if (inserted)
-        iter->second = glGetUniformBlockIndex(ID, name.c_str());
+        iter->second = glGetUniformLocation(id_, name.c_str());
 
     return iter->second;
 }
