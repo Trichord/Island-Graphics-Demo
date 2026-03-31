@@ -214,3 +214,8 @@ void Player::OnContactSolve(const JPH::CharacterVirtual *inCharacter, const JPH:
     if (!allowSliding_ && inContactVelocity.IsNearZero() && !inCharacter->IsSlopeTooSteep(inContactNormal))
         ioNewCharacterVelocity = JPH::Vec3::sZero();
 }
+
+JPH::Vec3 Player::getVelocity() const
+{
+    return player_->GetLinearVelocity();
+}

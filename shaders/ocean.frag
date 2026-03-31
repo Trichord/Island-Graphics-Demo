@@ -13,7 +13,6 @@ layout (std140, binding = 0) uniform cameraData {
 uniform sampler2D armMap; //dudv map here
 uniform sampler2D normalMap;
 uniform samplerCube cubeMap;
-uniform vec3 lightColor;
 uniform vec3 lightDir;
 uniform vec3 scale;
 uniform float time;
@@ -36,8 +35,6 @@ const vec3 sceneCenter = vec3(0.0);
 void main() 
 {	
 	vec3 V = normalize(cameraPosition.xyz - fs_in.fragPos);
-	vec3 L = normalize(-lightDir);
-	vec3 H = normalize(L + V);
 
 	// Move textures by time
 	float movement = time * waveSpeed;

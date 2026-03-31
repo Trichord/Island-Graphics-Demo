@@ -24,6 +24,8 @@ class Player : public JPH::CharacterContactListener
 
     JPH::Vec3 getCenter() const;
     JPH::Vec3 getPosition() const;
+    JPH::Vec3 getVelocity() const;
+
     void setPosition(JPH::Vec3 position);
     void setVelocity(JPH::Vec3 velocity);
     void toggleCrouch(bool enable);
