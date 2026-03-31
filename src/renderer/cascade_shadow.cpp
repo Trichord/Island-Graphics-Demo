@@ -39,7 +39,8 @@ void CascadeShadow::calculateCascadeSplits(float farPlane)
 }
 
 // Returns the bounding sphere of a frustum
-CascadeShadow::FrustumSphere CascadeShadow::getFrustumSphere(const std::array<glm::vec3, 8> &corners, int textureResolution)
+CascadeShadow::FrustumSphere CascadeShadow::getFrustumSphere(const std::array<glm::vec3, 8> &corners,
+                                                             int textureResolution)
 {
     // Snaps radius to the nearest 1/amount to reduce shimmer
     float snapResolution_{textureResolution < 1024 ? 2.0f : 16.0f};

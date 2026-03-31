@@ -73,7 +73,6 @@ void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, bool 
     {
         player_.setPosition(resetPosition_);
         previousPosition_ = toGLM(resetPosition_);
-        player_.setVelocity(JPH::Vec3{0.0f, 0.0f, 0.0f});
         return;
     }
 
