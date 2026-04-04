@@ -103,6 +103,9 @@ class Renderer
     RenderTarget shadowPassTarget_;
     RenderTarget shadowBlitTarget_;
 
+    // Scene objects for drawing
+    std::map<ShaderType, std::vector<DrawEntry>> drawEntriesByShader_;
+
     // Renderer initialization
     void loadShaders();
 
@@ -110,26 +113,29 @@ class Renderer
     void createVAO(Scene &scene);
     void createBuffers(Scene &scene);
     void setupShader(Shader &shader);
-    void borrowSkyboxes(Scene &scene);
+    void buildShaderMap(Scene &scene);
     void createCubemaps(Scene &scene);
     void loadInstancedData(Scene &scene);
     void setSceneShaderUniforms(Scene &scene);
-    void populateSSBOs(Scene &scene, std::size_t totalInstanceCount);
+    void populateSSBOs(std::size_t totalInstanceCount);
     void createCubemapFaces(Scene &scene, int renderTargetSize, GLuint texture);
 
+    // Scene independent initialization
+    void borrowSkyboxes();
+
     // Rendering
-    void renderAllSceneObjects(Scene &scene);
-    void renderObject(Renderable &renderable);
+    void renderAllSceneObjects();
+    void renderObject(DrawEntry &renderable);
     void bindTextures(const Material &materials);
-    void shadowPass(Scene &scene, const CascadeShadow::LightMatrices &lightMatrices, Shader &shader, int cascade,
+    void shadowPass(const CascadeShadow::LightMatrices &lightMatrices, Shader &shader, int cascade,
                     bool drawAlphaTested);
 
     // Culling
-    void resetVisibility(Scene &scene);
-    void cullNone(Renderable &renderable, GLuint &currentOffset);
+    void resetVisibility();
+    void cullNone(DrawEntry &renderable, GLuint &currentOffset);
     void cullRenderables(Scene &scene, const glm::mat4 &cullMatrix);
-    void cullByMesh(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
-    void cullInstanced(Renderable &renderable, const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
+    void cullByMesh(DrawEntry &renderable, const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
+    void cullInstanced(DrawEntry &renderable, const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
 
     // Updates
     void updateCameraUBO(Scene &scene);
