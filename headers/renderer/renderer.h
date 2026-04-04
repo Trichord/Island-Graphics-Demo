@@ -17,9 +17,6 @@
 #include "texture_manager.h"
 #include "thread_pool.h"
 
-// Desired threadcount for the texture loading threadpool
-constexpr unsigned int threadCount{6u};
-
 class Renderer
 {
   public:
@@ -41,13 +38,6 @@ class Renderer
     static constexpr float depthClear_{1.0f};
     static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
 
-    // Stores offsets as an integer index into the buffer
-    struct ssboOffsets
-    {
-        GLuint matricesOffset{0};
-        GLuint indicesOffset{0};
-    };
-
     // Packed UBO data holds everything we want to share with all shaders
     struct PackedCameraData
     {
@@ -65,7 +55,7 @@ class Renderer
     };
 
     std::uint32_t framesRendered_{0};
-    ThreadPool threadPool_{threadCount};
+    ThreadPool threadPool_;
 
     // UBO
     GLuint cameraUBO_{0};
@@ -94,8 +84,6 @@ class Renderer
      */
     GLuint indicesSSBO_{0};
     GLuint matricesSSBO_{0};
-    std::vector<GLuint> originalIndices_;
-    std::unordered_map<ModelHandle, ssboOffsets> modelBaseIndices_;
 
     // Owned objects
     GLState glState_;
@@ -103,6 +91,12 @@ class Renderer
     std::vector<GLuint> instanceIndices_;
     std::unordered_map<ShaderType, Shader> shaders_;
     const GraphicsSettings graphicsSettings_;
+    std::unordered_map<ModelHandle, GLuint> matricesBufferIndexByHandle;
+
+    // Global VAO
+    GLuint globalVAO_{0};
+    GLuint globalVBO_{0};
+    GLuint globalEBO_{0};
 
     // Textures
     CascadeShadow cascadeShadow_;
@@ -113,6 +107,7 @@ class Renderer
     void loadShaders();
 
     // Scene dependent initialization
+    void createVAO(Scene &scene);
     void createBuffers(Scene &scene);
     void setupShader(Shader &shader);
     void borrowSkyboxes(Scene &scene);

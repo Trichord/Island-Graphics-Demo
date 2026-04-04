@@ -232,10 +232,6 @@ std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(const fastgltf::Asset &a
     applyNodeTransforms(asset, meshes);
     calculateAABB(meshes);
 
-    for (auto &mesh : meshes)
-        for (auto &primitive : mesh.primitives)
-            primitive.setupPrimitiveBuffers();
-
     return meshes;
 }
 

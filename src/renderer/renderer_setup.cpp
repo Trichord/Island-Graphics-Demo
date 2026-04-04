@@ -9,18 +9,25 @@
 #include <vector>
 
 #include "camera.h"
-#include "settings_window.h"
 #include "gl_context.h"
 #include "glm/glm.hpp"
 #include "render_target.h"
 #include "renderable.h"
 #include "scene.h"
+#include "settings_window.h"
 #include "shader_type.h"
 #include "texture_manager.h"
 #include "texture_units.h"
 #include "texture_utilities.h"
 #include "transform.h"
 #include "world_vectors.h"
+
+// Keep track of the number of vertices and indices in an entire scene
+struct PrimitiveTotals
+{
+    GLuint vertices{0};
+    GLuint indices{0};
+};
 
 void Renderer::loadInstancedData(Scene &scene)
 {
@@ -190,11 +197,11 @@ void Renderer::createCubemapFaces(Scene &scene, int targetResolution, GLuint tex
     RenderTarget cubeFace(targetResolution, targetResolution,
                           {graphicsSettings_.msaa, RenderTarget::DepthType::RBO, GL_SRGB8, GL_DEPTH_COMPONENT24});
     RenderTarget blitTarget(targetResolution, targetResolution, {0, RenderTarget::DepthType::NONE, GL_SRGB8, GL_NONE});
-    
-     Camera &camera{scene.getCamera()};
+
+    Camera &camera{scene.getCamera()};
     const int renderTargetSize{cubeFace.getWidth()};
     const GLuint blitTargetTexture{blitTarget.getColorTextureID()};
-   
+
     cubeFace.bind();
 
     // Copy each MSAA direction into a cubemap face
@@ -232,11 +239,12 @@ void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
 
             const GLuint numInstances{static_cast<GLuint>(instances.size())};
 
-            renderable.properties.visibleInstances = numInstances;
-
             // Keep track of start position for each model's matrices in the SSBO. Before any culling there is a 1:1
             // mapping of the model matrices and indices
-            modelBaseIndices_.emplace(object.getHandle(), ssboOffsets{matricesOffset, matricesOffset});
+            renderable.properties.visibleInstances = numInstances;
+            renderable.properties.indicesBufferIndex = numInstances;
+            renderable.properties.matricesBufferBaseIndex = matricesOffset;
+            matricesBufferIndexByHandle.emplace(object.getHandle(), matricesOffset);
 
             for (std::size_t i{0}; i < instances.size(); ++i)
             {
@@ -245,7 +253,6 @@ void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
 
                 // Add each index as well (offset + index will give the proper model matrix)
                 instanceIndices_.push_back(static_cast<GLuint>(i));
-                originalIndices_.push_back(static_cast<GLuint>(i));
             }
 
             matricesOffset += numInstances;
@@ -253,4 +260,104 @@ void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
 
     glNamedBufferSubData(matricesSSBO_, 0, modelMatrices.size() * sizeof(glm::mat4), modelMatrices.data());
     glNamedBufferSubData(indicesSSBO_, 0, instanceIndices_.size() * sizeof(std::uint32_t), instanceIndices_.data());
+}
+
+PrimitiveTotals countPrimitives(Scene &scene)
+{
+    PrimitiveTotals totals;
+
+    for (auto &[_, renderables] : scene.getRenderablesByShader())
+    {
+        for (auto &renderable : renderables)
+        {
+            auto &object = renderable.objectRef.get();
+            std::span<Primitive::Mesh> meshes{object.getMeshes()};
+            for (Primitive::Mesh& mesh : meshes)
+            {
+                for (Primitive &primitive : mesh.primitives)
+                {
+                    std::span<const Primitive::Vertex> objectVertices{primitive.getVertices()};
+                    std::span<const std::uint32_t> objectIndices{primitive.getIndices()};
+
+                    totals.vertices += static_cast<GLuint>(primitive.getVertices().size());
+                    totals.indices += static_cast<GLuint>(primitive.getIndices().size());
+                }
+            }
+        }
+    }
+    return totals;
+}
+
+/* Vertex attribute layout:
+ * 0 - position (vec3)
+ * 1 - normal (vec3)
+ * 2 - tangent (vec4)
+ * 3 - texture coordinates (vec2)
+ */
+void Renderer::createVAO(Scene &scene)
+{
+    glCreateVertexArrays(1, &globalVAO_);
+    glBindVertexArray(globalVAO_);
+
+    glEnableVertexArrayAttrib(globalVAO_, 0);
+    glEnableVertexArrayAttrib(globalVAO_, 1);
+    glEnableVertexArrayAttrib(globalVAO_, 2);
+    glEnableVertexArrayAttrib(globalVAO_, 3);
+
+    std::vector<Primitive::Vertex> vertices;
+    std::vector<std::uint32_t> indices;
+    GLuint VAOIndex{0};
+    GLuint EBOIndex{0};
+
+    PrimitiveTotals totals{countPrimitives(scene)};
+
+    vertices.reserve(totals.vertices);
+    indices.reserve(totals.indices);
+
+    for (auto &[_, renderables] : scene.getRenderablesByShader())
+    {
+        for (auto &renderable : renderables)
+        {
+            auto &object = renderable.objectRef.get();
+            std::span<Primitive::Mesh> meshes{object.getMeshes()};
+
+            for (Primitive::Mesh& mesh : meshes)
+            {
+                for (Primitive &primitive : mesh.primitives)
+                {
+                    std::span<const Primitive::Vertex> objectVertices{primitive.getVertices()};
+                    std::span<const std::uint32_t> objectIndices{primitive.getIndices()};
+
+                    std::copy(objectVertices.begin(), objectVertices.end(), std::back_inserter(vertices));
+                    std::copy(objectIndices.begin(), objectIndices.end(), std::back_inserter(indices));
+
+                    primitive.setVAOIndex(VAOIndex);
+                    primitive.setEBOIndex(EBOIndex);
+
+                    VAOIndex += static_cast<GLuint>(primitive.getVertices().size());
+                    EBOIndex += static_cast<GLuint>(primitive.getIndices().size());
+                }
+            }
+        }
+    }
+
+    glCreateBuffers(1, &globalVBO_);
+    glNamedBufferStorage(globalVBO_, vertices.size() * sizeof(Primitive::Vertex), vertices.data(), 0);
+
+    glCreateBuffers(1, &globalEBO_);
+    glNamedBufferStorage(globalEBO_, indices.size() * sizeof(std::uint32_t), indices.data(), 0);
+
+    glVertexArrayVertexBuffer(globalVAO_, 0, globalVBO_, 0, sizeof(Primitive::Vertex));
+
+    glVertexArrayElementBuffer(globalVAO_, globalEBO_);
+
+    glVertexArrayAttribFormat(globalVAO_, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, position));
+    glVertexArrayAttribFormat(globalVAO_, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, normal));
+    glVertexArrayAttribFormat(globalVAO_, 2, 4, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, tangent));
+    glVertexArrayAttribFormat(globalVAO_, 3, 2, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, texCoords));
+
+    glVertexArrayAttribBinding(globalVAO_, 0, 0);
+    glVertexArrayAttribBinding(globalVAO_, 1, 0);
+    glVertexArrayAttribBinding(globalVAO_, 2, 0);
+    glVertexArrayAttribBinding(globalVAO_, 3, 0);
 }

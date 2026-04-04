@@ -21,15 +21,15 @@ constexpr float alphaCutoff{0.425f};
 constexpr int shadowMapMSAA{2};
 
 Renderer::Renderer(const GraphicsSettings &settings)
-    : textureManager_{threadPool_, settings}, graphicsSettings_{settings},
-      shadowPassTarget_{settings.shadowResolution,
-                        settings.shadowResolution,
-                        {
-                            shadowMapMSAA,
-                            RenderTarget::DepthType::RBO,
-                            GL_RG32F,
-                            GL_DEPTH_COMPONENT32F,
-                        }},
+    : threadPool_{std::max(2u, std::thread::hardware_concurrency() / 2u)}, textureManager_{threadPool_, settings},
+      graphicsSettings_{settings}, shadowPassTarget_{settings.shadowResolution,
+                                                     settings.shadowResolution,
+                                                     {
+                                                         shadowMapMSAA,
+                                                         RenderTarget::DepthType::RBO,
+                                                         GL_RG32F,
+                                                         GL_DEPTH_COMPONENT32F,
+                                                     }},
       shadowBlitTarget_{settings.shadowResolution,
                         settings.shadowResolution,
                         {0, RenderTarget::DepthType::NONE, GL_RG32F, GL_NONE, true, CascadeShadow::cascadeCount}}
@@ -151,6 +151,7 @@ void Renderer::initializeResources(Scene &scene)
     setSceneShaderUniforms(scene);
     loadInstancedData(scene);
     createBuffers(scene);
+    createVAO(scene);
     borrowSkyboxes(scene);
     createCubemaps(scene);
 
@@ -170,6 +171,10 @@ TextureManager &Renderer::getTextureManager()
 
 void Renderer::deleteBuffers()
 {
+    glDeleteVertexArrays(1, &globalVAO_);
+    glDeleteBuffers(1, &globalVBO_);
+    glDeleteBuffers(1, &globalEBO_);
+
     glDeleteBuffers(1, &cameraUBO_);
     glDeleteBuffers(1, &shadowCascadesUBO_);
 
@@ -183,7 +188,7 @@ void Renderer::updateSceneTransforms(Scene &scene)
 
     for (ModelHandle handle : updatedTransformHandles)
     {
-        const ssboOffsets &bufferOffset = modelBaseIndices_.at(handle);
+        const GLuint baseIndex{matricesBufferIndexByHandle.at(handle)};
         const std::span<Instance> updatedTransforms{scene.getInstancesByHandle(handle)};
 
         std::vector<glm::mat4> matrices;
@@ -192,8 +197,8 @@ void Renderer::updateSceneTransforms(Scene &scene)
         for (auto &instance : updatedTransforms)
             matrices.emplace_back(instance.transform.getModelMatrix());
 
-        glNamedBufferSubData(matricesSSBO_, bufferOffset.matricesOffset * sizeof(glm::mat4),
-                             sizeof(glm::mat4) * matrices.size(), matrices.data());
+        glNamedBufferSubData(matricesSSBO_, baseIndex * sizeof(glm::mat4), sizeof(glm::mat4) * matrices.size(),
+                             matrices.data());
     }
 
     updatedTransformHandles.clear();
