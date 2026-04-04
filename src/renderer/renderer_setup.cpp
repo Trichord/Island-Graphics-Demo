@@ -31,44 +31,35 @@ struct PrimitiveTotals
 
 void Renderer::loadInstancedData(Scene &scene)
 {
-    for (auto &[_, renderables] : scene.getRenderablesByShader())
-        for (auto &renderable : renderables)
+    for (SceneEntry &sceneEntry : scene.getAllSceneEntries())
+    {
+        Renderable &renderable{sceneEntry.renderableRef.get()};
+
+        if (auto instancedData = renderable.generateInstancedData(); instancedData.has_value())
         {
-            // Make everything visible for cubemap generation
-            renderable.properties.isVisible = true;
-            renderable.objectRef.get().setMeshVisibility(true);
-
-            auto &object = renderable.objectRef.get();
-
-            if (auto instancedData = object.generateInstancedData(); instancedData.has_value())
-            {
-                std::vector<Instance> data{instancedData.value()};
-
-                renderable.properties.visibleInstances = static_cast<uint32_t>(data.size());
-                renderable.properties.instances = std::move(data);
-            }
+            std::vector<Instance> &data{instancedData.value()};
+            sceneEntry.instances = std::move(data);
         }
+    }
 }
 
-void Renderer::borrowSkyboxes(Scene &scene)
+void Renderer::borrowSkyboxes()
 {
     using enum ShaderType;
 
-    auto &shaderMap = scene.getRenderablesByShader();
-
-    if (!shaderMap.contains(SKYBOX) || !shaderMap.contains(OCEAN))
+    if (!drawEntriesByShader_.contains(SKYBOX) || !drawEntriesByShader_.contains(OCEAN))
         return;
 
-    auto &skyboxes = shaderMap[SKYBOX];
-    auto &oceans = shaderMap[OCEAN];
+    auto &skyboxes = drawEntriesByShader_[SKYBOX];
+    auto &oceans = drawEntriesByShader_[OCEAN];
 
     if (skyboxes.empty() || oceans.empty())
         return;
 
     for (int i{0}; i < skyboxes.size() && i < oceans.size(); ++i)
     {
-        auto &ocean = oceans[i].objectRef.get();
-        auto &skybox = skyboxes[i].objectRef.get();
+        auto &ocean = oceans[i].renderableRef.get();
+        auto &skybox = skyboxes[i].renderableRef.get();
 
         textureManager_.borrowAssignMaterials(ocean.getHandle(), skybox.getHandle(), Texture::CUBEMAP);
     }
@@ -87,9 +78,8 @@ void Renderer::createBuffers(Scene &scene)
 
     // Find total number of all instances across all scene objects
     std::size_t numInstances{0};
-    for (auto &[_, objectList] : scene.getRenderablesByShader())
-        for (auto &renderable : objectList)
-            numInstances += renderable.properties.instances.size();
+    for (SceneEntry &entry : scene.getAllSceneEntries())
+        numInstances += entry.instances.size();
 
     // Instanced model matrices
     glCreateBuffers(1, &matricesSSBO_);
@@ -102,14 +92,19 @@ void Renderer::createBuffers(Scene &scene)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, indicesSSBO_);
 
     // Fill the SSBOs with all instanced model data
-    populateSSBOs(scene, numInstances);
+    populateSSBOs(numInstances);
 }
 
 void Renderer::createCubemaps(Scene &scene)
 {
     using enum ShaderType;
 
-    auto &waters{scene.getRenderablesByShader().at(WATER)};
+    for (SceneEntry &entry : scene.getAllSceneEntries())
+    {
+        entry.renderableRef.get().setMeshVisibility(true);
+    }
+
+    auto &waters{drawEntriesByShader_.at(WATER)};
 
     if (waters.empty())
         return;
@@ -131,9 +126,9 @@ void Renderer::createCubemaps(Scene &scene)
     camera.setFOV(90.0f);
     camera.setAspectRatio(1.0f);
 
-    for (auto &renderable : waters)
+    for (auto &drawEntry : waters)
     {
-        auto &instances = renderable.properties.instances;
+        std::vector<Instance> &instances{drawEntry.instancesRef.get()};
 
         if (instances.empty())
             continue;
@@ -143,7 +138,7 @@ void Renderer::createCubemaps(Scene &scene)
         camera.setPosition(transform.getPosition());
 
         // Hide self
-        renderable.properties.isVisible = false;
+        drawEntry.isVisible = false;
 
         // Create the cubemap texture
         GLuint cubeMapTextureID{0};
@@ -161,9 +156,9 @@ void Renderer::createCubemaps(Scene &scene)
         glTextureParameteri(cubeMapTextureID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
         // Assign the texture
-        auto &waterPlane = renderable.objectRef.get();
+        auto &waterPlane = drawEntry.renderableRef.get();
         textureManager_.setMaterial(waterPlane.getHandle(), Texture::CUBEMAP, cubeMapTextureID);
-        renderable.properties.isVisible = true;
+        drawEntry.isVisible = true;
     }
 
     // Reset
@@ -191,7 +186,7 @@ void Renderer::createCubemapFaces(Scene &scene, int targetResolution, GLuint tex
         camera.setWorldOrientation(orientation);
         updateCameraUBO(scene);
         target.clear();
-        renderAllSceneObjects(scene);
+        renderAllSceneObjects();
     };
 
     RenderTarget cubeFace(targetResolution, targetResolution,
@@ -218,7 +213,7 @@ void Renderer::createCubemapFaces(Scene &scene, int targetResolution, GLuint tex
     cubeFace.unbind();
 }
 
-void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
+void Renderer::populateSSBOs(std::size_t totalInstanceCount)
 {
     // Reserve max amount for matrices
     std::vector<glm::mat4> modelMatrices;
@@ -228,11 +223,11 @@ void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
     GLuint matricesOffset{0};
     instanceIndices_.clear();
 
-    for (auto &[_, renderables] : scene.getRenderablesByShader())
-        for (auto &renderable : renderables)
+    for (auto &[_, drawEntries] : drawEntriesByShader_)
+        for (auto &drawEntry : drawEntries)
         {
-            auto &object{renderable.objectRef.get()};
-            auto &instances{renderable.properties.instances};
+            Renderable &renderable{drawEntry.renderableRef.get()};
+            std::vector<Instance> &instances{drawEntry.instancesRef.get()};
 
             if (instances.empty())
                 continue;
@@ -241,10 +236,9 @@ void Renderer::populateSSBOs(Scene &scene, std::size_t totalInstanceCount)
 
             // Keep track of start position for each model's matrices in the SSBO. Before any culling there is a 1:1
             // mapping of the model matrices and indices
-            renderable.properties.visibleInstances = numInstances;
-            renderable.properties.indicesBufferIndex = numInstances;
-            renderable.properties.matricesBufferBaseIndex = matricesOffset;
-            matricesBufferIndexByHandle.emplace(object.getHandle(), matricesOffset);
+            drawEntry.indicesBufferIndex = matricesOffset;
+            drawEntry.matricesBufferBaseIndex = matricesOffset;
+            matricesBufferIndexByHandle.emplace(renderable.getHandle(), matricesOffset);
 
             for (std::size_t i{0}; i < instances.size(); ++i)
             {
@@ -266,22 +260,19 @@ PrimitiveTotals countPrimitives(Scene &scene)
 {
     PrimitiveTotals totals;
 
-    for (auto &[_, renderables] : scene.getRenderablesByShader())
+    for (auto &sceneEntry : scene.getAllSceneEntries())
     {
-        for (auto &renderable : renderables)
+        Renderable &renderable{sceneEntry.renderableRef.get()};
+        std::span<Primitive::Mesh> meshes{renderable.getMeshes()};
+        for (Primitive::Mesh &mesh : meshes)
         {
-            auto &object = renderable.objectRef.get();
-            std::span<Primitive::Mesh> meshes{object.getMeshes()};
-            for (Primitive::Mesh& mesh : meshes)
+            for (Primitive &primitive : mesh.primitives)
             {
-                for (Primitive &primitive : mesh.primitives)
-                {
-                    std::span<const Primitive::Vertex> objectVertices{primitive.getVertices()};
-                    std::span<const std::uint32_t> objectIndices{primitive.getIndices()};
+                std::span<const Primitive::Vertex> objectVertices{primitive.getVertices()};
+                std::span<const std::uint32_t> objectIndices{primitive.getIndices()};
 
-                    totals.vertices += static_cast<GLuint>(primitive.getVertices().size());
-                    totals.indices += static_cast<GLuint>(primitive.getIndices().size());
-                }
+                totals.vertices += static_cast<GLuint>(primitive.getVertices().size());
+                totals.indices += static_cast<GLuint>(primitive.getIndices().size());
             }
         }
     }
@@ -314,29 +305,26 @@ void Renderer::createVAO(Scene &scene)
     vertices.reserve(totals.vertices);
     indices.reserve(totals.indices);
 
-    for (auto &[_, renderables] : scene.getRenderablesByShader())
+    for (SceneEntry &entry : scene.getAllSceneEntries())
     {
-        for (auto &renderable : renderables)
+        Renderable &renderable{entry.renderableRef.get()};
+        std::span<Primitive::Mesh> meshes{renderable.getMeshes()};
+
+        for (Primitive::Mesh &mesh : meshes)
         {
-            auto &object = renderable.objectRef.get();
-            std::span<Primitive::Mesh> meshes{object.getMeshes()};
-
-            for (Primitive::Mesh& mesh : meshes)
+            for (Primitive &primitive : mesh.primitives)
             {
-                for (Primitive &primitive : mesh.primitives)
-                {
-                    std::span<const Primitive::Vertex> objectVertices{primitive.getVertices()};
-                    std::span<const std::uint32_t> objectIndices{primitive.getIndices()};
+                std::span<const Primitive::Vertex> objectVertices{primitive.getVertices()};
+                std::span<const std::uint32_t> objectIndices{primitive.getIndices()};
 
-                    std::copy(objectVertices.begin(), objectVertices.end(), std::back_inserter(vertices));
-                    std::copy(objectIndices.begin(), objectIndices.end(), std::back_inserter(indices));
+                std::copy(objectVertices.begin(), objectVertices.end(), std::back_inserter(vertices));
+                std::copy(objectIndices.begin(), objectIndices.end(), std::back_inserter(indices));
 
-                    primitive.setVAOIndex(VAOIndex);
-                    primitive.setEBOIndex(EBOIndex);
+                primitive.setVAOIndex(VAOIndex);
+                primitive.setEBOIndex(EBOIndex);
 
-                    VAOIndex += static_cast<GLuint>(primitive.getVertices().size());
-                    EBOIndex += static_cast<GLuint>(primitive.getIndices().size());
-                }
+                VAOIndex += static_cast<GLuint>(primitive.getVertices().size());
+                EBOIndex += static_cast<GLuint>(primitive.getIndices().size());
             }
         }
     }

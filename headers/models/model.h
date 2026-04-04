@@ -9,7 +9,7 @@
 #include "renderable.h"
 #include "texture_manager.h"
 
-class Model : public IRenderable
+class Model : public Renderable
 {
   public:
     Model(TextureManager &textureManager, const std::filesystem::path &path);

@@ -39,7 +39,6 @@ class TextureManager
     void loadCubemap(const ModelHandle handle, std::vector<std::filesystem::path> images,
                      const std::filesystem::path &parentPath = "./", bool mipmaps = true, bool sRGB = true);
     void loadModel(const ModelHandle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath);
-    void allModelsLoaded();
 
   private:
     // Each entry in the vector corresponds to a gltf material index. Materials vector can contain duplicate IDs

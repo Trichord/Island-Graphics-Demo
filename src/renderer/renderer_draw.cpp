@@ -15,13 +15,13 @@
 constexpr float farPlaneReduction{0.2f};
 
 // Render objects, grouped by shader type
-void Renderer::renderAllSceneObjects(Scene &scene)
+void Renderer::renderAllSceneObjects()
 {
     using enum ShaderType;
 
-    for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
+    for (auto &[shaderType, drawEntries] : drawEntriesByShader_)
     {
-        if (objectList.empty() || shaderType == COUNT)
+        if (drawEntries.empty() || shaderType == COUNT)
             continue;
 
         Shader &shader{shaders_.at(shaderType)};
@@ -30,20 +30,19 @@ void Renderer::renderAllSceneObjects(Scene &scene)
         if (shaderType == SKYBOX)
             glDepthFunc(GL_LEQUAL);
 
-        for (auto &renderable : objectList)
+        for (DrawEntry &drawEntry : drawEntries)
         {
-            if (!renderable.properties.isVisible)
+            if (!drawEntry.isVisible)
                 continue;
 
-            const auto &object = renderable.objectRef.get();
-            const auto &properties = renderable.properties;
+            Instance &firstInstance{drawEntry.instancesRef.get()[0]};
 
-            shader.setIntU("matricesOffset", properties.matricesBufferBaseIndex);
-            shader.setIntU("indicesOffset", properties.indicesBufferIndex);
-            shader.setVec3("scale", properties.instances[0].transform.getScale());
+            shader.setIntU("matricesOffset", drawEntry.matricesBufferBaseIndex);
+            shader.setIntU("indicesOffset", drawEntry.indicesBufferIndex);
+            shader.setVec3("scale", firstInstance.transform.getScale());
 
             // Draw it
-            renderObject(renderable);
+            renderObject(drawEntry);
         }
 
         if (shaderType == SKYBOX)
@@ -51,14 +50,13 @@ void Renderer::renderAllSceneObjects(Scene &scene)
     }
 }
 
-void Renderer::renderObject(Renderable &renderable)
+void Renderer::renderObject(DrawEntry &drawEntry)
 {
-    auto &object = renderable.objectRef.get();
-    const auto &properties = renderable.properties;
-    const auto &materials{textureManager_.getMaterials(object.getHandle())};
-    const GLsizei instanceCount{static_cast<GLsizei>(properties.visibleInstances)};
+    Renderable &renderable = drawEntry.renderableRef.get();
+    const auto &materials{textureManager_.getMaterials(renderable.getHandle())};
+    const GLsizei instanceCount{static_cast<GLsizei>(drawEntry.visibleInstances)};
 
-    for (const Primitive::Mesh &mesh : object.getMeshes())
+    for (const Primitive::Mesh &mesh : renderable.getMeshes())
     {
         if (!mesh.isVisible)
             continue;
@@ -134,7 +132,7 @@ void Renderer::updateShadowMaps(Scene &scene)
         // Opaque geometry first
         Shader &shadowShader{shaders_[ShaderType::SHADOW_MAP]};
         shadowShader.use();
-        shadowPass(scene, lightMatrices, shadowShader, cascade, false);
+        shadowPass(lightMatrices, shadowShader, cascade, false);
 
         // Use culling and indexed drawing for the inner 2 cascades
         if (cascade == 1)
@@ -143,7 +141,7 @@ void Renderer::updateShadowMaps(Scene &scene)
         // Alpha tested geometry
         Shader &shadowAlphaShader{shaders_[ShaderType::SHADOW_MAP_ALPHA]};
         shadowAlphaShader.use();
-        shadowPass(scene, lightMatrices, shadowAlphaShader, cascade, true);
+        shadowPass(lightMatrices, shadowAlphaShader, cascade, true);
 
         shadowBlitTarget_.setTextureLayer(static_cast<GLuint>(cascade));
         shadowPassTarget_.blitTo(shadowBlitTarget_);
@@ -153,14 +151,14 @@ void Renderer::updateShadowMaps(Scene &scene)
     glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
 }
 
-void Renderer::shadowPass(Scene &scene, const CascadeShadow::LightMatrices &lightMatrices, Shader &shader, int cascade,
+void Renderer::shadowPass(const CascadeShadow::LightMatrices &lightMatrices, Shader &shader, int cascade,
                           bool drawAlphaTested)
 {
     const glm::mat4 lightVP{lightMatrices.viewProjections[cascade]};
     shader.setMat4("lightViewProjection", lightVP);
     shader.setBool("useIndices", cascade != 2);
 
-    for (auto &[shaderType, renderables] : scene.getRenderablesByShader())
+    for (auto &[shaderType, drawEntries] : drawEntriesByShader_)
     {
         using enum ShaderType;
 
@@ -177,30 +175,29 @@ void Renderer::shadowPass(Scene &scene, const CascadeShadow::LightMatrices &ligh
         if (drawAlphaTested != alphaTestedShader)
             continue;
 
-        for (auto &renderable : renderables)
+        for (DrawEntry &drawEntry : drawEntries)
         {
-            if (!renderable.properties.isVisible)
+            if (!drawEntry.isVisible)
                 continue;
 
-            auto &object = renderable.objectRef.get();
-            const auto &properties = renderable.properties;
-            const auto &materials{textureManager_.getMaterials(object.getHandle())};
+            Renderable &renderable{drawEntry.renderableRef.get()};
+            const auto &materials{textureManager_.getMaterials(renderable.getHandle())};
 
             // Offsets into the main buffer and the indices buffer
-            shader.setIntU("matricesOffset", properties.matricesBufferBaseIndex);
+            shader.setIntU("matricesOffset", drawEntry.matricesBufferBaseIndex);
 
             if (cascade != 2)
-                shader.setIntU("indicesOffset", properties.indicesBufferIndex);
+                shader.setIntU("indicesOffset", drawEntry.indicesBufferIndex);
 
             // Instance count
             GLsizei instanceCount{0};
             if (cascade == 2)
-                instanceCount = static_cast<GLsizei>(properties.instances.size());
+                instanceCount = static_cast<GLsizei>(drawEntry.instancesRef.get().size());
             else
-                instanceCount = properties.visibleInstances;
+                instanceCount = drawEntry.visibleInstances;
 
             // Render primitives
-            for (const Primitive::Mesh &mesh : object.getMeshes())
+            for (const Primitive::Mesh &mesh : renderable.getMeshes())
             {
                 for (const Primitive &primitive : mesh.primitives)
                 {

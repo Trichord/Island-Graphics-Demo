@@ -18,16 +18,15 @@ constexpr int maxModels{50};
 
 Scene::Scene(TextureManager &textureManager) : sceneResources_{textureManager}
 {
-    for (int i{0}; i < static_cast<int>(ShaderType::COUNT); ++i)
-        sceneRenderables_[static_cast<ShaderType>(i)].reserve(maxModels);
+    sceneEntries_.reserve(maxModels);
 }
 
-std::map<ShaderType, std::vector<Renderable>> &Scene::getRenderablesByShader()
+std::vector<SceneEntry> &Scene::getAllSceneEntries()
 {
-    return sceneRenderables_;
+    return sceneEntries_;
 }
 
-ModelInstances &Scene::getInstancesByName(const std::string &key)
+SceneEntry &Scene::getEntryByName(const std::string &key)
 {
     return namedInstances_.at(key);
 }
@@ -67,7 +66,7 @@ std::unordered_set<ModelHandle> &Scene::getTransformsUpdated()
     return transformsUpdated_;
 }
 
-std::vector<Instance> &Scene::getInstancesByHandle(ModelHandle handle) const
+SceneEntry &Scene::getEntryByHandle(ModelHandle handle) const
 {
     return instancesByHandle_.at(handle);
 }
