@@ -37,15 +37,9 @@ void Renderer::renderAllSceneObjects(Scene &scene)
 
             const auto &object = renderable.objectRef.get();
             const auto &properties = renderable.properties;
-            const auto iter = modelBaseIndices_.find(object.getHandle());
 
-            if (iter == modelBaseIndices_.end())
-                throw std::runtime_error("ERROR: Missing handle in SSBO lookup map");
-
-            ssboOffsets offsets{iter->second};
-
-            shader.setIntU("matricesOffset", offsets.matricesOffset);
-            shader.setIntU("indicesOffset", offsets.indicesOffset);
+            shader.setIntU("matricesOffset", properties.matricesBufferBaseIndex);
+            shader.setIntU("indicesOffset", properties.indicesBufferIndex);
             shader.setVec3("scale", properties.instances[0].transform.getScale());
 
             // Draw it
@@ -72,7 +66,10 @@ void Renderer::renderObject(Renderable &renderable)
         for (const Primitive &primitive : mesh.primitives)
         {
             glState_.setAlphaMode(primitive.getAlphaMode());
+
             GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
+            GLuint indexOffset{primitive.getEBOIndex()};
+            GLuint baseVertex{primitive.getVAOIndex()};
 
             if (primitive.materialsExist())
             {
@@ -80,8 +77,8 @@ void Renderer::renderObject(Renderable &renderable)
                 bindTextures(materials[materialIndex]);
             }
 
-            glBindVertexArray(primitive.getVAO());
-            glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0, instanceCount);
+            glDrawElementsInstancedBaseVertex(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT,
+                                              (void *)(indexOffset * sizeof(GLuint)), instanceCount, baseVertex);
         }
     }
 }
@@ -187,18 +184,13 @@ void Renderer::shadowPass(Scene &scene, const CascadeShadow::LightMatrices &ligh
 
             auto &object = renderable.objectRef.get();
             const auto &properties = renderable.properties;
-            const auto iter = modelBaseIndices_.find(object.getHandle());
             const auto &materials{textureManager_.getMaterials(object.getHandle())};
 
-            if (iter == modelBaseIndices_.end())
-                throw std::runtime_error("ERROR: Missing handle in SSBO lookup map");
-
             // Offsets into the main buffer and the indices buffer
-            ssboOffsets offsets{iter->second};
-            shader.setIntU("matricesOffset", offsets.matricesOffset);
+            shader.setIntU("matricesOffset", properties.matricesBufferBaseIndex);
 
             if (cascade != 2)
-                shader.setIntU("indicesOffset", offsets.indicesOffset);
+                shader.setIntU("indicesOffset", properties.indicesBufferIndex);
 
             // Instance count
             GLsizei instanceCount{0};
@@ -212,7 +204,9 @@ void Renderer::shadowPass(Scene &scene, const CascadeShadow::LightMatrices &ligh
             {
                 for (const Primitive &primitive : mesh.primitives)
                 {
-                    const GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
+                    GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
+                    GLuint indexOffset{primitive.getEBOIndex()};
+                    GLuint baseVertex{primitive.getVAOIndex()};
 
                     if (primitive.materialsExist() && drawAlphaTested)
                     {
@@ -220,8 +214,9 @@ void Renderer::shadowPass(Scene &scene, const CascadeShadow::LightMatrices &ligh
                         bindTextures(materials[materialIndex]);
                     }
 
-                    glBindVertexArray(primitive.getVAO());
-                    glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0, instanceCount);
+                    glDrawElementsInstancedBaseVertex(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT,
+                                                      (void *)(indexOffset * sizeof(GLuint)), instanceCount,
+                                                      baseVertex);
                 }
             }
         }

@@ -6,8 +6,8 @@
 
 #include "aabb.h"
 #include "cull_method.h"
-#include "primitive.h"
 #include "glad/glad.h"
+#include "primitive.h"
 #include "shader_type.h"
 #include "texture_manager.h"
 #include "transform.h"
@@ -45,9 +45,15 @@ struct Instance
 struct ObjectProperties
 {
     std::vector<Instance> instances;
-    CullMethod cullMethod{CullMethod::INSTANCED};
+
+    //Culling
     bool isVisible{false};
     GLuint visibleInstances{0};
+    CullMethod cullMethod{CullMethod::INSTANCED};
+
+    // SSBO
+    GLuint matricesBufferBaseIndex{0};
+    GLuint indicesBufferIndex{0};
 };
 
 class IRenderable
