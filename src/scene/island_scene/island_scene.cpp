@@ -5,11 +5,10 @@
 #include <vector>
 
 #include "camera.h"
-#include "settings_window.h"
 #include "glm/glm.hpp"
 #include "object_positions.h"
-#include "renderable.h"
 #include "scene.h"
+#include "settings_window.h"
 #include "shader_type.h"
 #include "texture_manager.h"
 #include "transform.h"
@@ -40,16 +39,12 @@ void IslandScene::addAllModelsToScene()
 
     // Main island
     auto &island = sceneResources_.loadModel("./res/models/island/island.gltf");
-    addObjectToScene(island, DIRECTIONAL_PBR, {.cullMethod = TERRAIN});
+    addObjectToScene(island, DIRECTIONAL_PBR, {}, TERRAIN);
 
     // Statue
     auto &statue = sceneResources_.loadModel("./res/models/set_pieces/statue/statue.gltf");
-
     Transform statueTransform{STATUE_POSITION, glm::vec3{1.0f}, -65.0f, glm::vec3{0.0f, 1.0f, 0.0f}};
-    ObjectProperties statueProperties;
-    statueProperties.instances.emplace_back(std::move(statueTransform), statue.getAABB());
-
-    addObjectToScene(statue, DIRECTIONAL_PBR, std::move(statueProperties));
+    addObjectToScene(statue, DIRECTIONAL_PBR, std::move(statueTransform));
 
     // Fancy spinning space model
     std::vector<std::filesystem::path> spaceBoxPaths{
@@ -58,12 +53,9 @@ void IslandScene::addAllModelsToScene()
 
     auto &spaceModel =
         sceneResources_.loadCubeMappedModel("./res/models/set_pieces/space_model/space_model.gltf", spaceBoxPaths);
-
     Transform spaceDodecaTransform{SPACE_DODECA_POS};
-    ObjectProperties spaceProperties;
-    spaceProperties.instances.emplace_back(std::move(spaceDodecaTransform), spaceModel.getAABB());
 
-    addObjectToScene(spaceModel, REFLECTIVE, std::move(spaceProperties), "spaceModel");
+    addObjectToScene(spaceModel, REFLECTIVE, std::move(spaceDodecaTransform), INSTANCED, "spaceModel");
 
     /**************
      *            *
@@ -74,37 +66,37 @@ void IslandScene::addAllModelsToScene()
     // Grass
     auto &grass = sceneResources_.loadInstancedModel("./res/models/vegetation/grass/grass.gltf",
                                                      "./res/positions/grass.txt", 0.3f, 0.5, 1497);
-    addObjectToScene(grass, GRASS, {.cullMethod = INSTANCED});
+    addObjectToScene(grass, GRASS);
 
     // White flowers
     auto &whiteFlowers = sceneResources_.loadInstancedModel("./res/models/vegetation/whiteflower/whiteflower.gltf",
                                                             "./res/positions/whiteflower.txt", 0.9f, 1.1f, 488);
-    addObjectToScene(whiteFlowers, GRASS, {.cullMethod = INSTANCED});
+    addObjectToScene(whiteFlowers, GRASS);
     ModelHandle whiteFlowerHandle{whiteFlowers.getHandle()};
 
     // Blue flowers
     auto &blueFlowers =
         sceneResources_.loadInstancedModel(whiteFlowerHandle, "./res/models/vegetation/blueflower/blueflower.gltf",
                                            "./res/positions/blueflower.txt", 0.9f, 1.1f, 212);
-    addObjectToScene(blueFlowers, GRASS, {.cullMethod = INSTANCED});
+    addObjectToScene(blueFlowers, GRASS);
 
     // Purple flowers
     auto &purpleFlowers =
         sceneResources_.loadInstancedModel(whiteFlowerHandle, "./res/models/vegetation/purpleflower/purpleflower.gltf",
                                            "./res/positions/purpleflower.txt", 0.9f, 1.1f, 328);
-    addObjectToScene(purpleFlowers, GRASS, {.cullMethod = INSTANCED});
+    addObjectToScene(purpleFlowers, GRASS);
 
     // Dandelions
     auto &dandelions =
         sceneResources_.loadInstancedModel(whiteFlowerHandle, "./res/models/vegetation/dandelion/dandelion.gltf",
                                            "./res/positions/dandelion.txt", 1.0f, 1.5f, 944);
-    addObjectToScene(dandelions, GRASS, {.cullMethod = INSTANCED});
+    addObjectToScene(dandelions, GRASS);
 
     // Strawberry flowers
     auto &strawberries =
         sceneResources_.loadInstancedModel(whiteFlowerHandle, "./res/models/vegetation/strawberry/strawberry.gltf",
                                            "./res/positions/strawberry.txt", 0.8f, 1.2f, 120);
-    addObjectToScene(strawberries, GRASS, {.cullMethod = INSTANCED});
+    addObjectToScene(strawberries, GRASS);
 
     /*********
      *       *
@@ -115,32 +107,28 @@ void IslandScene::addAllModelsToScene()
     // Tree 1
     auto &tree1 = sceneResources_.loadInstancedModel("./res/models/trees/tree1/tree1.gltf", "./res/positions/tree1.txt",
                                                      0.8f, 1.2f, 66);
-    addObjectToScene(tree1, TREES, {.cullMethod = INSTANCED});
+    addObjectToScene(tree1, TREES);
     ModelHandle tree1Handle{tree1.getHandle()};
 
     // Tree 2
     auto &tree2 = sceneResources_.loadInstancedModel(tree1Handle, "./res/models/trees/tree2/tree2.gltf",
                                                      "./res/positions/tree2.txt", 0.8f, 1.125f, 24);
-    addObjectToScene(tree2, TREES, {.cullMethod = INSTANCED});
+    addObjectToScene(tree2, TREES);
 
     // Tree 3
     auto &tree3 = sceneResources_.loadInstancedModel(tree1Handle, "./res/models/trees/tree3/tree3.gltf",
                                                      "./res/positions/tree3.txt", 0.85f, 1.3f, 27);
-    addObjectToScene(tree3, TREES, {.cullMethod = INSTANCED});
+    addObjectToScene(tree3, TREES);
 
     // Tree 4
     auto &tree4 = sceneResources_.loadInstancedModel(tree1Handle, "./res/models/trees/tree4/tree4.gltf",
                                                      "./res/positions/tree4.txt", 0.9f, 1.3f, 34);
-    addObjectToScene(tree4, TREES, {.cullMethod = INSTANCED});
+    addObjectToScene(tree4, TREES);
 
     // Dead tree
     auto &deadTree = sceneResources_.loadModel("./res/models/trees/dead_tree/dead_tree.gltf");
-
     Transform deadTreeTransform{DEAD_TREE_POS, glm::vec3{1.0f}, 45.0f};
-    ObjectProperties deadTreeProperties;
-    deadTreeProperties.instances.emplace_back(std::move(deadTreeTransform), deadTree.getAABB());
-
-    addObjectToScene(deadTree, DIRECTIONAL_PBR, std::move(deadTreeProperties));
+    addObjectToScene(deadTree, DIRECTIONAL_PBR, std::move(deadTreeTransform));
 
     /*********
      *       *
@@ -151,43 +139,43 @@ void IslandScene::addAllModelsToScene()
     // Rock 1
     auto &rock1 = sceneResources_.loadInstancedModel("./res/models/rocks/rock1/rock1.gltf", "./res/positions/rock1.txt",
                                                      0.9f, 2.0f, 11);
-    addObjectToScene(rock1, DIRECTIONAL_PBR, {.cullMethod = INSTANCED});
+    addObjectToScene(rock1, DIRECTIONAL_PBR);
     ModelHandle rockHandle{rock1.getHandle()};
 
     // Rock 2
     auto &rock2 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock2/rock2.gltf",
                                                      "./res/positions/rock2.txt", 1.45f, 2.2f, 10);
-    addObjectToScene(rock2, DIRECTIONAL_PBR, {.cullMethod = INSTANCED});
+    addObjectToScene(rock2, DIRECTIONAL_PBR);
 
     // Rock 3
     auto &rock3 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock3/rock3.gltf",
                                                      "./res/positions/rock3.txt", 0.75f, 1.0f, 14);
-    addObjectToScene(rock3, DIRECTIONAL_PBR, {.cullMethod = INSTANCED});
+    addObjectToScene(rock3, DIRECTIONAL_PBR);
 
     // Rock 4
     auto &rock4 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock4/rock4.gltf",
                                                      "./res/positions/rock4.txt", 0.8f, 1.3f, 6);
-    addObjectToScene(rock4, DIRECTIONAL_PBR, {.cullMethod = INSTANCED});
+    addObjectToScene(rock4, DIRECTIONAL_PBR);
 
     // Rock 5
     auto &rock5 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock5/rock5.gltf",
                                                      "./res/positions/rock5.txt", 0.875f, 1.1f, 6);
-    addObjectToScene(rock5, DIRECTIONAL_PBR, {.cullMethod = INSTANCED});
+    addObjectToScene(rock5, DIRECTIONAL_PBR);
 
     // Rock 6
     auto &rock6 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock6/rock6.gltf",
                                                      "./res/positions/rock6.txt", 1.2f, 1.4f, 6);
-    addObjectToScene(rock6, DIRECTIONAL_PBR, {.cullMethod = INSTANCED});
+    addObjectToScene(rock6, DIRECTIONAL_PBR);
 
     // Rock 7
     auto &rock7 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock7/rock7.gltf",
                                                      "./res/positions/rock7.txt", 0.9f, 1.125f, 8);
-    addObjectToScene(rock7, DIRECTIONAL_PBR, {.cullMethod = INSTANCED});
+    addObjectToScene(rock7, DIRECTIONAL_PBR);
 
     // Rock 8
     auto &rock8 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock8/rock8.gltf",
                                                      "./res/positions/rock8.txt", 1.0f, 1.25f, 8);
-    addObjectToScene(rock8, DIRECTIONAL_PBR, {.cullMethod = INSTANCED});
+    addObjectToScene(rock8, DIRECTIONAL_PBR);
 
     /*********
      *       *
@@ -199,28 +187,17 @@ void IslandScene::addAllModelsToScene()
     auto &pond = sceneResources_.loadModel("./res/models/water/pond/pond.gltf");
 
     Transform pondTransform{POND_WATER_POS, POND_WATER_SCALE};
-    ObjectProperties pondProperties;
-    pondProperties.instances.emplace_back(std::move(pondTransform), pond.getAABB());
-
-    addObjectToScene(pond, WATER, std::move(pondProperties));
+    addObjectToScene(pond, WATER, std::move(pondTransform));
 
     // Small starting area puddle
     auto &puddle = sceneResources_.loadModel("./res/models/water/puddle/puddle.gltf");
-
     Transform puddleTransform{PUDDLE_POS, PUDDLE_SCALE};
-    ObjectProperties puddleProperties;
-    puddleProperties.instances.emplace_back(std::move(puddleTransform), puddle.getAABB());
-
-    addObjectToScene(puddle, WATER, std::move(puddleProperties));
+    addObjectToScene(puddle, WATER, std::move(puddleTransform));
 
     // Ocean
     auto &ocean = sceneResources_.loadModel("./res/models/water/ocean/ocean.gltf");
-
     Transform oceanTransform{OCEAN_POS, OCEAN_SCALE};
-    ObjectProperties oceanProperties;
-    oceanProperties.instances.emplace_back(std::move(oceanTransform), ocean.getAABB());
-
-    addObjectToScene(ocean, OCEAN, std::move(oceanProperties));
+    addObjectToScene(ocean, OCEAN, std::move(oceanTransform));
 
     /**********
      *        *
@@ -233,7 +210,7 @@ void IslandScene::addAllModelsToScene()
         "./res/textures/skybox/bottom.png", "./res/textures/skybox/front.png", "./res/textures/skybox/back.png"};
 
     auto &skybox = sceneResources_.loadCubeMappedModel("./res/models/set_pieces/skybox/skybox.gltf", skyBoxPaths, true);
-    addObjectToScene(skybox, SKYBOX, {.cullMethod = NONE});
+    addObjectToScene(skybox, SKYBOX, {}, NONE);
 }
 
 void IslandScene::setupEnvironment()
@@ -271,14 +248,13 @@ void IslandScene::setupCamera(const GraphicsSettings &graphicsSettings)
 void IslandScene::onUpdate(float deltaTime)
 {
     // Rotate the fancy space model
-    auto &spaceModelInstances = getInstancesByName("spaceModel");
-    auto &instances = spaceModelInstances.instances.get();
+    auto &spaceModelEntry = getEntryByName("spaceModel");
 
-    for (auto &instance : instances)
+    for (auto &instance : spaceModelEntry.instances)
     {
         instance.transform.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});
         instance.updateWorldAABB();
     }
 
-    transformsUpdated_.insert(spaceModelInstances.handle);
+    transformsUpdated_.insert(spaceModelEntry.renderableRef.get().getHandle());
 }

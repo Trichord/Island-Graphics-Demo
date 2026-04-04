@@ -285,8 +285,3 @@ void TextureManager::freeResources(ModelResources &resources)
 
     resources.glTextureHandles.clear();
 }
-
-void TextureManager::allModelsLoaded()
-{
-    threadPool_.stopAllThreads();
-}

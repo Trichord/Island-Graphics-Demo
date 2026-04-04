@@ -70,7 +70,7 @@ void Renderer::renderScene(Scene &scene)
         cullRenderables(scene, scene.getCamera().getViewProjectionMatrix());
     }
 
-    renderAllSceneObjects(scene);
+    renderAllSceneObjects();
 }
 
 void Renderer::updateCameraUBO(Scene &scene)
@@ -148,18 +148,27 @@ void Renderer::setSceneShaderUniforms(Scene &scene)
 
 void Renderer::initializeResources(Scene &scene)
 {
+    // Set all scene dependent uniforms
     setSceneShaderUniforms(scene);
+
+    // Instanced data must be loaded first, then the map built
     loadInstancedData(scene);
+    buildShaderMap(scene);
+
+    // Next all buffers must be built
     createBuffers(scene);
     createVAO(scene);
-    borrowSkyboxes(scene);
+
+    // Skyboxes have to be borrowed before creating cubemaps. The environement must be fully setup before rendering
+    // cubemap faces. Cubemap face generation relies on default full visibility, before any culling has happened
+    borrowSkyboxes();
     createCubemaps(scene);
 
-    // Setup for cascade shadow maps
-    Camera &camera{scene.getCamera()};
-    cascadeShadow_ = CascadeShadow(camera.getNearPlane());
+    // Setup for cascade shadow maps. Must come after cubemaps due to per-light-frustum culling
+    cascadeShadow_ = CascadeShadow(scene.getCamera().getNearPlane());
     updateShadowMaps(scene);
 
+    // Get ready for first frame
     updateCameraUBO(scene);
     threadPool_.stopAllThreads();
 }
@@ -189,12 +198,12 @@ void Renderer::updateSceneTransforms(Scene &scene)
     for (ModelHandle handle : updatedTransformHandles)
     {
         const GLuint baseIndex{matricesBufferIndexByHandle.at(handle)};
-        const std::span<Instance> updatedTransforms{scene.getInstancesByHandle(handle)};
+        std::vector<Instance> &instances{scene.getEntryByHandle(handle).instances};
 
         std::vector<glm::mat4> matrices;
-        matrices.reserve(updatedTransforms.size());
+        matrices.reserve(instances.size());
 
-        for (auto &instance : updatedTransforms)
+        for (auto &instance : instances)
             matrices.emplace_back(instance.transform.getModelMatrix());
 
         glNamedBufferSubData(matricesSSBO_, baseIndex * sizeof(glm::mat4), sizeof(glm::mat4) * matrices.size(),
@@ -207,4 +216,16 @@ void Renderer::updateSceneTransforms(Scene &scene)
 std::uint32_t Renderer::getFrameCount() const
 {
     return framesRendered_;
+}
+
+// Build up all scene entries by shader type
+void Renderer::buildShaderMap(Scene &scene)
+{
+    for (SceneEntry &entry : scene.getAllSceneEntries())
+    {
+        drawEntriesByShader_[entry.shaderType].push_back({.renderableRef{entry.renderableRef},
+                                                          .instancesRef{entry.instances},
+                                                          .shaderType{entry.shaderType},
+                                                          .cullMethod{entry.cullMethod}});
+    }
 }

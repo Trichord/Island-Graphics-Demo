@@ -38,25 +38,23 @@ void iterateVertices(physicsUtilities::CollisionMesh &collisionMesh, const std::
         }
 }
 
-physicsUtilities::CollisionMesh physicsUtilities::buildCollisionMesh(Scene &scene)
+physicsUtilities::CollisionMesh physicsUtilities::buildCollisionMesh(Scene& scene)
 {
     using enum CullMethod;
 
     physicsUtilities::CollisionMesh collisionMesh;
 
-    for (auto [_, renderables] : scene.getRenderablesByShader())
+    for (SceneEntry& sceneEntry : scene.getAllSceneEntries())
     {
-        for (auto &renderable : renderables)
-        {
-            auto &object = renderable.objectRef.get();
+            Renderable &renderable{sceneEntry.renderableRef.get()};
 
-            auto objectCollisionMesh = object.loadCollisionMesh();
-            auto meshes = object.getMeshes();
+            auto objectCollisionMesh = renderable.loadCollisionMesh();
+            auto meshes = renderable.getMeshes();
 
-            for (auto &instance : renderable.properties.instances)
+            for (auto &instance : sceneEntry.instances)
             {
                 // Always use the terrain's actual mesh
-                if (renderable.properties.cullMethod == TERRAIN)
+                if (sceneEntry.cullMethod == TERRAIN)
                 {
                     iterateVertices(collisionMesh, meshes, instance.transform.getModelMatrix());
                 }
@@ -69,7 +67,6 @@ physicsUtilities::CollisionMesh physicsUtilities::buildCollisionMesh(Scene &scen
                     iterateVertices(collisionMesh, objectCollisionMesh.value(), instance.transform.getModelMatrix());
                 }
             }
-        }
     }
 
     return collisionMesh;

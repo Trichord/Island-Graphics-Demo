@@ -12,6 +12,8 @@
 #include "texture_manager.h"
 #include "transform.h"
 
+struct SceneEntry;
+
 struct Instance
 {
     Transform transform;
@@ -42,21 +44,7 @@ struct Instance
     }
 };
 
-struct ObjectProperties
-{
-    std::vector<Instance> instances;
-
-    //Culling
-    bool isVisible{false};
-    GLuint visibleInstances{0};
-    CullMethod cullMethod{CullMethod::INSTANCED};
-
-    // SSBO
-    GLuint matricesBufferBaseIndex{0};
-    GLuint indicesBufferIndex{0};
-};
-
-class IRenderable
+class Renderable
 {
   public:
     virtual AABB &getAABB() = 0;
@@ -66,11 +54,24 @@ class IRenderable
     virtual std::optional<std::vector<Primitive::Mesh>> loadCollisionMesh() = 0;
     virtual std::optional<std::vector<Instance>> generateInstancedData() = 0;
 
-    virtual ~IRenderable() = default;
+    virtual ~Renderable() = default;
 };
 
-struct Renderable
+struct DrawEntry
 {
-    std::reference_wrapper<IRenderable> objectRef;
-    ObjectProperties properties;
+    // Renderable object
+    std::reference_wrapper<Renderable> renderableRef;
+    std::reference_wrapper<std::vector<Instance>> instancesRef;
+
+    // Drawing
+    ShaderType shaderType{ShaderType::DIRECTIONAL_PBR};
+
+    // Culling
+    bool isVisible{true};
+    GLuint visibleInstances{static_cast<GLuint>(instancesRef.get().size())};
+    CullMethod cullMethod{CullMethod::INSTANCED};
+
+    // SSBO
+    GLuint matricesBufferBaseIndex{0};
+    GLuint indicesBufferIndex{0};
 };

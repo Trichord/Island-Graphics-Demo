@@ -11,13 +11,13 @@
 #include <vector>
 
 #include "camera.h"
-#include "settings_window.h"
 #include "directional_light.h"
 #include "glm/glm.hpp"
 #include "light.h"
 #include "point_light.h"
 #include "renderable.h"
 #include "scene_resources.h"
+#include "settings_window.h"
 #include "shader_type.h"
 #include "texture_manager.h"
 #include "transform.h"
@@ -30,12 +30,13 @@
  * safer ownership model.
  */
 
-using Instances = std::reference_wrapper<std::vector<Instance>>;
-
-struct ModelInstances
+struct SceneEntry
 {
-    ModelHandle handle;
-    Instances instances;
+    std::reference_wrapper<Renderable> renderableRef;
+    std::vector<Instance> instances;
+
+    CullMethod cullMethod{CullMethod::INSTANCED};
+    ShaderType shaderType{ShaderType::DIRECTIONAL_PBR};
 };
 
 class Scene
@@ -48,20 +49,38 @@ class Scene
     Scene &operator=(Scene &&other) noexcept = default;
     virtual ~Scene() = default;
 
-    Camera &getCamera();
+    // Environment
     float getWindStrength() const;
     glm::vec3 getAmbientLight() const;
     DirectionalLight &getGlobalLightSource();
     const glm::vec3 &getWindDirection() const;
-    void setAmbientLight(const glm::vec3 &ambient);
+
+    // Access to Scene objects
+    Camera &getCamera();
+    std::vector<SceneEntry> &getAllSceneEntries();
+    SceneEntry &getEntryByName(const std::string &key);
+    SceneEntry &getEntryByHandle(ModelHandle handle) const;
+
+    // Per-frame Update
     std::unordered_set<ModelHandle> &getTransformsUpdated();
-    ModelInstances &getInstancesByName(const std::string &key);
-    std::map<ShaderType, std::vector<Renderable>> &getRenderablesByShader();
-    std::vector<Instance>& getInstancesByHandle(ModelHandle handle) const;
+
+    // Mutators
+    void setAmbientLight(const glm::vec3 &ambient);
 
   protected:
+    struct ModelEntry
+    {
+        std::vector<Instance> instances;
+        CullMethod cullMethod{CullMethod::INSTANCED};
+    };
+
     Camera camera_;
+
+    // Permanent storage
     SceneResources sceneResources_;
+
+    // Associated data
+    std::vector<SceneEntry> sceneEntries_;
 
     // Wind
     float windStrength_{0.0f};
@@ -73,9 +92,8 @@ class Scene
 
     // Access points
     std::unordered_set<ModelHandle> transformsUpdated_;
-    std::map<ShaderType, std::vector<Renderable>> sceneRenderables_;
-    std::unordered_map<std::string, ModelInstances> namedInstances_;
-    std::unordered_map<ModelHandle, Instances> instancesByHandle_;
+    std::unordered_map<std::string, std::reference_wrapper<SceneEntry>> namedInstances_;
+    std::unordered_map<ModelHandle, std::reference_wrapper<SceneEntry>> instancesByHandle_;
 
     virtual void addAllModelsToScene() = 0;
     virtual void setupEnvironment() = 0;
@@ -89,23 +107,23 @@ class Scene
      */
     template <typename T>
         requires std::derived_from<T, Model>
-    void addObjectToScene(T &modelRef, ShaderType shaderType, ObjectProperties &&properties = {},
+    void addObjectToScene(T &modelRef, ShaderType shaderType, Transform &&transform = {},
+                          CullMethod cullMethod = CullMethod::INSTANCED,
                           const std::optional<std::string> name = std::nullopt)
     {
-        if (properties.instances.empty())
-            properties.instances.emplace_back(Transform{}, modelRef.getAABB());
+        SceneEntry sceneEntry{.renderableRef = modelRef,
+                              .instances = {{transform, modelRef.getAABB()}},
+                              .cullMethod = cullMethod,
+                              .shaderType = shaderType};
 
         // Store a reference to the stable vector in Scene Resources, organized by shader
-        sceneRenderables_[shaderType].emplace_back(Renderable{std::ref(modelRef), std::move(properties)});
-
-        ModelHandle handle{modelRef.getHandle()};
-        std::vector<Instance> &instances{sceneRenderables_[shaderType].back().properties.instances};
+        sceneEntries_.emplace_back(sceneEntry);
 
         // Store an access point to the instances, by model handle
-        instancesByHandle_.emplace(handle, std::ref(instances));
+        instancesByHandle_.emplace(modelRef.getHandle(), std::ref(sceneEntries_.back()));
 
         // Add a lookup to get a reference to a model's instances by a user-defined name
         if (name.has_value())
-            namedInstances_.emplace(name.value(), ModelInstances{handle, std::ref(instances)});
+            namedInstances_.emplace(name.value(), std::ref(sceneEntries_.back()));
     }
 };
