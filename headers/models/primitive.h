@@ -9,9 +9,6 @@
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 
-/* Primitive owns its VAO / VBO / EBO. Copying is disabled to avoid double frees
- * or unecessary resource holding */
-
 class Primitive
 {
   public:

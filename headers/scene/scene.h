@@ -33,7 +33,7 @@
 struct SceneEntry
 {
     std::reference_wrapper<Renderable> renderableRef;
-    std::vector<Instance> instances;
+    std::vector<BoundedTransform> transforms;
 
     CullMethod cullMethod{CullMethod::INSTANCED};
     ShaderType shaderType{ShaderType::DIRECTIONAL_PBR};
@@ -70,7 +70,7 @@ class Scene
   protected:
     struct ModelEntry
     {
-        std::vector<Instance> instances;
+        std::vector<BoundedTransform> transforms;
         CullMethod cullMethod{CullMethod::INSTANCED};
     };
 
@@ -91,9 +91,9 @@ class Scene
     DirectionalLight globalLightSource_;
 
     // Access points
-    std::unordered_set<ModelHandle> transformsUpdated_;
-    std::unordered_map<std::string, std::reference_wrapper<SceneEntry>> namedInstances_;
-    std::unordered_map<ModelHandle, std::reference_wrapper<SceneEntry>> instancesByHandle_;
+    std::unordered_set<ModelHandle> updatedTransforms_;
+    std::unordered_map<std::string, std::reference_wrapper<SceneEntry>> namedTransforms_;
+    std::unordered_map<ModelHandle, std::reference_wrapper<SceneEntry>> transformsByHandle_;
 
     virtual void addAllModelsToScene() = 0;
     virtual void setupEnvironment() = 0;
@@ -112,7 +112,7 @@ class Scene
                           const std::optional<std::string> name = std::nullopt)
     {
         SceneEntry sceneEntry{.renderableRef = modelRef,
-                              .instances = {{transform, modelRef.getAABB()}},
+                              .transforms = {{transform, modelRef.getAABB()}},
                               .cullMethod = cullMethod,
                               .shaderType = shaderType};
 
@@ -120,10 +120,10 @@ class Scene
         sceneEntries_.emplace_back(sceneEntry);
 
         // Store an access point to the instances, by model handle
-        instancesByHandle_.emplace(modelRef.getHandle(), std::ref(sceneEntries_.back()));
+        transformsByHandle_.emplace(modelRef.getHandle(), std::ref(sceneEntries_.back()));
 
         // Add a lookup to get a reference to a model's instances by a user-defined name
         if (name.has_value())
-            namedInstances_.emplace(name.value(), std::ref(sceneEntries_.back()));
+            namedTransforms_.emplace(name.value(), std::ref(sceneEntries_.back()));
     }
 };

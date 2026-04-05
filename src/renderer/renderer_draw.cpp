@@ -35,7 +35,7 @@ void Renderer::renderAllSceneObjects()
             if (!drawEntry.isVisible)
                 continue;
 
-            Instance &firstInstance{drawEntry.instancesRef.get()[0]};
+            BoundedTransform &firstInstance{drawEntry.instancesRef.get()[0]};
 
             shader.setIntU("matricesOffset", drawEntry.matricesBufferBaseIndex);
             shader.setIntU("indicesOffset", drawEntry.indicesBufferIndex);

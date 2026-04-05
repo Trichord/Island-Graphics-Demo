@@ -29,16 +29,16 @@ InstancedModel::InstancedModel(TextureManager &textureManager, const ModelHandle
 {
 }
 
-std::optional<std::vector<Instance>> InstancedModel::generateInstancedData()
+std::optional<std::vector<BoundedTransform>> InstancedModel::generateInstancedTransforms()
 {
     std::vector<glm::vec3> positions{loadPositions()};
 
     if (positions.empty())
         return std::nullopt;
 
-    std::vector<Instance> instances{randomizeRotationScale(positions)};
+    std::vector<BoundedTransform> transforms{randomizeRotationScale(positions)};
 
-    return instances;
+    return transforms;
 }
 
 std::vector<glm::vec3> InstancedModel::loadPositions()
@@ -67,13 +67,13 @@ std::vector<glm::vec3> InstancedModel::loadPositions()
     return instances;
 }
 
-std::vector<Instance> InstancedModel::randomizeRotationScale(std::vector<glm::vec3> &positions)
+std::vector<BoundedTransform> InstancedModel::randomizeRotationScale(std::vector<glm::vec3> &positions)
 {
     std::random_device rd;
     std::mt19937 mt(rd());
 
-    std::vector<Instance> instances;
-    instances.reserve(positions.size());
+    std::vector<BoundedTransform> transforms;
+    transforms.reserve(positions.size());
 
     // Rotate the model somewhere in the 360 degree range
     std::uniform_real_distribution<float> randRotation{0.0f, 360.0f};
@@ -89,8 +89,8 @@ std::vector<Instance> InstancedModel::randomizeRotationScale(std::vector<glm::ve
         transform.rotateAroundAxis(instanceRotation, WorldVectors::worldUp);
         transform.setAbsoluteScale(instanceScale);
 
-        instances.emplace_back(std::move(transform), aabb_);
+        transforms.emplace_back(std::move(transform), aabb_);
     }
 
-    return instances;
+    return transforms;
 }

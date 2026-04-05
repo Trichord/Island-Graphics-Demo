@@ -25,7 +25,7 @@ class Model : public Renderable
     const ModelHandle getHandle() const override;
     std::span<Primitive::Mesh> getMeshes() override;
     std::optional<std::vector<Primitive::Mesh>> loadCollisionMesh() override;
-    std::optional<std::vector<Instance>> generateInstancedData() override;
+    std::optional<std::vector<BoundedTransform>> generateInstancedTransforms() override;
 
   protected:
     ModelHandle handle_{0};
