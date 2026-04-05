@@ -35,10 +35,10 @@ void Renderer::loadInstancedData(Scene &scene)
     {
         Renderable &renderable{sceneEntry.renderableRef.get()};
 
-        if (auto instancedData = renderable.generateInstancedData(); instancedData.has_value())
+        if (auto instancedData = renderable.generateInstancedTransforms(); instancedData.has_value())
         {
-            std::vector<Instance> &data{instancedData.value()};
-            sceneEntry.instances = std::move(data);
+            std::vector<BoundedTransform> &data{instancedData.value()};
+            sceneEntry.transforms = std::move(data);
         }
     }
 }
@@ -79,7 +79,7 @@ void Renderer::createBuffers(Scene &scene)
     // Find total number of all instances across all scene objects
     std::size_t numInstances{0};
     for (SceneEntry &entry : scene.getAllSceneEntries())
-        numInstances += entry.instances.size();
+        numInstances += entry.transforms.size();
 
     // Instanced model matrices
     glCreateBuffers(1, &matricesSSBO_);
@@ -128,7 +128,7 @@ void Renderer::createCubemaps(Scene &scene)
 
     for (auto &drawEntry : waters)
     {
-        std::vector<Instance> &instances{drawEntry.instancesRef.get()};
+        std::vector<BoundedTransform> &instances{drawEntry.instancesRef.get()};
 
         if (instances.empty())
             continue;
@@ -227,7 +227,7 @@ void Renderer::populateSSBOs(std::size_t totalInstanceCount)
         for (auto &drawEntry : drawEntries)
         {
             Renderable &renderable{drawEntry.renderableRef.get()};
-            std::vector<Instance> &instances{drawEntry.instancesRef.get()};
+            std::vector<BoundedTransform> &instances{drawEntry.instancesRef.get()};
 
             if (instances.empty())
                 continue;

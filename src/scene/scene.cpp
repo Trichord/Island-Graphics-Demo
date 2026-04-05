@@ -28,7 +28,7 @@ std::vector<SceneEntry> &Scene::getAllSceneEntries()
 
 SceneEntry &Scene::getEntryByName(const std::string &key)
 {
-    return namedInstances_.at(key);
+    return namedTransforms_.at(key);
 }
 
 DirectionalLight &Scene::getGlobalLightSource()
@@ -63,10 +63,10 @@ float Scene::getWindStrength() const
 
 std::unordered_set<ModelHandle> &Scene::getTransformsUpdated()
 {
-    return transformsUpdated_;
+    return updatedTransforms_;
 }
 
 SceneEntry &Scene::getEntryByHandle(ModelHandle handle)
 {
-    return instancesByHandle_.at(handle);
+    return transformsByHandle_.at(handle);
 }

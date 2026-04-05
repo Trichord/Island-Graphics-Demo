@@ -1,5 +1,3 @@
-// This software contains source code provided by NVIDIA Corporation.
-
 #include <algorithm>
 #include <array>
 #include <cmath>

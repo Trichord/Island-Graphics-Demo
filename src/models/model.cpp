@@ -65,7 +65,7 @@ std::span<Primitive::Mesh> Model::getMeshes()
     return meshes_;
 }
 
-std::optional<std::vector<Instance>> Model::generateInstancedData()
+std::optional<std::vector<BoundedTransform>> Model::generateInstancedTransforms()
 {
     return std::nullopt;
 }

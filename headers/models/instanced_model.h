@@ -20,7 +20,7 @@ class InstancedModel : public Model
                    float minSize = 1.0f, float maxSize = 1.0f, unsigned int numPositions = 0);
 
     // Load positions from storage and generate matrices
-    std::optional<std::vector<Instance>> generateInstancedData() override;
+    std::optional<std::vector<BoundedTransform>> generateInstancedTransforms() override;
 
   private:
     unsigned int numInstances_{0};
@@ -29,5 +29,5 @@ class InstancedModel : public Model
     std::filesystem::path positionsPath_;
 
     std::vector<glm::vec3> loadPositions();
-    std::vector<Instance> randomizeRotationScale(std::vector<glm::vec3> &positions);
+    std::vector<BoundedTransform> randomizeRotationScale(std::vector<glm::vec3> &positions);
 };
