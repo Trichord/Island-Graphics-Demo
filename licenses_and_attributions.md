@@ -7,7 +7,7 @@ Without him, this project would not exist.**
 This software contains source code provided by NVIDIA Corporation.
 
 
-<h1>Licenses</h1>
+<h1>Libraries</h1>
 
 
 <h2>GLM</h2>
