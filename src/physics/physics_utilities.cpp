@@ -51,7 +51,7 @@ physicsUtilities::CollisionMesh physicsUtilities::buildCollisionMesh(Scene& scen
             auto objectCollisionMesh = renderable.loadCollisionMesh();
             auto meshes = renderable.getMeshes();
 
-            for (auto &instance : sceneEntry.instances)
+            for (auto &instance : sceneEntry.transforms)
             {
                 // Always use the terrain's actual mesh
                 if (sceneEntry.cullMethod == TERRAIN)

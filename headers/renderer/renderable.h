@@ -14,23 +14,21 @@
 
 struct SceneEntry;
 
-struct Instance
+struct BoundedTransform
 {
     Transform transform;
-    AABB modelAABB;
     AABB worldAABB;
 
-    Instance() = default;
+    BoundedTransform() = default;
 
     template <typename T>
         requires std::constructible_from<Transform, T &&>
-    Instance(T &&instanceTransform, const AABB &modelSpaceAABB)
-        : transform{std::forward<T>(instanceTransform)}, modelAABB{modelSpaceAABB}
+    BoundedTransform(T &&instanceTransform, const AABB &modelSpaceAABB) : transform{std::forward<T>(instanceTransform)}
     {
-        updateWorldAABB();
+        updateWorldAABB(modelSpaceAABB);
     }
 
-    void updateWorldAABB()
+    void updateWorldAABB(const AABB &modelAABB)
     {
         glm::mat4 &modelMatrix{transform.getModelMatrix()};
 
@@ -52,7 +50,7 @@ class Renderable
     virtual const ModelHandle getHandle() const = 0;
     virtual std::span<Primitive::Mesh> getMeshes() = 0;
     virtual std::optional<std::vector<Primitive::Mesh>> loadCollisionMesh() = 0;
-    virtual std::optional<std::vector<Instance>> generateInstancedData() = 0;
+    virtual std::optional<std::vector<BoundedTransform>> generateInstancedTransforms() = 0;
 
     virtual ~Renderable() = default;
 };
@@ -61,7 +59,7 @@ struct DrawEntry
 {
     // Renderable object
     std::reference_wrapper<Renderable> renderableRef;
-    std::reference_wrapper<std::vector<Instance>> instancesRef;
+    std::reference_wrapper<std::vector<BoundedTransform>> instancesRef;
 
     // Drawing
     ShaderType shaderType{ShaderType::DIRECTIONAL_PBR};

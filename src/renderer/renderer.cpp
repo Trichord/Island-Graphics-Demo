@@ -198,7 +198,7 @@ void Renderer::updateSceneTransforms(Scene &scene)
     for (ModelHandle handle : updatedTransformHandles)
     {
         const GLuint baseIndex{matricesBufferIndexByHandle.at(handle)};
-        std::vector<Instance> &instances{scene.getEntryByHandle(handle).instances};
+        std::vector<BoundedTransform> &instances{scene.getEntryByHandle(handle).transforms};
 
         std::vector<glm::mat4> matrices;
         matrices.reserve(instances.size());
@@ -224,7 +224,7 @@ void Renderer::buildShaderMap(Scene &scene)
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {
         drawEntriesByShader_[entry.shaderType].push_back({.renderableRef{entry.renderableRef},
-                                                          .instancesRef{entry.instances},
+                                                          .instancesRef{entry.transforms},
                                                           .shaderType{entry.shaderType},
                                                           .cullMethod{entry.cullMethod}});
     }

@@ -249,12 +249,13 @@ void IslandScene::onUpdate(float deltaTime)
 {
     // Rotate the fancy space model
     auto &spaceModelEntry = getEntryByName("spaceModel");
+    Renderable &spaceModel{spaceModelEntry.renderableRef.get()};
 
-    for (auto &instance : spaceModelEntry.instances)
+    for (auto &instance : spaceModelEntry.transforms)
     {
         instance.transform.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});
-        instance.updateWorldAABB();
+        instance.updateWorldAABB(spaceModel.getAABB());
     }
 
-    transformsUpdated_.insert(spaceModelEntry.renderableRef.get().getHandle());
+    updatedTransforms_.insert(spaceModel.getHandle());
 }
