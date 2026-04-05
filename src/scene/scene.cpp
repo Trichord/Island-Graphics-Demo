@@ -66,7 +66,7 @@ std::unordered_set<ModelHandle> &Scene::getTransformsUpdated()
     return transformsUpdated_;
 }
 
-SceneEntry &Scene::getEntryByHandle(ModelHandle handle) const
+SceneEntry &Scene::getEntryByHandle(ModelHandle handle)
 {
     return instancesByHandle_.at(handle);
 }

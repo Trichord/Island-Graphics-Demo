@@ -11,7 +11,7 @@
 #include "texture_manager.h"
 #include "texture_units.h"
 
-// Reduce the distance of the camera's far plane by 80% for shadow cascades. (1024 res)
+// Reduce the distance of the camera's far plane by 80% for shadow cascades.
 constexpr float farPlaneReduction{0.2f};
 
 // Render objects, grouped by shader type
