@@ -58,8 +58,8 @@ class Scene
     // Access to Scene objects
     Camera &getCamera();
     std::vector<SceneEntry> &getAllSceneEntries();
+    SceneEntry &getEntryByHandle(ModelHandle handle);
     SceneEntry &getEntryByName(const std::string &key);
-    SceneEntry &getEntryByHandle(ModelHandle handle) const;
 
     // Per-frame Update
     std::unordered_set<ModelHandle> &getTransformsUpdated();
