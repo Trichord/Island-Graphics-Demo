@@ -11,6 +11,8 @@ CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const std::file
     : Model{textureManager, modelPath}
 {
     textureManager.loadCubemap(handle_, imagePaths, "./", skybox);
+
+    // If a model is loaded with no textures, force-assign at least one material to the gltf primitives
     if (!hasMaterials())
         assignMaterialIndex(0);
 }

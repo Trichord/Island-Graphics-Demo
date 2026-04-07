@@ -7,56 +7,54 @@
 #include <unordered_set>
 #include <vector>
 
-#include "settings_window.h"
 #include "glad/glad.h"
-#include "texture_units.h"
+#include "settings_window.h"
+#include "textures.h"
 #include "thread_pool.h"
 
 using ModelHandle = int;
 
-struct Material
-{
-    GLuint albedo{0};
-    GLuint occlusionRoughnessMetallic{0};
-    GLuint normal{0};
-    GLuint cubemap{0};
-};
-
 class TextureManager
 {
   public:
-    explicit TextureManager(ThreadPool &threadPool, const GraphicsSettings& settings);
+    TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings);
+    ~TextureManager();
 
     ModelHandle assignHandle();
-    void releaseHandle(ModelHandle handle);
 
+    void setCubemap(ModelHandle handle, GLuint textureID);
     const std::vector<Material> &getMaterials(ModelHandle modelHandle) const;
-    void setMaterial(ModelHandle handle, Texture texture, GLuint textureID, int materialIndex = 0);
-    const std::vector<Material> &borrowAssignMaterials(ModelHandle self, ModelHandle other,
-                                                       std::optional<Texture> texture = std::nullopt,
-                                                       int materialIndex = 0);
+
+    void borrowMaterials(ModelHandle self, ModelHandle other);
+    void borrowCubemaps(ModelHandle self, ModelHandle other);
 
     void loadCubemap(const ModelHandle handle, std::vector<std::filesystem::path> images,
                      const std::filesystem::path &parentPath = "./", bool mipmaps = true, bool sRGB = true);
     void loadModel(const ModelHandle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath);
 
   private:
-    // Each entry in the vector corresponds to a gltf material index. Materials vector can contain duplicate IDs
-    // (multiple materials referencing the same texture atlas, etc.). glTextureHandles keeps track of which IDs need to
-    // be freed on destruction. Lender keeps track of who the textures were borrowed from.
-    struct ModelResources
+    struct TextureArray
     {
-        int refCount{1};
-        std::vector<Material> materials;
-        std::unordered_set<GLuint> glTextureHandles;
-        ModelHandle lender{-1};
+        const int width{0};
+        const GLenum internalFormat{GL_SRGB8};
+        std::vector<GLuint> textureIDs;
     };
+
+    std::array<TextureArray, 8> textureArrays_{{{4096, GL_RGB8},
+                                               {4096, GL_SRGB8_ALPHA8},
+                                                {2048, GL_RGB8},
+                                               {2048, GL_SRGB8_ALPHA8},
+                                                {1024, GL_RGB8},
+                                               {1024, GL_SRGB8_ALPHA8},
+                                                {512, GL_RGB8},
+                                                {256, GL_RGB8}}};
 
     float globalAnisotropicDegree_{0.0f};
     bool globalAnisoEnabled_{false};
 
     ThreadPool &threadPool_;
-    std::unordered_map<ModelHandle, ModelResources> textureCache_;
+    std::unordered_map<ModelHandle, std::vector<Material>> materialLookup_;
+    std::unordered_set<GLuint> cubemapIDs_;
 
     // From a fastgltf::asset
     void textureFromAsset(fastgltf::Asset &asset, ModelHandle handle, std::filesystem::path parentPath);
@@ -65,6 +63,6 @@ class TextureManager
     void cubemapFromPaths(ModelHandle handle, const std::vector<std::filesystem::path> &images, bool mipmaps,
                           bool sRGB);
 
-    void freeResources(ModelResources &resources);
-    void setMaterial(ModelResources &self, ModelResources &other, Texture texture, int index);
+    SamplerArrayEntry assignToTextureArray(Texture& texture);
+    void freeArrayTextures(SamplerArrayEntry &entry);
 };

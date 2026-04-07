@@ -17,29 +17,21 @@
 #include "renderable.h"
 #include "texture_manager.h"
 
-void findMaterials(std::vector<Primitive::Mesh> &meshes, bool &hasMaterials)
-{
-    for (const auto &mesh : meshes)
-        for (const auto &primitive : mesh.primitives)
-            if (primitive.materialsExist())
-                hasMaterials = true;
-}
-
 Model::Model(TextureManager &textureManager, const std::filesystem::path &path)
     : handle_{textureManager.assignHandle()}, textureManager_{textureManager}, filePath_{path}
 {
     loadModel(path, false);
     calculateAABB();
-    findMaterials(meshes_, hasMaterials_);
+    discoverMaterials();
 }
 
 Model::Model(TextureManager &textureManager, const ModelHandle borrowHandle, const std::filesystem::path &path)
     : handle_{textureManager.assignHandle()}, textureManager_{textureManager}, filePath_{path}
 {
-    textureManager.borrowAssignMaterials(handle_, borrowHandle);
+    textureManager.borrowMaterials(handle_, borrowHandle);
     loadModel(path, true);
     calculateAABB();
-    findMaterials(meshes_, hasMaterials_);
+    discoverMaterials();
 }
 
 Model::Model(Model &&other) noexcept
@@ -47,12 +39,6 @@ Model::Model(Model &&other) noexcept
       aabb_{std::move(other.aabb_)}
 {
     other.handle_ = 0;
-}
-
-Model::~Model()
-{
-    if (handle_)
-        textureManager_.releaseHandle(handle_);
 }
 
 AABB &Model::getAABB()
@@ -120,6 +106,15 @@ void Model::setMeshVisibility(bool visible)
 {
     for (auto &mesh : meshes_)
         mesh.isVisible = visible;
+}
+
+// Helper to let outside classes know whether this model had materials.
+void Model::discoverMaterials()
+{
+    for (const auto &mesh : meshes_)
+        for (const auto &primitive : mesh.primitives)
+            if (primitive.materialsExist())
+                hasMaterials_ = true;
 }
 
 std::optional<std::vector<Primitive::Mesh>> Model::loadCollisionMesh()

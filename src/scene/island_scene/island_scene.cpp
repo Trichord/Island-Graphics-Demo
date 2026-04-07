@@ -253,7 +253,7 @@ void IslandScene::onUpdate(float deltaTime)
 
     for (auto &instance : spaceModelEntry.transforms)
     {
-        instance.transform.rotateAroundAxis(5.0f * deltaTime, glm::vec3{0.34f, 0.87f, 0.4f});
+        instance.transform.rotateAroundAxis(deltaTime, glm::vec3{0.34f, 0.935f, 0.6f});
         instance.updateWorldAABB(spaceModel.getAABB());
     }
 
