@@ -18,7 +18,6 @@ class Model : public Renderable
     Model &operator=(const Model &) = delete;
     Model(Model &&other) noexcept;
     Model &operator=(Model &&other) = delete;
-    ~Model();
 
     AABB &getAABB() override;
     void setMeshVisibility(bool visible) override;

@@ -10,6 +10,7 @@
 #include "fastgltf/types.hpp"
 #include "fastgltf_loader.h"
 #include "glad/glad.h"
+#include "graphics_settings.h"
 #include "image_loader.h"
 #include "texture_utilities.h"
 #include "textures.h"
@@ -22,7 +23,7 @@ TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &s
 
 TextureManager::~TextureManager()
 {
-    for (TextureArray &texArr : textureArrays_)
+    for (ArrayTexture &texArr : arrayTextures_)
         for (GLuint id : texArr.textureIDs)
             if (id != 0)
                 glDeleteTextures(1, &id);
@@ -95,8 +96,8 @@ void TextureManager::textureFromAsset(fastgltf::Asset &asset, ModelHandle handle
 
         if (inserted)
         {
-            // Assume gltf models always want mipmaps
-            TextureRequest request{sRGB, true, anisotropic ? globalAnisotropicDegree_ : 0.0f};
+            // Assume all GLTF models get mipmaps and generate them after the arrayTexture is built
+            TextureRequest request{sRGB, false, anisotropic ? globalAnisotropicDegree_ : 0.0f};
 
             // Generate a new texture
             Texture texture{textureUtilities::generateTexture(rawImageData[imageIndex], sampler, request)};
@@ -186,11 +187,11 @@ void TextureManager::cubemapFromPaths(ModelHandle handle, const std::vector<std:
 
 void TextureManager::freeArrayTextures(SamplerArrayEntry &entry)
 {
-    if (entry.depth == -1 || entry.index == -1)
+    if (entry.layer == -1 || entry.array || arrayTextures_[entry.array].textureIDs[entry.layer] == 0)
         return;
 
-    glDeleteTextures(1, &textureArrays_[entry.index].textureIDs[entry.depth]);
-    textureArrays_[entry.index].textureIDs[entry.depth] = 0;
+    glDeleteTextures(1, &arrayTextures_[entry.array].textureIDs[entry.layer]);
+    arrayTextures_[entry.array].textureIDs[entry.layer] = 0;
 }
 
 // Borrow another models materials, completely releasing self's materials
@@ -213,11 +214,9 @@ void TextureManager::borrowMaterials(ModelHandle self, ModelHandle other)
         freeArrayTextures(selfEntry[i].albedo);
         freeArrayTextures(selfEntry[i].ARM);
         freeArrayTextures(selfEntry[i].normal);
-
-        selfEntry[i].albedo = otherEntry[i].albedo;
-        selfEntry[i].ARM = otherEntry[i].ARM;
-        selfEntry[i].normal = otherEntry[i].normal;
     }
+
+    selfEntry = otherEntry;
 
     if (selfEntry.size() != otherEntry.size())
         std::cerr << "WARNING: models borrowing with different material count" << std::endl;
@@ -253,67 +252,20 @@ void TextureManager::setCubemap(ModelHandle handle, GLuint textureID)
 // Inserts a texture into a sampler2DArray and returns an array identifier and depth
 SamplerArrayEntry TextureManager::assignToTextureArray(Texture &texture)
 {
-    if (texture.width != texture.height)
+    for (std::size_t i{0}; i < arrayTextures_.size(); ++i)
     {
-        std::cerr << "ERROR: Texture not square" << std::endl;
-        throw std::runtime_error("Texture resolution error");
+        if (arrayTextures_[i].width == texture.width && arrayTextures_[i].internalFormat == texture.internalFormat)
+        {
+            arrayTextures_[i].textureIDs.push_back(texture.id);
+            int layer = static_cast<int>(arrayTextures_[i].textureIDs.size() - 1);
+            return {static_cast<int>(i), layer};
+        }
     }
 
-    SamplerArrayEntry entry;
-
-    switch (texture.width)
-    {
-    case 4096:
-        if (texture.internalFormat == GL_RGB8)
-            entry.index = 0;
-        else
-            entry.index = 1;
-        break;
-
-    case 2048:
-        if (texture.internalFormat == GL_RGB8)
-            entry.index = 2;
-        else
-            entry.index = 3;
-        break;
-
-    case 1024:
-        if (texture.internalFormat == GL_RGB8)
-            entry.index = 4;
-        else
-            entry.index = 5;
-        break;
-
-    case 512:
-        if (texture.internalFormat == GL_RGB8)
-            entry.index = 6;
-        else
-        {
-            std::cerr << "ERROR: Texture format and resolution not in array" << std::endl;
-            throw std::runtime_error("Texture array index error");
-        }
-        break;
-
-    case 256:
-        if (texture.internalFormat == GL_RGB8)
-            entry.index = 7;
-        else
-        {
-            std::cerr << "ERROR: Texture format and resolution not in array" << std::endl;
-            throw std::runtime_error("Texture array index error");
-        }
-        break;
-
-    default:
-        std::cerr << "ERROR: Texture format and resolution not in array" << std::endl;
-        throw std::runtime_error("Texture array index error");
-    }
-
-    textureArrays_[entry.index].textureIDs.push_back(texture.id);
-
-    entry.depth = static_cast<int>(textureArrays_[entry.index].textureIDs.size() - 1);
-
-    return entry;
+    std::cerr << "No matching array for " + std::to_string(texture.width) + " format " +
+                     std::to_string(texture.internalFormat)
+              << std::endl;
+    throw std::runtime_error("ArrayTexture bucket not found");
 }
 
 void TextureManager::borrowCubemaps(ModelHandle self, ModelHandle other)
@@ -341,4 +293,49 @@ void TextureManager::borrowCubemaps(ModelHandle self, ModelHandle other)
 
         selfEntry[i].cubemap = otherEntry[i].cubemap;
     }
+}
+
+void TextureManager::buildArrayTextures()
+{
+    int texturesCopied{0};
+
+    for (std::size_t i{0}; i < arrayTextures_.size(); ++i)
+    {
+        if (arrayTextures_[i].textureIDs.empty())
+            continue;
+
+        int mipLevels{textureUtilities::calculateMipmapLevels(arrayTextures_[i].width, arrayTextures_[i].width)};
+        GLuint &id{arrayTextures_[i].arrayTextureID};
+        int width{arrayTextures_[i].width};
+
+        glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &id);
+        glTextureStorage3D(id, mipLevels, arrayTextures_[i].internalFormat, width, width,
+                           static_cast<GLsizei>(arrayTextures_[i].textureIDs.size()));
+
+        glTextureParameteri(id, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        if (globalAnisotropicDegree_ > 0.0f)
+            glTextureParameterf(id, GL_TEXTURE_MAX_ANISOTROPY, globalAnisotropicDegree_);
+
+        for (std::size_t layer{0}; layer < arrayTextures_[i].textureIDs.size(); ++layer)
+        {
+            glCopyImageSubData(arrayTextures_[i].textureIDs[layer], GL_TEXTURE_2D, 0, 0, 0, 0, id, GL_TEXTURE_2D_ARRAY,
+                               0, 0, 0, static_cast<GLint>(layer), width, width, 1);
+
+            ++texturesCopied;
+            glDeleteTextures(1, &arrayTextures_[i].textureIDs[layer]);
+
+            // Flush any old textures from memory to keep VRAM down
+            if (texturesCopied % 4 == 0)
+                glFinish();
+        }
+
+        glGenerateTextureMipmap(id);
+        glBindTextureUnit(static_cast<GLuint>(i), id);
+    }
+
+    glFinish();
 }

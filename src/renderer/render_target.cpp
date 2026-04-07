@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "glad/glad.h"
+#include "texture_utilities.h"
 
 RenderTarget::RenderTarget(int width, int height, Settings settings) : width_{width}, height_{height}
 {
@@ -17,12 +18,6 @@ RenderTarget::RenderTarget(int width, int height, Settings settings) : width_{wi
     glNamedFramebufferReadBuffer(FBO_, GL_COLOR_ATTACHMENT0);
 }
 
-int calculateMipmapLevels(int width, int height)
-{
-    int maxDimension = std::max(width, height);
-    return static_cast<int>(std::floor(std::log2(maxDimension)) + 1);
-}
-
 void RenderTarget::createRenderTarget(int width, int height, const Settings &settings)
 {
     int mipLevels{1};
@@ -32,7 +27,7 @@ void RenderTarget::createRenderTarget(int width, int height, const Settings &set
         textureImageFormat = GL_TEXTURE_2D_ARRAY;
 
     if (settings.generateMipmaps)
-        mipLevels = calculateMipmapLevels(width, height);
+        mipLevels = textureUtilities::calculateMipmapLevels(width, height);
 
     glCreateTextures(textureImageFormat, 1, &colorTextureID_);
 
