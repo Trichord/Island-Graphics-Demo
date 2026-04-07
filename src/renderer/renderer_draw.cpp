@@ -9,7 +9,7 @@
 #include "shader.h"
 #include "shader_type.h"
 #include "texture_manager.h"
-#include "texture_units.h"
+#include "textures.h"
 
 // Reduce the distance of the camera's far plane by 80% for shadow cascades.
 constexpr float farPlaneReduction{0.2f};
@@ -83,7 +83,7 @@ void Renderer::renderObject(DrawEntry &drawEntry)
 
 void Renderer::bindTextures(const Material &materials)
 {
-    using enum Texture;
+    using enum TextureUnit;
 
     if (materials.albedo)
         glState_.bindTexture(static_cast<GLuint>(ALBEDO), materials.albedo);

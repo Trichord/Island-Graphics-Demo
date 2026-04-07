@@ -121,7 +121,7 @@ class Renderer
     void createCubemapFaces(Scene &scene, int renderTargetSize, GLuint texture);
 
     // Scene independent initialization
-    void borrowSkyboxes();
+    void borrowSkybox();
 
     // Rendering
     void renderAllSceneObjects();

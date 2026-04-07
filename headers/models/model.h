@@ -39,4 +39,5 @@ class Model : public Renderable
     void calculateAABB();
     void assignMaterialIndex(std::size_t newIndex);
     bool hasMaterials() const;
+    void discoverMaterials();
 };
