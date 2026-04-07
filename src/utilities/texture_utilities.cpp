@@ -9,6 +9,12 @@
 #include "image_loader.h"
 #include "textures.h"
 
+int textureUtilities::calculateMipmapLevels(int width, int height)
+{
+    int maxDimension = std::max(width, height);
+    return static_cast<int>(std::floor(std::log2(maxDimension)) + 1);
+}
+
 Texture textureUtilities::generateTexture(const LoadedImage &image, Sampler sampler, TextureRequest request)
 {
     // Early return with debug magenta
@@ -19,7 +25,8 @@ Texture textureUtilities::generateTexture(const LoadedImage &image, Sampler samp
         glCreateTextures(GL_TEXTURE_2D, 1, &magenta);
         glTextureStorage2D(magenta, 1, GL_SRGB8, 1, 1);
         glTextureSubImage2D(magenta, 0, 0, 0, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, color);
-        return {1, 1, magenta};
+
+        return {.id = magenta, .width = 1, .height = 1, .internalFormat = GL_SRGB8};
     }
 
     GLuint textureID{0};
@@ -69,7 +76,7 @@ Texture textureUtilities::generateTexture(const LoadedImage &image, Sampler samp
     if (request.anisotropic > 0.0f)
         glTextureParameterf(textureID, GL_TEXTURE_MAX_ANISOTROPY, request.anisotropic);
 
-    return {image.width, image.height, textureID};
+    return {.id = textureID, .width = image.width, .height = image.height, .internalFormat = internalFormat};
 }
 
 Texture magentaCubemap()
@@ -82,7 +89,7 @@ Texture magentaCubemap()
     for (GLuint i = 0; i < 6; ++i)
         glTextureSubImage3D(magenta, 0, 0, 0, i, 1, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, color);
 
-    return {1, 1, magenta};
+    return {.id = magenta, .width = 1, .height = 1, .internalFormat = GL_SRGB8};
 }
 
 Texture textureUtilities::generateCubemapTexture(const std::vector<LoadedImage> &imageData, TextureRequest request)
@@ -155,5 +162,8 @@ Texture textureUtilities::generateCubemapTexture(const std::vector<LoadedImage> 
     glTextureParameteri(cubemapTextureID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTextureParameteri(cubemapTextureID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-    return {imageData[0].width, imageData[0].height, cubemapTextureID};
+    return {.id = cubemapTextureID,
+            .width = imageData[0].width,
+            .height = imageData[0].height,
+            .internalFormat = internalFormat};
 }

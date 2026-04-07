@@ -39,7 +39,7 @@ Renderer::Renderer(const GraphicsSettings &settings)
     for (auto &[_, shader] : shaders_)
         setupShader(shader);
 
-    glBindTextureUnit(static_cast<GLuint>(TextureUnit::SHADOW), shadowBlitTarget_.getColorTextureID());
+    glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowBlitTarget_.getColorTextureID());
 }
 
 Renderer::~Renderer()
@@ -109,15 +109,32 @@ void Renderer::setupShader(Shader &shader)
 {
     using enum TextureUnit;
 
-    shader.setInt("albedoMap", static_cast<GLuint>(ALBEDO));
-    shader.setInt("armMap", static_cast<GLuint>(ARM));
-    shader.setInt("normalMap", static_cast<GLuint>(NORMAL));
-    shader.setInt("cubeMap", static_cast<GLuint>(CUBEMAP));
-    shader.setInt("shadowMap", static_cast<GLuint>(SHADOW));
+    // High-res array texture sRGB
+    shader.setInt("arraySRGB4k", static_cast<GLuint>(arraySRGB4k));
+    shader.setInt("arraySRGBA4k", static_cast<GLuint>(arraySRGBA4k));
+    shader.setInt("arraySRGB2k", static_cast<GLuint>(arraySRGB2k));
+    shader.setInt("arraySRGBA2k", static_cast<GLuint>(arraySRGBA2k));
+    shader.setInt("arraySRGB1k", static_cast<GLuint>(arraySRGB1k));
+    shader.setInt("arraySRGBA1k", static_cast<GLuint>(arraySRGBA1k));
 
+    // High-res array texture RGB
+    shader.setInt("arrayRGB4k", static_cast<GLuint>(arrayRGB4k));
+    shader.setInt("arrayRGB2k", static_cast<GLuint>(arrayRGB2k));
+    shader.setInt("arrayRGB1k", static_cast<GLuint>(arrayRGB1k));
+
+    // Low-res array texture
+    shader.setInt("arrayRGB512", static_cast<GLuint>(arrayRGB512));
+    shader.setInt("arrayRGB256", static_cast<GLuint>(arrayRGB256));
+
+    // Specialty texture units
+    shader.setInt("cubeMap", static_cast<GLuint>(cubemap));
+    shader.setInt("shadowMap", static_cast<GLuint>(shadow));
+
+    // Constants
     shader.setFloat("mipScale", mipScale);
     shader.setFloat("alphaCutoff", alphaCutoff);
 
+    // Setup Window settings
     shader.setFloat("gamma", graphicsSettings_.gamma);
 }
 
@@ -151,9 +168,10 @@ void Renderer::initializeResources(Scene &scene)
     // Set all scene dependent uniforms
     setSceneShaderUniforms(scene);
 
-    // Instanced data must be loaded first, then the map built
+    // Instanced data must be loaded first, shader-related functions can be called
     loadInstancedData(scene);
     buildShaderMap(scene);
+    textureManager_.buildArrayTextures();
 
     // Next all buffers must be built
     createBuffers(scene);

@@ -1,16 +1,16 @@
 #include "settings_window.h"
 
 #include <iostream>
-#include <map>
-#include <string>
 #include <vector>
 
 #include "gl_context.h"
+#include "graphics_settings.h"
 #include "image_loader.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "texture_utilities.h"
+#include "textures.h"
 
 constexpr int GUIWidth{1024};
 constexpr int GUIHeight{650};
@@ -362,7 +362,8 @@ void SettingsWindow::loadConfigWindowImage()
     if (!imageData.size())
         return;
 
-    textureID_ = textureUtilities::generateTexture(imageData[0], Sampler{}, TextureRequest{});
+    Texture texture{textureUtilities::generateTexture(imageData[0], Sampler{}, TextureRequest{})};
+    textureID_ = texture.id;
 }
 
 void SettingsWindow::updateResolution(GraphicsSettings &settings, int index)
