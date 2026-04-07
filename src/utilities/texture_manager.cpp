@@ -11,13 +11,24 @@
 #include "fastgltf_loader.h"
 #include "glad/glad.h"
 #include "image_loader.h"
-#include "texture_units.h"
 #include "texture_utilities.h"
+#include "textures.h"
 #include "thread_pool.h"
 
 TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings)
     : globalAnisotropicDegree_{static_cast<float>(settings.anisotropicFiltering)}, threadPool_{threadPool}
 {
+}
+
+TextureManager::~TextureManager()
+{
+    for (TextureArray &texArr : textureArrays_)
+        for (GLuint id : texArr.textureIDs)
+            if (id != 0)
+                glDeleteTextures(1, &id);
+
+    for (GLuint id : cubemapIDs_)
+        glDeleteTextures(1, &id);
 }
 
 void TextureManager::loadModel(const ModelHandle handle, fastgltf::Asset &&asset,
@@ -34,43 +45,14 @@ void TextureManager::loadCubemap(const ModelHandle handle, std::vector<std::file
 
 const std::vector<Material> &TextureManager::getMaterials(ModelHandle handle) const
 {
-    auto iter = textureCache_.find(handle);
+    auto iter = materialLookup_.find(handle);
 
-    if (iter == textureCache_.end())
-        throw std::runtime_error("ERROR: Could not aquire materials, handle does not exist");
-
-    return iter->second.materials;
-}
-
-void TextureManager::releaseHandle(ModelHandle handle)
-{
-    auto iter{textureCache_.find(handle)};
-
-    if (iter == textureCache_.end())
-        throw std::runtime_error("ERROR: Could not release handle, handle does not exist");
-
-    ModelResources &entry{iter->second};
-
-    if (entry.lender != -1)
+    if (iter == materialLookup_.end())
     {
-        auto otherIter{textureCache_.find(entry.lender)};
-
-        // Non recursive, one level deep on the lender.
-        releaseHandle(entry.lender);
-        textureCache_.erase(handle);
-
-        return;
+        std::cerr << "ERROR: Could not acquire materials, handle does not exist" << std::endl;
+        throw std::runtime_error("Missing handle");
     }
-
-    entry.refCount--;
-
-    if (entry.refCount == 0)
-    {
-        for (auto &gpuHandle : entry.glTextureHandles)
-            glDeleteTextures(1, &gpuHandle);
-
-        textureCache_.erase(iter);
-    }
+    return iter->second;
 }
 
 ModelHandle TextureManager::assignHandle()
@@ -79,17 +61,20 @@ ModelHandle TextureManager::assignHandle()
 
     ModelHandle handle{nextHandle++};
 
-    textureCache_.emplace(handle, ModelResources{});
+    materialLookup_[handle];
 
     return handle;
 }
 
 void TextureManager::textureFromAsset(fastgltf::Asset &asset, ModelHandle handle, std::filesystem::path parentPath)
 {
-    auto cacheIter = textureCache_.find(handle);
+    auto materialIter = materialLookup_.find(handle);
 
-    if (cacheIter == textureCache_.end())
-        throw std::runtime_error("ERROR: queue element with invalid handle");
+    if (materialIter == materialLookup_.end())
+    {
+        std::cerr << "ERROR: " << parentPath.string() << " attempted to load with no model handle" << std::endl;
+        throw std::runtime_error("Missing handle");
+    }
 
     // Get raw image data
     auto paths = fastgltfLoader::getURIs(asset, parentPath);
@@ -97,191 +82,263 @@ void TextureManager::textureFromAsset(fastgltf::Asset &asset, ModelHandle handle
     std::vector<LoadedImage> rawImageData = imageLoader.getImageData();
 
     // Resize to match fastgltf materials array
-    ModelResources &entry{cacheIter->second};
-    entry.materials.resize(asset.materials.size());
+    std::vector<Material> &materials{materialIter->second};
+    materials.resize(asset.materials.size());
 
-    // Create map to avoid duplicate images
-    std::unordered_map<unsigned int, GLuint> indices;
+    // Map image index to texture id for deduplication
+    std::unordered_map<unsigned int, Texture> imageIndices;
 
     // Helper function. If the map contains the OpenGL texture ID already, return that. Otherwise, create a new texture
     auto getOrCreateTextureID = [&](const fastgltf::TextureInfo &textureInfo, bool sRGB, bool anisotropic) {
         auto [imageIndex, sampler] = fastgltfLoader::getTextureInfo(asset, textureInfo);
-        auto [seenIndices, inserted] = indices.try_emplace(imageIndex, 0);
+        auto [index, inserted] = imageIndices.try_emplace(imageIndex, 0);
 
         if (inserted)
         {
             // Assume gltf models always want mipmaps
-            TextureDetails details{sRGB, true, anisotropic ? globalAnisotropicDegree_ : 0.0f};
+            TextureRequest request{sRGB, true, anisotropic ? globalAnisotropicDegree_ : 0.0f};
 
-            GLuint id{textureUtilities::generateTextureID(rawImageData[imageIndex], sampler, details)};
+            // Generate a new texture
+            Texture texture{textureUtilities::generateTexture(rawImageData[imageIndex], sampler, request)};
 
-            // Record new ID as seen
-            seenIndices->second = id;
+            // Determine which sampler2dArray to use, and get depth
+            texture.arrayEntry = assignToTextureArray(texture);
 
-            // Add the ID to the set of all IDs for this model
-            entry.glTextureHandles.insert(seenIndices->second);
+            // Insert the new texture at the image index
+            index->second = texture;
         }
 
-        return seenIndices->second;
+        return index->second;
     };
-
-    auto &materials = entry.materials;
 
     // Process all materials in the gltf asset
     for (size_t i{0}; i < asset.materials.size(); ++i)
     {
-        const auto &material = asset.materials[i];
+        const fastgltf::Material &assetMaterial = asset.materials[i];
+        Material material;
 
-        if (material.pbrData.baseColorTexture.has_value())
+        if (assetMaterial.pbrData.baseColorTexture.has_value())
         {
             // Albedo textures always get sRGB. Try to force aniso and let the global setting resolve whether it gets
             // applied
-            auto &albedo = material.pbrData.baseColorTexture.value();
-            materials[i].albedo = getOrCreateTextureID(albedo, true, true);
+            const fastgltf::TextureInfo &albedoInfo{assetMaterial.pbrData.baseColorTexture.value()};
+
+            // Deduplicate texture
+            Texture albedo{getOrCreateTextureID(albedoInfo, true, true)};
+
+            // Callers only know of a depth and which sampler2Darray to choose
+            material.albedo = albedo.arrayEntry;
         }
 
-        if (material.pbrData.metallicRoughnessTexture.has_value())
+        if (assetMaterial.pbrData.metallicRoughnessTexture.has_value())
         {
             // ARM map never gets sRGB or anisotropic filtering
-            auto &metallicRoughnessTexture = material.pbrData.metallicRoughnessTexture.value();
-            materials[i].occlusionRoughnessMetallic = getOrCreateTextureID(metallicRoughnessTexture, false, false);
+            const fastgltf::TextureInfo &armInfo = assetMaterial.pbrData.metallicRoughnessTexture.value();
+            Texture ARM{getOrCreateTextureID(armInfo, false, false)};
+
+            material.ARM = ARM.arrayEntry;
         }
 
-        if (material.normalTexture.has_value())
+        if (assetMaterial.normalTexture.has_value())
         {
             // Normal maps get no sRGB or aniso
-            auto &normalTexture = material.normalTexture.value();
-            materials[i].normal = getOrCreateTextureID(normalTexture, false, false);
+            const fastgltf::TextureInfo &normalInfo = assetMaterial.normalTexture.value();
+            Texture normal{getOrCreateTextureID(normalInfo, false, false)};
+
+            material.normal = normal.arrayEntry;
         }
+
+        materialLookup_[handle][i] = material;
     }
 }
 
 void TextureManager::cubemapFromPaths(ModelHandle handle, const std::vector<std::filesystem::path> &imagePaths,
                                       bool mipmaps, bool sRGB)
 {
-    auto iter = textureCache_.find(handle);
+    if (imagePaths.empty())
+        return;
 
-    if (iter == textureCache_.end())
-        throw std::runtime_error("ERROR: Could not create cubemap, handle does not exist");
+    auto materialIter = materialLookup_.find(handle);
+
+    if (materialIter == materialLookup_.end())
+    {
+        std::cerr << "ERROR: " << imagePaths[0].string() << " attempted to load with no model handle" << std::endl;
+        throw std::runtime_error("Missing handle");
+    }
 
     // Assume cubemaps never want anisotropic filtering
-    TextureDetails textureDetails{sRGB, mipmaps, 0.0f};
+    TextureRequest textureDetails{sRGB, mipmaps, 0.0f};
 
-    // Resize to 1, since we only have one material
-    iter->second.materials.resize(1);
+    // Resize materials to 1
+    std::vector<Material> &materials{materialIter->second};
+    materials.resize(1);
 
     // Raw data
     ImageLoader imageLoader{threadPool_, imagePaths};
     std::vector<LoadedImage> loadedImages{imageLoader.getImageData()};
 
-    // Create new id, assign it, and track it for eventual release
-    GLuint texID{textureUtilities::generateCubemapTextureID(loadedImages, textureDetails)};
-    iter->second.materials[0].cubemap = texID;
-    iter->second.glTextureHandles.insert(texID);
+    // Create and assign
+    Texture cubemapTexture{textureUtilities::generateCubemapTexture(loadedImages, textureDetails)};
+
+    materials[0].cubemap = cubemapTexture.id;
+    cubemapIDs_.insert(cubemapTexture.id);
 }
 
-void TextureManager::setMaterial(ModelResources &self, ModelResources &other, Texture texture, int index)
+void TextureManager::freeArrayTextures(SamplerArrayEntry &entry)
 {
-    using enum Texture;
+    if (entry.depth == -1 || entry.index == -1)
+        return;
 
-    if (index >= self.materials.size() || index >= other.materials.size())
-        throw std::runtime_error("ERROR: Material index out of bounds");
-
-    switch (texture)
-    {
-    case ALBEDO:
-        self.materials[index].albedo = other.materials[index].albedo;
-        break;
-    case ARM:
-        self.materials[index].occlusionRoughnessMetallic = other.materials[index].occlusionRoughnessMetallic;
-        break;
-    case NORMAL:
-        self.materials[index].normal = other.materials[index].normal;
-        break;
-    case CUBEMAP:
-        self.materials[index].cubemap = other.materials[index].cubemap;
-        break;
-    }
+    glDeleteTextures(1, &textureArrays_[entry.index].textureIDs[entry.depth]);
+    textureArrays_[entry.index].textureIDs[entry.depth] = 0;
 }
 
 // Borrow another models materials, completely releasing self's materials
-const std::vector<Material> &TextureManager::borrowAssignMaterials(ModelHandle self, ModelHandle other,
-                                                                   std::optional<Texture> texture, int materialIndex)
+void TextureManager::borrowMaterials(ModelHandle self, ModelHandle other)
 {
-    auto selfIter = textureCache_.find(self);
-    auto otherIter = textureCache_.find(other);
+    auto selfIter = materialLookup_.find(self);
+    auto otherIter = materialLookup_.find(other);
 
-    if (selfIter == textureCache_.end() || otherIter == textureCache_.end())
-        throw std::runtime_error("ERROR: Could not borrow materials, handle does not exist");
-
-    if (otherIter->second.glTextureHandles.empty())
-        throw std::runtime_error("ERROR: Could not borrow materials from non-owning handle");
-
-    ModelResources &selfEntry{selfIter->second};
-    ModelResources &otherEntry{otherIter->second};
-
-    ++otherEntry.refCount;
-
-    if (texture.has_value())
-        setMaterial(selfEntry, otherEntry, texture.value(), materialIndex);
-    else
+    if (selfIter == materialLookup_.end() || otherIter == materialLookup_.end())
     {
-        freeResources(selfEntry);
-        selfEntry.materials = otherEntry.materials;
+        std::cerr << "ERROR: attempted to borrow from non-existing handle" << std::endl;
+        throw std::runtime_error("Missing handle");
     }
 
-    selfEntry.lender = other;
+    std::vector<Material> &selfEntry{selfIter->second};
+    std::vector<Material> &otherEntry{otherIter->second};
 
-    return selfIter->second.materials;
+    for (std::size_t i{0}; i < selfEntry.size() && i < otherEntry.size(); ++i)
+    {
+        freeArrayTextures(selfEntry[i].albedo);
+        freeArrayTextures(selfEntry[i].ARM);
+        freeArrayTextures(selfEntry[i].normal);
+
+        selfEntry[i].albedo = otherEntry[i].albedo;
+        selfEntry[i].ARM = otherEntry[i].ARM;
+        selfEntry[i].normal = otherEntry[i].normal;
+    }
+
+    if (selfEntry.size() != otherEntry.size())
+        std::cerr << "WARNING: models borrowing with different material count" << std::endl;
 }
 
 // Assumes caller is giving up control of their texture ID, overwriting anything in that slot
-void TextureManager::setMaterial(ModelHandle handle, Texture texture, GLuint textureID, int materialIndex)
+void TextureManager::setCubemap(ModelHandle handle, GLuint textureID)
 {
-    using enum Texture;
+    auto materialIter = materialLookup_.find(handle);
 
-    auto iter = textureCache_.find(handle);
-
-    if (iter == textureCache_.end())
-        throw std::runtime_error("ERROR: Could not assign material, handle does not exist");
-
-    auto &materials{iter->second.materials};
-    auto &entry{iter->second};
-
-    if (materialIndex >= materials.size())
-        return;
-
-    switch (texture)
+    if (materialIter == materialLookup_.end())
     {
-    case ALBEDO:
-        materials[materialIndex].albedo = textureID;
-        entry.glTextureHandles.insert(textureID);
+        std::cerr << "ERROR: non-existant handle" << std::endl;
+        throw std::runtime_error("Missing handle");
+    }
+
+    std::vector<Material> &materials{materialIter->second};
+
+    for (Material &material : materials)
+    {
+        if (cubemapIDs_.contains(material.cubemap))
+        {
+            glDeleteTextures(1, &material.cubemap);
+            cubemapIDs_.erase(material.cubemap);
+        }
+
+        material.cubemap = textureID;
+    }
+
+    cubemapIDs_.insert(textureID);
+}
+
+// Inserts a texture into a sampler2DArray and returns an array identifier and depth
+SamplerArrayEntry TextureManager::assignToTextureArray(Texture &texture)
+{
+    if (texture.width != texture.height)
+    {
+        std::cerr << "ERROR: Texture not square" << std::endl;
+        throw std::runtime_error("Texture resolution error");
+    }
+
+    SamplerArrayEntry entry;
+
+    switch (texture.width)
+    {
+    case 4096:
+        if (texture.internalFormat == GL_RGB8)
+            entry.index = 0;
+        else
+            entry.index = 1;
         break;
 
-    case ARM:
-        materials[materialIndex].occlusionRoughnessMetallic = textureID;
-        entry.glTextureHandles.insert(textureID);
+    case 2048:
+        if (texture.internalFormat == GL_RGB8)
+            entry.index = 2;
+        else
+            entry.index = 3;
         break;
 
-    case NORMAL:
-        materials[materialIndex].normal = textureID;
-        entry.glTextureHandles.insert(textureID);
+    case 1024:
+        if (texture.internalFormat == GL_RGB8)
+            entry.index = 4;
+        else
+            entry.index = 5;
         break;
 
-    case CUBEMAP:
-        materials[materialIndex].cubemap = textureID;
-        entry.glTextureHandles.insert(textureID);
+    case 512:
+        if (texture.internalFormat == GL_RGB8)
+            entry.index = 6;
+        else
+        {
+            std::cerr << "ERROR: Texture format and resolution not in array" << std::endl;
+            throw std::runtime_error("Texture array index error");
+        }
+        break;
+
+    case 256:
+        if (texture.internalFormat == GL_RGB8)
+            entry.index = 7;
+        else
+        {
+            std::cerr << "ERROR: Texture format and resolution not in array" << std::endl;
+            throw std::runtime_error("Texture array index error");
+        }
         break;
 
     default:
-        std::cerr << "ERROR: Material not supported in Texture Manager" << std::endl;
+        std::cerr << "ERROR: Texture format and resolution not in array" << std::endl;
+        throw std::runtime_error("Texture array index error");
     }
+
+    textureArrays_[entry.index].textureIDs.push_back(texture.id);
+
+    entry.depth = static_cast<int>(textureArrays_[entry.index].textureIDs.size() - 1);
+
+    return entry;
 }
 
-void TextureManager::freeResources(ModelResources &resources)
+void TextureManager::borrowCubemaps(ModelHandle self, ModelHandle other)
 {
-    for (auto &gpuHandle : resources.glTextureHandles)
-        glDeleteTextures(1, &gpuHandle);
+    auto selfIter = materialLookup_.find(self);
+    auto otherIter = materialLookup_.find(other);
 
-    resources.glTextureHandles.clear();
+    if (selfIter == materialLookup_.end() || otherIter == materialLookup_.end())
+    {
+        std::cerr << "ERROR: attempted to borrow from non-existing handle" << std::endl;
+        throw std::runtime_error("Missing handle");
+    }
+
+    std::vector<Material> &selfEntry{selfIter->second};
+    std::vector<Material> &otherEntry{otherIter->second};
+
+    for (std::size_t i{0}; i < selfEntry.size() && i < otherEntry.size(); ++i)
+    {
+
+        if (cubemapIDs_.contains(selfEntry[i].cubemap))
+        {
+            glDeleteTextures(1, &selfEntry[i].cubemap);
+            cubemapIDs_.erase(selfEntry[i].cubemap);
+        }
+
+        selfEntry[i].cubemap = otherEntry[i].cubemap;
+    }
 }

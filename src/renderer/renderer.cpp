@@ -13,7 +13,7 @@
 #include "shader.h"
 #include "shader_type.h"
 #include "texture_manager.h"
-#include "texture_units.h"
+#include "textures.h"
 
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.111f};
@@ -39,7 +39,7 @@ Renderer::Renderer(const GraphicsSettings &settings)
     for (auto &[_, shader] : shaders_)
         setupShader(shader);
 
-    glBindTextureUnit(static_cast<GLuint>(Texture::SHADOW), shadowBlitTarget_.getColorTextureID());
+    glBindTextureUnit(static_cast<GLuint>(TextureUnit::SHADOW), shadowBlitTarget_.getColorTextureID());
 }
 
 Renderer::~Renderer()
@@ -107,7 +107,7 @@ void Renderer::loadShaders()
 
 void Renderer::setupShader(Shader &shader)
 {
-    using enum Texture;
+    using enum TextureUnit;
 
     shader.setInt("albedoMap", static_cast<GLuint>(ALBEDO));
     shader.setInt("armMap", static_cast<GLuint>(ARM));
@@ -161,7 +161,7 @@ void Renderer::initializeResources(Scene &scene)
 
     // Skyboxes have to be borrowed before creating cubemaps. The environement must be fully setup before rendering
     // cubemap faces. Cubemap face generation relies on default full visibility, before any culling has happened
-    borrowSkyboxes();
+    borrowSkybox();
     createCubemaps(scene);
 
     // Setup for cascade shadow maps. Must come after cubemaps due to per-light-frustum culling

@@ -17,8 +17,8 @@
 #include "settings_window.h"
 #include "shader_type.h"
 #include "texture_manager.h"
-#include "texture_units.h"
 #include "texture_utilities.h"
+#include "textures.h"
 #include "transform.h"
 #include "world_vectors.h"
 
@@ -43,7 +43,7 @@ void Renderer::loadInstancedData(Scene &scene)
     }
 }
 
-void Renderer::borrowSkyboxes()
+void Renderer::borrowSkybox()
 {
     using enum ShaderType;
 
@@ -56,12 +56,13 @@ void Renderer::borrowSkyboxes()
     if (skyboxes.empty() || oceans.empty())
         return;
 
-    for (int i{0}; i < skyboxes.size() && i < oceans.size(); ++i)
+    auto &skybox = skyboxes[0].renderableRef.get();
+
+    for (int i{0}; i < oceans.size(); ++i)
     {
         auto &ocean = oceans[i].renderableRef.get();
-        auto &skybox = skyboxes[i].renderableRef.get();
 
-        textureManager_.borrowAssignMaterials(ocean.getHandle(), skybox.getHandle(), Texture::CUBEMAP);
+        textureManager_.borrowCubemaps(ocean.getHandle(), skybox.getHandle());
     }
 }
 
@@ -157,7 +158,7 @@ void Renderer::createCubemaps(Scene &scene)
 
         // Assign the texture
         auto &waterPlane = drawEntry.renderableRef.get();
-        textureManager_.setMaterial(waterPlane.getHandle(), Texture::CUBEMAP, cubeMapTextureID);
+        textureManager_.setCubemap(waterPlane.getHandle(), cubeMapTextureID);
         drawEntry.isVisible = true;
     }
 
