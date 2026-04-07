@@ -110,9 +110,9 @@ class Renderer
     void loadShaders();
 
     // Scene dependent initialization
+    void borrowSkybox();
     void createVAO(Scene &scene);
     void createBuffers(Scene &scene);
-    void setupShader(Shader &shader);
     void buildShaderMap(Scene &scene);
     void createCubemaps(Scene &scene);
     void loadInstancedData(Scene &scene);
@@ -120,13 +120,13 @@ class Renderer
     void populateSSBOs(std::size_t totalInstanceCount);
     void createCubemapFaces(Scene &scene, int renderTargetSize, GLuint texture);
 
-    // Scene independent initialization
-    void borrowSkybox();
+    //Scene independant initialization
+    void setupShader(Shader &shader);
 
     // Rendering
     void renderAllSceneObjects();
-    void renderObject(DrawEntry &renderable);
-    void bindTextures(const Material &materials);
+    void renderObject(Shader &shader, DrawEntry &renderable);
+    void bindTextures(Shader &shader, const Material &materials);
     void shadowPass(const CascadeShadow::LightMatrices &lightMatrices, Shader &shader, int cascade,
                     bool drawAlphaTested);
 

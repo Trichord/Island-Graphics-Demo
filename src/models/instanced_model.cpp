@@ -1,16 +1,18 @@
 #include "instanced_model.h"
+
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <random>
-#include <span>
 #include <utility>
+#include <vector>
 
-#include "aabb.h"
-#include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "model.h"
+#include "renderable.h"
 #include "texture_manager.h"
+#include "transform.h"
 #include "world_vectors.h"
 
 InstancedModel::InstancedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,

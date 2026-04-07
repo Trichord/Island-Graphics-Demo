@@ -1,4 +1,7 @@
-#include "cull_method.h"
+#include <cstring>
+
+#include "camera.h"
+#include "cascade_shadow.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -42,7 +45,7 @@ void Renderer::renderAllSceneObjects()
             shader.setVec3("scale", firstInstance.transform.getScale());
 
             // Draw it
-            renderObject(drawEntry);
+            renderObject(shader, drawEntry);
         }
 
         if (shaderType == SKYBOX)
@@ -50,7 +53,7 @@ void Renderer::renderAllSceneObjects()
     }
 }
 
-void Renderer::renderObject(DrawEntry &drawEntry)
+void Renderer::renderObject(Shader &shader, DrawEntry &drawEntry)
 {
     Renderable &renderable = drawEntry.renderableRef.get();
     const auto &materials{textureManager_.getMaterials(renderable.getHandle())};
@@ -71,8 +74,19 @@ void Renderer::renderObject(DrawEntry &drawEntry)
 
             if (primitive.materialsExist())
             {
+
+
                 std::size_t materialIndex{primitive.getMaterialIndex()};
-                bindTextures(materials[materialIndex]);
+
+                    if (materialIndex >= materials.size())
+                {
+                    std::cerr << "ERROR: materialIndex " << materialIndex << " >= materials.size() " << materials.size()
+                              << std::endl;
+                    continue;
+                }
+
+
+                bindTextures(shader, materials[materialIndex]);
             }
 
             glDrawElementsInstancedBaseVertex(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT,
@@ -81,21 +95,28 @@ void Renderer::renderObject(DrawEntry &drawEntry)
     }
 }
 
-void Renderer::bindTextures(const Material &materials)
+void Renderer::bindTextures(Shader &shader, const Material &material)
 {
-    using enum TextureUnit;
+    if (material.albedo.array != -1)
+    {
+        shader.setInt("albedoArrayTexture", material.albedo.array);
+        shader.setInt("albedoLayer", material.albedo.layer);
+    }
 
-    if (materials.albedo)
-        glState_.bindTexture(static_cast<GLuint>(ALBEDO), materials.albedo);
+    if (material.ARM.array != -1)
+    {
+        shader.setInt("armArrayTexture", material.ARM.array);
+        shader.setInt("armLayer", material.ARM.layer);
+    }
 
-    if (materials.occlusionRoughnessMetallic)
-        glState_.bindTexture(static_cast<GLuint>(ARM), materials.occlusionRoughnessMetallic);
+    if (material.normal.array != -1)
+    {
+        shader.setInt("normalArrayTexture", material.normal.array);
+        shader.setInt("normalLayer", material.normal.layer);
+    }
 
-    if (materials.normal)
-        glState_.bindTexture(static_cast<GLuint>(NORMAL), materials.normal);
-
-    if (materials.cubemap)
-        glState_.bindTexture(static_cast<GLuint>(CUBEMAP), materials.cubemap);
+    if (material.cubemap)
+        glState_.bindTexture(static_cast<GLuint>(TextureUnit::cubemap), material.cubemap);
 }
 
 void Renderer::updateCascadeShadowUBO(const CascadeShadow::CascadeSplits &cascades,
@@ -208,7 +229,7 @@ void Renderer::shadowPass(const CascadeShadow::LightMatrices &lightMatrices, Sha
                     if (primitive.materialsExist() && drawAlphaTested)
                     {
                         std::size_t materialIndex{primitive.getMaterialIndex()};
-                        bindTextures(materials[materialIndex]);
+                        bindTextures(shader, materials[materialIndex]);
                     }
 
                     glDrawElementsInstancedBaseVertex(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT,

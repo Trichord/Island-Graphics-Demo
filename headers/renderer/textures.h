@@ -4,11 +4,14 @@
 enum class TextureUnit
 {
     arrayRGB4k,
-    arrayRGBA4k,
+    arraySRGB4k,
+    arraySRGBA4k,
     arrayRGB2k,
-    arrayRGBA2k,
+    arraySRGB2k,
+    arraySRGBA2k,
     arrayRGB1k,
-    arrayRGBA1k,
+    arraySRGB1k,
+    arraySRGBA1k,
     arrayRGB512,
     arrayRGB256,
     cubemap,
@@ -25,16 +28,18 @@ struct Sampler
 
 struct SamplerArrayEntry
 {
-    int index{-1};
-    int depth{-1};
+    int array{-1};
+    int layer{-1};
 };
 
 struct Texture
 {
+    GLuint id{0};
+
     int width{0};
     int height{0};
     GLenum internalFormat{GL_SRGB8};
-    GLuint id{0};
+    
     SamplerArrayEntry arrayEntry;
 };
 
