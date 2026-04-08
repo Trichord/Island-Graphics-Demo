@@ -2,14 +2,31 @@
 
 out vec4 fragColor;
 
-uniform sampler2D albedoMap;
-uniform sampler2D armMap;
+uniform sampler2DArray arrayRGB4k;
+uniform sampler2DArray arraySRGB4k;
+uniform sampler2DArray arraySRGBA4k;
+uniform sampler2DArray arrayRGB2k;
+uniform sampler2DArray arraySRGB2k;
+uniform sampler2DArray arraySRGBA2k;
+uniform sampler2DArray arrayRGB1k;
+uniform sampler2DArray arraySRGB1k;
+uniform sampler2DArray arraySRGBA1k;
+uniform sampler2DArray arrayRGB512;
+uniform sampler2DArray arrayRGB256;
+
 uniform vec3 ambientLight;
 uniform vec3 lightColor;
 uniform vec3 lightDir;
+
 uniform float gamma;
 uniform float mipScale;
 uniform float alphaCutoff;
+
+uniform int albedoArrayTexture;
+uniform int albedoLayer;
+
+uniform int armArrayTexture;
+uniform int armLayer;
 
 const float INVERSE_PI = 0.31830988618;
 
@@ -26,6 +43,72 @@ in VS_OUT {
 	vec3 normal;
 	vec2 texCoords;
 } fs_in;
+
+vec4 textureFromSampler2DArray(vec2 textureCoordinates, int index, float layer)
+{
+	vec4 tex;
+	
+	switch (index)
+	{
+		case 0:
+			tex = texture(arrayRGB4k, vec3(textureCoordinates, layer));
+			break;
+	
+		case 1:
+			tex = texture(arraySRGB4k, vec3(textureCoordinates, layer));
+			break;
+
+		case 2:
+			tex = texture(arraySRGBA4k, vec3(textureCoordinates, layer));
+			break;
+
+		case 3:
+			tex = texture(arrayRGB2k, vec3(textureCoordinates, layer));
+			break;
+
+		case 4:
+			tex = texture(arraySRGB2k, vec3(textureCoordinates, layer));
+			break;
+
+		case 5:
+			tex = texture(arraySRGBA2k, vec3(textureCoordinates, layer));
+			break;
+
+		case 6:
+			tex = texture(arrayRGB1k, vec3(textureCoordinates, layer));
+			break;
+		
+		case 7:
+			tex = texture(arraySRGB1k, vec3(textureCoordinates, layer));
+			break;
+
+		case 8:
+			tex = texture(arraySRGBA1k, vec3(textureCoordinates, layer));
+			break;
+
+		case 9:
+			tex = texture(arrayRGB512, vec3(textureCoordinates, layer));
+			break;
+
+		case 10:
+			tex = texture(arrayRGB256, vec3(textureCoordinates, layer));
+			break;
+		
+		default:
+			tex = vec4(1.0, 0.0, 1.0, 1.0);
+	}
+
+	return tex;
+}
+
+vec2 sizeFromBucketIndex(int index)
+{
+    if (index <= 2) return vec2(4096.0);
+    if (index <= 5) return vec2(2048.0);
+    if (index <= 8) return vec2(1024.0);
+    if (index == 9) return vec2(512.0);
+    return vec2(256.0);
+}
 
 //Burely diffuse (unrolled)
 float burleyDiffuseFactor(float FD90, float NdotL, float NdotV){
@@ -66,15 +149,15 @@ float CalcMipLevel(vec2 texture_coord){
 
 void main() {
 	//material properties, remap normal from [0, 1] to [-1, 1]
-	vec4 albedo = texture(albedoMap, fs_in.texCoords);
+	vec4 albedo = textureFromSampler2DArray(fs_in.texCoords, albedoArrayTexture, albedoLayer);
 	vec3 normal = normalize(fs_in.normal);
-	vec3 armMap = texture(armMap, fs_in.texCoords).rgb;
+	vec3 armMap = textureFromSampler2DArray(fs_in.texCoords, armArrayTexture, armLayer).rgb;
 	float ao = armMap.r;
 	float roughness = armMap.g;
 	float metallic = armMap.b;
 
 	//Scale alpha by mip level
-    vec2 texSize = vec2(textureSize(albedoMap, 0)); // Level 0 size
+    vec2 texSize = sizeFromBucketIndex(albedoArrayTexture);
     albedo.a *= 1 + max(0, CalcMipLevel(fs_in.texCoords * texSize)) * mipScale;
 
 	// Rescale alpha by partial derivative. Credit: Ben Golus
