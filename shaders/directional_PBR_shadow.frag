@@ -158,54 +158,54 @@ vec3 ACESFilm(vec3 x)
 	return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
-vec4 textureFromSampler2DArray(int index, float layer)
+vec4 textureFromSampler2DArray(vec2 textureCoordinates, int index, float layer)
 {
 	vec4 tex;
 	
 	switch (index)
 	{
 		case 0:
-			tex = texture(arrayRGB4k, vec3(fs_in.texCoords, layer));
+			tex = texture(arrayRGB4k, vec3(textureCoordinates, layer));
 			break;
 	
 		case 1:
-			tex = texture(arraySRGB4k, vec3(fs_in.texCoords, layer));
+			tex = texture(arraySRGB4k, vec3(textureCoordinates, layer));
 			break;
 
 		case 2:
-			tex = texture(arraySRGBA4k, vec3(fs_in.texCoords, layer));
+			tex = texture(arraySRGBA4k, vec3(textureCoordinates, layer));
 			break;
 
 		case 3:
-			tex = texture(arrayRGB2k, vec3(fs_in.texCoords, layer));
+			tex = texture(arrayRGB2k, vec3(textureCoordinates, layer));
 			break;
 
 		case 4:
-			tex = texture(arraySRGB2k, vec3(fs_in.texCoords, layer));
+			tex = texture(arraySRGB2k, vec3(textureCoordinates, layer));
 			break;
 
 		case 5:
-			tex = texture(arraySRGBA2k, vec3(fs_in.texCoords, layer));
+			tex = texture(arraySRGBA2k, vec3(textureCoordinates, layer));
 			break;
 
 		case 6:
-			tex = texture(arrayRGB1k, vec3(fs_in.texCoords, layer));
+			tex = texture(arrayRGB1k, vec3(textureCoordinates, layer));
 			break;
 		
 		case 7:
-			tex = texture(arraySRGB1k, vec3(fs_in.texCoords, layer));
+			tex = texture(arraySRGB1k, vec3(textureCoordinates, layer));
 			break;
 
 		case 8:
-			tex = texture(arraySRGBA1k, vec3(fs_in.texCoords, layer));
+			tex = texture(arraySRGBA1k, vec3(textureCoordinates, layer));
 			break;
 
 		case 9:
-			tex = texture(arrayRGB512, vec3(fs_in.texCoords, layer));
+			tex = texture(arrayRGB512, vec3(textureCoordinates, layer));
 			break;
 
 		case 10:
-			tex = texture(arrayRGB256, vec3(fs_in.texCoords, layer));
+			tex = texture(arrayRGB256, vec3(textureCoordinates, layer));
 			break;
 		
 		default:
@@ -217,9 +217,9 @@ vec4 textureFromSampler2DArray(int index, float layer)
 
 void main() {
 	//material properties, remap normal from [0, 1] to [-1, 1]
-	vec4 albedo = textureFromSampler2DArray(albedoArrayTexture, albedoLayer);
-	vec3 normal = textureFromSampler2DArray(normalArrayTexture, normalLayer).rgb * 2.0 - 1.0; 
-	vec3 armMap = textureFromSampler2DArray(armArrayTexture, armLayer).rgb;
+	vec4 albedo = textureFromSampler2DArray(fs_in.texCoords, albedoArrayTexture, albedoLayer);
+	vec3 normal = textureFromSampler2DArray(fs_in.texCoords, normalArrayTexture, normalLayer).rgb * 2.0 - 1.0; 
+	vec3 armMap = textureFromSampler2DArray(fs_in.texCoords, armArrayTexture, armLayer).rgb;
 
 	//vectors
 	vec3 N = normalize(normal);
