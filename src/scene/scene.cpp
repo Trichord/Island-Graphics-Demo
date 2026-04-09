@@ -28,7 +28,15 @@ std::vector<SceneEntry> &Scene::getAllSceneEntries()
 
 SceneEntry &Scene::getEntryByName(const std::string &key)
 {
-    return namedTransforms_.at(key);
+    auto iter = namedTransforms_.find(key);
+
+    if (iter == namedTransforms_.end())
+    {
+        std::cerr << "ERROR: Cannot find named scene entry" << std::endl;
+        throw std::runtime_error("Invalid key");
+    }
+
+    return iter->second;
 }
 
 DirectionalLight &Scene::getGlobalLightSource()

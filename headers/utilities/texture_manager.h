@@ -39,22 +39,19 @@ class TextureManager
     {
         const int width{0};
         const GLenum internalFormat{GL_SRGB8};
-              
+
         GLuint arrayTextureID{0};
         std::vector<GLuint> textureIDs;
     };
 
-    std::array<ArrayTexture, 11> arrayTextures_{{{4096, GL_RGB8},
-                                                 {4096, GL_SRGB8},
-                                                 {4096, GL_SRGB8_ALPHA8},
-                                                 {2048, GL_RGB8},
-                                                 {2048, GL_SRGB8},
-                                                 {2048, GL_SRGB8_ALPHA8},
-                                                 {1024, GL_RGB8},
-                                                 {1024, GL_SRGB8},
-                                                 {1024, GL_SRGB8_ALPHA8},
-                                                 {512, GL_RGB8},
-                                                 {256, GL_RGB8}}};
+    std::array<ArrayTexture, 8> arrayTextures_{{{4096, GL_RGB8},
+                                                {4096, GL_SRGB8},
+                                                {2048, GL_RGB8},
+                                                {2048, GL_SRGB8},
+                                                {2048, GL_SRGB8_ALPHA8},
+                                                {1024, GL_RGB8},
+                                                {1024, GL_SRGB8},
+                                                {512, GL_RGB8}}};
 
     float globalAnisotropicDegree_{0.0f};
     bool globalAnisoEnabled_{false};

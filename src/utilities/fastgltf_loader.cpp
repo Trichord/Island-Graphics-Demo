@@ -209,19 +209,17 @@ std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(const fastgltf::Asset &a
             }
 
             // Check if there are any materials at all
-            bool hasMaterials{false};
             std::size_t materialIndex{0};
             fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
 
             if (gltfPrimitive.materialIndex.has_value() && !asset.images.empty() && !asset.materials.empty())
             {
-                hasMaterials = true;
                 materialIndex = gltfPrimitive.materialIndex.value();
                 alphaMode = asset.materials[materialIndex].alphaMode;
             }
 
             // Build the primitive
-            mesh.primitives.emplace_back(std::move(vertices), std::move(indices), AABB{}, hasMaterials, materialIndex,
+            mesh.primitives.emplace_back(std::move(vertices), std::move(indices), AABB{}, materialIndex,
                                          alphaMode);
         }
 

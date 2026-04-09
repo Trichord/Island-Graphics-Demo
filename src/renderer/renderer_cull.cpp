@@ -95,7 +95,7 @@ void Renderer::cullInstanced(DrawEntry &drawEntry, const std::array<glm::vec4, 6
 {
     bool anyVisible{false};
     Renderable &renderable{drawEntry.renderableRef.get()};
-    const std::vector<BoundedTransform> &instances{drawEntry.instancesRef.get()};
+    const std::vector<BoundedTransform> &instances{drawEntry.transformsRef.get()};
 
     for (uint32_t i{0}; i < instances.size(); ++i)
     {
@@ -123,7 +123,7 @@ void Renderer::cullByMesh(DrawEntry &drawEntry, const std::array<glm::vec4, 6> &
 {
     bool anyVisible{false};
     Renderable &renderable{drawEntry.renderableRef.get()};
-    std::vector<BoundedTransform> &instances{drawEntry.instancesRef.get()};
+    std::vector<BoundedTransform> &instances{drawEntry.transformsRef.get()};
 
     for (uint32_t i{0}; i < instances.size(); ++i)
     {
@@ -164,7 +164,7 @@ void Renderer::resetVisibility()
         for (DrawEntry &drawEntry : drawEntries)
         {
             Renderable &renderable{drawEntry.renderableRef.get()};
-            GLuint instanceCount{static_cast<GLuint>(drawEntry.instancesRef.get().size())};
+            GLuint instanceCount{static_cast<GLuint>(drawEntry.transformsRef.get().size())};
 
             drawEntry.isVisible = false;
             drawEntry.visibleInstances = 0;
@@ -178,7 +178,7 @@ void Renderer::resetVisibility()
 void Renderer::cullNone(DrawEntry &drawEntry, GLuint &ssboIndicesOffset)
 {
     Renderable &renderable{drawEntry.renderableRef.get()};
-    std::vector<BoundedTransform> &instances{drawEntry.instancesRef.get()};
+    std::vector<BoundedTransform> &instances{drawEntry.transformsRef.get()};
 
     renderable.setMeshVisibility(true);
     drawEntry.isVisible = true;
