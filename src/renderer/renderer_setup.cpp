@@ -100,15 +100,17 @@ void Renderer::createCubemaps(Scene &scene)
 {
     using enum ShaderType;
 
+    auto waterIter = drawEntriesByShader_.find(WATER);
+
+    if (waterIter == drawEntriesByShader_.end() || waterIter->second.empty())
+        return;
+
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {
         entry.renderableRef.get().setMeshVisibility(true);
     }
 
-    auto &waters{drawEntriesByShader_.at(WATER)};
-
-    if (waters.empty())
-        return;
+    auto &waters{waterIter->second};
 
     Camera &camera{scene.getCamera()};
 
@@ -129,7 +131,7 @@ void Renderer::createCubemaps(Scene &scene)
 
     for (auto &drawEntry : waters)
     {
-        std::vector<BoundedTransform> &instances{drawEntry.instancesRef.get()};
+        std::vector<BoundedTransform> &instances{drawEntry.transformsRef.get()};
 
         if (instances.empty())
             continue;
@@ -228,7 +230,7 @@ void Renderer::populateSSBOs(std::size_t totalInstanceCount)
         for (auto &drawEntry : drawEntries)
         {
             Renderable &renderable{drawEntry.renderableRef.get()};
-            std::vector<BoundedTransform> &instances{drawEntry.instancesRef.get()};
+            std::vector<BoundedTransform> &instances{drawEntry.transformsRef.get()};
 
             if (instances.empty())
                 continue;

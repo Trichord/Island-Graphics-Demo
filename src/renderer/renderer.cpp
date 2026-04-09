@@ -111,11 +111,9 @@ void Renderer::setupShader(Shader &shader)
 
     // High-res array texture sRGB
     shader.setInt("arraySRGB4k", static_cast<GLuint>(arraySRGB4k));
-    shader.setInt("arraySRGBA4k", static_cast<GLuint>(arraySRGBA4k));
     shader.setInt("arraySRGB2k", static_cast<GLuint>(arraySRGB2k));
     shader.setInt("arraySRGBA2k", static_cast<GLuint>(arraySRGBA2k));
     shader.setInt("arraySRGB1k", static_cast<GLuint>(arraySRGB1k));
-    shader.setInt("arraySRGBA1k", static_cast<GLuint>(arraySRGBA1k));
 
     // High-res array texture RGB
     shader.setInt("arrayRGB4k", static_cast<GLuint>(arrayRGB4k));
@@ -124,7 +122,6 @@ void Renderer::setupShader(Shader &shader)
 
     // Low-res array texture
     shader.setInt("arrayRGB512", static_cast<GLuint>(arrayRGB512));
-    shader.setInt("arrayRGB256", static_cast<GLuint>(arrayRGB256));
 
     // Specialty texture units
     shader.setInt("cubeMap", static_cast<GLuint>(cubemap));
@@ -242,7 +239,7 @@ void Renderer::buildShaderMap(Scene &scene)
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {
         drawEntriesByShader_[entry.shaderType].push_back({.renderableRef{entry.renderableRef},
-                                                          .instancesRef{entry.transforms},
+                                                          .transformsRef{entry.transforms},
                                                           .shaderType{entry.shaderType},
                                                           .cullMethod{entry.cullMethod}});
     }

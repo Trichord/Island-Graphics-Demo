@@ -59,14 +59,14 @@ struct DrawEntry
 {
     // Renderable object
     std::reference_wrapper<Renderable> renderableRef;
-    std::reference_wrapper<std::vector<BoundedTransform>> instancesRef;
+    std::reference_wrapper<std::vector<BoundedTransform>> transformsRef;
 
     // Drawing
     ShaderType shaderType{ShaderType::DIRECTIONAL_PBR};
 
     // Culling
     bool isVisible{true};
-    GLuint visibleInstances{static_cast<GLuint>(instancesRef.get().size())};
+    GLuint visibleInstances{static_cast<GLuint>(transformsRef.get().size())};
     CullMethod cullMethod{CullMethod::INSTANCED};
 
     // SSBO

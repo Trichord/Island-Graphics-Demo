@@ -5,15 +5,12 @@ enum class TextureUnit
 {
     arrayRGB4k,
     arraySRGB4k,
-    arraySRGBA4k,
     arrayRGB2k,
     arraySRGB2k,
     arraySRGBA2k,
     arrayRGB1k,
     arraySRGB1k,
-    arraySRGBA1k,
     arrayRGB512,
-    arrayRGB256,
     cubemap,
     shadow
 };

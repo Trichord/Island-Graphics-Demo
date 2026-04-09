@@ -2,19 +2,8 @@
 
 out vec4 fragColor;
 
-uniform sampler2DArray arrayRGB4k;
-uniform sampler2DArray arraySRGB4k;
-uniform sampler2DArray arraySRGBA4k;
-uniform sampler2DArray arrayRGB2k;
-uniform sampler2DArray arraySRGB2k;
 uniform sampler2DArray arraySRGBA2k;
-uniform sampler2DArray arrayRGB1k;
-uniform sampler2DArray arraySRGB1k;
-uniform sampler2DArray arraySRGBA1k;
-uniform sampler2DArray arrayRGB512;
-uniform sampler2DArray arrayRGB256;
 
-uniform int albedoArrayTexture;
 uniform int albedoLayer;
 
 uniform vec3 ambientLight;
@@ -27,63 +16,6 @@ uniform float alphaCutoff;
 
 in vec2 texCoords;
 in vec3 normal;
-
-vec4 textureFromSampler2DArray(vec2 textureCoordinates, int index, float layer)
-{
-	vec4 tex;
-	
-	switch (index)
-	{
-		case 0:
-			tex = texture(arrayRGB4k, vec3(textureCoordinates, layer));
-			break;
-	
-		case 1:
-			tex = texture(arraySRGB4k, vec3(textureCoordinates, layer));
-			break;
-
-		case 2:
-			tex = texture(arraySRGBA4k, vec3(textureCoordinates, layer));
-			break;
-
-		case 3:
-			tex = texture(arrayRGB2k, vec3(textureCoordinates, layer));
-			break;
-
-		case 4:
-			tex = texture(arraySRGB2k, vec3(textureCoordinates, layer));
-			break;
-
-		case 5:
-			tex = texture(arraySRGBA2k, vec3(textureCoordinates, layer));
-			break;
-
-		case 6:
-			tex = texture(arrayRGB1k, vec3(textureCoordinates, layer));
-			break;
-		
-		case 7:
-			tex = texture(arraySRGB1k, vec3(textureCoordinates, layer));
-			break;
-
-		case 8:
-			tex = texture(arraySRGBA1k, vec3(textureCoordinates, layer));
-			break;
-
-		case 9:
-			tex = texture(arrayRGB512, vec3(textureCoordinates, layer));
-			break;
-
-		case 10:
-			tex = texture(arrayRGB256, vec3(textureCoordinates, layer));
-			break;
-		
-		default:
-			tex = vec4(1.0, 0.0, 1.0, 1.0);
-	}
-
-	return tex;
-}
 
 vec2 sizeFromBucketIndex(int index)
 {
@@ -116,7 +48,7 @@ float CalcMipLevel(vec2 texture_coord){
 }
 
 void main() {
-    vec4 albedo = textureFromSampler2DArray(texCoords, albedoArrayTexture, albedoLayer);
+    vec4 albedo = texture(arraySRGBA2k, vec3(texCoords, albedoLayer));
 
     //Flip normal if 2D quad is facing away
     vec3 normalizedNormal = normalize(normal);
@@ -130,7 +62,7 @@ void main() {
     float diffuseStrength = NdotL * 0.5 + 0.6;
 
 	//Scale alpha by mip level 0
-    vec2 texSize = sizeFromBucketIndex(albedoArrayTexture);
+    vec2 texSize = vec2(2048, 2048);
     albedo.a *= 1 + max(0, CalcMipLevel(texCoords * texSize)) * mipScale;
 
 	// Rescale alpha by partial derivative. Credit: Ben Golus

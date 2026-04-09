@@ -22,7 +22,6 @@ Model::Model(TextureManager &textureManager, const std::filesystem::path &path)
 {
     loadModel(path, false);
     calculateAABB();
-    discoverMaterials();
 }
 
 Model::Model(TextureManager &textureManager, const ModelHandle borrowHandle, const std::filesystem::path &path)
@@ -31,7 +30,6 @@ Model::Model(TextureManager &textureManager, const ModelHandle borrowHandle, con
     textureManager.borrowMaterials(handle_, borrowHandle);
     loadModel(path, true);
     calculateAABB();
-    discoverMaterials();
 }
 
 Model::Model(Model &&other) noexcept
@@ -71,20 +69,6 @@ const ModelHandle Model::getHandle() const
     return handle_;
 }
 
-void Model::assignMaterialIndex(std::size_t newIndex)
-{
-    for (auto &mesh : meshes_)
-        for (auto &primitive : mesh.primitives)
-            primitive.setMaterialIndex(newIndex);
-
-    hasMaterials_ = true;
-}
-
-bool Model::hasMaterials() const
-{
-    return hasMaterials_;
-}
-
 void Model::calculateAABB()
 {
     glm::vec3 min{std::numeric_limits<float>::infinity()};
@@ -106,15 +90,6 @@ void Model::setMeshVisibility(bool visible)
 {
     for (auto &mesh : meshes_)
         mesh.isVisible = visible;
-}
-
-// Helper to let outside classes know whether this model had materials.
-void Model::discoverMaterials()
-{
-    for (const auto &mesh : meshes_)
-        for (const auto &primitive : mesh.primitives)
-            if (primitive.materialsExist())
-                hasMaterials_ = true;
 }
 
 std::optional<std::vector<Primitive::Mesh>> Model::loadCollisionMesh()
