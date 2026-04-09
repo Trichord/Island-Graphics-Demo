@@ -28,8 +28,7 @@ class Primitive
 
     Primitive() = default;
     Primitive(std::vector<Vertex> &&vertices, std::vector<std::uint32_t> &&indices, AABB &&aabb,
-              bool hasMaterials = false, std::size_t matIndex = 0,
-              fastgltf::AlphaMode alphaMode = fastgltf::AlphaMode::Opaque);
+              std::size_t matIndex = 0, fastgltf::AlphaMode alphaMode = fastgltf::AlphaMode::Opaque);
 
     GLuint getVAOIndex() const;
     GLuint getEBOIndex() const;
@@ -42,10 +41,7 @@ class Primitive
     void setEBOIndex(GLuint index);
     void setAABB(const AABB &otherAABB);
 
-    bool materialsExist() const;
     std::size_t getMaterialIndex() const;
-    void setMaterialIndex(std::size_t newIndex);
-
     std::span<Vertex> getMutableVertices();
 
   private:
@@ -56,7 +52,6 @@ class Primitive
     GLuint EBOIndex_{0};
 
     AABB aabb_;
-    bool hasMaterials_{false};
     std::size_t materialIndex_{0};
     fastgltf::AlphaMode alphaMode_{fastgltf::AlphaMode::Opaque};
 };

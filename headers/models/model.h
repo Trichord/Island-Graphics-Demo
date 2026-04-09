@@ -32,11 +32,7 @@ class Model : public Renderable
     std::filesystem::path filePath_;
     std::vector<Primitive::Mesh> meshes_;
     AABB aabb_;
-    bool hasMaterials_{false};
 
     void loadModel(const std::filesystem::path &path, bool borrowed);
     void calculateAABB();
-    void assignMaterialIndex(std::size_t newIndex);
-    bool hasMaterials() const;
-    void discoverMaterials();
 };

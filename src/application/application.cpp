@@ -4,7 +4,6 @@
 #include <iostream>
 
 #include "camera.h"
-#include "settings_window.h"
 #include "gl_context.h"
 #include "glfw_callbacks.h"
 #include "glm/glm.hpp"
@@ -20,6 +19,7 @@
 #include "player_physics.h"
 #include "renderer.h"
 #include "scene.h"
+#include "settings_window.h"
 
 Application::~Application()
 {

@@ -149,7 +149,7 @@ void TextureManager::textureFromAsset(fastgltf::Asset &asset, ModelHandle handle
             material.normal = normal.arrayEntry;
         }
 
-        materialLookup_[handle][i] = material;
+        materials[i] = material;
     }
 }
 
@@ -305,36 +305,40 @@ void TextureManager::buildArrayTextures()
             continue;
 
         int mipLevels{textureUtilities::calculateMipmapLevels(arrayTextures_[i].width, arrayTextures_[i].width)};
-        GLuint &id{arrayTextures_[i].arrayTextureID};
+        GLuint &arrayTexID{arrayTextures_[i].arrayTextureID};
         int width{arrayTextures_[i].width};
 
-        glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &id);
-        glTextureStorage3D(id, mipLevels, arrayTextures_[i].internalFormat, width, width,
+        glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &arrayTexID);
+        glTextureStorage3D(arrayTexID, mipLevels, arrayTextures_[i].internalFormat, width, width,
                            static_cast<GLsizei>(arrayTextures_[i].textureIDs.size()));
 
-        glTextureParameteri(id, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTextureParameteri(arrayTexID, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTextureParameteri(arrayTexID, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTextureParameteri(arrayTexID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTextureParameteri(arrayTexID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         if (globalAnisotropicDegree_ > 0.0f)
-            glTextureParameterf(id, GL_TEXTURE_MAX_ANISOTROPY, globalAnisotropicDegree_);
+            glTextureParameterf(arrayTexID, GL_TEXTURE_MAX_ANISOTROPY, globalAnisotropicDegree_);
 
         for (std::size_t layer{0}; layer < arrayTextures_[i].textureIDs.size(); ++layer)
         {
-            glCopyImageSubData(arrayTextures_[i].textureIDs[layer], GL_TEXTURE_2D, 0, 0, 0, 0, id, GL_TEXTURE_2D_ARRAY,
-                               0, 0, 0, static_cast<GLint>(layer), width, width, 1);
+            GLuint &layerTexID{arrayTextures_[i].textureIDs[layer]};
+            if (layerTexID == 0)
+                continue;
+
+            glCopyImageSubData(layerTexID, GL_TEXTURE_2D, 0, 0, 0, 0, arrayTexID, GL_TEXTURE_2D_ARRAY, 0, 0, 0,
+                               static_cast<GLint>(layer), width, width, 1);
 
             ++texturesCopied;
-            glDeleteTextures(1, &arrayTextures_[i].textureIDs[layer]);
+            glDeleteTextures(1, &layerTexID);
 
             // Flush any old textures from memory to keep VRAM down
             if (texturesCopied % 4 == 0)
                 glFinish();
         }
 
-        glGenerateTextureMipmap(id);
-        glBindTextureUnit(static_cast<GLuint>(i), id);
+        glGenerateTextureMipmap(arrayTexID);
+        glBindTextureUnit(static_cast<GLuint>(i), arrayTexID);
     }
 
     glFinish();

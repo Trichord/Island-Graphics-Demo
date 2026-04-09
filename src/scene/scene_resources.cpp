@@ -61,7 +61,7 @@ InstancedModel &SceneResources::loadInstancedModel(const ModelHandle borrowHandl
         throw std::runtime_error{"Max number of instanced models reached!"};
 
     return instancedModels_.emplace_back(textureManager_, borrowHandle, modelPath, positionsPath, minSize, maxSize,
-                                        numPositions);
+                                         numPositions);
 }
 
 CubeMappedModel &SceneResources::loadCubeMappedModel(const std::filesystem::path &modelPath,

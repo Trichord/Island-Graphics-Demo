@@ -46,16 +46,52 @@ void IslandScene::addAllModelsToScene()
     Transform statueTransform{STATUE_POSITION, glm::vec3{1.0f}, -65.0f, glm::vec3{0.0f, 1.0f, 0.0f}};
     addObjectToScene(statue, DIRECTIONAL_PBR, std::move(statueTransform));
 
-    // Fancy spinning space model
-    std::vector<std::filesystem::path> spaceBoxPaths{
-        "./res/textures/nebula/right.png",  "./res/textures/nebula/left.png",  "./res/textures/nebula/top.png",
-        "./res/textures/nebula/bottom.png", "./res/textures/nebula/front.png", "./res/textures/nebula/back.png"};
+    /*********
+     *       *
+     * Rocks *
+     *       *
+     *********/
 
-    auto &spaceModel =
-        sceneResources_.loadCubeMappedModel("./res/models/set_pieces/space_model/space_model.gltf", spaceBoxPaths);
-    Transform spaceDodecaTransform{SPACE_DODECA_POS};
+    // Rock 1
+    auto &rock1 = sceneResources_.loadInstancedModel("./res/models/rocks/rock1/rock1.gltf", "./res/positions/rock1.txt",
+                                                     0.9f, 2.0f, 11);
+    addObjectToScene(rock1, DIRECTIONAL_PBR);
+    ModelHandle rockHandle{rock1.getHandle()};
 
-    addObjectToScene(spaceModel, REFLECTIVE, std::move(spaceDodecaTransform), INSTANCED, "spaceModel");
+    // Rock 2
+    auto &rock2 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock2/rock2.gltf",
+                                                     "./res/positions/rock2.txt", 1.45f, 2.2f, 10);
+    addObjectToScene(rock2, DIRECTIONAL_PBR);
+
+    // Rock 3
+    auto &rock3 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock3/rock3.gltf",
+                                                     "./res/positions/rock3.txt", 0.75f, 1.0f, 14);
+    addObjectToScene(rock3, DIRECTIONAL_PBR);
+
+    // Rock 4
+    auto &rock4 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock4/rock4.gltf",
+                                                     "./res/positions/rock4.txt", 0.8f, 1.3f, 6);
+    addObjectToScene(rock4, DIRECTIONAL_PBR);
+
+    // Rock 5
+    auto &rock5 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock5/rock5.gltf",
+                                                     "./res/positions/rock5.txt", 0.875f, 1.1f, 6);
+    addObjectToScene(rock5, DIRECTIONAL_PBR);
+
+    // Rock 6
+    auto &rock6 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock6/rock6.gltf",
+                                                     "./res/positions/rock6.txt", 1.2f, 1.4f, 6);
+    addObjectToScene(rock6, DIRECTIONAL_PBR);
+
+    // Rock 7
+    auto &rock7 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock7/rock7.gltf",
+                                                     "./res/positions/rock7.txt", 0.9f, 1.125f, 8);
+    addObjectToScene(rock7, DIRECTIONAL_PBR);
+
+    // Rock 8
+    auto &rock8 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock8/rock8.gltf",
+                                                     "./res/positions/rock8.txt", 1.0f, 1.25f, 8);
+    addObjectToScene(rock8, DIRECTIONAL_PBR);
 
     /**************
      *            *
@@ -132,53 +168,6 @@ void IslandScene::addAllModelsToScene()
 
     /*********
      *       *
-     * Rocks *
-     *       *
-     *********/
-
-    // Rock 1
-    auto &rock1 = sceneResources_.loadInstancedModel("./res/models/rocks/rock1/rock1.gltf", "./res/positions/rock1.txt",
-                                                     0.9f, 2.0f, 11);
-    addObjectToScene(rock1, DIRECTIONAL_PBR);
-    ModelHandle rockHandle{rock1.getHandle()};
-
-    // Rock 2
-    auto &rock2 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock2/rock2.gltf",
-                                                     "./res/positions/rock2.txt", 1.45f, 2.2f, 10);
-    addObjectToScene(rock2, DIRECTIONAL_PBR);
-
-    // Rock 3
-    auto &rock3 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock3/rock3.gltf",
-                                                     "./res/positions/rock3.txt", 0.75f, 1.0f, 14);
-    addObjectToScene(rock3, DIRECTIONAL_PBR);
-
-    // Rock 4
-    auto &rock4 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock4/rock4.gltf",
-                                                     "./res/positions/rock4.txt", 0.8f, 1.3f, 6);
-    addObjectToScene(rock4, DIRECTIONAL_PBR);
-
-    // Rock 5
-    auto &rock5 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock5/rock5.gltf",
-                                                     "./res/positions/rock5.txt", 0.875f, 1.1f, 6);
-    addObjectToScene(rock5, DIRECTIONAL_PBR);
-
-    // Rock 6
-    auto &rock6 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock6/rock6.gltf",
-                                                     "./res/positions/rock6.txt", 1.2f, 1.4f, 6);
-    addObjectToScene(rock6, DIRECTIONAL_PBR);
-
-    // Rock 7
-    auto &rock7 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock7/rock7.gltf",
-                                                     "./res/positions/rock7.txt", 0.9f, 1.125f, 8);
-    addObjectToScene(rock7, DIRECTIONAL_PBR);
-
-    // Rock 8
-    auto &rock8 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock8/rock8.gltf",
-                                                     "./res/positions/rock8.txt", 1.0f, 1.25f, 8);
-    addObjectToScene(rock8, DIRECTIONAL_PBR);
-
-    /*********
-     *       *
      * Water *
      *       *
      *********/
@@ -211,6 +200,23 @@ void IslandScene::addAllModelsToScene()
 
     auto &skybox = sceneResources_.loadCubeMappedModel("./res/models/set_pieces/skybox/skybox.gltf", skyBoxPaths, true);
     addObjectToScene(skybox, SKYBOX, {}, NONE);
+
+    /***************
+     *             *
+     * Space Model *
+     *             *
+     ***************/
+
+    // Fancy spinning space model
+    std::vector<std::filesystem::path> spaceBoxPaths{
+        "./res/textures/nebula/right.png",  "./res/textures/nebula/left.png",  "./res/textures/nebula/top.png",
+        "./res/textures/nebula/bottom.png", "./res/textures/nebula/front.png", "./res/textures/nebula/back.png"};
+
+    auto &spaceModel =
+        sceneResources_.loadCubeMappedModel("./res/models/set_pieces/space_model/space_model.gltf", spaceBoxPaths);
+    Transform spaceDodecaTransform{SPACE_DODECA_POS};
+
+    addObjectToScene(spaceModel, REFLECTIVE, std::move(spaceDodecaTransform), INSTANCED, "spaceModel");
 }
 
 void IslandScene::setupEnvironment()

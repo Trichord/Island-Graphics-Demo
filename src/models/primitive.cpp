@@ -11,16 +11,11 @@
 #include "fastgltf/types.hpp"
 #include "glad/glad.h"
 
-Primitive::Primitive(std::vector<Vertex> &&vertices_, std::vector<std::uint32_t> &&indices_, AABB &&aabb_,
-                     bool hasMaterials_, std::size_t materialIndex_, fastgltf::AlphaMode alphaMode_)
-    : vertices_{std::move(vertices_)}, indices_{std::move(indices_)}, aabb_{aabb_}, hasMaterials_{hasMaterials_},
-      materialIndex_{materialIndex_}, alphaMode_{alphaMode_}
+Primitive::Primitive(std::vector<Vertex> &&vertices, std::vector<std::uint32_t> &&indices, AABB &&aabb,
+                     std::size_t materialIndex, fastgltf::AlphaMode alphaMode)
+    : vertices_{std::move(vertices)}, indices_{std::move(indices)}, aabb_{aabb}, materialIndex_{materialIndex},
+      alphaMode_{alphaMode}
 {
-}
-
-std::size_t Primitive::getMaterialIndex() const
-{
-    return materialIndex_;
 }
 
 fastgltf::AlphaMode Primitive::getAlphaMode() const
@@ -33,15 +28,9 @@ const AABB &Primitive::getAABB() const
     return aabb_;
 }
 
-bool Primitive::materialsExist() const
+std::size_t Primitive::getMaterialIndex() const
 {
-    return hasMaterials_;
-}
-
-void Primitive::setMaterialIndex(std::size_t newIndex)
-{
-    materialIndex_ = newIndex;
-    hasMaterials_ = true;
+    return materialIndex_;
 }
 
 void Primitive::setEBOIndex(GLuint index)

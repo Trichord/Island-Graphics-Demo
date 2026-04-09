@@ -38,7 +38,7 @@ void Renderer::renderAllSceneObjects()
             if (!drawEntry.isVisible)
                 continue;
 
-            BoundedTransform &firstInstance{drawEntry.instancesRef.get()[0]};
+            BoundedTransform &firstInstance{drawEntry.transformsRef.get()[0]};
 
             shader.setIntU("matricesOffset", drawEntry.matricesBufferBaseIndex);
             shader.setIntU("indicesOffset", drawEntry.indicesBufferIndex);
@@ -72,20 +72,9 @@ void Renderer::renderObject(Shader &shader, DrawEntry &drawEntry)
             GLuint indexOffset{primitive.getEBOIndex()};
             GLuint baseVertex{primitive.getVAOIndex()};
 
-            if (primitive.materialsExist())
+            if (!materials.empty())
             {
-
-
                 std::size_t materialIndex{primitive.getMaterialIndex()};
-
-                    if (materialIndex >= materials.size())
-                {
-                    std::cerr << "ERROR: materialIndex " << materialIndex << " >= materials.size() " << materials.size()
-                              << std::endl;
-                    continue;
-                }
-
-
                 bindTextures(shader, materials[materialIndex]);
             }
 
@@ -213,7 +202,7 @@ void Renderer::shadowPass(const CascadeShadow::LightMatrices &lightMatrices, Sha
             // Instance count
             GLsizei instanceCount{0};
             if (cascade == 2)
-                instanceCount = static_cast<GLsizei>(drawEntry.instancesRef.get().size());
+                instanceCount = static_cast<GLsizei>(drawEntry.transformsRef.get().size());
             else
                 instanceCount = drawEntry.visibleInstances;
 
@@ -226,7 +215,7 @@ void Renderer::shadowPass(const CascadeShadow::LightMatrices &lightMatrices, Sha
                     GLuint indexOffset{primitive.getEBOIndex()};
                     GLuint baseVertex{primitive.getVAOIndex()};
 
-                    if (primitive.materialsExist() && drawAlphaTested)
+                    if (!materials.empty())
                     {
                         std::size_t materialIndex{primitive.getMaterialIndex()};
                         bindTextures(shader, materials[materialIndex]);
