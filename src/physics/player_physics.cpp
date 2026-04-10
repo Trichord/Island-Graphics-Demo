@@ -30,7 +30,7 @@ PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JP
 
     player_.init(physicsSystem, tempAllocator);
 
-    //Build the static collision mesh from scene
+    // Build the static collision mesh from scene
     physicsUtilities::CollisionMesh collisionMesh{physicsUtilities::buildCollisionMesh(scene)};
     resetHeight_ = collisionMesh.minimumHeight;
 
@@ -68,11 +68,18 @@ PlayerPhysics::~PlayerPhysics()
 
 void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime)
 {
+    constexpr float maxFallVelocity{-30.0f};
+
     // Player has fallen through the world
     if (player_.getPosition().GetY() < resetHeight_)
     {
         player_.setPosition(resetPosition_);
         previousPosition_ = toGLM(resetPosition_);
+
+        JPH::Vec3 velocity{player_.getVelocity()};
+        JPH::Vec3 newVelocity{velocity.GetX(), std::max(velocity.GetY(), maxFallVelocity), velocity.GetZ()};
+        player_.setVelocity(newVelocity);
+
         return;
     }
 

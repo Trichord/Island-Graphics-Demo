@@ -61,7 +61,7 @@ void Model::loadModel(const std::filesystem::path &path, bool borrowed)
     meshes_ = fastgltfLoader::loadMeshes(asset);
 
     if (!borrowed)
-        textureManager_.loadModel(handle_, std::move(asset), path.parent_path());
+        textureManager_.loadModelTextures(handle_, std::move(asset), path.parent_path());
 }
 
 const ModelHandle Model::getHandle() const

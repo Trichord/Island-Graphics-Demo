@@ -10,7 +10,7 @@ CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const std::file
                                  const std::vector<std::filesystem::path> &imagePaths, bool skybox)
     : Model{textureManager, modelPath}
 {
-    textureManager.loadCubemap(handle_, imagePaths, "./", skybox);
+    textureManager.loadCubemapTextures(handle_, imagePaths, "./", skybox);
 }
 
 CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const ModelHandle borrowHandle,

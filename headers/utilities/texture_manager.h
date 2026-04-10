@@ -28,9 +28,9 @@ class TextureManager
     void borrowMaterials(ModelHandle self, ModelHandle other);
     void borrowCubemaps(ModelHandle self, ModelHandle other);
 
-    void loadCubemap(const ModelHandle handle, std::vector<std::filesystem::path> images,
+    void loadCubemapTextures(const ModelHandle handle, std::vector<std::filesystem::path> images,
                      const std::filesystem::path &parentPath = "./", bool mipmaps = true, bool sRGB = true);
-    void loadModel(const ModelHandle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath);
+    void loadModelTextures(const ModelHandle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath);
 
     void buildArrayTextures();
 
@@ -61,7 +61,7 @@ class TextureManager
     std::unordered_set<GLuint> cubemapIDs_;
 
     // From a fastgltf::asset
-    void textureFromAsset(fastgltf::Asset &asset, ModelHandle handle, std::filesystem::path parentPath);
+    void texturesFromAsset(fastgltf::Asset &asset, ModelHandle handle, std::filesystem::path parentPath);
 
     // Create cubemap from vector of paths
     void cubemapFromPaths(ModelHandle handle, const std::vector<std::filesystem::path> &images, bool mipmaps,
