@@ -32,14 +32,14 @@ TextureManager::~TextureManager()
         glDeleteTextures(1, &id);
 }
 
-void TextureManager::loadModel(const ModelHandle handle, fastgltf::Asset &&asset,
-                               const std::filesystem::path &parentPath)
+void TextureManager::loadModelTextures(const ModelHandle handle, fastgltf::Asset &&asset,
+                                       const std::filesystem::path &parentPath)
 {
-    textureFromAsset(asset, handle, parentPath);
+    texturesFromAsset(asset, handle, parentPath);
 }
 
-void TextureManager::loadCubemap(const ModelHandle handle, std::vector<std::filesystem::path> imagePaths,
-                                 const std::filesystem::path &parentPath, bool mipmaps, bool sRGB)
+void TextureManager::loadCubemapTextures(const ModelHandle handle, std::vector<std::filesystem::path> imagePaths,
+                                         const std::filesystem::path &parentPath, bool mipmaps, bool sRGB)
 {
     cubemapFromPaths(handle, std::move(imagePaths), mipmaps, sRGB);
 }
@@ -67,7 +67,7 @@ ModelHandle TextureManager::assignHandle()
     return handle;
 }
 
-void TextureManager::textureFromAsset(fastgltf::Asset &asset, ModelHandle handle, std::filesystem::path parentPath)
+void TextureManager::texturesFromAsset(fastgltf::Asset &asset, ModelHandle handle, std::filesystem::path parentPath)
 {
     auto materialIter = materialLookup_.find(handle);
 
@@ -194,7 +194,8 @@ void TextureManager::freeArrayTextures(SamplerArrayEntry &entry)
     arrayTextures_[entry.array].textureIDs[entry.layer] = 0;
 }
 
-// Borrow another models materials, completely releasing self's materials
+// Borrow another model's materials. Callers should ensure textures are not loaded for a model before calling this
+// function
 void TextureManager::borrowMaterials(ModelHandle self, ModelHandle other)
 {
     auto selfIter = materialLookup_.find(self);
@@ -208,13 +209,6 @@ void TextureManager::borrowMaterials(ModelHandle self, ModelHandle other)
 
     std::vector<Material> &selfEntry{selfIter->second};
     std::vector<Material> &otherEntry{otherIter->second};
-
-    for (std::size_t i{0}; i < selfEntry.size() && i < otherEntry.size(); ++i)
-    {
-        freeArrayTextures(selfEntry[i].albedo);
-        freeArrayTextures(selfEntry[i].ARM);
-        freeArrayTextures(selfEntry[i].normal);
-    }
 
     selfEntry = otherEntry;
 
