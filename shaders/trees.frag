@@ -2,9 +2,7 @@
 
 out vec4 fragColor;
 
-uniform sampler2DArray arrayRGB2k;
-uniform sampler2DArray arraySRGB2k;
-uniform sampler2DArray arraySRGBA2k;
+layout(binding = 0) uniform sampler2DArray arrayTextures[8];
 
 uniform vec3 ambientLight;
 uniform vec3 lightColor;
@@ -14,10 +12,10 @@ uniform float gamma;
 uniform float mipScale;
 uniform float alphaCutoff;
 
-uniform int albedoArrayTexture;
+uniform int albedoArray;
 uniform int albedoLayer;
 
-uniform int armArrayTexture;
+uniform int armArray;
 uniform int armLayer;
 
 const float INVERSE_PI = 0.31830988618;
@@ -30,36 +28,11 @@ layout (std140, binding = 0) uniform cameraData {
 	layout (offset = 256) vec4 cameraPosition;
 };
 
-in VS_OUT {
+in vsOut {
 	vec3 fragPos;
 	vec3 normal;
 	vec2 texCoords;
-} fs_in;
-
-vec4 textureFromSampler2DArray(vec2 textureCoordinates, int index, float layer)
-{
-	vec4 tex;
-	
-	switch (index)
-	{
-		case 2:
-			tex = texture(arrayRGB2k, vec3(textureCoordinates, layer));
-			break;
-
-		case 3:
-			tex = texture(arraySRGB2k, vec3(textureCoordinates, layer));
-			break;
-
-		case 4:
-			tex = texture(arraySRGBA2k, vec3(textureCoordinates, layer));
-			break;
-
-		default:
-			tex = vec4(1.0, 0.0, 1.0, 1.0);
-	}
-
-	return tex;
-}
+} fsIn;
 
 //Burely diffuse (unrolled)
 float burleyDiffuseFactor(float FD90, float NdotL, float NdotV){
@@ -100,23 +73,25 @@ float CalcMipLevel(vec2 texture_coord){
 
 void main() {
 	//material properties, remap normal from [0, 1] to [-1, 1]
-	vec4 albedo = textureFromSampler2DArray(fs_in.texCoords, albedoArrayTexture, albedoLayer);
-	vec3 normal = normalize(fs_in.normal);
-	vec3 armMap = textureFromSampler2DArray(fs_in.texCoords, armArrayTexture, armLayer).rgb;
-	float ao = armMap.r;
-	float roughness = armMap.g;
-	float metallic = armMap.b;
+
+	vec4 albedo = texture(arrayTextures[albedoArray], vec3(fsIn.texCoords, albedoLayer));
+	vec3 ARM = texture(arrayTextures[armArray], vec3(fsIn.texCoords, armLayer)).rgb;
+	vec3 normal = normalize(fsIn.normal);
+
+	float ao = ARM.r;
+	float roughness = ARM.g;
+	float metallic = ARM.b;
 
 	//Scale alpha by mip level
     vec2 texSize = vec2(2048, 2048);
-    albedo.a *= 1 + max(0, CalcMipLevel(fs_in.texCoords * texSize)) * mipScale;
+    albedo.a *= 1 + max(0, CalcMipLevel(fsIn.texCoords * texSize)) * mipScale;
 
 	// Rescale alpha by partial derivative. Credit: Ben Golus
     albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
 
 	//vectors
 	vec3 N = normalize(normal);
-	vec3 V = normalize(cameraPosition.xyz - fs_in.fragPos);
+	vec3 V = normalize(cameraPosition.xyz - fsIn.fragPos);
 	vec3 L = normalize(-lightDir);
 	vec3 H = normalize(L + V);
 	

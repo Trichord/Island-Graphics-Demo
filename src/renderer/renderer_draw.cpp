@@ -88,19 +88,19 @@ void Renderer::bindTextures(Shader &shader, const Material &material)
 {
     if (material.albedo.array != -1)
     {
-        shader.setInt("albedoArrayTexture", material.albedo.array);
+        shader.setInt("albedoArray", material.albedo.array);
         shader.setInt("albedoLayer", material.albedo.layer);
     }
 
     if (material.ARM.array != -1)
     {
-        shader.setInt("armArrayTexture", material.ARM.array);
+        shader.setInt("armArray", material.ARM.array);
         shader.setInt("armLayer", material.ARM.layer);
     }
 
     if (material.normal.array != -1)
     {
-        shader.setInt("normalArrayTexture", material.normal.array);
+        shader.setInt("normalArray", material.normal.array);
         shader.setInt("normalLayer", material.normal.layer);
     }
 

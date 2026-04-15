@@ -3,7 +3,7 @@
 out vec4 fragColor;
 
 uniform sampler2D albedoMap;
-uniform sampler2D armMap;
+uniform sampler2D ARM;
 uniform sampler2D normalMap;
 uniform vec3 ambientLight;
 uniform vec3 lightColor;
@@ -13,12 +13,12 @@ const float INVERSE_PI = 0.31830988618;
 
 
 //Positions in tangent view space
-in VS_OUT {
+in vsOut {
 	vec3 cameraPos;
 	vec3 lightPos;
 	vec3 fragPos;
 	vec2 texCoords;
-} fs_in;
+} fsIn;
 
 //Trowbridge-Reitz GGX for normal distribution function
 float distributionGGX(float NdotH, float roughness){
@@ -84,15 +84,15 @@ return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 
 void main() {
 	//material properties, remap normal from [0, 1] to [-1, 1]
-	vec4 albedo = texture(albedoMap, fs_in.texCoords);
-	vec3 normal = texture(normalMap, fs_in.texCoords).rgb * 2.0 - 1.0; 
-	vec3 armMap = texture(armMap, fs_in.texCoords).rgb;
+	vec4 albedo = texture(albedoMap, fsIn.texCoords);
+	vec3 normal = texture(normalMap, fsIn.texCoords).rgb * 2.0 - 1.0; 
+	vec3 ARM = texture(ARM, fsIn.texCoords).rgb;
 
-	vec3 lightDir = fs_in.lightPos - fs_in.fragPos;
+	vec3 lightDir = fsIn.lightPos - fsIn.fragPos;
 
 	//vectors
 	vec3 N = normalize(normal);
-	vec3 V = normalize(fs_in.cameraPos - fs_in.fragPos);
+	vec3 V = normalize(fsIn.cameraPos - fsIn.fragPos);
 	vec3 L = normalize(lightDir);
 	vec3 H = normalize(L + V);
 	
@@ -102,9 +102,9 @@ void main() {
 	float NdotH = max(dot(N, H), 0.0);
 	float HdotV = max(dot(H, V), 0.0);
 
-	float ao = armMap.r;
-	float roughness = armMap.g;
-	float metallic = armMap.b;
+	float ao = ARM.r;
+	float roughness = ARM.g;
+	float metallic = ARM.b;
 
 	//Fresnel-Shlick base reflectivity
 	vec3 F0 = vec3(0.04);

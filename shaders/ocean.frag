@@ -11,15 +11,13 @@ layout (std140, binding = 0) uniform cameraData {
 };
 
 //dudv in the arm slot
-uniform sampler2DArray arrayRGB1k;
-uniform sampler2DArray arrayRGB512;
+layout(binding = 0) uniform sampler2DArray arrayTextures[8];
+layout(binding = 8) uniform samplerCube cubeMap;
 
-uniform samplerCube cubeMap;
-
-uniform int armArrayTexture;
+uniform int armArray;
 uniform int armLayer;
 
-uniform int normalArrayTexture;
+uniform int normalArray;
 uniform int normalLayer;
 
 uniform vec3 lightDir;
@@ -27,12 +25,12 @@ uniform vec3 lightDir;
 uniform vec3 scale;
 uniform float time;
 
-in VS_OUT 
+in vsOut 
 {
 	vec2 texCoords;
 	vec3 fragPos;
 	vec4 clipSpace;
-} fs_in;
+} fsIn;
 
 const float dudvStrength = 0.025;
 const float waveSpeed = 0.01;
@@ -42,49 +40,30 @@ const float fogEnd = 2186.0;
 const vec3 waterColor = vec3(0.0, 0.08, 0.18);
 const vec3 sceneCenter = vec3(0.0);
 
-vec4 textureFromSampler2DArray(vec2 textureCoordinates, int index, float layer)
-{
-	vec4 tex;
-	
-	switch (index)
-	{
-		case 5:
-			tex = texture(arrayRGB1k, vec3(textureCoordinates, layer));
-			break;
-	
-
-		case 7:
-			tex = texture(arrayRGB512, vec3(textureCoordinates, layer));
-			break;
-
-		default:
-			tex = vec4(1.0, 0.0, 1.0, 1.0);
-	}
-
-	return tex;
-}
-
 void main() 
 {	
-	vec3 V = normalize(cameraPosition.xyz - fs_in.fragPos);
+	vec3 V = normalize(cameraPosition.xyz - fsIn.fragPos);
 
 	// Move textures by time
 	float movement = time * waveSpeed;
 
 	// Add tiling and time based movement
-	vec2 d1 = fs_in.texCoords * tileFactor + vec2(movement, 0.0);
-	vec2 d2 = fs_in.texCoords * tileFactor + vec2(0.0, movement);
+	vec2 d1 = fsIn.texCoords * tileFactor + vec2(movement, 0.0);
+	vec2 d2 = fsIn.texCoords * tileFactor + vec2(0.0, movement);
 	
 	// Distortion from dudv, remapped to [-1, 1] to sample distortion in all directions
-	vec2 distortion1 = (textureFromSampler2DArray(d1, armArrayTexture, armLayer).rg * 2.0 - 1.0) * dudvStrength;	
-	vec2 distortion2 = (textureFromSampler2DArray(d2, armArrayTexture, armLayer).xy * 2.0 - 1.0) * dudvStrength;
+	vec2 distortion1 = texture(arrayTextures[armArray], vec3(d1, armLayer)).rg;
+	distortion1 = (distortion1 * 2.0 - 1.0) * dudvStrength;
+
+	vec2 distortion2 = texture(arrayTextures[armArray], vec3(d2, armLayer)).rg;
+	distortion2 = (distortion2 * 2.0 - 1.0) * dudvStrength;
 	
 	//Total distortion from dudv
 	vec2 totalDistortion = distortion1 + distortion2;
 
 	// Normal, biased towards the sky for less choppy water. Swizzled because the plane is horizontal
-	vec2 normalCoords = vec2(fs_in.texCoords * tileFactor + totalDistortion);
-	vec3 N = textureFromSampler2DArray(normalCoords, normalArrayTexture, normalLayer).xyz * 2.0 - 1.0;
+	vec2 normalCoords = vec2(fsIn.texCoords * tileFactor + totalDistortion);
+	vec3 N = texture(arrayTextures[normalArray], vec3(normalCoords, normalLayer)).xyz * 2.0 - 1.0;
 	N = normalize(vec3(N.x, N.z, -N.y));
 
 	// Fresnel
@@ -100,7 +79,7 @@ void main()
 	vec3 skybox = texture(cubeMap, -V).rgb;
 
 	//Blend into distance
-	float dist = length(fs_in.fragPos - sceneCenter);
+	float dist = length(fsIn.fragPos - sceneCenter);
 	float alpha = (fogEnd - dist) / (fogEnd - fogStart);
 	alpha = 1.0 - clamp(alpha, 0.0, 1.0);
 

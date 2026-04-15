@@ -8,20 +8,16 @@ layout (std140, binding = 1) uniform shadowCascadeData
 
 out vec4 fragColor;
 
-uniform sampler2DArray arrayRGB4k;
-uniform sampler2DArray arraySRGB4k;
-uniform sampler2DArray arrayRGB2k;
-uniform sampler2DArray arraySRGB2k;
+layout(binding = 0) uniform sampler2DArray arrayTextures[8];
+layout(binding = 9) uniform sampler2DArray shadowMap;
 
-uniform sampler2DArray shadowMap;
-
-uniform int albedoArrayTexture;
+uniform int albedoArray;
 uniform int albedoLayer;
 
-uniform int armArrayTexture;
+uniform int armArray;
 uniform int armLayer;
 
-uniform int normalArrayTexture;
+uniform int normalArray;
 uniform int normalLayer;
 
 uniform vec3 ambientLight;
@@ -34,7 +30,7 @@ const int cascadeCount = 3;
 const float lightBleedReduction = 0.2;
 
 //Positions in tangent view space
-in VS_OUT 
+in vsOut 
 {
 	vec3 cameraPos;
 	vec3 lightDir;
@@ -42,7 +38,7 @@ in VS_OUT
 	vec2 texCoords;
 	vec4 viewFragPos;
 	vec4 worldFragPos;
-} fs_in;
+} fsIn;
 
 //Trowbridge-Reitz GGX for normal distribution function
 float distributionGGX(float NdotH, float roughness)
@@ -151,45 +147,16 @@ vec3 ACESFilm(vec3 x)
 	return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
-vec4 textureFromSampler2DArray(vec2 textureCoordinates, int index, float layer)
-{
-	vec4 tex;
-	
-	switch (index)
-	{
-		case 0:
-			tex = texture(arrayRGB4k, vec3(textureCoordinates, layer));
-			break;
-	
-		case 1:
-			tex = texture(arraySRGB4k, vec3(textureCoordinates, layer));
-			break;
-
-		case 2:
-			tex = texture(arrayRGB2k, vec3(textureCoordinates, layer));
-			break;
-
-		case 3:
-			tex = texture(arraySRGB2k, vec3(textureCoordinates, layer));
-			break;
-
-		default:
-			tex = vec4(1.0, 0.0, 1.0, 1.0);
-	}
-
-	return tex;
-}
-
 void main() {
 	//material properties, remap normal from [0, 1] to [-1, 1]
-	vec4 albedo = textureFromSampler2DArray(fs_in.texCoords, albedoArrayTexture, albedoLayer);
-	vec3 normal = textureFromSampler2DArray(fs_in.texCoords, normalArrayTexture, normalLayer).rgb * 2.0 - 1.0; 
-	vec3 armMap = textureFromSampler2DArray(fs_in.texCoords, armArrayTexture, armLayer).rgb;
+	vec4 albedo = texture(arrayTextures[albedoArray], vec3(fsIn.texCoords, albedoLayer));
+	vec3 normal = texture(arrayTextures[normalArray], vec3(fsIn.texCoords, normalLayer)).rgb * 2.0 - 1.0;
+	vec3 ARM = texture(arrayTextures[armArray], vec3(fsIn.texCoords, armLayer)).rgb;
 
 	//vectors
 	vec3 N = normalize(normal);
-	vec3 V = normalize(fs_in.cameraPos -fs_in.tangentFragPos);
-	vec3 L = normalize(-fs_in.lightDir);
+	vec3 V = normalize(fsIn.cameraPos -fsIn.tangentFragPos);
+	vec3 L = normalize(-fsIn.lightDir);
 	vec3 H = normalize(L + V);
 	
 	//dot products
@@ -198,9 +165,9 @@ void main() {
 	float NdotH = max(dot(N, H), 0.0);
 	float HdotV = max(dot(H, V), 0.0);
 
-	float ao = armMap.r;
-	float roughness = armMap.g;
-	float metallic = armMap.b;
+	float ao = ARM.r;
+	float roughness = ARM.g;
+	float metallic = ARM.b;
 
 	//Fresnel-Shlick base reflectivity
 	vec3 F0 = vec3(0.04);
@@ -235,10 +202,10 @@ void main() {
 	Lo += (diffuse + specular) * lightColor * NdotL;
 
 	//Pick shadow cascade off frag depth
-	int layer = calculateCascadeIndex(-fs_in.viewFragPos.z);
+	int layer = calculateCascadeIndex(-fsIn.viewFragPos.z);
 
 	//Shadows
-	vec3 shadowCoords = vec3(matrices[layer] * fs_in.worldFragPos);
+	vec3 shadowCoords = vec3(matrices[layer] * fsIn.worldFragPos);
 	shadowCoords = shadowCoords * 0.5 + 0.5;
 	float shadow = ShadowContribution(shadowCoords.xy, shadowCoords.z, layer);
 

@@ -22,13 +22,13 @@ layout(binding = 1, std430) readonly buffer indicesSSBO {
     uint indices[];
 };
 
-out VS_OUT 
+out vsOut 
 {
 	vec3 cameraPos;
 	vec3 lightDir;
 	vec3 tangentFragPos;
 	vec2 texCoords;
-} vs_out;
+} vOut;
 
 uniform uint matricesOffset;
 uniform uint indicesOffset;
@@ -50,11 +50,11 @@ void main ()
 
 	vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
 
-	vs_out.tangentFragPos = TBN * worldPos.xyz;
-	vs_out.lightDir = TBN * lightDir;
-	vs_out.cameraPos = TBN * cameraPosition.xyz;
+	vOut.tangentFragPos = TBN * worldPos.xyz;
+	vOut.lightDir = TBN * lightDir;
+	vOut.cameraPos = TBN * cameraPosition.xyz;
 
-	vs_out.texCoords = aTexCoords;
+	vOut.texCoords = aTexCoords;
 	
 	gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0);
 }
