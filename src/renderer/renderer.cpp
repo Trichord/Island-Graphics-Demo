@@ -109,24 +109,6 @@ void Renderer::setupShader(Shader &shader)
 {
     using enum TextureUnit;
 
-    // High-res array texture sRGB
-    shader.setInt("arraySRGB4k", static_cast<GLuint>(arraySRGB4k));
-    shader.setInt("arraySRGB2k", static_cast<GLuint>(arraySRGB2k));
-    shader.setInt("arraySRGBA2k", static_cast<GLuint>(arraySRGBA2k));
-    shader.setInt("arraySRGB1k", static_cast<GLuint>(arraySRGB1k));
-
-    // High-res array texture RGB
-    shader.setInt("arrayRGB4k", static_cast<GLuint>(arrayRGB4k));
-    shader.setInt("arrayRGB2k", static_cast<GLuint>(arrayRGB2k));
-    shader.setInt("arrayRGB1k", static_cast<GLuint>(arrayRGB1k));
-
-    // Low-res array texture
-    shader.setInt("arrayRGB512", static_cast<GLuint>(arrayRGB512));
-
-    // Specialty texture units
-    shader.setInt("cubeMap", static_cast<GLuint>(cubemap));
-    shader.setInt("shadowMap", static_cast<GLuint>(shadow));
-
     // Constants
     shader.setFloat("mipScale", mipScale);
     shader.setFloat("alphaCutoff", alphaCutoff);

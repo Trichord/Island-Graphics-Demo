@@ -11,7 +11,7 @@ layout (std140, binding = 0) uniform cameraData {
 in vec3 normal;
 in vec3 position;
 
-uniform samplerCube cubeMap;
+layout(binding = 8) uniform samplerCube cubeMap;
 uniform float gamma;
 
 out vec4 fragColor;

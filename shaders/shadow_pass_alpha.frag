@@ -2,54 +2,14 @@
 
 const float lightBleedReduction = 0.2f;
 
-uniform sampler2DArray arrayRGB4k;
-uniform sampler2DArray arraySRGB4k;
-uniform sampler2DArray arraySRGBA4k;
-uniform sampler2DArray arrayRGB2k;
-uniform sampler2DArray arraySRGB2k;
-uniform sampler2DArray arraySRGBA2k;
+layout(binding = 0) uniform sampler2DArray arrayTextures[8];
 
-uniform sampler2DMS shadowMap;
-
-uniform int albedoArrayTexture;
+uniform int albedoArray;
 uniform int albedoLayer;
 
 out vec2 fragColor;
 
 in vec2 texCoords;
-
-vec4 textureFromSampler2DArray(vec2 textureCoordinates, int index, float layer)
-{
-	vec4 tex;
-	
-	switch (index)
-	{
-		case 0:
-			tex = texture(arrayRGB4k, vec3(textureCoordinates, layer));
-			break;
-	
-		case 1:
-			tex = texture(arraySRGB4k, vec3(textureCoordinates, layer));
-			break;
-
-		case 2:
-			tex = texture(arrayRGB2k, vec3(textureCoordinates, layer));
-			break;
-
-		case 3:
-			tex = texture(arraySRGB2k, vec3(textureCoordinates, layer));
-			break;
-
-		case 4:
-			tex = texture(arraySRGBA2k, vec3(textureCoordinates, layer));
-			break;
-
-		default:
-			tex = vec4(1.0, 0.0, 1.0, 1.0);
-	}
-
-	return tex;
-}
 
 //Credit: Andrew Lauritzen
 vec2 computeMoments(float depth)
@@ -62,7 +22,7 @@ vec2 computeMoments(float depth)
 
 void main()
 {	
-	float alpha = textureFromSampler2DArray(texCoords, albedoArrayTexture, albedoLayer).a;
+	float alpha = texture(arrayTextures[albedoArray], vec3(texCoords, albedoLayer)).a;
 
 	if (alpha < 0.1)
 		discard;
