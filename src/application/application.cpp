@@ -230,14 +230,14 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
 
     camera.setPosition(interpolatedPos);
 
-    /*
+    
     //****************************************
     // Object Positioning - For Testing Only *
     //****************************************
     constexpr float objectSpeed{0.0005f};
 
-    auto &transforms{scene.getInstancesByName("spaceModel")};
-    Transform &transform{transforms.instances.get().front().transform};
+    SceneEntry &spaceModel{scene.getEntryByName("spaceModel")};
+    Transform &transform{spaceModel.transforms.front().transform};
     DirectionalLight &light{scene.getGlobalLightSource()};
     glm::vec3 dir{light.getDirection()};
 
@@ -263,7 +263,7 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
     {
         //Print stuff
     }
-    */
+    
 }
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)

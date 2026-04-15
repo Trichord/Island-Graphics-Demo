@@ -22,11 +22,11 @@ layout(binding = 1, std430) readonly buffer indicesSSBO {
     uint indices[];
 };
 
-out VS_OUT {
+out vsOut {
 	vec3 fragPos;
 	vec3 normal;
 	vec2 texCoords;
-} vs_out;
+} vOut;
 
 const float minVertexHeight = 0.05;
 const float maxVertexHeight = 17.0;
@@ -63,9 +63,9 @@ void main()
 	mat4 modelMatrix = instances[matricesOffset + instanceIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
 
-	vs_out.texCoords = aTexCoords;
-	vs_out.fragPos = vec3(modelMatrix * vec4(aPos, 1.0)).xyz;
-	vs_out.normal = normalize(normalMatrix * aNormal);
+	vOut.texCoords = aTexCoords;
+	vOut.fragPos = vec3(modelMatrix * vec4(aPos, 1.0)).xyz;
+	vOut.normal = normalize(normalMatrix * aNormal);
 
 	vec3 windTranslation = calcWindTranslation(modelMatrix, time * swaySpeed, windDirection, windStrength);
 	float mask = smoothstep(minVertexHeight, maxVertexHeight, aPos.y);

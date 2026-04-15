@@ -2,8 +2,15 @@
 
 out vec4 fragColor;
 
-uniform sampler2DArray arraySRGBA2k;
+layout (std140, binding = 1) uniform shadowCascadeData
+{
+	mat4 matrices[3];
+	vec4 splits;
+};
 
+layout(binding = 0) uniform sampler2DArray arrayTextures[8];
+
+uniform int albedoArray;
 uniform int albedoLayer;
 
 uniform vec3 ambientLight;
@@ -16,16 +23,12 @@ uniform float alphaCutoff;
 
 in vec2 texCoords;
 in vec3 normal;
+in vec4 viewFragPos;
+in vec4 worldFragPos;
 
-vec2 sizeFromBucketIndex(int index)
-{
-    if (index <= 2) return vec2(4096.0);
-    if (index <= 5) return vec2(2048.0);
-    if (index <= 8) return vec2(1024.0);
-    if (index == 9) return vec2(512.0);
-    return vec2(256.0);
-}
-
+const float minVariance = 0.000001;
+const int cascadeCount = 3;
+const float lightBleedReduction = 0.2;
 
 //ACES film tone mapping (Krzysztof Narkowicz)
 vec3 ACESFilm(vec3 x) {
@@ -48,7 +51,7 @@ float CalcMipLevel(vec2 texture_coord){
 }
 
 void main() {
-    vec4 albedo = texture(arraySRGBA2k, vec3(texCoords, albedoLayer));
+    vec4 albedo = texture(arrayTextures[albedoArray], vec3(texCoords, albedoLayer));
 
     //Flip normal if 2D quad is facing away
     vec3 normalizedNormal = normalize(normal);
@@ -62,7 +65,7 @@ void main() {
     float diffuseStrength = NdotL * 0.5 + 0.6;
 
 	//Scale alpha by mip level 0
-    vec2 texSize = vec2(2048, 2048);
+    vec2 texSize = vec2(textureSize(arrayTextures[albedoArray], 0));
     albedo.a *= 1 + max(0, CalcMipLevel(texCoords * texSize)) * mipScale;
 
 	// Rescale alpha by partial derivative. Credit: Ben Golus
@@ -73,7 +76,7 @@ void main() {
     
     //Diffuse continued after filling texture load with math
     vec3 diffuse = diffuseStrength * lightColor * albedo.rgb;
-
+    
     vec3 color = ambient + diffuse;
 
     //Tone mapping

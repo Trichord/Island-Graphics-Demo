@@ -1,10 +1,11 @@
 #version 460 core
 
-in vec3 texCoords;
-uniform samplerCube cubeMap;
+out vec4 fragColor;
+
+layout(binding = 8) uniform samplerCube cubeMap;
 uniform float gamma;
 
-out vec4 fragColor;
+in vec3 texCoords;
 
 void main() {
 

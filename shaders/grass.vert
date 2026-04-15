@@ -35,6 +35,8 @@ uniform vec3 windDirection;
 
 out vec2 texCoords;
 out vec3 normal;
+out vec4 viewFragPos;
+out vec4 worldFragPos;
 
 float random(vec2 st) {
     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
@@ -65,6 +67,9 @@ void main() {
 	float mask = smoothstep(minVertexHeight, maxVertexHeight, aPos.y);
 	
 	windTranslation *= mask;
+
+	worldFragPos = worldPos;
+	viewFragPos = viewMatrix * worldPos;
 
     gl_Position = projectionViewMatrix * vec4(worldPos.xyz + windTranslation, 1.0);
 }
