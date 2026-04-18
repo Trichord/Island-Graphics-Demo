@@ -31,7 +31,7 @@ InstancedModel::InstancedModel(TextureManager &textureManager, const ModelHandle
 {
 }
 
-std::optional<std::vector<BoundedTransform>> InstancedModel::generateInstancedTransforms()
+std::optional<std::vector<BoundedTransform>> InstancedModel::loadInstancedTransforms()
 {
     std::vector<glm::vec3> positions{loadPositions()};
 

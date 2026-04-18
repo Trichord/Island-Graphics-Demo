@@ -5,13 +5,14 @@ layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
 
-layout (std140) uniform cameraData 
+layout (std140) uniform uniformData 
 {
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionMatrix;
 	layout (offset = 128) mat4 projectionViewMatrix;
 	layout (offset = 192) mat4 inverseViewProjectMatrix;
 	layout (offset = 256) vec4 cameraPosition;
+	layout (offset = 272) float time;
 };
 
 layout(binding = 0, std430) readonly buffer matricesSSBO {
@@ -19,7 +20,23 @@ layout(binding = 0, std430) readonly buffer matricesSSBO {
 };
 
 layout(binding = 1, std430) readonly buffer indicesSSBO {
-    uint indices[];
+    int indices[];
+};
+
+struct Metadata
+{
+	int albedoArray;
+	int albedoLayer;
+	int armArray;
+	int armLayer;
+	int normalArray;
+	int normalLayer;
+	int matricesBufferBaseIndex;
+};
+
+layout(binding = 2, std430) readonly buffer metadataSSBO
+{
+	Metadata metadata[];
 };
 
 out vsOut {
@@ -28,16 +45,25 @@ out vsOut {
 	vec2 texCoords;
 } vOut;
 
+uniform int metadataIndex;
+uniform int indicesOffset;
+
+uniform float windStrength;
+uniform vec3 windDirection;
+
+flat out int albedoArray;
+flat out int albedoLayer;
+
+flat out int armArray;
+flat out int armLayer;
+
+flat out int normalArray;
+flat out int normalLayer; 
+
 const float minVertexHeight = 0.05;
 const float maxVertexHeight = 17.0;
 const float swaySpeed = 0.5;
 const float PI = 3.14159265358979323846;
-
-uniform uint matricesOffset;
-uniform uint indicesOffset;
-uniform float time;
-uniform float windStrength;
-uniform vec3 windDirection;
 
 float random(vec2 st)
 {
@@ -59,8 +85,12 @@ vec3 calcWindTranslation(mat4 transform, float timeStamp, vec3 windDir, float wi
 
 void main() 
 {
-	uint instanceIndex = indices[indicesOffset + gl_InstanceID];
-	mat4 modelMatrix = instances[matricesOffset + instanceIndex];
+	Metadata primitiveData = metadata[metadataIndex];
+
+	int matricesIndex = primitiveData.matricesBufferBaseIndex;
+	int instanceIndex = indices[indicesOffset + gl_InstanceID];
+
+	mat4 modelMatrix = instances[matricesIndex + instanceIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
 
 	vOut.texCoords = aTexCoords;
@@ -73,6 +103,12 @@ void main()
 
 	//Exaggerate movement of tree
 	windTranslation *= 5.0f;
+
+	albedoArray = primitiveData.albedoArray;
+	albedoLayer = primitiveData.albedoLayer;
 	
-	 gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos + windTranslation, 1.0);
+	armArray = primitiveData.armArray;
+	armLayer = primitiveData.armLayer;
+	
+	gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos + windTranslation, 1.0);
 }

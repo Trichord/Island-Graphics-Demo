@@ -65,24 +65,23 @@ void Renderer::renderScene(Scene &scene)
         updateShadowMaps(scene);
 
     if (cameraUpdated)
-    {
         updateCameraUBO(scene);
-        cullRenderables(scene, scene.getCamera().getViewProjectionMatrix());
-    }
 
+    cullRenderables(scene, scene.getCamera().getViewProjectionMatrix());
     renderAllSceneObjects();
 }
 
 void Renderer::updateCameraUBO(Scene &scene)
 {
     Camera &camera{scene.getCamera()};
-    packedCameraData_.viewMatrix = camera.getViewMatrix();
-    packedCameraData_.projectionMatrix = camera.getProjectionMatrix();
-    packedCameraData_.viewProjectionMatrix = camera.getViewProjectionMatrix();
-    packedCameraData_.inverseViewProjectMatrix = glm::inverse(packedCameraData_.viewProjectionMatrix);
-    packedCameraData_.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
+    packedShaderUniforms_.viewMatrix = camera.getViewMatrix();
+    packedShaderUniforms_.projectionMatrix = camera.getProjectionMatrix();
+    packedShaderUniforms_.viewProjectionMatrix = camera.getViewProjectionMatrix();
+    packedShaderUniforms_.inverseViewProjectMatrix = glm::inverse(packedShaderUniforms_.viewProjectionMatrix);
+    packedShaderUniforms_.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
+    packedShaderUniforms_.time = static_cast<float>(glfwGetTime());
 
-    glNamedBufferSubData(cameraUBO_, 0, sizeof(PackedCameraData), &packedCameraData_);
+    glNamedBufferSubData(cameraUBO_, 0, sizeof(PackedShaderUniforms), &packedShaderUniforms_);
 }
 
 void Renderer::loadShaders()
@@ -123,8 +122,6 @@ void Renderer::updateShaderUniforms(Scene &scene, bool lightDirectionChanged)
 
     for (auto &[_, shader] : shaders_)
     {
-        shader.setFloat("time", (float)glfwGetTime());
-
         if (lightDirectionChanged)
             shader.setVec3("lightDir", globalLight.getDirection());
     }
@@ -154,7 +151,6 @@ void Renderer::initializeResources(Scene &scene)
 
     // Next all buffers must be built
     createBuffers(scene);
-    createVAO(scene);
 
     // Skyboxes have to be borrowed before creating cubemaps. The environement must be fully setup before rendering
     // cubemap faces. Cubemap face generation relies on default full visibility, before any culling has happened
@@ -186,6 +182,7 @@ void Renderer::deleteBuffers()
 
     glDeleteBuffers(1, &indicesSSBO_);
     glDeleteBuffers(1, &matricesSSBO_);
+    glDeleteBuffers(1, &primitivesSSBO_);
 }
 
 void Renderer::updateSceneTransforms(Scene &scene)

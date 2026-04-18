@@ -47,10 +47,10 @@ class Renderable
   public:
     virtual AABB &getAABB() = 0;
     virtual void setMeshVisibility(bool visible) = 0;
-    virtual const ModelHandle getHandle() const = 0;
+    virtual ModelHandle getHandle() const = 0;
     virtual std::span<Primitive::Mesh> getMeshes() = 0;
     virtual std::optional<std::vector<Primitive::Mesh>> loadCollisionMesh() = 0;
-    virtual std::optional<std::vector<BoundedTransform>> generateInstancedTransforms() = 0;
+    virtual std::optional<std::vector<BoundedTransform>> loadInstancedTransforms() = 0;
 
     virtual ~Renderable() = default;
 };
@@ -66,10 +66,9 @@ struct DrawEntry
 
     // Culling
     bool isVisible{true};
-    GLuint visibleInstances{static_cast<GLuint>(transformsRef.get().size())};
+    int visibleInstances{static_cast<int>(transformsRef.get().size())};
     CullMethod cullMethod{CullMethod::INSTANCED};
 
     // SSBO
-    GLuint matricesBufferBaseIndex{0};
-    GLuint indicesBufferIndex{0};
+    int indicesBufferIndex{0};
 };
