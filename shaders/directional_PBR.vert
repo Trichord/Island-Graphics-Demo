@@ -19,7 +19,23 @@ layout(binding = 0, std430) readonly buffer matricesSSBO {
 };
 
 layout(binding = 1, std430) readonly buffer indicesSSBO {
-    uint indices[];
+    int indices[];
+};
+
+struct Metadata
+{
+	int albedoArray;
+	int albedoLayer;
+	int armArray;
+	int armLayer;
+	int normalArray;
+	int normalLayer;
+	int matricesBufferBaseIndex;
+};
+
+layout(binding = 2, std430) readonly buffer metadataSSBO
+{
+	Metadata metadata[];
 };
 
 out vsOut 
@@ -30,15 +46,29 @@ out vsOut
 	vec2 texCoords;
 } vOut;
 
-uniform uint matricesOffset;
-uniform uint indicesOffset;
+flat out int albedoArray;
+flat out int albedoLayer;
+
+flat out int armArray;
+flat out int armLayer;
+
+flat out int normalArray;
+flat out int normalLayer; 
+
+uniform int metadataIndex;
+uniform int indicesOffset;
+
 uniform vec3 lightDir;
 uniform mat4 lightViewProjection;
 
 void main () 
 {
-	uint instanceIndex = indices[indicesOffset + gl_InstanceID];
-	mat4 modelMatrix = instances[matricesOffset + instanceIndex];
+	Metadata primitiveData = metadata[metadataIndex];
+
+	int matricesIndex = primitiveData.matricesBufferBaseIndex;
+	int instanceIndex = indices[indicesOffset + gl_InstanceID];
+
+	mat4 modelMatrix = instances[matricesIndex + instanceIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
 
 	//TBN matrix for normal map
@@ -55,6 +85,15 @@ void main ()
 	vOut.cameraPos = TBN * cameraPosition.xyz;
 
 	vOut.texCoords = aTexCoords;
+
+	albedoArray = primitiveData.albedoArray;
+	albedoLayer = primitiveData.albedoLayer;
+	
+	armArray = primitiveData.armArray;
+	armLayer = primitiveData.armLayer;
+
+	normalArray = primitiveData.normalArray;
+	normalLayer = primitiveData.normalLayer;
 	
 	gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0);
 }

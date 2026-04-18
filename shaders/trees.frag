@@ -12,20 +12,22 @@ uniform float gamma;
 uniform float mipScale;
 uniform float alphaCutoff;
 
-uniform int albedoArray;
-uniform int albedoLayer;
+flat in int albedoArray;
+flat in int albedoLayer;
 
-uniform int armArray;
-uniform int armLayer;
+flat in int armArray;
+flat in int armLayer;
 
 const float INVERSE_PI = 0.31830988618;
 
-layout (std140, binding = 0) uniform cameraData {
+layout (std140) uniform uniformData 
+{
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionMatrix;
 	layout (offset = 128) mat4 projectionViewMatrix;
 	layout (offset = 192) mat4 inverseViewProjectMatrix;
 	layout (offset = 256) vec4 cameraPosition;
+	layout (offset = 272) float time;
 };
 
 in vsOut {

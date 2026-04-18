@@ -33,22 +33,22 @@ std::size_t Primitive::getMaterialIndex() const
     return materialIndex_;
 }
 
-void Primitive::setEBOIndex(GLuint index)
+void Primitive::setEBOIndex(int index)
 {
     EBOIndex_ = index;
 }
 
-void Primitive::setVAOIndex(GLuint index)
+void Primitive::setVAOIndex(int index)
 {
     VAOIndex_ = index;
 }
 
-GLuint Primitive::getEBOIndex() const
+int Primitive::getEBOIndex() const
 {
     return EBOIndex_;
 }
 
-GLuint Primitive::getVAOIndex() const
+int Primitive::getVAOIndex() const
 {
     return VAOIndex_;
 }
@@ -71,4 +71,24 @@ std::span<Primitive::Vertex> Primitive::getMutableVertices()
 void Primitive::setAABB(const AABB &otherAABB)
 {
     aabb_ = otherAABB;
+}
+
+int Primitive::getMetadataBufferIndex() const
+{
+    return materialBufferIndex_;
+}
+
+void Primitive::setMetadataBufferIndex(int index)
+{
+    materialBufferIndex_ = index;
+}
+
+int Primitive::getMatricesBufferIndex() const
+{
+    return matricesBufferIndex_;
+}
+
+void Primitive::setMatricesBufferIndex(int index)
+{
+    matricesBufferIndex_ = index;
 }

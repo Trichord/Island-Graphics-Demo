@@ -39,13 +39,14 @@ class Renderer
     static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
 
     // Packed UBO data holds everything we want to share with all shaders
-    struct PackedCameraData
+    struct PackedShaderUniforms
     {
         glm::mat4 viewMatrix{1.0f};
         glm::mat4 projectionMatrix{1.0f};
         glm::mat4 viewProjectionMatrix{1.0f};
         glm::mat4 inverseViewProjectMatrix{1.0f};
         glm::vec4 cameraPosition{0.0f};
+        float time{0.0f};
     };
 
     struct PackedShadowCascadeData
@@ -54,13 +55,33 @@ class Renderer
         glm::vec4 splits;
     };
 
+    // Allows primitives to read all their data from the SSBO
+    struct PrimitiveData
+    {
+        int albedoArray{0};
+        int albedoLayer{0};
+        int armArray{0};
+        int armLayer{0};
+        int normalArray{0};
+        int normalLayer{0};
+        int matricesBufferBaseIndex{0};
+    };
+
+    // Keep track of the number of vertices and indices in an entire scene
+    struct GlobalPrimitiveStats
+    {
+        std::size_t vertices{0};
+        std::size_t indices{0};
+        std::size_t primitives{0};
+    };
+
     std::uint32_t framesRendered_{0};
     ThreadPool threadPool_;
 
     // UBO
     GLuint cameraUBO_{0};
     GLuint shadowCascadesUBO_{0};
-    PackedCameraData packedCameraData_;
+    PackedShaderUniforms packedShaderUniforms_;
     PackedShadowCascadeData packedShadowCascadeData_;
 
     /* SSBOs
@@ -84,6 +105,7 @@ class Renderer
      */
     GLuint indicesSSBO_{0};
     GLuint matricesSSBO_{0};
+    GLuint primitivesSSBO_{0};
 
     // Owned objects
     GLState glState_;
@@ -110,23 +132,23 @@ class Renderer
     void loadShaders();
 
     // Scene dependent initialization
-    void borrowSkybox();
-    void createVAO(Scene &scene);
+    void borrowSkybox(); 
     void createBuffers(Scene &scene);
     void buildShaderMap(Scene &scene);
     void createCubemaps(Scene &scene);
     void loadInstancedData(Scene &scene);
     void setSceneShaderUniforms(Scene &scene);
-    void populateSSBOs(std::size_t totalInstanceCount);
+    void populateMetadataSSBO(GlobalPrimitiveStats &stats);
+    void createVAO(Scene &scene, GlobalPrimitiveStats stats);
     void createCubemapFaces(Scene &scene, int renderTargetSize, GLuint texture);
-
-    //Scene independant initialization
+    void populateMatricesSSBO(std::size_t totalInstanceCount, GlobalPrimitiveStats& stats);
+    
+    // Scene independant initialization
     void setupShader(Shader &shader);
 
     // Rendering
     void renderAllSceneObjects();
     void renderObject(Shader &shader, DrawEntry &renderable);
-    void bindTextures(Shader &shader, const Material &materials);
     void shadowPass(const CascadeShadow::LightMatrices &lightMatrices, Shader &shader, int cascade,
                     bool drawAlphaTested);
 

@@ -2,28 +2,29 @@
 
 out vec4 fragColor;
 
-layout (std140, binding = 0) uniform cameraData {
+layout (std140) uniform uniformData 
+{
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionMatrix;
 	layout (offset = 128) mat4 projectionViewMatrix;
 	layout (offset = 192) mat4 inverseViewProjectMatrix;
 	layout (offset = 256) vec4 cameraPosition;
+	layout (offset = 272) float time;
 };
 
-//dudv in the arm slot
 layout(binding = 0) uniform sampler2DArray arrayTextures[8];
 layout(binding = 8) uniform samplerCube cubeMap;
 
-uniform int armArray;
-uniform int armLayer;
+//dudv in the arm slot
+flat in int armArray;
+flat in int armLayer;
 
-uniform int normalArray;
-uniform int normalLayer;
+flat in int normalArray;
+flat in int normalLayer;
 
 uniform vec3 lightDir;
 
 uniform vec3 scale;
-uniform float time;
 
 in vsOut 
 {

@@ -4,8 +4,8 @@ const float lightBleedReduction = 0.2f;
 
 layout(binding = 0) uniform sampler2DArray arrayTextures[8];
 
-uniform int albedoArray;
-uniform int albedoLayer;
+flat in int albedoArray;
+flat in int albedoLayer;
 
 out vec2 fragColor;
 

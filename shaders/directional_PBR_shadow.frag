@@ -11,14 +11,14 @@ out vec4 fragColor;
 layout(binding = 0) uniform sampler2DArray arrayTextures[8];
 layout(binding = 9) uniform sampler2DArray shadowMap;
 
-uniform int albedoArray;
-uniform int albedoLayer;
+flat in int albedoArray;
+flat in int albedoLayer;
 
-uniform int armArray;
-uniform int armLayer;
+flat in int armArray;
+flat in int armLayer;
 
-uniform int normalArray;
-uniform int normalLayer;
+flat in int normalArray;
+flat in int normalLayer;
 
 uniform vec3 ambientLight;
 uniform vec3 lightColor;

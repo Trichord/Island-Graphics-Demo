@@ -21,10 +21,10 @@ class Model : public Renderable
 
     AABB &getAABB() override;
     void setMeshVisibility(bool visible) override;
-    const ModelHandle getHandle() const override;
+    ModelHandle getHandle() const override;
     std::span<Primitive::Mesh> getMeshes() override;
     std::optional<std::vector<Primitive::Mesh>> loadCollisionMesh() override;
-    std::optional<std::vector<BoundedTransform>> generateInstancedTransforms() override;
+    std::optional<std::vector<BoundedTransform>> loadInstancedTransforms() override;
 
   protected:
     ModelHandle handle_{0};
