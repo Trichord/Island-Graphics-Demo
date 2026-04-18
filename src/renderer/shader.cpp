@@ -40,7 +40,8 @@ Shader::Shader(const std::filesystem::path &vertexPath, const std::filesystem::p
         infoLog.resize(logLength);
 
         glGetProgramInfoLog(id_, logLength, NULL, infoLog.data());
-        std::cerr << "ERROR: Shader Program - Linking Failed" << std::endl << infoLog.data() << std::endl;
+        std::cerr << "ERROR: Shader Program - Linking Failed at:  " << vertexPath.string() << std::endl
+                  << infoLog.data() << std::endl;
 
         glDeleteShader(vertexShaderID);
         glDeleteShader(fragmentShaderID);

@@ -49,7 +49,7 @@ std::span<Primitive::Mesh> Model::getMeshes()
     return meshes_;
 }
 
-std::optional<std::vector<BoundedTransform>> Model::generateInstancedTransforms()
+std::optional<std::vector<BoundedTransform>> Model::loadInstancedTransforms()
 {
     return std::nullopt;
 }
@@ -64,7 +64,7 @@ void Model::loadModel(const std::filesystem::path &path, bool borrowed)
         textureManager_.loadModelTextures(handle_, std::move(asset), path.parent_path());
 }
 
-const ModelHandle Model::getHandle() const
+ModelHandle Model::getHandle() const
 {
     return handle_;
 }

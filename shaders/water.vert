@@ -3,12 +3,14 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 3) in vec2 aTexCoords;
 
-layout (std140, binding = 0) uniform cameraData {
+layout (std140) uniform uniformData 
+{
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionMatrix;
 	layout (offset = 128) mat4 projectionViewMatrix;
 	layout (offset = 192) mat4 inverseViewProjectMatrix;
 	layout (offset = 256) vec4 cameraPosition;
+	layout (offset = 272) float time;
 };
 
 layout(binding = 0, std430) readonly buffer matricesSSBO {
@@ -16,8 +18,25 @@ layout(binding = 0, std430) readonly buffer matricesSSBO {
 };
 
 layout(binding = 1, std430) readonly buffer indicesSSBO {
-    uint indices[];
+    int indices[];
 };
+
+struct Metadata
+{
+	int albedoArray;
+	int albedoLayer;
+	int armArray;
+	int armLayer;
+	int normalArray;
+	int normalLayer;
+	int matricesBufferBaseIndex;
+};
+
+layout(binding = 2, std430) readonly buffer metadataSSBO
+{
+	Metadata metadata[];
+};
+
 
 out vsOut 
 {
@@ -26,18 +45,34 @@ out vsOut
 	vec4 clipSpace;
 } vOut;
 
-uniform uint matricesOffset;
-uniform uint indicesOffset;
+flat out int armArray;
+flat out int armLayer;
+
+flat out int normalArray;
+flat out int normalLayer;
+
+uniform int metadataIndex;
+uniform int indicesOffset;
 
 void main () 
 {
-	uint instanceIndex = indices[indicesOffset + gl_InstanceID];
-	mat4 modelMatrix = instances[matricesOffset + instanceIndex];
+	Metadata primitiveData = metadata[metadataIndex];
+
+	int matricesIndex = primitiveData.matricesBufferBaseIndex;
+	int instanceIndex = indices[indicesOffset + gl_InstanceID];
+
+	mat4 modelMatrix = instances[matricesIndex + instanceIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
 
 	vOut.texCoords = aTexCoords;
 	vOut.fragPos = (modelMatrix * vec4(aPos, 1.0)).xyz;
 	vOut.clipSpace = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0);
+
+	armArray = primitiveData.armArray;
+	armLayer = primitiveData.armLayer;
+
+	normalArray = primitiveData.normalArray;
+	normalLayer = primitiveData.normalLayer;
 
 	gl_Position = vOut.clipSpace;
 }

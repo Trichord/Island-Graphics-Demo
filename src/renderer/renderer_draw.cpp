@@ -40,8 +40,7 @@ void Renderer::renderAllSceneObjects()
 
             BoundedTransform &firstInstance{drawEntry.transformsRef.get()[0]};
 
-            shader.setIntU("matricesOffset", drawEntry.matricesBufferBaseIndex);
-            shader.setIntU("indicesOffset", drawEntry.indicesBufferIndex);
+            shader.setInt("indicesOffset", drawEntry.indicesBufferIndex);
             shader.setVec3("scale", firstInstance.transform.getScale());
 
             // Draw it
@@ -69,43 +68,20 @@ void Renderer::renderObject(Shader &shader, DrawEntry &drawEntry)
             glState_.setAlphaMode(primitive.getAlphaMode());
 
             GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
-            GLuint indexOffset{primitive.getEBOIndex()};
-            GLuint baseVertex{primitive.getVAOIndex()};
+            GLuint indexOffset{static_cast<GLuint>(primitive.getEBOIndex())};
+            GLuint baseVertex{static_cast<GLuint>(primitive.getVAOIndex())};
 
-            if (!materials.empty())
-            {
-                std::size_t materialIndex{primitive.getMaterialIndex()};
-                bindTextures(shader, materials[materialIndex]);
-            }
+            shader.setInt("metadataIndex", primitive.getMetadataBufferIndex());
+
+            const Material &material{materials[primitive.getMaterialIndex()]};
+
+            if (material.cubemap)
+                glState_.bindTexture(static_cast<GLuint>(TextureUnit::cubemap), material.cubemap);
 
             glDrawElementsInstancedBaseVertex(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT,
                                               (void *)(indexOffset * sizeof(GLuint)), instanceCount, baseVertex);
         }
     }
-}
-
-void Renderer::bindTextures(Shader &shader, const Material &material)
-{
-    if (material.albedo.array != -1)
-    {
-        shader.setInt("albedoArray", material.albedo.array);
-        shader.setInt("albedoLayer", material.albedo.layer);
-    }
-
-    if (material.ARM.array != -1)
-    {
-        shader.setInt("armArray", material.ARM.array);
-        shader.setInt("armLayer", material.ARM.layer);
-    }
-
-    if (material.normal.array != -1)
-    {
-        shader.setInt("normalArray", material.normal.array);
-        shader.setInt("normalLayer", material.normal.layer);
-    }
-
-    if (material.cubemap)
-        glState_.bindTexture(static_cast<GLuint>(TextureUnit::cubemap), material.cubemap);
 }
 
 void Renderer::updateCascadeShadowUBO(const CascadeShadow::CascadeSplits &cascades,
@@ -139,14 +115,14 @@ void Renderer::updateShadowMaps(Scene &scene)
     {
         shadowPassTarget_.clear();
 
+        // Use culling and indexed drawing for the inner 2 cascades
+        if (cascade == 1)
+            cullRenderables(scene, lightMatrices.viewProjections[cascade]);
+
         // Opaque geometry first
         Shader &shadowShader{shaders_[ShaderType::SHADOW_MAP]};
         shadowShader.use();
         shadowPass(lightMatrices, shadowShader, cascade, false);
-
-        // Use culling and indexed drawing for the inner 2 cascades
-        if (cascade == 1)
-            cullRenderables(scene, lightMatrices.viewProjections[cascade]);
 
         // Alpha tested geometry
         Shader &shadowAlphaShader{shaders_[ShaderType::SHADOW_MAP_ALPHA]};
@@ -193,11 +169,8 @@ void Renderer::shadowPass(const CascadeShadow::LightMatrices &lightMatrices, Sha
             Renderable &renderable{drawEntry.renderableRef.get()};
             const auto &materials{textureManager_.getMaterials(renderable.getHandle())};
 
-            // Offsets into the main buffer and the indices buffer
-            shader.setIntU("matricesOffset", drawEntry.matricesBufferBaseIndex);
-
             if (cascade != 2)
-                shader.setIntU("indicesOffset", drawEntry.indicesBufferIndex);
+                shader.setInt("indicesOffset", drawEntry.indicesBufferIndex);
 
             // Instance count
             GLsizei instanceCount{0};
@@ -209,17 +182,16 @@ void Renderer::shadowPass(const CascadeShadow::LightMatrices &lightMatrices, Sha
             // Render primitives
             for (const Primitive::Mesh &mesh : renderable.getMeshes())
             {
+                if (!mesh.isVisible)
+                    continue;
+
                 for (const Primitive &primitive : mesh.primitives)
                 {
                     GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
-                    GLuint indexOffset{primitive.getEBOIndex()};
-                    GLuint baseVertex{primitive.getVAOIndex()};
+                    GLuint indexOffset{static_cast<GLuint>(primitive.getEBOIndex())};
+                    GLuint baseVertex{static_cast<GLuint>(primitive.getVAOIndex())};
 
-                    if (!materials.empty())
-                    {
-                        std::size_t materialIndex{primitive.getMaterialIndex()};
-                        bindTextures(shader, materials[materialIndex]);
-                    }
+                    shader.setInt("metadataIndex", primitive.getMetadataBufferIndex());
 
                     glDrawElementsInstancedBaseVertex(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT,
                                                       (void *)(indexOffset * sizeof(GLuint)), instanceCount,

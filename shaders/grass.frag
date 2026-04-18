@@ -10,8 +10,8 @@ layout (std140, binding = 1) uniform shadowCascadeData
 
 layout(binding = 0) uniform sampler2DArray arrayTextures[8];
 
-uniform int albedoArray;
-uniform int albedoLayer;
+flat in int albedoArray;
+flat in int albedoLayer;
 
 uniform vec3 ambientLight;
 uniform vec3 lightDir;
@@ -23,8 +23,6 @@ uniform float alphaCutoff;
 
 in vec2 texCoords;
 in vec3 normal;
-in vec4 viewFragPos;
-in vec4 worldFragPos;
 
 const float minVariance = 0.000001;
 const int cascadeCount = 3;

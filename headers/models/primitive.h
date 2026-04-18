@@ -6,7 +6,6 @@
 
 #include "aabb.h"
 #include "fastgltf/types.hpp"
-#include "glad/glad.h"
 #include "glm/glm.hpp"
 
 class Primitive
@@ -30,16 +29,20 @@ class Primitive
     Primitive(std::vector<Vertex> &&vertices, std::vector<std::uint32_t> &&indices, AABB &&aabb,
               std::size_t matIndex = 0, fastgltf::AlphaMode alphaMode = fastgltf::AlphaMode::Opaque);
 
-    GLuint getVAOIndex() const;
-    GLuint getEBOIndex() const;
+    int getVAOIndex() const;
+    int getEBOIndex() const;
     const AABB &getAABB() const;
+    int getMetadataBufferIndex() const;
+    int getMatricesBufferIndex() const;
     fastgltf::AlphaMode getAlphaMode() const;
     std::span<const Vertex> getVertices() const;
     std::span<const std::uint32_t> getIndices() const;
 
-    void setVAOIndex(GLuint index);
-    void setEBOIndex(GLuint index);
+    void setVAOIndex(int index);
+    void setEBOIndex(int index);
     void setAABB(const AABB &otherAABB);
+    void setMetadataBufferIndex(int index);
+    void setMatricesBufferIndex(int index);
 
     std::size_t getMaterialIndex() const;
     std::span<Vertex> getMutableVertices();
@@ -48,8 +51,10 @@ class Primitive
     std::vector<Vertex> vertices_;
     std::vector<std::uint32_t> indices_;
 
-    GLuint VAOIndex_{0};
-    GLuint EBOIndex_{0};
+    int VAOIndex_{0};
+    int EBOIndex_{0};
+    int materialBufferIndex_{0};
+    int matricesBufferIndex_{0};
 
     AABB aabb_;
     std::size_t materialIndex_{0};

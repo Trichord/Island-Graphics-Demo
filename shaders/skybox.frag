@@ -3,6 +3,7 @@
 out vec4 fragColor;
 
 layout(binding = 8) uniform samplerCube cubeMap;
+
 uniform float gamma;
 
 in vec3 texCoords;

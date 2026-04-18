@@ -20,7 +20,7 @@ class InstancedModel : public Model
                    float minSize = 1.0f, float maxSize = 1.0f, unsigned int numPositions = 0);
 
     // Load positions from storage and generate matrices
-    std::optional<std::vector<BoundedTransform>> generateInstancedTransforms() override;
+    std::optional<std::vector<BoundedTransform>> loadInstancedTransforms() override;
 
   private:
     unsigned int numInstances_{0};
