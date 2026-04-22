@@ -2,22 +2,24 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "aabb.h"
 #include "fastgltf/core.hpp"
 #include "fastgltf/glm_element_traits.hpp"
+#include "fastgltf/math.hpp"
 #include "fastgltf/tools.hpp"
 #include "fastgltf/types.hpp"
 #include "glm/glm.hpp"
 #include "primitive.h"
-#include "texture_utilities.h"
-#include <variant>
+#include "textures.h"
 
 std::string fastgltfErrorToString(fastgltf::Error error)
 {
@@ -80,35 +82,34 @@ fastgltf::Asset fastgltfLoader::loadAsset(const std::filesystem::path &path)
     return std::move(assetResult.get());
 }
 
-void calculateAABB(std::vector<Primitive::Mesh> &meshes)
+void calculateAABB(std::vector<Primitive> &primitives)
 {
-    for (auto &mesh : meshes)
-        for (auto &primitive : mesh.primitives)
+    for (auto &primitive : primitives)
+    {
+        // Create AABB
+        float minX{std::numeric_limits<float>::infinity()};
+        float minY{std::numeric_limits<float>::infinity()};
+        float minZ{std::numeric_limits<float>::infinity()};
+        float maxX{-std::numeric_limits<float>::infinity()};
+        float maxY{-std::numeric_limits<float>::infinity()};
+        float maxZ{-std::numeric_limits<float>::infinity()};
+
+        for (const auto &vertex : primitive.vertices)
         {
-            // Create AABB
-            float minX{std::numeric_limits<float>::infinity()};
-            float minY{std::numeric_limits<float>::infinity()};
-            float minZ{std::numeric_limits<float>::infinity()};
-            float maxX{-std::numeric_limits<float>::infinity()};
-            float maxY{-std::numeric_limits<float>::infinity()};
-            float maxZ{-std::numeric_limits<float>::infinity()};
+            minX = std::min(vertex.position.x, minX);
+            minY = std::min(vertex.position.y, minY);
+            minZ = std::min(vertex.position.z, minZ);
 
-            for (const auto &vertex : primitive.getVertices())
-            {
-                minX = std::min(vertex.position.x, minX);
-                minY = std::min(vertex.position.y, minY);
-                minZ = std::min(vertex.position.z, minZ);
-
-                maxX = std::max(vertex.position.x, maxX);
-                maxY = std::max(vertex.position.y, maxY);
-                maxZ = std::max(vertex.position.z, maxZ);
-            }
-
-            primitive.setAABB(AABB{minX, minY, minZ, maxX, maxY, maxZ});
+            maxX = std::max(vertex.position.x, maxX);
+            maxY = std::max(vertex.position.y, maxY);
+            maxZ = std::max(vertex.position.z, maxZ);
         }
+
+        primitive.aabb = {minX, minY, minZ, maxX, maxY, maxZ};
+    }
 }
 
-void applyNodeTransforms(const fastgltf::Asset &asset, std::vector<Primitive::Mesh> &meshes)
+void applyNodeTransforms(const fastgltf::Asset &asset, std::vector<Primitive> &primitives)
 {
     for (std::size_t i{0}; i < asset.scenes.size(); ++i)
     {
@@ -116,18 +117,14 @@ void applyNodeTransforms(const fastgltf::Asset &asset, std::vector<Primitive::Me
             asset, i, fastgltf::math::fmat4x4(1.0f), [&](const fastgltf::Node &node, fastgltf::math::fmat4x4 matrix) {
                 if (node.meshIndex.has_value())
                 {
-                    for (auto &primitive : meshes[node.meshIndex.value()].primitives)
+                    for (auto &primitive : primitives)
                     {
                         glm::mat4 modelMatrix{0.0f};
-
-                        if (sizeof(modelMatrix[0][0]) != sizeof(matrix[0][0]))
-                            throw std::runtime_error("Incompatible matrix floats");
-
                         memcpy(&modelMatrix, &matrix, 16 * sizeof(matrix[0][0]));
 
                         glm::mat3 normalMatrix{glm::transpose(glm::inverse(modelMatrix))};
 
-                        for (auto &vertex : primitive.getMutableVertices())
+                        for (Primitive::Vertex &vertex : primitive.vertices)
                         {
                             vertex.position = glm::vec3{modelMatrix * glm::vec4{vertex.position, 1.0f}};
                             vertex.normal = normalMatrix * vertex.normal;
@@ -138,15 +135,20 @@ void applyNodeTransforms(const fastgltf::Asset &asset, std::vector<Primitive::Me
     }
 }
 
-std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(const fastgltf::Asset &asset)
+std::vector<Primitive> fastgltfLoader::loadMeshes(const fastgltf::Asset &asset)
 {
-    std::vector<Primitive::Mesh> meshes;
+    std::vector<Primitive> primitives;
+    std::size_t numPrimitives{0};
 
     for (const auto &gltfMesh : asset.meshes)
     {
-        Primitive::Mesh mesh;
-        mesh.primitives.reserve(gltfMesh.primitives.size());
+        numPrimitives += gltfMesh.primitives.size();
+    }
 
+    primitives.reserve(numPrimitives);
+
+    for (const auto &gltfMesh : asset.meshes)
+    {
         for (const auto &gltfPrimitive : gltfMesh.primitives)
         {
             std::vector<Primitive::Vertex> vertices;
@@ -219,18 +221,17 @@ std::vector<Primitive::Mesh> fastgltfLoader::loadMeshes(const fastgltf::Asset &a
             }
 
             // Build the primitive
-            mesh.primitives.emplace_back(std::move(vertices), std::move(indices), AABB{}, materialIndex,
-                                         alphaMode);
+            primitives.emplace_back(Primitive{.vertices = std::move(vertices),
+                                              .indices = std::move(indices),
+                                              .materialIndex = static_cast<int>(materialIndex),
+                                              .alphaMode = alphaMode});
         }
-
-        // Add the mesh
-        meshes.push_back(std::move(mesh));
     }
 
-    applyNodeTransforms(asset, meshes);
-    calculateAABB(meshes);
+    applyNodeTransforms(asset, primitives);
+    calculateAABB(primitives);
 
-    return meshes;
+    return primitives;
 }
 
 std::vector<std::filesystem::path> fastgltfLoader::getURIs(const fastgltf::Asset &asset,

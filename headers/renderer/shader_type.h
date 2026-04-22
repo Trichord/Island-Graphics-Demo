@@ -6,14 +6,14 @@
 
 enum class ShaderType
 {
-    DIRECTIONAL_PBR,
-    REFLECTIVE,
-    WATER,
-    OCEAN,
-    TREES,
-    GRASS,
-    SKYBOX,
-    SHADOW_MAP,
-    SHADOW_MAP_ALPHA,
-    COUNT
+    directionalPBR,
+    reflective,
+    water,
+    ocean,
+    trees,
+    grass,
+    skybox,
+    shadowMap,
+    shadowMapAlphaTested,
+    count
 };

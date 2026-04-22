@@ -1,15 +1,14 @@
 #include <array>
-#include <iostream>
-#include <span>
+#include <vector>
 
 #include "aabb.h"
-#include "camera.h"
+#include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_access.hpp"
-#include "renderable.h"
 #include "renderer.h"
 #include "scene.h"
 #include "shader_type.h"
+#include "transform.h"
 
 static void normalizePlane(glm::vec4 &vec)
 {
@@ -51,142 +50,73 @@ static std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 matrix)
 }
 
 // Cull and build up the visible indices for the SSBO
-void Renderer::cullRenderables(Scene &scene, const glm::mat4 &cullMatrix)
+void Renderer::cullAllModels(Scene &scene, const glm::mat4 &cullMatrix)
 {
     // Reset everyting for a fresh SSBO upload
-    GLuint indicesBufferOffset{0};
-    instanceIndices_.clear();
+    int indicesBufferOffset{0};
     resetVisibility();
 
     const std::array<glm::vec4, 6> planes{getFrustumPlanes(cullMatrix)};
 
-    for (auto &[_, drawEntries] : drawEntriesByShader_)
+    for (DrawEntry &entry : drawEntries_)
     {
-        for (DrawEntry &drawEntry : drawEntries)
-        {
-            using enum CullMethod;
-
-            switch (drawEntry.cullMethod)
-            {
-            case INSTANCED:
-                cullInstanced(drawEntry, planes, indicesBufferOffset);
-                break;
-
-            case TERRAIN:
-                cullByMesh(drawEntry, planes, indicesBufferOffset);
-                break;
-
-            case NONE: {
-                cullNone(drawEntry, indicesBufferOffset);
-                break;
-            }
-
-            default:
-                std::cerr << "ERROR: unknown enum in cull strategy" << std::endl;
-            }
-        }
+        if (entry.shaderType != ShaderType::skybox)
+            cullInstanced(entry, planes, indicesBufferOffset);
+        else
+            cullNone(entry, indicesBufferOffset);
     }
 
-    glNamedBufferSubData(indicesSSBO_, 0, instanceIndices_.size() * sizeof(GLuint), instanceIndices_.data());
+    glNamedBufferSubData(visibleIndicesSSBO_, 0, static_cast<GLsizeiptr>(visibleMatrices_.size() * sizeof(GLuint)),
+                         visibleMatrices_.data());
 }
 
 void Renderer::cullInstanced(DrawEntry &drawEntry, const std::array<glm::vec4, 6> &frustumPlanes,
-                             GLuint &ssboIndicesOffset)
+                             int &ssboIndicesOffset)
 {
     bool anyVisible{false};
-    Renderable &renderable{drawEntry.renderableRef.get()};
-    const std::vector<BoundedTransform> &instances{drawEntry.transformsRef.get()};
+    const AABB &modelAABB{drawEntry.primitive->aabb};
+    std::vector<Transform> &transforms{*drawEntry.transforms};
 
-    for (uint32_t i{0}; i < instances.size(); ++i)
+    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(transforms.size()); ++i)
     {
-        if (instances[i].worldAABB.intersectsWorldSpace(frustumPlanes))
+        if (modelAABB.intersects(frustumPlanes, transforms[i].getModelMatrix()))
         {
             anyVisible = true;
 
             ++drawEntry.visibleInstances;
-            instanceIndices_.push_back(i);
+            visibleMatrices_.push_back(i);
         }
     }
 
     if (anyVisible)
     {
-        drawEntry.isVisible = true;
-        renderable.setMeshVisibility(true);
+        drawEntry.anyVisible = true;
 
-        drawEntry.indicesBufferIndex = ssboIndicesOffset;
+        drawEntry.visibleIndicesBufferBaseIndex = ssboIndicesOffset;
         ssboIndicesOffset += drawEntry.visibleInstances;
     }
 }
 
-void Renderer::cullByMesh(DrawEntry &drawEntry, const std::array<glm::vec4, 6> &frustumPlanes,
-                          GLuint &ssboIndicesOffset)
+void Renderer::cullNone(DrawEntry &drawEntry, int &ssboIndicesOffset)
 {
-    bool anyVisible{false};
-    Renderable &renderable{drawEntry.renderableRef.get()};
-    std::vector<BoundedTransform> &instances{drawEntry.transformsRef.get()};
+    drawEntry.anyVisible = true;
+    drawEntry.visibleInstances = static_cast<int>(drawEntry.transforms->size());
 
-    for (uint32_t i{0}; i < instances.size(); ++i)
-    {
-        bool instanceVisible{false};
+    for (std::uint32_t i{0}; i < drawEntry.visibleInstances; ++i)
+        visibleMatrices_.push_back(i);
 
-        for (auto &mesh : renderable.getMeshes())
-        {
-            for (auto &primitive : mesh.primitives)
-            {
-                if (primitive.getAABB().intersects(frustumPlanes, instances[i].transform.getModelMatrix()))
-                {
-                    anyVisible = true;
-                    mesh.isVisible = true;
-                    instanceVisible = true;
-                }
-            }
-        }
-
-        if (instanceVisible)
-        {
-            instanceIndices_.push_back(i);
-            ++drawEntry.visibleInstances;
-        }
-    }
-
-    if (anyVisible)
-    {
-        drawEntry.isVisible = true;
-        drawEntry.indicesBufferIndex = ssboIndicesOffset;
-        ssboIndicesOffset += drawEntry.visibleInstances;
-    }
+    drawEntry.visibleIndicesBufferBaseIndex = ssboIndicesOffset;
+    ssboIndicesOffset += drawEntry.visibleInstances;
 }
 
 void Renderer::resetVisibility()
 {
-    for (auto &[_, drawEntries] : drawEntriesByShader_)
+    visibleMatrices_.clear();
+
+    for (DrawEntry &entry : drawEntries_)
     {
-        for (DrawEntry &drawEntry : drawEntries)
-        {
-            Renderable &renderable{drawEntry.renderableRef.get()};
-            GLuint instanceCount{static_cast<GLuint>(drawEntry.transformsRef.get().size())};
-
-            drawEntry.isVisible = false;
-            drawEntry.visibleInstances = 0;
-            drawEntry.indicesBufferIndex = 0;
-
-            renderable.setMeshVisibility(false);
-        }
+        entry.anyVisible = false;
+        entry.visibleInstances = 0;
+        entry.visibleIndicesBufferBaseIndex = 0;
     }
-}
-
-void Renderer::cullNone(DrawEntry &drawEntry, GLuint &ssboIndicesOffset)
-{
-    Renderable &renderable{drawEntry.renderableRef.get()};
-    std::vector<BoundedTransform> &instances{drawEntry.transformsRef.get()};
-
-    renderable.setMeshVisibility(true);
-    drawEntry.isVisible = true;
-    drawEntry.visibleInstances = static_cast<GLuint>(instances.size());
-
-    for (GLuint i{0}; i < static_cast<GLuint>(instances.size()); ++i)
-        instanceIndices_.push_back(i);
-
-    drawEntry.indicesBufferIndex = ssboIndicesOffset;
-    ssboIndicesOffset += drawEntry.visibleInstances;
 }

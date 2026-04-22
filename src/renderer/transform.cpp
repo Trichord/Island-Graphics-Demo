@@ -1,7 +1,7 @@
+#include "transform.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/quaternion.hpp"
-#include "transform.h"
 
 Transform::Transform(glm::vec3 pos, glm::vec3 sc, float degrees, glm::vec3 axis) : position_{pos}, scale_{sc}
 {

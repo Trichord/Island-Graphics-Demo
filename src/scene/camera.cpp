@@ -1,7 +1,6 @@
 #include "camera.h"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 
 #include "glm/glm.hpp"

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <array>
-
 #include "glm/glm.hpp"
 #include "world_vectors.h"
 

@@ -1,19 +1,29 @@
 #include "renderer.h"
 
+#include <algorithm>
 #include <array>
+#include <cstdint>
+#include <span>
+#include <thread>
+#include <tuple>
+#include <unordered_set>
+#include <vector>
 
 #include "camera.h"
 #include "cascade_shadow.h"
 #include "directional_light.h"
 #include "gl_context.h"
 #include "glm/glm.hpp"
-#include "renderable.h"
+#include "graphics_settings.h"
+#include "model.h"
+#include "primitive.h"
+#include "render_target.h"
 #include "scene.h"
-#include "settings_window.h"
 #include "shader.h"
 #include "shader_type.h"
 #include "texture_manager.h"
 #include "textures.h"
+#include "transform.h"
 
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.111f};
@@ -55,7 +65,7 @@ void Renderer::renderScene(Scene &scene)
     glClearNamedFramebufferfv(0, GL_DEPTH, 0, &depthClear_);
 
     const bool globalLightUpdated{scene.getGlobalLightSource().directionHasUpdated()};
-    const bool sceneUpdated{!scene.getTransformsUpdated().empty()};
+    const bool sceneUpdated{!scene.getUpdatedModels().empty()};
     const bool cameraUpdated{scene.getCamera().hasUpdated()};
 
     updateSceneTransforms(scene);
@@ -67,7 +77,7 @@ void Renderer::renderScene(Scene &scene)
     if (cameraUpdated)
         updateCameraUBO(scene);
 
-    cullRenderables(scene, scene.getCamera().getViewProjectionMatrix());
+    cullAllModels(scene, scene.getCamera().getViewProjectionMatrix());
     renderAllSceneObjects();
 }
 
@@ -88,20 +98,21 @@ void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    shaders_.emplace(GRASS, Shader{"./shaders/grass.vert", "./shaders/grass.frag"});
-    shaders_.emplace(TREES, Shader{"./shaders/trees.vert", "./shaders/trees.frag"});
-    shaders_.emplace(REFLECTIVE, Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"});
-    shaders_.emplace(SKYBOX, Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"});
-    shaders_.emplace(WATER, Shader{"./shaders/water.vert", "./shaders/water.frag"});
-    shaders_.emplace(OCEAN, Shader{"./shaders/water.vert", "./shaders/ocean.frag"});
-    shaders_.emplace(SHADOW_MAP, Shader{"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"});
-    shaders_.emplace(SHADOW_MAP_ALPHA, Shader{"./shaders/shadow_pass_alpha.vert", "./shaders/shadow_pass_alpha.frag"});
+    shaders_.emplace(grass, Shader{"./shaders/grass.vert", "./shaders/grass.frag"});
+    shaders_.emplace(trees, Shader{"./shaders/trees.vert", "./shaders/trees.frag"});
+    shaders_.emplace(reflective, Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"});
+    shaders_.emplace(skybox, Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"});
+    shaders_.emplace(water, Shader{"./shaders/water.vert", "./shaders/water.frag"});
+    shaders_.emplace(ocean, Shader{"./shaders/water.vert", "./shaders/ocean.frag"});
+    shaders_.emplace(shadowMap, Shader{"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"});
+    shaders_.emplace(shadowMapAlphaTested,
+                     Shader{"./shaders/shadow_pass_alpha.vert", "./shaders/shadow_pass_alpha.frag"});
 
     if (graphicsSettings_.shadowResolution > 1)
-        shaders_.emplace(DIRECTIONAL_PBR,
+        shaders_.emplace(directionalPBR,
                          Shader{"./shaders/directional_PBR_shadow.vert", "./shaders/directional_PBR_shadow.frag"});
     else
-        shaders_.emplace(DIRECTIONAL_PBR, Shader{"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"});
+        shaders_.emplace(directionalPBR, Shader{"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"});
 }
 
 void Renderer::setupShader(Shader &shader)
@@ -141,15 +152,15 @@ void Renderer::setSceneShaderUniforms(Scene &scene)
 
 void Renderer::initializeResources(Scene &scene)
 {
-    // Set all scene dependent uniforms
+    // Setup all the shaders and build the renderer's internal mapping of the scene
     setSceneShaderUniforms(scene);
-
-    // Instanced data must be loaded first, shader-related functions can be called
-    loadInstancedData(scene);
-    buildShaderMap(scene);
     textureManager_.buildArrayTextures();
 
-    // Next all buffers must be built
+    // Sort the renderer's map by shader & state
+    buildShaderMap(scene);
+    sortPrimitives();
+
+    // Buffers rely on the renderer's map being populated
     createBuffers(scene);
 
     // Skyboxes have to be borrowed before creating cubemaps. The environement must be fully setup before rendering
@@ -157,7 +168,7 @@ void Renderer::initializeResources(Scene &scene)
     borrowSkybox();
     createCubemaps(scene);
 
-    // Setup for cascade shadow maps. Must come after cubemaps due to per-light-frustum culling
+    // Setup for cascade shadow maps. Must come after cubemaps due to cascade culling
     cascadeShadow_ = CascadeShadow(scene.getCamera().getNearPlane());
     updateShadowMaps(scene);
 
@@ -180,28 +191,35 @@ void Renderer::deleteBuffers()
     glDeleteBuffers(1, &cameraUBO_);
     glDeleteBuffers(1, &shadowCascadesUBO_);
 
-    glDeleteBuffers(1, &indicesSSBO_);
+    glDeleteBuffers(1, &visibleIndicesSSBO_);
     glDeleteBuffers(1, &matricesSSBO_);
     glDeleteBuffers(1, &primitivesSSBO_);
 }
 
+// Convert from buffer sub data to a persistant map
 void Renderer::updateSceneTransforms(Scene &scene)
 {
-    std::unordered_set<ModelHandle> &updatedTransformHandles{scene.getTransformsUpdated()};
+    std::unordered_set<ModelHandle> &updatedTransformHandles{scene.getUpdatedModels()};
 
     for (ModelHandle handle : updatedTransformHandles)
     {
-        const GLuint baseIndex{matricesBufferIndexByHandle.at(handle)};
-        std::vector<BoundedTransform> &instances{scene.getEntryByHandle(handle).transforms};
+        std::vector<std::uint32_t> &drawEntryIndices{drawEntriesByHandle_.at(handle)};
 
-        std::vector<glm::mat4> matrices;
-        matrices.reserve(instances.size());
+        Model &model{scene.getEntryByHandle(handle).modelRef.get()};
 
-        for (auto &instance : instances)
-            matrices.emplace_back(instance.transform.getModelMatrix());
+        // Because all primitives of a model share the same underlaying matrices, we can grab the first primitive
+        DrawEntry &entry{drawEntries_[drawEntryIndices.front()]};
 
-        glNamedBufferSubData(matricesSSBO_, baseIndex * sizeof(glm::mat4), sizeof(glm::mat4) * matrices.size(),
-                             matrices.data());
+        std::size_t numMatrices{entry.transforms->size()};
+
+        updatedMatrices_.clear();
+        updatedMatrices_.reserve(numMatrices);
+
+        for (Transform &transform : *entry.transforms)
+            updatedMatrices_.emplace_back(transform.getModelMatrix());
+
+        glNamedBufferSubData(matricesSSBO_, entry.matricesBufferBaseIndex * sizeof(glm::mat4),
+                             numMatrices * sizeof(glm::mat4), updatedMatrices_.data());
     }
 
     updatedTransformHandles.clear();
@@ -217,9 +235,32 @@ void Renderer::buildShaderMap(Scene &scene)
 {
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {
-        drawEntriesByShader_[entry.shaderType].push_back({.renderableRef{entry.renderableRef},
-                                                          .transformsRef{entry.transforms},
-                                                          .shaderType{entry.shaderType},
-                                                          .cullMethod{entry.cullMethod}});
+        Model &model{entry.modelRef.get()};
+        ModelHandle handle{model.getHandle()};
+
+        std::span<Primitive> primitives{model.getPrimitives()};
+        std::uint32_t numTransforms{static_cast<std::uint32_t>(entry.transforms.size())};
+
+        for (Primitive &primitive : primitives)
+        {
+            drawEntries_.push_back({.handle = handle,
+                                    .primitive = &primitive,
+                                    .transforms = &entry.transforms,
+                                    .shaderType = entry.shaderType,
+                                    .alphaMode = primitive.alphaMode,
+                                    .visibleInstances = numTransforms});
+        }
     }
+}
+
+void Renderer::sortPrimitives()
+{
+    std::ranges::sort(drawEntries_, [](const DrawEntry &a, const DrawEntry &b) {
+        return std::tie(a.shaderType, a.alphaMode) < std::tie(b.shaderType, b.alphaMode);
+    });
+
+    drawEntriesByHandle_.clear();
+
+    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(drawEntries_.size()); ++i)
+        drawEntriesByHandle_[drawEntries_[i].handle].push_back(i);
 }

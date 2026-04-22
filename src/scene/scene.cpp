@@ -1,24 +1,26 @@
 #include "scene.h"
 
-#include <map>
+#include <functional>
+#include <iostream>
+#include <optional>
+#include <stdexcept>
 #include <string>
+#include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "camera.h"
 #include "directional_light.h"
 #include "glm/glm.hpp"
-#include "light.h"
-#include "point_light.h"
-#include "renderable.h"
+#include "instanced_model.h"
+#include "scene_resources.h"
 #include "shader_type.h"
 #include "texture_manager.h"
 #include "transform.h"
 
-constexpr int maxModels{50};
-
 Scene::Scene(TextureManager &textureManager) : sceneResources_{textureManager}
 {
-    sceneEntries_.reserve(maxModels);
+    sceneEntries_.reserve(sceneMaxObjects::maxTotal);
 }
 
 std::vector<SceneEntry> &Scene::getAllSceneEntries()
@@ -28,9 +30,9 @@ std::vector<SceneEntry> &Scene::getAllSceneEntries()
 
 SceneEntry &Scene::getEntryByName(const std::string &key)
 {
-    auto iter = namedTransforms_.find(key);
+    auto iter = entriesByName_.find(key);
 
-    if (iter == namedTransforms_.end())
+    if (iter == entriesByName_.end())
     {
         std::cerr << "ERROR: Cannot find named scene entry" << std::endl;
         throw std::runtime_error("Invalid key");
@@ -69,12 +71,30 @@ float Scene::getWindStrength() const
     return windStrength_;
 }
 
-std::unordered_set<ModelHandle> &Scene::getTransformsUpdated()
+std::unordered_set<ModelHandle> &Scene::getUpdatedModels()
 {
-    return updatedTransforms_;
+    return updatedModels_;
 }
 
 SceneEntry &Scene::getEntryByHandle(ModelHandle handle)
 {
-    return transformsByHandle_.at(handle);
+    return entriesByHandle_.at(handle);
+}
+
+void Scene::addInstancedObjectToScene(InstancedModel &modelRef, ShaderType shaderType,
+                                      const std::optional<std::string> name)
+{
+    std::vector<Transform> transforms{modelRef.loadInstancedTransforms()};
+
+    // Store a reference to the stable vector in Scene Resources, organized by shader
+    sceneEntries_.emplace_back(SceneEntry{.modelRef = modelRef,
+                                          .transforms = std::move(transforms),
+                                          .shaderType = shaderType});
+
+    // Store an access point to the instances, by model handle
+    entriesByHandle_.emplace(modelRef.getHandle(), std::ref(sceneEntries_.back()));
+
+    // Add a lookup to get a reference to a model's instances by a user-defined name
+    if (name.has_value())
+        entriesByName_.emplace(name.value(), std::ref(sceneEntries_.back()));
 }

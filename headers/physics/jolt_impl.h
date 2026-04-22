@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdexcept>
+
 #include "jolt/Jolt.h"
 
 #include "glm/glm.hpp"
@@ -77,7 +79,7 @@ class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
 
     JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer layer) const override
     {
-        if(layer >= Layers::NUM_LAYERS)
+        if (layer >= Layers::NUM_LAYERS)
             throw std::runtime_error("ERROR: Unknown Jolt ObjectLayer");
 
         return objectToBroadPhase_[layer];
