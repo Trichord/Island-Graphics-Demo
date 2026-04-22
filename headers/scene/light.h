@@ -1,7 +1,5 @@
 #pragma once
 
-#include <array>
-
 #include "glm/glm.hpp"
 
 /* Abstract class light.  getColor was chosen as the abstract hook due to its

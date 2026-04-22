@@ -1,5 +1,9 @@
 #pragma once
 
+#include <cstdint>
+
+#include "glad/glad.h"
+
 // OpenGL texture units are bound to this enum
 enum class TextureUnit
 {
@@ -36,7 +40,7 @@ struct Texture
     int width{0};
     int height{0};
     GLenum internalFormat{GL_SRGB8};
-    
+
     SamplerArrayEntry arrayEntry;
 };
 

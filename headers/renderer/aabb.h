@@ -19,14 +19,16 @@ class AABB
     float getMaxZ() const;
     glm::vec3 getMin() const;
     glm::vec3 getMax() const;
+    glm::vec3 getCenter() const;
 
     void resize(float scale);
-    glm::vec3 getCenter() const;
-    glm::vec3 getExtent() const;
 
     // Intersect methods are credit: Fabian “ryg” Giesen
-    bool intersects(const std::array<glm::vec4, 6> &planes, const glm::mat4 &modelMatrix) const;   
-    bool intersectsWorldSpace(const std::array<glm::vec4, 6> &planes) const;
+    bool intersects(const std::array<glm::vec4, 6> &planes, const glm::mat4 &modelMatrix) const;
+    bool intersects(const std::array<glm::vec4, 6> &planes) const;
+
+    // Returns a new AABB, translated by the model matrix
+    AABB translate(const glm::mat4 &modelMatrix) const;
 
   private:
     glm::vec3 center_{0.0f};

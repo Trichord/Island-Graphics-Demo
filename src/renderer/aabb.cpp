@@ -14,7 +14,7 @@ AABB::AABB(const glm::vec3 &min_, const glm::vec3 &max_) : center_{0.5f * (min_ 
 {
 }
 
-bool AABB::intersects(const std::array<glm::vec4, 6> &planes, const glm::mat4 &modelMatrix) const
+AABB AABB::translate(const glm::mat4 &modelMatrix) const
 {
     // Take the abs of the modelMatrix so the AABB can never collapse. It will only ever expand to a
     // conservative estimate on rotations.
@@ -24,10 +24,17 @@ bool AABB::intersects(const std::array<glm::vec4, 6> &planes, const glm::mat4 &m
     glm::vec3 worldCenter{modelMatrix * glm::vec4(center_, 1.0f)};
     glm::vec3 worldExtent{absRS * extent_};
 
+    return {worldCenter - worldExtent, worldCenter + worldExtent};
+}
+
+bool AABB::intersects(const std::array<glm::vec4, 6> &planes, const glm::mat4 &modelMatrix) const
+{
+    const AABB worldAABB{translate(modelMatrix)};
+
     for (const auto &plane : planes)
     {
-        float d{glm::dot(worldCenter, glm::vec3{plane})};
-        float r{glm::dot(worldExtent, glm::vec3{glm::abs(plane)})};
+        float d{glm::dot(worldAABB.center_, glm::vec3{plane})};
+        float r{glm::dot(worldAABB.extent_, glm::vec3{glm::abs(plane)})};
 
         if (d + r < -plane.w)
             return false;
@@ -36,7 +43,7 @@ bool AABB::intersects(const std::array<glm::vec4, 6> &planes, const glm::mat4 &m
     return true;
 }
 
-bool AABB::intersectsWorldSpace(const std::array<glm::vec4, 6> &planes) const
+bool AABB::intersects(const std::array<glm::vec4, 6> &planes) const
 {
     for (const auto &plane : planes)
     {
@@ -58,11 +65,6 @@ void AABB::resize(float scale)
 glm::vec3 AABB::getCenter() const
 {
     return center_;
-}
-
-glm::vec3 AABB::getExtent() const
-{
-    return extent_;
 }
 
 float AABB::getMinX() const

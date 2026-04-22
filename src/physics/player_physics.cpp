@@ -1,7 +1,5 @@
 #include "player_physics.h"
 
-#include <cstdint>
-
 #include "jolt/jolt.h"
 
 #include "glm/glm.hpp"
