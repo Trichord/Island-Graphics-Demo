@@ -3,18 +3,18 @@
 #include <filesystem>
 #include <vector>
 
-#include "model.h"
+#include "base_model.h"
 #include "texture_manager.h"
 
 CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
-                                 const std::vector<std::filesystem::path> &imagePaths, bool skybox)
-    : Model{textureManager, modelPath}
+                                 const std::vector<std::filesystem::path> &imagePaths, bool mipmaps)
+    : BaseModel{textureManager, modelPath}
 {
-    textureManager.loadCubemapTextures(handle_, imagePaths, "./", skybox);
+    textureManager.loadCubemapTextures(handle_, imagePaths, "./", mipmaps);
 }
 
 CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const ModelHandle borrowHandle,
                                  const std::filesystem::path &modelPath)
-    : Model{textureManager, borrowHandle, modelPath}
+    : BaseModel{textureManager, borrowHandle, modelPath}
 {
 }

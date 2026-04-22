@@ -2,22 +2,21 @@
 
 #include <concepts>
 #include <functional>
-#include <iostream>
-#include <map>
 #include <optional>
-#include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
+#include "base_model.h"
 #include "camera.h"
 #include "directional_light.h"
 #include "glm/glm.hpp"
-#include "light.h"
-#include "point_light.h"
-#include "renderable.h"
+#include "graphics_settings.h"
+#include "instanced_model.h"
+#include "model.h"
 #include "scene_resources.h"
-#include "settings_window.h"
 #include "shader_type.h"
 #include "texture_manager.h"
 #include "transform.h"
@@ -32,11 +31,10 @@
 
 struct SceneEntry
 {
-    std::reference_wrapper<Renderable> renderableRef;
-    std::vector<BoundedTransform> transforms;
+    std::reference_wrapper<Model> modelRef;
+    std::vector<Transform> transforms;
 
-    CullMethod cullMethod{CullMethod::INSTANCED};
-    ShaderType shaderType{ShaderType::DIRECTIONAL_PBR};
+    ShaderType shaderType{ShaderType::directionalPBR};
 };
 
 class Scene
@@ -55,25 +53,19 @@ class Scene
     DirectionalLight &getGlobalLightSource();
     const glm::vec3 &getWindDirection() const;
 
-    // Access to Scene objects
+    // Accessors
     Camera &getCamera();
     std::vector<SceneEntry> &getAllSceneEntries();
     SceneEntry &getEntryByHandle(ModelHandle handle);
     SceneEntry &getEntryByName(const std::string &key);
 
     // Per-frame Update
-    std::unordered_set<ModelHandle> &getTransformsUpdated();
+    std::unordered_set<ModelHandle> &getUpdatedModels();
 
     // Mutators
     void setAmbientLight(const glm::vec3 &ambient);
 
   protected:
-    struct ModelEntry
-    {
-        std::vector<BoundedTransform> transforms;
-        CullMethod cullMethod{CullMethod::INSTANCED};
-    };
-
     Camera camera_;
 
     // Permanent storage
@@ -91,39 +83,39 @@ class Scene
     DirectionalLight globalLightSource_;
 
     // Access points
-    std::unordered_set<ModelHandle> updatedTransforms_;
-    std::unordered_map<std::string, std::reference_wrapper<SceneEntry>> namedTransforms_;
-    std::unordered_map<ModelHandle, std::reference_wrapper<SceneEntry>> transformsByHandle_;
+    std::unordered_set<ModelHandle> updatedModels_;
+    std::unordered_map<std::string, std::reference_wrapper<SceneEntry>> entriesByName_;
+    std::unordered_map<ModelHandle, std::reference_wrapper<SceneEntry>> entriesByHandle_;
 
+    // For updating existing transforms. Do not add or remove them.
+    virtual void onUpdate(float deltaTime) = 0;
     virtual void addAllModelsToScene() = 0;
     virtual void setupEnvironment() = 0;
-    virtual void onUpdate(float deltaTime) = 0;
     virtual void setupCamera(const GraphicsSettings &graphicsSettings) = 0;
     virtual void initializeScene(const GraphicsSettings &graphicsSettings) = 0;
+
+    // Instanced models load positions and generate transforms from disk
+    void addInstancedObjectToScene(InstancedModel &modelRef, ShaderType shaderType,
+                                   const std::optional<std::string> name = std::nullopt);
 
     /**
      * @brief Adds an object to the scene.  Optional: give the object a name to access
      * it in a scene's onUpdate() method.
      */
     template <typename T>
-        requires std::derived_from<T, Model>
+        requires std::derived_from<T, BaseModel> && (!std::same_as<T, InstancedModel>)
     void addObjectToScene(T &modelRef, ShaderType shaderType, Transform &&transform = {},
-                          CullMethod cullMethod = CullMethod::INSTANCED,
                           const std::optional<std::string> name = std::nullopt)
     {
-        SceneEntry sceneEntry{.renderableRef = modelRef,
-                              .transforms = {{transform, modelRef.getAABB()}},
-                              .cullMethod = cullMethod,
-                              .shaderType = shaderType};
+        SceneEntry sceneEntry{.modelRef = modelRef, .transforms = {transform}, .shaderType = shaderType};
 
-        // Store a reference to the stable vector in Scene Resources, organized by shader
         sceneEntries_.emplace_back(sceneEntry);
 
         // Store an access point to the instances, by model handle
-        transformsByHandle_.emplace(modelRef.getHandle(), std::ref(sceneEntries_.back()));
+        entriesByHandle_.emplace(modelRef.getHandle(), std::ref(sceneEntries_.back()));
 
         // Add a lookup to get a reference to a model's instances by a user-defined name
         if (name.has_value())
-            namedTransforms_.emplace(name.value(), std::ref(sceneEntries_.back()));
+            entriesByName_.emplace(name.value(), std::ref(sceneEntries_.back()));
     }
 };

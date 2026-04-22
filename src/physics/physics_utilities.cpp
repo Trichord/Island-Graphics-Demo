@@ -4,69 +4,53 @@
 #include <cstdint>
 #include <span>
 
-#include "jolt/jolt.h"
-
-#include "cull_method.h"
 #include "glm/glm.hpp"
 #include "jolt_impl.h"
+#include "model.h"
 #include "primitive.h"
 #include "scene.h"
+#include "transform.h"
 
-void iterateVertices(physicsUtilities::CollisionMesh &collisionMesh, const std::span<Primitive::Mesh> &meshes,
+void iterateVertices(physicsUtilities::CollisionMesh &collisionMesh, const std::span<Primitive> &primitives,
                      const glm::mat4 &modelMatrix)
 {
-    for (auto &mesh : meshes)
-        for (auto &primitive : mesh.primitives)
+    for (Primitive &primitive : primitives)
+    {
+        auto &vertices = primitive.vertices;
+        auto &indices = primitive.indices;
+
+        for (std::uint32_t i{0}; i < indices.size(); i += 3)
         {
-            auto vertices = primitive.getVertices();
-            auto indices = primitive.getIndices();
+            glm::vec3 a{vertices[indices[i]].position};
+            glm::vec3 b{vertices[indices[i + 1]].position};
+            glm::vec3 c{vertices[indices[i + 2]].position};
 
-            for (std::uint32_t i{0}; i < indices.size(); i += 3)
-            {
-                glm::vec3 a{vertices[indices[i]].position};
-                glm::vec3 b{vertices[indices[i + 1]].position};
-                glm::vec3 c{vertices[indices[i + 2]].position};
+            a = glm::vec3{modelMatrix * glm::vec4{a, 1.0}};
+            b = glm::vec3{modelMatrix * glm::vec4{b, 1.0}};
+            c = glm::vec3{modelMatrix * glm::vec4{c, 1.0}};
 
-                a = glm::vec3{modelMatrix * glm::vec4{a, 1.0}};
-                b = glm::vec3{modelMatrix * glm::vec4{b, 1.0}};
-                c = glm::vec3{modelMatrix * glm::vec4{c, 1.0}};
+            collisionMesh.minimumHeight = std::min({collisionMesh.minimumHeight, a.y, b.y, c.y});
 
-                collisionMesh.minimumHeight = std::min({collisionMesh.minimumHeight, a.y, b.y, c.y});
-
-                collisionMesh.mesh.emplace_back(toJPHFloat3(a), toJPHFloat3(b), toJPHFloat3(c));
-            }
+            collisionMesh.mesh.emplace_back(toJPHFloat3(a), toJPHFloat3(b), toJPHFloat3(c));
         }
+    }
 }
 
-physicsUtilities::CollisionMesh physicsUtilities::buildCollisionMesh(Scene& scene)
+physicsUtilities::CollisionMesh physicsUtilities::buildCollisionMesh(Scene &scene)
 {
-    using enum CullMethod;
-
     physicsUtilities::CollisionMesh collisionMesh;
 
-    for (SceneEntry& sceneEntry : scene.getAllSceneEntries())
+    for (SceneEntry &entry : scene.getAllSceneEntries())
     {
-            Renderable &renderable{sceneEntry.renderableRef.get()};
+        Model &model{entry.modelRef.get()};
 
-            auto objectCollisionMesh = renderable.loadCollisionMesh();
-            auto meshes = renderable.getMeshes();
+        auto objectCollisionMesh = model.loadCollisionMesh();
 
-            for (auto &instance : sceneEntry.transforms)
-            {
-                // Always use the terrain's actual mesh
-                if (sceneEntry.cullMethod == TERRAIN)
-                {
-                    iterateVertices(collisionMesh, meshes, instance.transform.getModelMatrix());
-                }
-                // Otherwise, use the collision mesh if it exists
-                else
-                {
-                    if (!objectCollisionMesh.has_value())
-                        continue;
+        if (!objectCollisionMesh.has_value())
+            continue;
 
-                    iterateVertices(collisionMesh, objectCollisionMesh.value(), instance.transform.getModelMatrix());
-                }
-            }
+        for (Transform &transform : entry.transforms)
+            iterateVertices(collisionMesh, objectCollisionMesh.value(), transform.getModelMatrix());
     }
 
     return collisionMesh;

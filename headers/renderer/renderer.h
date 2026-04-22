@@ -4,18 +4,22 @@
 #include <unordered_map>
 #include <vector>
 
+#include "aabb.h"
 #include "cascade_shadow.h"
+#include "fastgltf/types.hpp"
 #include "gl_state.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
+#include "graphics_settings.h"
 #include "render_target.h"
-#include "renderable.h"
 #include "scene.h"
-#include "settings_window.h"
 #include "shader.h"
 #include "shader_type.h"
 #include "texture_manager.h"
 #include "thread_pool.h"
+#include "transform.h"
+#include <cstdint>
+#include <primitive.h>
 
 class Renderer
 {
@@ -37,6 +41,25 @@ class Renderer
   private:
     static constexpr float depthClear_{1.0f};
     static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
+
+    struct DrawEntry
+    {
+        ModelHandle handle;
+        Primitive *primitive;
+        std::vector<Transform> *transforms;
+
+        ShaderType shaderType{ShaderType::directionalPBR};
+        fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
+
+        bool anyVisible{true};
+        std::uint32_t visibleInstances{0};
+
+        std::uint32_t vaoBaseIndex{0};
+        std::uint32_t eboBaseIndex{0};
+        std::uint32_t metadataBufferIndex{0};
+        std::uint32_t matricesBufferBaseIndex{0};
+        std::uint32_t visibleIndicesBufferBaseIndex{0};
+    };
 
     // Packed UBO data holds everything we want to share with all shaders
     struct PackedShaderUniforms
@@ -68,11 +91,12 @@ class Renderer
     };
 
     // Keep track of the number of vertices and indices in an entire scene
-    struct GlobalPrimitiveStats
+    struct SceneTotals
     {
         std::size_t vertices{0};
         std::size_t indices{0};
-        std::size_t primitives{0};
+        std::size_t matrices{0};
+        std::size_t visibleInstances{0};
     };
 
     std::uint32_t framesRendered_{0};
@@ -86,10 +110,10 @@ class Renderer
 
     /* SSBOs
      *
-     * Renderer uploads a static-sized SSBO containing every renderable's model matrix. An indices SSBO capable of
-     * holding the same number of elements is reserved in GPU memory. A fresh vector of indices is computed and uploaded
-     * every frame, representing the visible indices in the static buffer. The shader starts at model offset and indices
-     * offset, and iterates through its indices.
+     * Renderer uploads a static-sized SSBO containing every renderable's model matrix. An visible indices SSBO capable
+     * of holding the same number of elements is reserved in GPU memory. A fresh vector of indices is computed and
+     * uploaded every frame, representing the visible indices in the static buffer. The shader starts at model offset
+     * and indices offset, and iterates through its indices.
      *
      * e.g.
      *
@@ -98,22 +122,24 @@ class Renderer
      *  | Model 1   | Model 2            | M3  | M4  |
      * [0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 6, 0, 1, 0, 1, 2]
      *
-     *                  Indices
+     *                  Visible Indices
      *  | M1  | M2   |  (M3 and M4 not visible this frame)
      * [2, 3, 0, 5, 6]
      *
      */
-    GLuint indicesSSBO_{0};
+
     GLuint matricesSSBO_{0};
     GLuint primitivesSSBO_{0};
+    GLuint visibleIndicesSSBO_{0};
 
     // Owned objects
     GLState glState_;
     TextureManager textureManager_;
-    std::vector<GLuint> instanceIndices_;
+    std::vector<std::uint32_t> visibleMatrices_;
     std::unordered_map<ShaderType, Shader> shaders_;
     const GraphicsSettings graphicsSettings_;
-    std::unordered_map<ModelHandle, GLuint> matricesBufferIndexByHandle;
+    std::unordered_map<ModelHandle, std::vector<std::uint32_t>> drawEntriesByHandle_;
+    std::vector<glm::mat4> updatedMatrices_;
 
     // Global VAO
     GLuint globalVAO_{0};
@@ -126,23 +152,23 @@ class Renderer
     RenderTarget shadowBlitTarget_;
 
     // Scene objects for drawing
-    std::map<ShaderType, std::vector<DrawEntry>> drawEntriesByShader_;
+    std::vector<DrawEntry> drawEntries_;
 
     // Renderer initialization
     void loadShaders();
 
     // Scene dependent initialization
-    void borrowSkybox(); 
+    void borrowSkybox();
+    void sortPrimitives();
     void createBuffers(Scene &scene);
     void buildShaderMap(Scene &scene);
     void createCubemaps(Scene &scene);
-    void loadInstancedData(Scene &scene);
     void setSceneShaderUniforms(Scene &scene);
-    void populateMetadataSSBO(GlobalPrimitiveStats &stats);
-    void createVAO(Scene &scene, GlobalPrimitiveStats stats);
+    void createVAO(Scene &scene, SceneTotals stats);
+    void populateMetadataSSBO(Scene &scene, SceneTotals &stats);
+    void populateMatricesSSBO(Scene &scene, SceneTotals &stats);
     void createCubemapFaces(Scene &scene, int renderTargetSize, GLuint texture);
-    void populateMatricesSSBO(std::size_t totalInstanceCount, GlobalPrimitiveStats& stats);
-    
+
     // Scene independant initialization
     void setupShader(Shader &shader);
 
@@ -154,10 +180,9 @@ class Renderer
 
     // Culling
     void resetVisibility();
-    void cullNone(DrawEntry &renderable, GLuint &currentOffset);
-    void cullRenderables(Scene &scene, const glm::mat4 &cullMatrix);
-    void cullByMesh(DrawEntry &renderable, const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
-    void cullInstanced(DrawEntry &renderable, const std::array<glm::vec4, 6> &frustumPlanes, GLuint &currentOffset);
+    void cullNone(DrawEntry &renderable, int &currentOffset);
+    void cullAllModels(Scene &scene, const glm::mat4 &cullMatrix);
+    void cullInstanced(DrawEntry &renderable, const std::array<glm::vec4, 6> &frustumPlanes, int &currentOffset);
 
     // Updates
     void updateCameraUBO(Scene &scene);

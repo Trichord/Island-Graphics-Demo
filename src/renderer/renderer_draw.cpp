@@ -1,18 +1,18 @@
 #include <cstring>
+#include <vector>
 
 #include "camera.h"
 #include "cascade_shadow.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
 #include "primitive.h"
-#include "renderable.h"
 #include "renderer.h"
 #include "scene.h"
 #include "shader.h"
 #include "shader_type.h"
 #include "texture_manager.h"
 #include "textures.h"
+#include "transform.h"
 
 // Reduce the distance of the camera's far plane by 80% for shadow cascades.
 constexpr float farPlaneReduction{0.2f};
@@ -22,66 +22,57 @@ void Renderer::renderAllSceneObjects()
 {
     using enum ShaderType;
 
-    for (auto &[shaderType, drawEntries] : drawEntriesByShader_)
+    Shader *shader{&shaders_.begin()->second};
+    ShaderType currentShaderType{shaders_.begin()->first};
+
+    for (DrawEntry &entry : drawEntries_)
     {
-        if (drawEntries.empty() || shaderType == COUNT)
+        if (!entry.anyVisible)
             continue;
 
-        Shader &shader{shaders_.at(shaderType)};
-        shader.use();
-
-        if (shaderType == SKYBOX)
-            glDepthFunc(GL_LEQUAL);
-
-        for (DrawEntry &drawEntry : drawEntries)
+        if (currentShaderType != entry.shaderType)
         {
-            if (!drawEntry.isVisible)
-                continue;
-
-            BoundedTransform &firstInstance{drawEntry.transformsRef.get()[0]};
-
-            shader.setInt("indicesOffset", drawEntry.indicesBufferIndex);
-            shader.setVec3("scale", firstInstance.transform.getScale());
-
-            // Draw it
-            renderObject(shader, drawEntry);
+            shader = &shaders_.at(entry.shaderType);
+            shader->use();
+            currentShaderType = entry.shaderType;
         }
 
-        if (shaderType == SKYBOX)
+        if (entry.shaderType == skybox)
+            glDepthFunc(GL_LEQUAL);
+
+        Transform &firstInstance{entry.transforms->front()};
+
+        shader->setInt("indicesOffset", entry.visibleIndicesBufferBaseIndex);
+        shader->setVec3("scale", firstInstance.getScale());
+
+        // Draw it
+        renderObject(*shader, entry);
+
+        if (entry.shaderType == skybox)
             glDepthFunc(GL_LESS);
     }
 }
 
 void Renderer::renderObject(Shader &shader, DrawEntry &drawEntry)
 {
-    Renderable &renderable = drawEntry.renderableRef.get();
-    const auto &materials{textureManager_.getMaterials(renderable.getHandle())};
+    Primitive &primitive{*drawEntry.primitive};
+
+    const std::vector<Material> &materials{textureManager_.getMaterials(drawEntry.handle)};
+    const Material &material{materials[primitive.materialIndex]};
+
     const GLsizei instanceCount{static_cast<GLsizei>(drawEntry.visibleInstances)};
+    const GLuint numIndices{static_cast<GLuint>(primitive.indices.size())};
+    const GLuint indexOffset{static_cast<GLuint>(drawEntry.eboBaseIndex)};
+    const GLuint baseVertex{static_cast<GLuint>(drawEntry.vaoBaseIndex)};
 
-    for (const Primitive::Mesh &mesh : renderable.getMeshes())
-    {
-        if (!mesh.isVisible)
-            continue;
+    shader.setInt("metadataIndex", drawEntry.metadataBufferIndex);
+    glState_.setAlphaMode(primitive.alphaMode);
 
-        for (const Primitive &primitive : mesh.primitives)
-        {
-            glState_.setAlphaMode(primitive.getAlphaMode());
+    if (material.cubemap)
+        glState_.bindTexture(static_cast<GLuint>(TextureUnit::cubemap), material.cubemap);
 
-            GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
-            GLuint indexOffset{static_cast<GLuint>(primitive.getEBOIndex())};
-            GLuint baseVertex{static_cast<GLuint>(primitive.getVAOIndex())};
-
-            shader.setInt("metadataIndex", primitive.getMetadataBufferIndex());
-
-            const Material &material{materials[primitive.getMaterialIndex()]};
-
-            if (material.cubemap)
-                glState_.bindTexture(static_cast<GLuint>(TextureUnit::cubemap), material.cubemap);
-
-            glDrawElementsInstancedBaseVertex(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT,
-                                              (void *)(indexOffset * sizeof(GLuint)), instanceCount, baseVertex);
-        }
-    }
+    glDrawElementsInstancedBaseVertex(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, (void *)(indexOffset * sizeof(GLuint)),
+                                      instanceCount, baseVertex);
 }
 
 void Renderer::updateCascadeShadowUBO(const CascadeShadow::CascadeSplits &cascades,
@@ -117,15 +108,15 @@ void Renderer::updateShadowMaps(Scene &scene)
 
         // Use culling and indexed drawing for the inner 2 cascades
         if (cascade == 1)
-            cullRenderables(scene, lightMatrices.viewProjections[cascade]);
+            cullAllModels(scene, lightMatrices.viewProjections[cascade]);
 
         // Opaque geometry first
-        Shader &shadowShader{shaders_[ShaderType::SHADOW_MAP]};
+        Shader &shadowShader{shaders_[ShaderType::shadowMap]};
         shadowShader.use();
         shadowPass(lightMatrices, shadowShader, cascade, false);
 
         // Alpha tested geometry
-        Shader &shadowAlphaShader{shaders_[ShaderType::SHADOW_MAP_ALPHA]};
+        Shader &shadowAlphaShader{shaders_[ShaderType::shadowMapAlphaTested]};
         shadowAlphaShader.use();
         shadowPass(lightMatrices, shadowAlphaShader, cascade, true);
 
@@ -144,60 +135,45 @@ void Renderer::shadowPass(const CascadeShadow::LightMatrices &lightMatrices, Sha
     shader.setMat4("lightViewProjection", lightVP);
     shader.setBool("useIndices", cascade != 2);
 
-    for (auto &[shaderType, drawEntries] : drawEntriesByShader_)
+    for (DrawEntry &entry : drawEntries_)
     {
         using enum ShaderType;
 
-        if (shaderType == SKYBOX || shaderType == OCEAN || shaderType == COUNT)
+        if (entry.shaderType == skybox || entry.shaderType == ocean || entry.shaderType == count)
             continue;
 
         // Never try and draw grass outside the closest cascade
-        if (shaderType == GRASS && cascade != 0)
+        if (entry.shaderType == grass && cascade != 0)
             continue;
 
         // Only draw grass or trees if alpha tested geometry has been requested
-        bool alphaTestedShader{shaderType == GRASS || shaderType == TREES};
+        bool alphaTestedShader{entry.shaderType == grass || entry.shaderType == trees};
 
         if (drawAlphaTested != alphaTestedShader)
             continue;
 
-        for (DrawEntry &drawEntry : drawEntries)
-        {
-            if (!drawEntry.isVisible)
-                continue;
+        if (!entry.anyVisible)
+            continue;
 
-            Renderable &renderable{drawEntry.renderableRef.get()};
-            const auto &materials{textureManager_.getMaterials(renderable.getHandle())};
+        const std::vector<Material> &materials{textureManager_.getMaterials(entry.handle)};
 
-            if (cascade != 2)
-                shader.setInt("indicesOffset", drawEntry.indicesBufferIndex);
+        if (cascade != 2)
+            shader.setInt("indicesOffset", entry.visibleIndicesBufferBaseIndex);
 
-            // Instance count
-            GLsizei instanceCount{0};
-            if (cascade == 2)
-                instanceCount = static_cast<GLsizei>(drawEntry.transformsRef.get().size());
-            else
-                instanceCount = drawEntry.visibleInstances;
+        // Instance count
+        GLsizei instanceCount{0};
+        if (cascade == 2)
+            instanceCount = static_cast<GLsizei>(entry.transforms->size());
+        else
+            instanceCount = static_cast<GLsizei>(entry.visibleInstances);
 
-            // Render primitives
-            for (const Primitive::Mesh &mesh : renderable.getMeshes())
-            {
-                if (!mesh.isVisible)
-                    continue;
+        GLuint numIndices{static_cast<GLuint>(entry.primitive->indices.size())};
+        GLuint indexOffset{static_cast<GLuint>(entry.eboBaseIndex)};
+        GLuint baseVertex{static_cast<GLuint>(entry.vaoBaseIndex)};
 
-                for (const Primitive &primitive : mesh.primitives)
-                {
-                    GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
-                    GLuint indexOffset{static_cast<GLuint>(primitive.getEBOIndex())};
-                    GLuint baseVertex{static_cast<GLuint>(primitive.getVAOIndex())};
+        shader.setInt("metadataIndex", entry.metadataBufferIndex);
 
-                    shader.setInt("metadataIndex", primitive.getMetadataBufferIndex());
-
-                    glDrawElementsInstancedBaseVertex(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT,
-                                                      (void *)(indexOffset * sizeof(GLuint)), instanceCount,
-                                                      baseVertex);
-                }
-            }
-        }
+        glDrawElementsInstancedBaseVertex(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT,
+                                          (void *)(indexOffset * sizeof(GLuint)), instanceCount, baseVertex);
     }
 }

@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -39,9 +40,9 @@ void TextureManager::loadModelTextures(const ModelHandle handle, fastgltf::Asset
 }
 
 void TextureManager::loadCubemapTextures(const ModelHandle handle, std::vector<std::filesystem::path> imagePaths,
-                                         const std::filesystem::path &parentPath, bool mipmaps, bool sRGB)
+                                         const std::filesystem::path &parentPath, bool mipmaps)
 {
-    cubemapFromPaths(handle, std::move(imagePaths), mipmaps, sRGB);
+    cubemapFromPaths(handle, std::move(imagePaths), mipmaps);
 }
 
 const std::vector<Material> &TextureManager::getMaterials(ModelHandle handle) const
@@ -154,7 +155,7 @@ void TextureManager::texturesFromAsset(fastgltf::Asset &asset, ModelHandle handl
 }
 
 void TextureManager::cubemapFromPaths(ModelHandle handle, const std::vector<std::filesystem::path> &imagePaths,
-                                      bool mipmaps, bool sRGB)
+                                      bool mipmaps)
 {
     if (imagePaths.empty())
         return;
@@ -167,8 +168,8 @@ void TextureManager::cubemapFromPaths(ModelHandle handle, const std::vector<std:
         throw std::runtime_error("Missing handle");
     }
 
-    // Assume cubemaps never want anisotropic filtering
-    TextureRequest textureDetails{sRGB, mipmaps, 0.0f};
+    // Assume cubemaps are always skyboxes or reflections - no aniso and always sRGB
+    TextureRequest textureDetails{true, mipmaps, 0.0f};
 
     // Resize materials to 1
     std::vector<Material> &materials{materialIter->second};
@@ -183,15 +184,6 @@ void TextureManager::cubemapFromPaths(ModelHandle handle, const std::vector<std:
 
     materials[0].cubemap = cubemapTexture.id;
     cubemapIDs_.insert(cubemapTexture.id);
-}
-
-void TextureManager::freeArrayTextures(SamplerArrayEntry &entry)
-{
-    if (entry.layer == -1 || entry.array || arrayTextures_[entry.array].textureIDs[entry.layer] == 0)
-        return;
-
-    glDeleteTextures(1, &arrayTextures_[entry.array].textureIDs[entry.layer]);
-    arrayTextures_[entry.array].textureIDs[entry.layer] = 0;
 }
 
 // Borrow another model's materials. Callers should ensure textures are not loaded for a model before calling this

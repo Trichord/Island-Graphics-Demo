@@ -1,6 +1,5 @@
 #include "shader.h"
 
-#include <array>
 #include <filesystem>
 #include <fstream>
 #include <ios>
