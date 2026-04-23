@@ -161,7 +161,7 @@ class Renderer
     void borrowSkybox();
     void sortPrimitives();
     void createBuffers(Scene &scene);
-    void buildShaderMap(Scene &scene);
+    void buildDrawEntries(Scene &scene);
     void createCubemaps(Scene &scene);
     void setSceneShaderUniforms(Scene &scene);
     void createVAO(Scene &scene, SceneTotals stats);

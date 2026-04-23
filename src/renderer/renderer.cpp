@@ -157,7 +157,7 @@ void Renderer::initializeResources(Scene &scene)
     textureManager_.buildArrayTextures();
 
     // Sort the renderer's map by shader & state
-    buildShaderMap(scene);
+    buildDrawEntries(scene);
     sortPrimitives();
 
     // Buffers rely on the renderer's map being populated
@@ -231,7 +231,7 @@ std::uint32_t Renderer::getFrameCount() const
 }
 
 // Build up all scene entries by shader type
-void Renderer::buildShaderMap(Scene &scene)
+void Renderer::buildDrawEntries(Scene &scene)
 {
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {

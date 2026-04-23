@@ -125,6 +125,7 @@ void Renderer::updateShadowMaps(Scene &scene)
     }
 
     shadowPassTarget_.unbind();
+
     glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
 }
 
