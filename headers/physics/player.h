@@ -54,7 +54,7 @@ class Player : public JPH::CharacterContactListener
     static constexpr float innerShapeFraction_{0.9f};
 
     // Terrain interaction
-    static constexpr float maxSlopeAngle_{JPH::DegreesToRadians(45.0f)};
+    static constexpr float maxSlopeAngle_{JPH::DegreesToRadians(50.0f)};
 
     // Character movement properties
     static constexpr float jumpSpeed_{2.75f};

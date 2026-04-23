@@ -1,5 +1,6 @@
 {
 	"asset":{
+		"copyright":"James Midtdal",
 		"generator":"Khronos glTF Blender I/O v5.0.21",
 		"version":"2.0"
 	},
@@ -20,7 +21,7 @@
 	],
 	"meshes":[
 		{
-			"name":"Mesh.200",
+			"name":"Mesh.066",
 			"primitives":[
 				{
 					"attributes":{
@@ -38,7 +39,7 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":70384,
+			"count":68630,
 			"max":[
 				231.23104858398438,
 				20.796499252319336,
@@ -54,63 +55,63 @@
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":70384,
+			"count":68630,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":70384,
+			"count":68630,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":70384,
+			"count":68630,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
 			"componentType":5125,
-			"count":393141,
+			"count":393069,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":844608,
+			"byteLength":823560,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":844608,
-			"byteOffset":844608,
+			"byteLength":823560,
+			"byteOffset":823560,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":563072,
-			"byteOffset":1689216,
+			"byteLength":549040,
+			"byteOffset":1647120,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1126144,
-			"byteOffset":2252288,
+			"byteLength":1098080,
+			"byteOffset":2196160,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1572564,
-			"byteOffset":3378432,
+			"byteLength":1572276,
+			"byteOffset":3294240,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":4950996,
+			"byteLength":4866516,
 			"uri":"island_collision.bin"
 		}
 	]
