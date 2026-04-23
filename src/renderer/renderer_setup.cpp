@@ -258,6 +258,8 @@ void Renderer::createCubemaps(Scene &scene)
     camera.setFOV(90.0f);
     camera.setAspectRatio(1.0f);
 
+    glViewport(0, 0, renderTargetSize, renderTargetSize);
+
     // Water should not be instanced because of the 1 cubemap per model. By walking the scene, we ensure each model gets
     // one cubemap
     for (SceneEntry entry : scene.getAllSceneEntries())

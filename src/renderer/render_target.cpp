@@ -141,7 +141,6 @@ RenderTarget::~RenderTarget()
 void RenderTarget::bind()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, FBO_);
-    glViewport(0, 0, width_, height_);
 }
 
 void RenderTarget::unbind()
