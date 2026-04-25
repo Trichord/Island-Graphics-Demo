@@ -40,7 +40,6 @@ class Shader
   private:
     GLuint id_{0};
     std::unordered_map<std::string, GLint> uniformLocations_;
-    std::unordered_map<std::string, GLuint> blockLocations_;
 
     GLint getCachedUniform(const std::string &name);
     GLuint createShaderID(GLenum type, const std::filesystem::path &path);

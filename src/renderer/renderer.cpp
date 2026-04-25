@@ -25,6 +25,8 @@
 #include "textures.h"
 #include "transform.h"
 
+#include <iostream>
+
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.111f};
 constexpr float alphaCutoff{0.425f};
@@ -46,7 +48,7 @@ Renderer::Renderer(const GraphicsSettings &settings)
 {
     loadShaders();
 
-    for (auto &[_, shader] : shaders_)
+    for (auto &shader : shaders_)
         setupShader(shader);
 
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowBlitTarget_.getColorTextureID());
@@ -98,21 +100,22 @@ void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    shaders_.emplace(grass, Shader{"./shaders/grass.vert", "./shaders/grass.frag"});
-    shaders_.emplace(trees, Shader{"./shaders/trees.vert", "./shaders/trees.frag"});
-    shaders_.emplace(reflective, Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"});
-    shaders_.emplace(skybox, Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"});
-    shaders_.emplace(water, Shader{"./shaders/water.vert", "./shaders/water.frag"});
-    shaders_.emplace(ocean, Shader{"./shaders/water.vert", "./shaders/ocean.frag"});
-    shaders_.emplace(shadowMap, Shader{"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"});
-    shaders_.emplace(shadowMapAlphaTested,
-                     Shader{"./shaders/shadow_pass_alpha.vert", "./shaders/shadow_pass_alpha.frag"});
+    shaders_[static_cast<int>(grass)] = Shader{"./shaders/grass.vert", "./shaders/grass.frag"};
+    shaders_[static_cast<int>(trees)] = Shader{"./shaders/trees.vert", "./shaders/trees.frag"};
+    shaders_[static_cast<int>(reflective)] = Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"};
+    shaders_[static_cast<int>(skybox)] = Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"};
+    shaders_[static_cast<int>(water)] = Shader{"./shaders/water.vert", "./shaders/water.frag"};
+    shaders_[static_cast<int>(ocean)] = Shader{"./shaders/water.vert", "./shaders/ocean.frag"};
+    shaders_[static_cast<int>(shadowMap)] = Shader{"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
+    shaders_[static_cast<int>(shadowMapAlphaTested)] =
+        Shader{"./shaders/shadow_pass_alpha.vert", "./shaders/shadow_pass_alpha.frag"};
 
     if (graphicsSettings_.shadowResolution > 1)
-        shaders_.emplace(directionalPBR,
-                         Shader{"./shaders/directional_PBR_shadow.vert", "./shaders/directional_PBR_shadow.frag"});
+        shaders_[static_cast<int>(directionalPBR)] =
+            Shader{"./shaders/directional_PBR_shadow.vert", "./shaders/directional_PBR_shadow.frag"};
     else
-        shaders_.emplace(directionalPBR, Shader{"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"});
+        shaders_[static_cast<int>(directionalPBR)] =
+            Shader{"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"};
 }
 
 void Renderer::setupShader(Shader &shader)
@@ -131,7 +134,7 @@ void Renderer::updateShaderUniforms(Scene &scene, bool lightDirectionChanged)
 {
     DirectionalLight &globalLight{scene.getGlobalLightSource()};
 
-    for (auto &[_, shader] : shaders_)
+    for (auto &shader : shaders_)
     {
         if (lightDirectionChanged)
             shader.setVec3("lightDir", globalLight.getDirection());
@@ -140,7 +143,7 @@ void Renderer::updateShaderUniforms(Scene &scene, bool lightDirectionChanged)
 
 void Renderer::setSceneShaderUniforms(Scene &scene)
 {
-    for (auto &[_, shader] : shaders_)
+    for (auto &shader : shaders_)
     {
         shader.setVec3("ambientLight", scene.getAmbientLight());
         shader.setVec3("lightColor", scene.getGlobalLightSource().getColor());
@@ -159,6 +162,9 @@ void Renderer::initializeResources(Scene &scene)
     // Sort the renderer's map by shader & state
     buildDrawEntries(scene);
     sortPrimitives();
+
+    // Metadata indices must come after the drawEntries are built, since they map 1:1 to drawEntries.
+    assignMetadataIndices();
 
     // Buffers rely on the renderer's map being populated
     createBuffers(scene);
@@ -194,6 +200,7 @@ void Renderer::deleteBuffers()
     glDeleteBuffers(1, &visibleIndicesSSBO_);
     glDeleteBuffers(1, &matricesSSBO_);
     glDeleteBuffers(1, &primitivesSSBO_);
+    glDeleteBuffers(1, &drawCommandBuffer_);
 }
 
 // Convert from buffer sub data to a persistant map
@@ -233,6 +240,8 @@ std::uint32_t Renderer::getFrameCount() const
 // Build up all scene entries by shader type
 void Renderer::buildDrawEntries(Scene &scene)
 {
+    drawEntries_.reserve(scene.getAllSceneEntries().size());
+
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {
         Model &model{entry.modelRef.get()};
@@ -241,14 +250,17 @@ void Renderer::buildDrawEntries(Scene &scene)
         std::span<Primitive> primitives{model.getPrimitives()};
         std::uint32_t numTransforms{static_cast<std::uint32_t>(entry.transforms.size())};
 
+        // Override all Opaque primitives to Mask, since A2C won't affect it and state switching is reduced
         for (Primitive &primitive : primitives)
         {
-            drawEntries_.push_back({.handle = handle,
-                                    .primitive = &primitive,
-                                    .transforms = &entry.transforms,
-                                    .shaderType = entry.shaderType,
-                                    .alphaMode = primitive.alphaMode,
-                                    .visibleInstances = numTransforms});
+            using enum fastgltf::AlphaMode;
+
+            drawEntries_.emplace_back(DrawEntry{.handle = handle,
+                                                .primitive = &primitive,
+                                                .transforms = &entry.transforms,
+                                                .shaderType = entry.shaderType,
+                                                .alphaMode = primitive.alphaMode == Opaque ? Mask : primitive.alphaMode,
+                                                .visibleInstances = numTransforms});
         }
     }
 }
@@ -263,4 +275,10 @@ void Renderer::sortPrimitives()
 
     for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(drawEntries_.size()); ++i)
         drawEntriesByHandle_[drawEntries_[i].handle].push_back(i);
+}
+
+void Renderer::assignMetadataIndices()
+{
+    for (std::uint32_t i{0}; i < static_cast<uint32_t>(drawEntries_.size()); ++i)
+        drawEntries_[i].metadataBufferIndex = i;
 }

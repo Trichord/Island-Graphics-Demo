@@ -17,7 +17,7 @@ static void normalizePlane(glm::vec4 &vec)
 }
 
 // Planes are order of: Left, Right, Top, Bottom, Near, Far
-static std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 matrix)
+static std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
 {
     std::array<glm::vec4, 6> planes;
     const glm::vec4 row0{glm::row(matrix, 0)};
@@ -52,71 +52,49 @@ static std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 matrix)
 // Cull and build up the visible indices for the SSBO
 void Renderer::cullAllModels(Scene &scene, const glm::mat4 &cullMatrix)
 {
-    // Reset everyting for a fresh SSBO upload
-    int indicesBufferOffset{0};
-    resetVisibility();
-
     const std::array<glm::vec4, 6> planes{getFrustumPlanes(cullMatrix)};
 
     for (DrawEntry &entry : drawEntries_)
     {
         if (entry.shaderType != ShaderType::skybox)
-            cullInstanced(entry, planes, indicesBufferOffset);
+            cullInstanced(entry, planes);
         else
-            cullNone(entry, indicesBufferOffset);
+            cullNone(entry);
     }
 
     glNamedBufferSubData(visibleIndicesSSBO_, 0, static_cast<GLsizeiptr>(visibleMatrices_.size() * sizeof(GLuint)),
                          visibleMatrices_.data());
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
-void Renderer::cullInstanced(DrawEntry &drawEntry, const std::array<glm::vec4, 6> &frustumPlanes,
-                             int &ssboIndicesOffset)
+void Renderer::cullInstanced(DrawEntry &drawEntry, const std::array<glm::vec4, 6> &frustumPlanes)
 {
     bool anyVisible{false};
+    drawEntry.visibleInstances = 0;
+
     const AABB &modelAABB{drawEntry.primitive->aabb};
     std::vector<Transform> &transforms{*drawEntry.transforms};
+    std::uint32_t visibleIndex{drawEntry.visibleIndiciesBufferBaseIndex};
 
     for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(transforms.size()); ++i)
     {
         if (modelAABB.intersects(frustumPlanes, transforms[i].getModelMatrix()))
         {
             anyVisible = true;
-
+            visibleMatrices_[visibleIndex++] = i;
             ++drawEntry.visibleInstances;
-            visibleMatrices_.push_back(i);
         }
     }
 
-    if (anyVisible)
-    {
-        drawEntry.anyVisible = true;
-
-        drawEntry.visibleIndicesBufferBaseIndex = ssboIndicesOffset;
-        ssboIndicesOffset += drawEntry.visibleInstances;
-    }
+    drawEntry.anyVisible = anyVisible;
 }
 
-void Renderer::cullNone(DrawEntry &drawEntry, int &ssboIndicesOffset)
+void Renderer::cullNone(DrawEntry &drawEntry)
 {
     drawEntry.anyVisible = true;
     drawEntry.visibleInstances = static_cast<int>(drawEntry.transforms->size());
+    std::uint32_t visibleIndex{drawEntry.visibleIndiciesBufferBaseIndex};
 
     for (std::uint32_t i{0}; i < drawEntry.visibleInstances; ++i)
-        visibleMatrices_.push_back(i);
-
-    drawEntry.visibleIndicesBufferBaseIndex = ssboIndicesOffset;
-    ssboIndicesOffset += drawEntry.visibleInstances;
-}
-
-void Renderer::resetVisibility()
-{
-    visibleMatrices_.clear();
-
-    for (DrawEntry &entry : drawEntries_)
-    {
-        entry.anyVisible = false;
-        entry.visibleInstances = 0;
-        entry.visibleIndicesBufferBaseIndex = 0;
-    }
+        visibleMatrices_[visibleIndex++] = i;
 }

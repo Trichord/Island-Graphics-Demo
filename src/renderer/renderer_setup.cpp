@@ -21,8 +21,34 @@
 #include "transform.h"
 #include "world_vectors.h"
 
+#include <iostream>
+
+Renderer::SceneTotals Renderer::getSceneTotals(Scene &scene)
+{
+    SceneTotals totals;
+
+    for (SceneEntry &entry : scene.getAllSceneEntries())
+    {
+        std::size_t numTransforms{entry.transforms.size()};
+        totals.matrices += numTransforms;
+        totals.visibleInstances += numTransforms * entry.modelRef.get().getPrimitives().size();
+
+        for (Primitive &primitive : entry.modelRef.get().getPrimitives())
+        {
+            totals.indices += primitive.indices.size();
+            totals.vertices += primitive.vertices.size();
+        }
+    }
+
+    return totals;
+}
+
 void Renderer::createBuffers(Scene &scene)
 {
+    SceneTotals totals{getSceneTotals(scene)};
+    std::vector<PrimitiveMetadata> metadata;
+    metadata.resize(drawEntries_.size());
+
     // UBOs
     glCreateBuffers(1, &cameraUBO_);
     glNamedBufferStorage(cameraUBO_, sizeof(PackedShaderUniforms), nullptr, GL_DYNAMIC_STORAGE_BIT);
@@ -32,51 +58,39 @@ void Renderer::createBuffers(Scene &scene)
     glNamedBufferStorage(shadowCascadesUBO_, sizeof(PackedShadowCascadeData), nullptr, GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_UNIFORM_BUFFER, 1, shadowCascadesUBO_);
 
-    SceneTotals stats;
-
-    for (SceneEntry &entry : scene.getAllSceneEntries())
-    {
-        std::size_t numTransforms{entry.transforms.size()};
-        stats.matrices += numTransforms;
-        stats.visibleInstances += numTransforms * entry.modelRef.get().getPrimitives().size();
-
-        for (Primitive &primitive : entry.modelRef.get().getPrimitives())
-        {
-            stats.indices += primitive.indices.size();
-            stats.vertices += primitive.vertices.size();
-        }
-    }
-
     // Instanced model matrices
     glCreateBuffers(1, &matricesSSBO_);
-    glNamedBufferStorage(matricesSSBO_, static_cast<GLsizeiptr>(stats.matrices * sizeof(glm::mat4)), nullptr,
-                         GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferStorage(matricesSSBO_, totals.matrices * sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, matricesSSBO_);
 
     // Indices into the model matrices buffer. Each primitive has its own set of visible indicies, with the number of
     // model matrices being the upper bound
     glCreateBuffers(1, &visibleIndicesSSBO_);
-    glNamedBufferStorage(visibleIndicesSSBO_, static_cast<GLsizeiptr>(stats.visibleInstances * sizeof(std::uint32_t)),
-                         nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferStorage(visibleIndicesSSBO_, totals.visibleInstances * sizeof(std::uint32_t), nullptr,
+                         GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, visibleIndicesSSBO_);
 
     // Per-primitive data
     glCreateBuffers(1, &primitivesSSBO_);
-    glNamedBufferStorage(primitivesSSBO_, static_cast<GLsizeiptr>(drawEntries_.size() * sizeof(PrimitiveData)), nullptr,
+    glNamedBufferStorage(primitivesSSBO_, drawEntries_.size() * sizeof(PrimitiveMetadata), nullptr,
                          GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, primitivesSSBO_);
 
-    // Fill the SSBOs with all instanced model data
-    createVAO(scene, stats);
-    populateMatricesSSBO(scene, stats);
+    // Draw command buffer
+    glCreateBuffers(1, &drawCommandBuffer_);
+    glNamedBufferStorage(drawCommandBuffer_, drawEntries_.size() * sizeof(DrawElementsIndirectCommand), nullptr,
+                         GL_DYNAMIC_STORAGE_BIT);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, drawCommandBuffer_);
 
-    // Metadata includes matrices, must come after matrices SSBO has been filled
-    populateMetadataSSBO(scene, stats);
+    createVAO(scene, totals);
+    populateMatricesSSBO(scene, metadata, totals);
+    populateVisibleIndicesBuffer(metadata, totals);
+    populateMetadataMaterials(scene, metadata);
+
+    glNamedBufferSubData(primitivesSSBO_, 0, metadata.size() * sizeof(PrimitiveMetadata), metadata.data());
 }
 
-// Figures out where the base index is for each primitve in the matrices buffer then uploads the entire scene's model
-// matrices
-void Renderer::populateMatricesSSBO(Scene &scene, SceneTotals &stats)
+void Renderer::populateMatricesSSBO(Scene &scene, std::vector<PrimitiveMetadata> &metadata, SceneTotals &stats)
 {
     std::uint32_t matricesIndex{0};
     std::vector<glm::mat4> modelMatrices;
@@ -87,63 +101,72 @@ void Renderer::populateMatricesSSBO(Scene &scene, SceneTotals &stats)
         ModelHandle handle{sceneEntry.modelRef.get().getHandle()};
 
         for (Transform &transform : sceneEntry.transforms)
+        {
             modelMatrices.emplace_back(transform.getModelMatrix());
+        }
 
         for (std::uint32_t index : drawEntriesByHandle_.at(handle))
+        {
             drawEntries_[index].matricesBufferBaseIndex = matricesIndex;
+            metadata[index].matricesBufferBaseIndex = matricesIndex;
+        }
 
         matricesIndex += static_cast<std::uint32_t>(sceneEntry.transforms.size());
     }
 
     glNamedBufferSubData(matricesSSBO_, 0, modelMatrices.size() * sizeof(glm::mat4), modelMatrices.data());
+}
 
+void Renderer::populateMetadataMaterials(Scene &scene, std::vector<PrimitiveMetadata> &metadata)
+{
+    // Each draw entry (primitive) gets its own section of the visibility buffer sized to the underlying model's number
+    // of instances
+    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(drawEntries_.size()); ++i)
+    {
+        DrawEntry &drawEntry{drawEntries_[i]};
+        PrimitiveMetadata &metaEntry{metadata[i]};
+
+        const int matIndex{drawEntry.primitive->materialIndex};
+        const std::vector<Material> &materials{textureManager_.getMaterials(drawEntry.handle)};
+        const Material &material{materials[matIndex]};
+
+        metaEntry.albedoArray = material.albedo.array;
+        metaEntry.albedoLayer = material.albedo.layer;
+
+        metaEntry.armArray = material.ARM.array;
+        metaEntry.armLayer = material.ARM.layer;
+
+        metaEntry.normalArray = material.normal.array;
+        metaEntry.normalLayer = material.normal.layer;
+
+        // primitiveData[primitiveIndex].cubemapArray = materials[matIndex].cubemap.array;
+        // primitiveData[primitiveIndex].cubemapLayer = materials[matIndex].cubemap.layer; 
+    }
+}
+
+void Renderer::populateVisibleIndicesBuffer(std::vector<PrimitiveMetadata> &metadata, SceneTotals &stats)
+{
     std::uint32_t visibleIndex{0};
     visibleMatrices_.reserve(stats.visibleInstances);
 
     // For the cubemaps, push every transform index so everything is visible
-    for (DrawEntry &entry : drawEntries_)
+    for (std::size_t i{0}; i < drawEntries_.size(); ++i)
     {
-        for (int i{0}; i < entry.transforms->size(); ++i)
-            visibleMatrices_.emplace_back(i);
+        std::vector<Transform> &transforms{*drawEntries_[i].transforms};
 
-        entry.visibleIndicesBufferBaseIndex = visibleIndex;
-        visibleIndex += static_cast<uint32_t>(entry.transforms->size());
+        for (std::size_t j{0}; j < transforms.size(); ++j)
+        {
+            visibleMatrices_.emplace_back(static_cast<std::uint32_t>(j));
+        }
+
+        drawEntries_[i].visibleIndiciesBufferBaseIndex = visibleIndex;
+        metadata[i].visibleInstancesBufferBaseIndex = visibleIndex;
+
+        visibleIndex += static_cast<uint32_t>(transforms.size());
     }
 
     glNamedBufferSubData(visibleIndicesSSBO_, 0, visibleMatrices_.size() * sizeof(std::uint32_t),
                          visibleMatrices_.data());
-}
-
-void Renderer::populateMetadataSSBO(Scene &scene, SceneTotals &stats)
-{
-    int primitiveIndex{0};
-
-    std::vector<PrimitiveData> primitiveData;
-    primitiveData.resize(drawEntries_.size());
-
-    for (DrawEntry &entry : drawEntries_)
-    {
-        const std::vector<Material> &materials{textureManager_.getMaterials(entry.handle)};
-        Primitive &primitive{*entry.primitive};
-
-        int matIndex{primitive.materialIndex};
-
-        primitiveData[primitiveIndex].albedoArray = materials[matIndex].albedo.array;
-        primitiveData[primitiveIndex].albedoLayer = materials[matIndex].albedo.layer;
-
-        primitiveData[primitiveIndex].armArray = materials[matIndex].ARM.array;
-        primitiveData[primitiveIndex].armLayer = materials[matIndex].ARM.layer;
-
-        primitiveData[primitiveIndex].normalArray = materials[matIndex].normal.array;
-        primitiveData[primitiveIndex].normalLayer = materials[matIndex].normal.layer;
-
-        primitiveData[primitiveIndex].matricesBufferBaseIndex = entry.matricesBufferBaseIndex;
-
-        entry.metadataBufferIndex = primitiveIndex;
-        ++primitiveIndex;
-    }
-
-    glNamedBufferSubData(primitivesSSBO_, 0, primitiveData.size() * sizeof(PrimitiveData), primitiveData.data());
 }
 
 /* Vertex attribute layout:

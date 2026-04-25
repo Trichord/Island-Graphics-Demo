@@ -21,6 +21,17 @@
 #include <cstdint>
 #include <primitive.h>
 
+// Struct for MultiDrawElements
+typedef struct
+{
+    unsigned int count;
+    unsigned int instanceCount;
+    unsigned int firstIndex;
+    int baseVertex;
+    unsigned int baseInstance;
+    // Optional user-defined data goes here - if nothing, stride is 0
+} DrawElementsIndirectCommand;
+
 class Renderer
 {
   public:
@@ -58,7 +69,7 @@ class Renderer
         std::uint32_t eboBaseIndex{0};
         std::uint32_t metadataBufferIndex{0};
         std::uint32_t matricesBufferBaseIndex{0};
-        std::uint32_t visibleIndicesBufferBaseIndex{0};
+        std::uint32_t visibleIndiciesBufferBaseIndex{0};
     };
 
     // Packed UBO data holds everything we want to share with all shaders
@@ -79,7 +90,7 @@ class Renderer
     };
 
     // Allows primitives to read all their data from the SSBO
-    struct PrimitiveData
+    struct PrimitiveMetadata
     {
         int albedoArray{0};
         int albedoLayer{0};
@@ -87,7 +98,10 @@ class Renderer
         int armLayer{0};
         int normalArray{0};
         int normalLayer{0};
-        int matricesBufferBaseIndex{0};
+        int cubemapArray{0};
+        int cubemapLayer{0};
+        std::uint32_t matricesBufferBaseIndex{0};
+        std::uint32_t visibleInstancesBufferBaseIndex{0};
     };
 
     // Keep track of the number of vertices and indices in an entire scene
@@ -132,11 +146,13 @@ class Renderer
     GLuint primitivesSSBO_{0};
     GLuint visibleIndicesSSBO_{0};
 
+    GLuint drawCommandBuffer_{0};
+
     // Owned objects
     GLState glState_;
     TextureManager textureManager_;
     std::vector<std::uint32_t> visibleMatrices_;
-    std::unordered_map<ShaderType, Shader> shaders_;
+    std::array<Shader, static_cast<int>(ShaderType::count)> shaders_;
     const GraphicsSettings graphicsSettings_;
     std::unordered_map<ModelHandle, std::vector<std::uint32_t>> drawEntriesByHandle_;
     std::vector<glm::mat4> updatedMatrices_;
@@ -160,14 +176,17 @@ class Renderer
     // Scene dependent initialization
     void borrowSkybox();
     void sortPrimitives();
+    SceneTotals getSceneTotals(Scene &scene);
     void createBuffers(Scene &scene);
     void buildDrawEntries(Scene &scene);
     void createCubemaps(Scene &scene);
     void setSceneShaderUniforms(Scene &scene);
     void createVAO(Scene &scene, SceneTotals stats);
-    void populateMetadataSSBO(Scene &scene, SceneTotals &stats);
-    void populateMatricesSSBO(Scene &scene, SceneTotals &stats);
+    void populateMetadataMaterials(Scene &scene, std::vector<PrimitiveMetadata> &metadata);
+    void populateMatricesSSBO(Scene &scene, std::vector<PrimitiveMetadata> &metadata, SceneTotals &stats);
+    void populateVisibleIndicesBuffer(std::vector<PrimitiveMetadata> &metadata, SceneTotals &stats);
     void createCubemapFaces(Scene &scene, int renderTargetSize, GLuint texture);
+    void assignMetadataIndices();
 
     // Scene independant initialization
     void setupShader(Shader &shader);
@@ -179,12 +198,12 @@ class Renderer
                     bool drawAlphaTested);
 
     // Culling
-    void resetVisibility();
-    void cullNone(DrawEntry &renderable, int &currentOffset);
+    void cullNone(DrawEntry &renderable);
     void cullAllModels(Scene &scene, const glm::mat4 &cullMatrix);
-    void cullInstanced(DrawEntry &renderable, const std::array<glm::vec4, 6> &frustumPlanes, int &currentOffset);
+    void cullInstanced(DrawEntry &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
 
     // Updates
+    void updateDrawCommandBuffer();
     void updateCameraUBO(Scene &scene);
     void updateShadowMaps(Scene &scene);
     void updateSceneTransforms(Scene &scene);

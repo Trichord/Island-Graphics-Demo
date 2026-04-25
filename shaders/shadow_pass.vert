@@ -8,7 +8,7 @@ layout(binding = 0, std430) readonly buffer matricesSSBO
 };
 
 layout(binding = 1, std430) readonly buffer indicesSSBO {
-    int indices[];
+    uint indices[];
 };
 
 struct Metadata
@@ -19,7 +19,10 @@ struct Metadata
 	int armLayer;
 	int normalArray;
 	int normalLayer;
-	int matricesBufferBaseIndex;
+	int cubemapArray;
+	int cubemapLayer;
+	uint matricesBufferBaseIndex;
+	uint visibleInstancesBufferBaseIndex;
 };
 
 layout(binding = 2, std430) readonly buffer metadataSSBO
@@ -27,22 +30,19 @@ layout(binding = 2, std430) readonly buffer metadataSSBO
 	Metadata metadata[];
 };
 
-uniform int metadataIndex;
-uniform int indicesOffset;
-
 uniform mat4 lightViewProjection;
 uniform bool useIndices;
 
 void main()
 {	
-	Metadata primitiveData = metadata[metadataIndex];
+	Metadata primitiveData = metadata[gl_BaseInstance];
 
-	int matricesIndex = primitiveData.matricesBufferBaseIndex;
+	uint matricesIndex = primitiveData.matricesBufferBaseIndex;
 	mat4 modelMatrix;
 
 	if (useIndices)
 	{
-		int instanceIndex = indices[indicesOffset + gl_InstanceID];
+		uint instanceIndex = indices[primitiveData.visibleInstancesBufferBaseIndex + gl_InstanceID];
 		modelMatrix = instances[matricesIndex + instanceIndex];
 	}
 	else
