@@ -20,7 +20,6 @@
 #include "render_target.h"
 #include "scene.h"
 #include "shader.h"
-#include "shader_type.h"
 #include "texture_manager.h"
 #include "textures.h"
 #include "transform.h"
@@ -100,22 +99,22 @@ void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    shaders_[static_cast<int>(grass)] = Shader{"./shaders/grass.vert", "./shaders/grass.frag"};
-    shaders_[static_cast<int>(trees)] = Shader{"./shaders/trees.vert", "./shaders/trees.frag"};
-    shaders_[static_cast<int>(reflective)] = Shader{"./shaders/reflective.vert", "./shaders/reflective.frag"};
-    shaders_[static_cast<int>(skybox)] = Shader{"./shaders/skybox.vert", "./shaders/skybox.frag"};
-    shaders_[static_cast<int>(water)] = Shader{"./shaders/water.vert", "./shaders/water.frag"};
-    shaders_[static_cast<int>(ocean)] = Shader{"./shaders/water.vert", "./shaders/ocean.frag"};
-    shaders_[static_cast<int>(shadowMap)] = Shader{"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
-    shaders_[static_cast<int>(shadowMapAlphaTested)] =
-        Shader{"./shaders/shadow_pass_alpha.vert", "./shaders/shadow_pass_alpha.frag"};
+    shaders_[shaderIndex(grass)] = Shader{grass, "./shaders/grass.vert", "./shaders/grass.frag"};
+    shaders_[shaderIndex(trees)] = Shader{trees, "./shaders/trees.vert", "./shaders/trees.frag"};
+    shaders_[shaderIndex(reflective)] = Shader{reflective, "./shaders/reflective.vert", "./shaders/reflective.frag"};
+    shaders_[shaderIndex(skybox)] = Shader{skybox, "./shaders/skybox.vert", "./shaders/skybox.frag"};
+    shaders_[shaderIndex(water)] = Shader{water, "./shaders/water.vert", "./shaders/water.frag"};
+    shaders_[shaderIndex(ocean)] = Shader{ocean, "./shaders/water.vert", "./shaders/ocean.frag"};
+    shaders_[shaderIndex(shadowMap)] = Shader{shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
+    shaders_[shaderIndex(shadowMapAlphaTested)] =
+        Shader{shadowMapAlphaTested, "./shaders/shadow_pass_alpha.vert", "./shaders/shadow_pass_alpha.frag"};
 
     if (graphicsSettings_.shadowResolution > 1)
-        shaders_[static_cast<int>(directionalPBR)] =
-            Shader{"./shaders/directional_PBR_shadow.vert", "./shaders/directional_PBR_shadow.frag"};
+        shaders_[shaderIndex(directionalPBR)] =
+            Shader{directionalPBR, "./shaders/directional_PBR_shadow.vert", "./shaders/directional_PBR_shadow.frag"};
     else
-        shaders_[static_cast<int>(directionalPBR)] =
-            Shader{"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"};
+        shaders_[shaderIndex(directionalPBR)] =
+            Shader{directionalPBR, "./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"};
 }
 
 void Renderer::setupShader(Shader &shader)

@@ -22,10 +22,10 @@ flat in int armLayer;
 flat in int normalArray;
 flat in int normalLayer;
 
+flat in float scale;
+
 uniform vec3 lightColor;
 uniform vec3 lightDir;
-
-uniform vec3 scale;
 
 in vsOut 
 {

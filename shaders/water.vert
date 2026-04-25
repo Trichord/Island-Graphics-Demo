@@ -54,6 +54,8 @@ flat out int armLayer;
 flat out int normalArray;
 flat out int normalLayer;
 
+flat out float scale;
+
 void main () 
 {
 	Metadata primitiveData = metadata[gl_BaseInstance];
@@ -73,6 +75,8 @@ void main ()
 
 	normalArray = primitiveData.normalArray;
 	normalLayer = primitiveData.normalLayer;
+
+	scale = length(modelMatrix[0]);
 
 	gl_Position = vOut.clipSpace;
 }

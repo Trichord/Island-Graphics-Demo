@@ -14,7 +14,8 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-Shader::Shader(const std::filesystem::path &vertexPath, const std::filesystem::path &fragmentPath)
+Shader::Shader(ShaderType type, const std::filesystem::path &vertexPath, const std::filesystem::path &fragmentPath)
+    : type_{type}
 {
     GLuint vertexShaderID{0};
     GLuint fragmentShaderID{0};
@@ -52,7 +53,7 @@ Shader::Shader(const std::filesystem::path &vertexPath, const std::filesystem::p
     glDeleteShader(fragmentShaderID);
 }
 
-Shader::Shader(Shader &&other) noexcept
+Shader::Shader(Shader &&other) noexcept : type_{other.type_}
 {
     id_ = other.id_;
     uniformLocations_ = std::move(other.uniformLocations_);
@@ -69,6 +70,7 @@ Shader &Shader::operator=(Shader &&other) noexcept
         id_ = other.id_;
         uniformLocations_ = std::move(other.uniformLocations_);
         other.id_ = 0;
+        type_ = other.type_;
     }
 
     return *this;
@@ -88,6 +90,11 @@ void Shader::use()
 GLuint Shader::getID() const
 {
     return id_;
+}
+
+ShaderType Shader::getType() const
+{
+    return type_;
 }
 
 void Shader::setBool(const std::string &name, bool value)
@@ -223,8 +230,7 @@ GLuint Shader::createShaderID(GLenum type, const std::filesystem::path &path)
             shaderTypeString = "UNKNOWN_SHADER_TYPE";
         }
 
-        std::cerr << "ERROR: shader type " << shaderTypeString << " at " << path.filename() << " compilation failed"
-                  << std::endl
+        std::cerr << "ERROR: " << shaderTypeString << " compilation from " << path.filename() << " failed" << std::endl
                   << infoLog.data() << std::endl;
         glDeleteShader(shaderID);
 

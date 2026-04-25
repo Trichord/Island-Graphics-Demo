@@ -15,7 +15,7 @@
 #include "primitive.h"
 #include "render_target.h"
 #include "scene.h"
-#include "shader_type.h"
+#include "shader.h"
 #include "texture_manager.h"
 #include "textures.h"
 #include "transform.h"
@@ -250,7 +250,7 @@ void Renderer::createCubemaps(Scene &scene)
 {
     using enum ShaderType;
 
-    auto waterIter = std::ranges::lower_bound(drawEntries_, ShaderType::water, {}, &DrawEntry::shaderType);
+    auto waterIter = std::ranges::lower_bound(drawEntries_, water, {}, &DrawEntry::shaderType);
 
     if (waterIter == drawEntries_.end())
         return;
@@ -258,7 +258,7 @@ void Renderer::createCubemaps(Scene &scene)
     // Copy the start of the water iterator to renable visibility
     auto waterEnableIter = waterIter;
 
-    while (waterIter->shaderType == ShaderType::water)
+    while (waterIter->shaderType == water)
     {
         waterIter->anyVisible = false;
         ++waterIter;
@@ -287,7 +287,7 @@ void Renderer::createCubemaps(Scene &scene)
     // one cubemap
     for (SceneEntry entry : scene.getAllSceneEntries())
     {
-        if (entry.shaderType != ShaderType::water)
+        if (entry.shaderType != water)
             continue;
 
         Transform &transform{entry.transforms.front()};
@@ -323,7 +323,7 @@ void Renderer::createCubemaps(Scene &scene)
     camera.setYaw(originalYaw);
     updateCameraUBO(scene);
 
-    while (waterEnableIter->shaderType == ShaderType::water)
+    while (waterEnableIter->shaderType == water)
     {
         waterEnableIter->anyVisible = true;
         ++waterEnableIter;
