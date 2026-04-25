@@ -12,7 +12,7 @@
 #include "model.h"
 #include "object_positions.h"
 #include "scene.h"
-#include "shader_type.h"
+#include "shader.h"
 #include "texture_manager.h"
 #include "transform.h"
 
