@@ -8,10 +8,10 @@ enum class ShaderType
 {
     directionalPBR,
     reflective,
-    water,
-    ocean,
     trees,
     grass,
+    water,
+    ocean,
     skybox,
     shadowMap,
     shadowMapAlphaTested,

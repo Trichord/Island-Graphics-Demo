@@ -16,6 +16,8 @@
 #include "texture_manager.h"
 #include "transform.h"
 
+#include <iostream>
+
 IslandScene::IslandScene(TextureManager &textureManager, const GraphicsSettings &graphicsSettings)
     : Scene(textureManager)
 {
@@ -236,9 +238,9 @@ void IslandScene::setupEnvironment()
     ambientLight_ = dampenedAmbient;
     globalLightSource_ = DirectionalLight{glm::vec3{sunDirection}, glm::vec3{lightColor}};
 
-    // Normalized wind direction, east southeast with a slight downward angle
-    constexpr glm::vec3 windDir{0.892079f, -0.101373f, 0.440362f};
-    constexpr float windStrength{0.07f};
+    // Normalized wind direction, east southeast with a downward angle
+    constexpr glm::vec3 windDir{0.858185f, -0.289923f, 0.423631f};
+    constexpr float windStrength{0.7f};
 
     windDirection_ = windDir;
     windStrength_ = windStrength;

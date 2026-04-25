@@ -22,8 +22,9 @@ void Renderer::renderAllSceneObjects()
 {
     using enum ShaderType;
 
-    Shader *shader{&shaders_.begin()->second};
-    ShaderType currentShaderType{shaders_.begin()->first};
+    Shader *shader{&shaders_.front()};
+    ShaderType currentShaderType{static_cast<ShaderType>(0)};
+    shader->use();
 
     for (DrawEntry &entry : drawEntries_)
     {
@@ -32,24 +33,22 @@ void Renderer::renderAllSceneObjects()
 
         if (currentShaderType != entry.shaderType)
         {
-            shader = &shaders_.at(entry.shaderType);
+            if (entry.shaderType == ShaderType::skybox)
+                glDepthFunc(GL_LEQUAL);
+
+            if (currentShaderType == ShaderType::skybox)
+                glDepthFunc(GL_LESS);
+
+            shader = &shaders_[static_cast<int>(entry.shaderType)];
             shader->use();
             currentShaderType = entry.shaderType;
         }
 
-        if (entry.shaderType == skybox)
-            glDepthFunc(GL_LEQUAL);
-
         Transform &firstInstance{entry.transforms->front()};
-
-        shader->setInt("indicesOffset", entry.visibleIndicesBufferBaseIndex);
         shader->setVec3("scale", firstInstance.getScale());
 
         // Draw it
         renderObject(*shader, entry);
-
-        if (entry.shaderType == skybox)
-            glDepthFunc(GL_LESS);
     }
 }
 
@@ -65,14 +64,14 @@ void Renderer::renderObject(Shader &shader, DrawEntry &drawEntry)
     const GLuint indexOffset{static_cast<GLuint>(drawEntry.eboBaseIndex)};
     const GLuint baseVertex{static_cast<GLuint>(drawEntry.vaoBaseIndex)};
 
-    shader.setInt("metadataIndex", drawEntry.metadataBufferIndex);
     glState_.setAlphaMode(primitive.alphaMode);
 
     if (material.cubemap)
         glState_.bindTexture(static_cast<GLuint>(TextureUnit::cubemap), material.cubemap);
 
-    glDrawElementsInstancedBaseVertex(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, (void *)(indexOffset * sizeof(GLuint)),
-                                      instanceCount, baseVertex);
+    glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT,
+                                                  (void *)(indexOffset * sizeof(GLuint)), instanceCount, baseVertex,
+                                                  drawEntry.metadataBufferIndex);
 }
 
 void Renderer::updateCascadeShadowUBO(const CascadeShadow::CascadeSplits &cascades,
@@ -111,12 +110,12 @@ void Renderer::updateShadowMaps(Scene &scene)
             cullAllModels(scene, lightMatrices.viewProjections[cascade]);
 
         // Opaque geometry first
-        Shader &shadowShader{shaders_[ShaderType::shadowMap]};
+        Shader &shadowShader{shaders_[static_cast<int>(ShaderType::shadowMap)]};
         shadowShader.use();
         shadowPass(lightMatrices, shadowShader, cascade, false);
 
         // Alpha tested geometry
-        Shader &shadowAlphaShader{shaders_[ShaderType::shadowMapAlphaTested]};
+        Shader &shadowAlphaShader{shaders_[static_cast<int>(ShaderType::shadowMapAlphaTested)]};
         shadowAlphaShader.use();
         shadowPass(lightMatrices, shadowAlphaShader, cascade, true);
 
@@ -158,9 +157,6 @@ void Renderer::shadowPass(const CascadeShadow::LightMatrices &lightMatrices, Sha
 
         const std::vector<Material> &materials{textureManager_.getMaterials(entry.handle)};
 
-        if (cascade != 2)
-            shader.setInt("indicesOffset", entry.visibleIndicesBufferBaseIndex);
-
         // Instance count
         GLsizei instanceCount{0};
         if (cascade == 2)
@@ -172,9 +168,8 @@ void Renderer::shadowPass(const CascadeShadow::LightMatrices &lightMatrices, Sha
         GLuint indexOffset{static_cast<GLuint>(entry.eboBaseIndex)};
         GLuint baseVertex{static_cast<GLuint>(entry.vaoBaseIndex)};
 
-        shader.setInt("metadataIndex", entry.metadataBufferIndex);
-
-        glDrawElementsInstancedBaseVertex(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT,
-                                          (void *)(indexOffset * sizeof(GLuint)), instanceCount, baseVertex);
+        glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT,
+                                                      (void *)(indexOffset * sizeof(GLuint)), instanceCount, baseVertex,
+                                                      entry.metadataBufferIndex);
     }
 }
