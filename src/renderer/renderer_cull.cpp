@@ -7,7 +7,6 @@
 #include "glm/gtc/matrix_access.hpp"
 #include "renderer.h"
 #include "scene.h"
-#include "shader_type.h"
 #include "transform.h"
 
 static void normalizePlane(glm::vec4 &vec)

@@ -9,7 +9,6 @@
 #include "renderer.h"
 #include "scene.h"
 #include "shader.h"
-#include "shader_type.h"
 #include "texture_manager.h"
 #include "textures.h"
 #include "transform.h"
@@ -23,7 +22,7 @@ void Renderer::renderAllSceneObjects()
     using enum ShaderType;
 
     Shader *shader{&shaders_.front()};
-    ShaderType currentShaderType{static_cast<ShaderType>(0)};
+    ShaderType currentShaderType{shader->getType()};
     shader->use();
 
     for (DrawEntry &entry : drawEntries_)
@@ -34,22 +33,22 @@ void Renderer::renderAllSceneObjects()
         if (currentShaderType != entry.shaderType)
         {
             if (entry.shaderType == ShaderType::skybox)
-                glDepthFunc(GL_LEQUAL);
+                glState_.setDepthFunction(GL_LEQUAL);
 
             if (currentShaderType == ShaderType::skybox)
-                glDepthFunc(GL_LESS);
+                glState_.setDepthFunction(GL_LESS);
 
             shader = &shaders_[static_cast<int>(entry.shaderType)];
             shader->use();
             currentShaderType = entry.shaderType;
         }
 
-        Transform &firstInstance{entry.transforms->front()};
-        shader->setVec3("scale", firstInstance.getScale());
-
         // Draw it
         renderObject(*shader, entry);
     }
+
+    // Assume skybox was last and reset for next frame
+    glState_.setDepthFunction(GL_LESS);
 }
 
 void Renderer::renderObject(Shader &shader, DrawEntry &drawEntry)
@@ -64,7 +63,7 @@ void Renderer::renderObject(Shader &shader, DrawEntry &drawEntry)
     const GLuint indexOffset{static_cast<GLuint>(drawEntry.eboBaseIndex)};
     const GLuint baseVertex{static_cast<GLuint>(drawEntry.vaoBaseIndex)};
 
-    glState_.setAlphaMode(primitive.alphaMode);
+    glState_.setAlphaMode(drawEntry.alphaMode);
 
     if (material.cubemap)
         glState_.bindTexture(static_cast<GLuint>(TextureUnit::cubemap), material.cubemap);
@@ -103,6 +102,8 @@ void Renderer::updateShadowMaps(Scene &scene)
     // Draw the outer cascade first, then cull and work our way closer
     for (int cascade{CascadeShadow::cascadeCount - 1}; cascade >= 0; --cascade)
     {
+        using enum ShaderType;
+
         shadowPassTarget_.clear();
 
         // Use culling and indexed drawing for the inner 2 cascades
@@ -110,12 +111,12 @@ void Renderer::updateShadowMaps(Scene &scene)
             cullAllModels(scene, lightMatrices.viewProjections[cascade]);
 
         // Opaque geometry first
-        Shader &shadowShader{shaders_[static_cast<int>(ShaderType::shadowMap)]};
+        Shader &shadowShader{shaders_[shaderIndex(shadowMap)]};
         shadowShader.use();
         shadowPass(lightMatrices, shadowShader, cascade, false);
 
         // Alpha tested geometry
-        Shader &shadowAlphaShader{shaders_[static_cast<int>(ShaderType::shadowMapAlphaTested)]};
+        Shader &shadowAlphaShader{shaders_[shaderIndex(shadowMapAlphaTested)]};
         shadowAlphaShader.use();
         shadowPass(lightMatrices, shadowAlphaShader, cascade, true);
 

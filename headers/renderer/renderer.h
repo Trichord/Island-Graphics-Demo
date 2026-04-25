@@ -14,7 +14,6 @@
 #include "render_target.h"
 #include "scene.h"
 #include "shader.h"
-#include "shader_type.h"
 #include "texture_manager.h"
 #include "thread_pool.h"
 #include "transform.h"

@@ -29,11 +29,11 @@ void GLState::setAlphaMode(fastgltf::AlphaMode mode)
     using namespace fastgltf;
     using enum AlphaMode;
 
-    if (mode == Blend && alphaBlendEnabled_)
+    if (mode == Blend && blendEnabled_)
         return;
-    else if (mode == Mask && alphaMaskEnabled_)
+    else if (mode == Mask && a2cEnabled_)
         return;
-    else if (mode == Opaque && !(alphaBlendEnabled_ || alphaMaskEnabled_))
+    else if (mode == Opaque && !(blendEnabled_ || a2cEnabled_))
         return;
 
     switch (mode)
@@ -41,15 +41,15 @@ void GLState::setAlphaMode(fastgltf::AlphaMode mode)
     case Opaque:
         glEnable(GL_CULL_FACE);
 
-        if (alphaMaskEnabled_)
+        if (a2cEnabled_)
             glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
-        if (alphaBlendEnabled_)
+        if (blendEnabled_)
             glDisable(GL_BLEND);
 
         cullFaceEnabled_ = true;
-        alphaMaskEnabled_ = false;
-        alphaBlendEnabled_ = false;
+        a2cEnabled_ = false;
+        blendEnabled_ = false;
         break;
 
     case Mask:
@@ -58,12 +58,12 @@ void GLState::setAlphaMode(fastgltf::AlphaMode mode)
         if (cullFaceEnabled_)
             glDisable(GL_CULL_FACE);
 
-        if (alphaBlendEnabled_)
+        if (blendEnabled_)
             glDisable(GL_BLEND);
 
         cullFaceEnabled_ = false;
-        alphaMaskEnabled_ = true;
-        alphaBlendEnabled_ = false;
+        a2cEnabled_ = true;
+        blendEnabled_ = false;
         break;
 
     case Blend:
@@ -72,12 +72,21 @@ void GLState::setAlphaMode(fastgltf::AlphaMode mode)
         if (cullFaceEnabled_)
             glDisable(GL_CULL_FACE);
 
-        if (alphaMaskEnabled_)
+        if (a2cEnabled_)
             glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
         cullFaceEnabled_ = false;
-        alphaMaskEnabled_ = false;
-        alphaBlendEnabled_ = true;
+        a2cEnabled_ = false;
+        blendEnabled_ = true;
         break;
     }
+}
+
+void GLState::setDepthFunction(GLenum depthFunction)
+{
+    if (currentDepthFunc_ == depthFunction)
+        return;
+
+    currentDepthFunc_ = depthFunction;
+    glDepthFunc(depthFunction);
 }
