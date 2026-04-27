@@ -275,7 +275,6 @@ void Renderer::buildDrawEntries(Scene &scene)
         std::span<Primitive> primitives{model.getPrimitives()};
         std::uint32_t numTransforms{static_cast<std::uint32_t>(entry.transforms.size())};
 
-        // Override all Opaque primitives to Mask, since A2C won't affect it and state switching is reduced
         for (Primitive &primitive : primitives)
         {
             using enum fastgltf::AlphaMode;
