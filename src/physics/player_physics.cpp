@@ -30,25 +30,34 @@ PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JP
 
     // Build the static collision mesh from scene
     physicsUtilities::CollisionMesh collisionMesh{physicsUtilities::buildCollisionMesh(scene)};
-    resetHeight_ = collisionMesh.minimumHeight;
 
-    // Create terrain and flag it to survive this constructor call
-    MeshShapeSettings terrainShapeSettings{collisionMesh.mesh};
-    terrainShapeSettings.SetEmbedded();
+    if (!collisionMesh.mesh.empty())
+    {
+        resetHeight_ = collisionMesh.minimumHeight;
 
-    // Create the shape
-    ShapeSettings::ShapeResult terrainResult{terrainShapeSettings.Create()};
-    ShapeRefC terrainShape{terrainResult.Get()};
+        // Create terrain and flag it to survive this constructor call
+        MeshShapeSettings terrainShapeSettings{collisionMesh.mesh};
+        terrainShapeSettings.SetEmbedded();
 
-    // Terrain properties
-    BodyCreationSettings terrainSettings{terrainShape, RVec3::sZero(), Quat::sIdentity(), EMotionType::Static,
-                                         Layers::NON_MOVING};
+        // Create the shape
+        ShapeSettings::ShapeResult terrainResult{terrainShapeSettings.Create()};
+        ShapeRefC terrainShape{terrainResult.Get()};
 
-    // Create the actual rigid body
-    terrain_ = bodyInterface_->CreateBody(terrainSettings);
+        // Terrain properties
+        BodyCreationSettings terrainSettings{terrainShape, RVec3::sZero(), Quat::sIdentity(), EMotionType::Static,
+                                             Layers::NON_MOVING};
 
-    // Add it to the world
-    bodyInterface_->AddBody(terrain_->GetID(), EActivation::DontActivate);
+        // Create the actual rigid body
+        terrain_ = bodyInterface_->CreateBody(terrainSettings);
+
+        // Add it to the world
+        bodyInterface_->AddBody(terrain_->GetID(), EActivation::DontActivate);
+    }
+    else
+    {
+        resetHeight_ = -1000000.0f;
+    }
+
     physicsSystem_.OptimizeBroadPhase();
 
     // Set start position
@@ -60,8 +69,11 @@ PlayerPhysics::~PlayerPhysics()
 {
     using namespace JPH;
 
-    bodyInterface_->RemoveBody(terrain_->GetID());
-    bodyInterface_->DestroyBody(terrain_->GetID());
+    if (terrain_)
+    {
+        bodyInterface_->RemoveBody(terrain_->GetID());
+        bodyInterface_->DestroyBody(terrain_->GetID());
+    }
 }
 
 void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime)
