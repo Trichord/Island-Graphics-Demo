@@ -27,7 +27,7 @@ struct Metadata
 
 layout(binding = 2, std430) readonly buffer metadataSSBO
 {
-	Metadata metadata[];
+	Metadata metadataBuffer[];
 };
 
 uniform mat4 lightViewProjection;
@@ -35,14 +35,14 @@ uniform bool useIndices;
 
 void main()
 {	
-	Metadata primitiveData = metadata[gl_BaseInstance];
+	Metadata metadata = metadataBuffer[gl_BaseInstance];
 
-	uint matricesIndex = primitiveData.matricesBufferBaseIndex;
+	uint matricesIndex = metadata.matricesBufferBaseIndex;
 	mat4 modelMatrix;
 
 	if (useIndices)
 	{
-		uint instanceIndex = indices[primitiveData.visibleInstancesBufferBaseIndex + gl_InstanceID];
+		uint instanceIndex = indices[metadata.visibleInstancesBufferBaseIndex + gl_InstanceID];
 		modelMatrix = instances[matricesIndex + instanceIndex];
 	}
 	else

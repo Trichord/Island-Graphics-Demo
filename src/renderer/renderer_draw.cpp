@@ -11,7 +11,6 @@
 #include "shader.h"
 #include "texture_manager.h"
 #include "textures.h"
-#include "transform.h"
 
 // Reduce the distance of the camera's far plane by 80% for shadow cascades.
 constexpr float farPlaneReduction{0.2f};
@@ -19,8 +18,6 @@ constexpr float farPlaneReduction{0.2f};
 // Render objects, grouped by shader type
 void Renderer::renderAllSceneObjects()
 {
-    using enum ShaderType;
-
     Shader *shader{&shaders_.front()};
     ShaderType currentShaderType{shader->getType()};
     shader->use();
@@ -32,10 +29,12 @@ void Renderer::renderAllSceneObjects()
 
         if (currentShaderType != entry.shaderType)
         {
-            if (entry.shaderType == ShaderType::skybox)
-                glState_.setDepthFunction(GL_LEQUAL);
+            using enum ShaderType;
 
-            if (currentShaderType == ShaderType::skybox)
+            if (entry.shaderType == skybox)
+                glState_.setDepthFunction(GL_LEQUAL);
+            
+            if (currentShaderType == skybox)
                 glState_.setDepthFunction(GL_LESS);
 
             shader = &shaders_[static_cast<int>(entry.shaderType)];
@@ -63,10 +62,7 @@ void Renderer::renderObject(Shader &shader, DrawEntry &drawEntry)
     const GLuint indexOffset{static_cast<GLuint>(drawEntry.eboBaseIndex)};
     const GLuint baseVertex{static_cast<GLuint>(drawEntry.vaoBaseIndex)};
 
-    glState_.setAlphaMode(drawEntry.alphaMode);
-
-    if (material.cubemap)
-        glState_.bindTexture(static_cast<GLuint>(TextureUnit::cubemap), material.cubemap);
+    glState_.setAlphaMode(primitive.alphaMode);
 
     glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT,
                                                   (void *)(indexOffset * sizeof(GLuint)), instanceCount, baseVertex,

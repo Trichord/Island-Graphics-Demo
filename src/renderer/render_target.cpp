@@ -5,8 +5,15 @@
 #include "glad/glad.h"
 #include "texture_utilities.h"
 
-RenderTarget::RenderTarget(int width, int height, Settings settings) : width_{width}, height_{height}
+RenderTarget::RenderTarget(int width, int height, Settings settings)
+    : width_{width}, height_{height}, internalFormat_{settings.internalFormat}
 {
+    if (settings.depthType == DepthType::RBO && settings.textureArray == true)
+    {
+        std::cerr << "ERROR: Cannot create layered framebuffer with only a depth Render Buffer Object" << std::endl;
+        throw std::runtime_error("Framebuffer Creation Error");
+    }
+
     glCreateFramebuffers(1, &FBO_);
 
     if (settings.msaa)
@@ -16,6 +23,13 @@ RenderTarget::RenderTarget(int width, int height, Settings settings) : width_{wi
 
     glNamedFramebufferDrawBuffer(FBO_, GL_COLOR_ATTACHMENT0);
     glNamedFramebufferReadBuffer(FBO_, GL_COLOR_ATTACHMENT0);
+
+    GLenum status = glCheckNamedFramebufferStatus(FBO_, GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cerr << "ERROR: framebuffer incomplete, status = 0x" << std::hex << status << "\n";
+        throw std::runtime_error("Framebuffer incomplete");
+    }
 }
 
 void RenderTarget::createRenderTarget(int width, int height, const Settings &settings)
@@ -62,9 +76,6 @@ void RenderTarget::createRenderTarget(int width, int height, const Settings &set
         glNamedRenderbufferStorage(depthRBO_, settings.depthFormat, width, height);
         glNamedFramebufferRenderbuffer(FBO_, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRBO_);
     }
-
-    if (glCheckNamedFramebufferStatus(FBO_, GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        std::cerr << "ERROR: failed to create framebuffer" << std::endl;
 }
 
 void RenderTarget::createMSAARenderTarget(int width, int height, const Settings &settings)
@@ -86,8 +97,19 @@ void RenderTarget::createMSAARenderTarget(int width, int height, const Settings 
 
     if (settings.depthType == DepthType::TEXTURE)
     { // Depth texture
-        glCreateTextures(GL_TEXTURE_2D_MULTISAMPLE, 1, &depthMapTextureID_);
-        glTextureStorage2DMultisample(depthMapTextureID_, settings.msaa, settings.depthFormat, width, height, GL_TRUE);
+        if (settings.textureArray)
+        {
+            glCreateTextures(GL_TEXTURE_2D_MULTISAMPLE_ARRAY, 1, &depthMapTextureID_);
+            glTextureStorage3DMultisample(depthMapTextureID_, settings.msaa, settings.depthFormat, width, height,
+                                          settings.textureArrayDepth, GL_TRUE);
+        }
+        else
+        {
+            glCreateTextures(GL_TEXTURE_2D_MULTISAMPLE, 1, &depthMapTextureID_);
+            glTextureStorage2DMultisample(depthMapTextureID_, settings.msaa, settings.depthFormat, width, height,
+                                          GL_TRUE);
+        }
+
         glNamedFramebufferTexture(FBO_, GL_DEPTH_ATTACHMENT, depthMapTextureID_, 0);
     }
     else if (settings.depthType == DepthType::RBO)
@@ -96,9 +118,6 @@ void RenderTarget::createMSAARenderTarget(int width, int height, const Settings 
         glNamedRenderbufferStorageMultisample(depthRBO_, settings.msaa, settings.depthFormat, width, height);
         glNamedFramebufferRenderbuffer(FBO_, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRBO_);
     }
-
-    if (glCheckNamedFramebufferStatus(FBO_, GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        std::cerr << "ERROR: failed to create framebuffer" << std::endl;
 }
 
 RenderTarget::RenderTarget(RenderTarget &&other) noexcept
@@ -173,6 +192,11 @@ int RenderTarget::getHeight() const
     return height_;
 }
 
+GLenum RenderTarget::getInternalFormat() const
+{
+    return internalFormat_;
+}
+
 void RenderTarget::clear(bool color, bool depth)
 {
     if (color)
@@ -202,4 +226,7 @@ void RenderTarget::blitTo(const RenderTarget &target)
 void RenderTarget::setTextureLayer(GLuint layer)
 {
     glNamedFramebufferTextureLayer(FBO_, GL_COLOR_ATTACHMENT0, colorTextureID_, 0, layer);
+
+    if (depthMapTextureID_ != 0)
+        glNamedFramebufferTextureLayer(FBO_, GL_DEPTH_ATTACHMENT, depthMapTextureID_, 0, layer);
 }

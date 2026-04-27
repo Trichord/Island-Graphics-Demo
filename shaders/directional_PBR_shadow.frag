@@ -8,8 +8,8 @@ layout (std140, binding = 1) uniform shadowCascadeData
 
 out vec4 fragColor;
 
-layout(binding = 0) uniform sampler2DArray arrayTextures[8];
-layout(binding = 9) uniform sampler2DArray shadowMap;
+layout(binding = 0) uniform sampler2DArray textures[8];
+layout(binding = 11) uniform sampler2DArray shadowMap;
 
 flat in int albedoArray;
 flat in int albedoLayer;
@@ -149,9 +149,9 @@ vec3 ACESFilm(vec3 x)
 
 void main() {
 	//material properties, remap normal from [0, 1] to [-1, 1]
-	vec4 albedo = texture(arrayTextures[albedoArray], vec3(fsIn.texCoords, albedoLayer));
-	vec3 normal = texture(arrayTextures[normalArray], vec3(fsIn.texCoords, normalLayer)).rgb * 2.0 - 1.0;
-	vec3 ARM = texture(arrayTextures[armArray], vec3(fsIn.texCoords, armLayer)).rgb;
+	vec4 albedo = texture(textures[albedoArray], vec3(fsIn.texCoords, albedoLayer));
+	vec3 normal = texture(textures[normalArray], vec3(fsIn.texCoords, normalLayer)).rgb * 2.0 - 1.0;
+	vec3 ARM = texture(textures[armArray], vec3(fsIn.texCoords, armLayer)).rgb;
 
 	//vectors
 	vec3 N = normalize(normal);

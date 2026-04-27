@@ -15,19 +15,22 @@ int textureUtilities::calculateMipmapLevels(int width, int height)
     return static_cast<int>(std::floor(std::log2(maxDimension)) + 1);
 }
 
-Texture textureUtilities::generateTexture(const LoadedImage &image, Sampler sampler, TextureRequest request)
+Texture magentaTexture()
+{
+    GLuint magenta{0};
+    unsigned char color[] = {255, 0, 255};
+    glCreateTextures(GL_TEXTURE_2D, 1, &magenta);
+    glTextureStorage2D(magenta, 1, GL_SRGB8, 1, 1);
+    glTextureSubImage2D(magenta, 0, 0, 0, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, color);
+
+    return {.id = magenta, .width = 1, .height = 1, .internalFormat = GL_SRGB8};
+}
+
+Texture textureUtilities::generateTexture(const LoadedImage &image, Sampler sampler, TextureDetails details)
 {
     // Early return with debug magenta
     if (!image.data)
-    {
-        GLuint magenta{0};
-        unsigned char color[] = {255, 0, 255};
-        glCreateTextures(GL_TEXTURE_2D, 1, &magenta);
-        glTextureStorage2D(magenta, 1, GL_SRGB8, 1, 1);
-        glTextureSubImage2D(magenta, 0, 0, 0, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, color);
-
-        return {.id = magenta, .width = 1, .height = 1, .internalFormat = GL_SRGB8};
-    }
+        return magentaTexture();
 
     GLuint textureID{0};
     GLenum imageFormat{GL_RGB};
@@ -48,17 +51,15 @@ Texture textureUtilities::generateTexture(const LoadedImage &image, Sampler samp
     else if (nrChannels == 3)
     {
         imageFormat = GL_RGB;
-        internalFormat = request.sRGB ? GL_SRGB8 : GL_RGB8;
+        internalFormat = details.sRGB ? GL_SRGB8 : GL_RGB8;
     }
     else if (nrChannels == 4)
     {
         imageFormat = GL_RGBA;
-        internalFormat = request.sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+        internalFormat = details.sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
     }
 
-    // Max mipmap
-    int maxDimension = std::max(image.width, image.height);
-    int mipLevels = static_cast<int>(std::floor(std::log2(maxDimension)) + 1);
+    int mipLevels = calculateMipmapLevels(image.width, image.height);
 
     // Create texture
     glCreateTextures(GL_TEXTURE_2D, 1, &textureID);
@@ -73,8 +74,8 @@ Texture textureUtilities::generateTexture(const LoadedImage &image, Sampler samp
     glTextureParameteri(textureID, GL_TEXTURE_MIN_FILTER, sampler.minFilter);
     glTextureParameteri(textureID, GL_TEXTURE_MAG_FILTER, sampler.magFilter);
 
-    if (request.anisotropic > 0.0f)
-        glTextureParameterf(textureID, GL_TEXTURE_MAX_ANISOTROPY, request.anisotropic);
+    if (details.anisotropic > 0.0f)
+        glTextureParameterf(textureID, GL_TEXTURE_MAX_ANISOTROPY, details.anisotropic);
 
     return {.id = textureID, .width = image.width, .height = image.height, .internalFormat = internalFormat};
 }
@@ -92,13 +93,23 @@ Texture magentaCubemap()
     return {.id = magenta, .width = 1, .height = 1, .internalFormat = GL_SRGB8};
 }
 
-Texture textureUtilities::generateCubemapTexture(const std::vector<LoadedImage> &imageData, TextureRequest request)
+Texture textureUtilities::generateCubemapTexture(const std::vector<LoadedImage> &imageData, TextureDetails details)
 {
     // Early return with debug magenta
     if (!imageData[0].data || imageData[0].width != imageData[0].height)
         return magentaCubemap();
 
     int nrChannels{imageData[0].nrChannels};
+
+    for (size_t i = 0; i < imageData.size(); ++i)
+    {
+        if (imageData[i].nrChannels != nrChannels)
+        {
+            std::cerr << "ERROR: Mismatched number of cubemap channels" << std::endl;
+            return magentaCubemap();
+        }
+    }
+
     GLuint cubemapTextureID{0};
     GLenum imageFormat{GL_RGB};
     GLenum internalFormat{GL_RGB};
@@ -119,19 +130,17 @@ Texture textureUtilities::generateCubemapTexture(const std::vector<LoadedImage> 
     else if (nrChannels == 3)
     {
         imageFormat = GL_RGB;
-        internalFormat = request.sRGB ? GL_SRGB8 : GL_RGB8;
+        internalFormat = details.sRGB ? GL_SRGB8 : GL_RGB8;
     }
     else if (nrChannels == 4)
     {
         imageFormat = GL_RGBA;
-        internalFormat = request.sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+        internalFormat = details.sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
     }
 
     // Max mipmap, assuming first image is same resolution as the rest
-    int maxDimension = std::max(imageData[0].width, imageData[0].height);
-    int maxMipLevels = static_cast<int>(std::floor(std::log2(maxDimension)) + 1);
-
-    int mipLevels = request.mipmaps ? maxMipLevels : 1;
+    int maxMipLevels{calculateMipmapLevels(imageData[0].width, imageData[0].height)};
+    int mipLevels{details.mipmaps ? maxMipLevels : 1};
 
     glTextureStorage2D(cubemapTextureID, mipLevels, internalFormat, imageData[0].width, imageData[0].height);
 
@@ -149,7 +158,7 @@ Texture textureUtilities::generateCubemapTexture(const std::vector<LoadedImage> 
         }
     }
 
-    if (request.mipmaps)
+    if (details.mipmaps)
     {
         glGenerateTextureMipmap(cubemapTextureID);
         glTextureParameteri(cubemapTextureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);

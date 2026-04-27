@@ -39,7 +39,7 @@ struct Metadata
 
 layout(binding = 2, std430) readonly buffer metadataSSBO
 {
-	Metadata metadata[];
+	Metadata metadataBuffer[];
 };
 
 out vsOut {
@@ -79,10 +79,10 @@ vec3 calcWindTranslation(mat4 transform, float timeStamp, vec3 windDir, float wi
 
 void main() 
 {
-	Metadata primitiveData = metadata[gl_BaseInstance];
+	Metadata metadata = metadataBuffer[gl_BaseInstance];
 
-	uint matricesIndex = primitiveData.matricesBufferBaseIndex;
-	uint instanceIndex = indices[primitiveData.visibleInstancesBufferBaseIndex + gl_InstanceID];
+	uint matricesIndex = metadata.matricesBufferBaseIndex;
+	uint instanceIndex = indices[metadata.visibleInstancesBufferBaseIndex + gl_InstanceID];
 
 	mat4 modelMatrix = instances[matricesIndex + instanceIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
@@ -95,11 +95,11 @@ void main()
 	float mask = smoothstep(minVertexHeight, maxVertexHeight, aPos.y);
 	windTranslation *= mask;
 
-	albedoArray = primitiveData.albedoArray;
-	albedoLayer = primitiveData.albedoLayer;
+	albedoArray = metadata.albedoArray;
+	albedoLayer = metadata.albedoLayer;
 	
-	armArray = primitiveData.armArray;
-	armLayer = primitiveData.armLayer;
+	armArray = metadata.armArray;
+	armLayer = metadata.armLayer;
 
 	gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos + windTranslation, 1.0);
 }

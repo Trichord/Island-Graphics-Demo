@@ -6,7 +6,7 @@
 #include "textures.h"
 
 // Request sRGB, request mipmaps, degree of anisotropy
-struct TextureRequest
+struct TextureDetails
 {
     bool sRGB{false};
     bool mipmaps{false};
@@ -16,6 +16,6 @@ struct TextureRequest
 namespace textureUtilities
 {
 int calculateMipmapLevels(int width, int height);
-Texture generateTexture(const LoadedImage &image, Sampler sampler, TextureRequest textureDetails);
-Texture generateCubemapTexture(const std::vector<LoadedImage> &imageData, TextureRequest textureDetails);
+Texture generateTexture(const LoadedImage &image, Sampler sampler, TextureDetails details);
+Texture generateCubemapTexture(const std::vector<LoadedImage> &imageData, TextureDetails details);
 } // namespace textureUtilities

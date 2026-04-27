@@ -8,7 +8,7 @@ layout (std140, binding = 1) uniform shadowCascadeData
 	vec4 splits;
 };
 
-layout(binding = 0) uniform sampler2DArray arrayTextures[8];
+layout(binding = 0) uniform sampler2DArray textures[8];
 
 flat in int albedoArray;
 flat in int albedoLayer;
@@ -49,7 +49,7 @@ float CalcMipLevel(vec2 texture_coord){
 }
 
 void main() {
-    vec4 albedo = texture(arrayTextures[albedoArray], vec3(texCoords, albedoLayer));
+    vec4 albedo = texture(textures[albedoArray], vec3(texCoords, albedoLayer));
 
     //Flip normal if 2D quad is facing away
     vec3 normalizedNormal = normalize(normal);
@@ -63,7 +63,7 @@ void main() {
     float diffuseStrength = NdotL * 0.5 + 0.6;
 
 	//Scale alpha by mip level 0
-    vec2 texSize = vec2(textureSize(arrayTextures[albedoArray], 0));
+    vec2 texSize = vec2(textureSize(textures[albedoArray], 0));
     albedo.a *= 1 + max(0, CalcMipLevel(texCoords * texSize)) * mipScale;
 
 	// Rescale alpha by partial derivative. Credit: Ben Golus
