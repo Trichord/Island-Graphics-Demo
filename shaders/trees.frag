@@ -2,7 +2,7 @@
 
 out vec4 fragColor;
 
-layout(binding = 0) uniform sampler2DArray arrayTextures[8];
+layout(binding = 0) uniform sampler2DArray textures[8];
 
 uniform vec3 ambientLight;
 uniform vec3 lightColor;
@@ -76,8 +76,8 @@ float CalcMipLevel(vec2 texture_coord){
 void main() {
 	//material properties, remap normal from [0, 1] to [-1, 1]
 
-	vec4 albedo = texture(arrayTextures[albedoArray], vec3(fsIn.texCoords, albedoLayer));
-	vec3 ARM = texture(arrayTextures[armArray], vec3(fsIn.texCoords, armLayer)).rgb;
+	vec4 albedo = texture(textures[albedoArray], vec3(fsIn.texCoords, albedoLayer));
+	vec3 ARM = texture(textures[armArray], vec3(fsIn.texCoords, armLayer)).rgb;
 	vec3 normal = normalize(fsIn.normal);
 
 	float ao = ARM.r;

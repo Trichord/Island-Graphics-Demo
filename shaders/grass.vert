@@ -39,7 +39,7 @@ struct Metadata
 
 layout(binding = 2, std430) readonly buffer metadataSSBO
 {
-	Metadata metadata[];
+	Metadata metadataBuffer[];
 };
 
 uniform float windStrength;
@@ -72,10 +72,10 @@ vec3 calcWindTranslation(mat4 transform, float timeStamp, vec3 windDir, float wi
 }
 
 void main() {
-	Metadata primitiveData = metadata[gl_BaseInstance];
+	Metadata metadata = metadataBuffer[gl_BaseInstance];
 
-	uint matricesIndex = primitiveData.matricesBufferBaseIndex;
-	uint instanceIndex = indices[primitiveData.visibleInstancesBufferBaseIndex + gl_InstanceID];
+	uint matricesIndex = metadata.matricesBufferBaseIndex;
+	uint instanceIndex = indices[metadata.visibleInstancesBufferBaseIndex + gl_InstanceID];
 
 	mat4 modelMatrix = instances[matricesIndex + instanceIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
@@ -90,8 +90,8 @@ void main() {
 	windTranslation *= mask;
 	windTranslation *= 0.1;
 
-	albedoArray = primitiveData.albedoArray;
-	albedoLayer = primitiveData.albedoLayer;
+	albedoArray = metadata.albedoArray;
+	albedoLayer = metadata.albedoLayer;
 
     gl_Position = projectionViewMatrix * vec4(worldPos.xyz + windTranslation, 1.0);
 }

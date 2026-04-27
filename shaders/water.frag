@@ -12,8 +12,8 @@ layout (std140) uniform uniformData
 	layout (offset = 272) float time;
 };
 
-layout(binding = 0) uniform sampler2DArray arrayTextures[8];
-layout(binding = 8) uniform samplerCube cubeMap;
+layout(binding = 0) uniform sampler2DArray textures[8];
+layout(binding = 8) uniform samplerCubeArray cubemaps[3];
 
 //dudv in the arm slot
 flat in int armArray;
@@ -21,6 +21,9 @@ flat in int armLayer;
 
 flat in int normalArray;
 flat in int normalLayer;
+
+flat in int cubeArray;
+flat in int cubeLayer;
 
 flat in float scale;
 
@@ -58,10 +61,10 @@ void main()
 	vec2 d2 = fsIn.texCoords * tileFactor + vec2(0.0, movement);
 	
 	// Distortion from dudv, remapped to [-1, 1] to sample distortion in all directions
-	vec2 distortion1 = texture(arrayTextures[armArray], vec3(d1, armLayer)).rg;
+	vec2 distortion1 = texture(textures[armArray], vec3(d1, armLayer)).rg;
 	distortion1 = (distortion1 * 2.0 - 1.0) * dudvStrength;
 
-	vec2 distortion2 = texture(arrayTextures[armArray], vec3(d2, armLayer)).rg;
+	vec2 distortion2 = texture(textures[armArray], vec3(d2, armLayer)).rg;
 	distortion2 = (distortion2 * 2.0 - 1.0) * dudvStrength;
 	
 	//Total distortion from dudv
@@ -69,7 +72,7 @@ void main()
 
 	// Normal, biased towards the sky for less choppy water. Swizzled because the plane is horizontal
 	vec2 normalCoords = vec2(fsIn.texCoords * tileFactor + totalDistortion);
-	vec3 N = texture(arrayTextures[normalArray], vec3(normalCoords, normalLayer)).xyz * 2.0 - 1.0;
+	vec3 N = texture(textures[normalArray], vec3(normalCoords, normalLayer)).xyz * 2.0 - 1.0;
 	N = normalize(vec3(N.x, N.z, -N.y));
 
 	// Specular
@@ -82,7 +85,7 @@ void main()
 
 	// Reflection 
 	vec3 reflectDir = reflect(-V, N);
-	vec3 reflection = texture(cubeMap, reflectDir).rgb;
+	vec3 reflection = texture(cubemaps[cubeArray], vec4(reflectDir, cubeLayer)).rgb;
 	
 	float alpha = mix(waterTransparency, 1.0, fresnel);
 

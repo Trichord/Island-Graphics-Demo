@@ -15,7 +15,12 @@ enum class TextureUnit
     arrayRGB1k,
     arraySRGB1k,
     arrayRGB512,
-    cubemap,
+
+    // Load time cubemaps may fall into the 4k bucket or 2k bucket, depending on user's resolution. The 3rd bucket is a
+    // dynamic catch-all for the reflection size
+    cubemapSRGB4k,
+    cubemapSRBG2k,
+    cubemapSRGBreflection,
     shadow
 };
 
@@ -36,7 +41,6 @@ struct SamplerArrayEntry
 struct Texture
 {
     GLuint id{0};
-
     int width{0};
     int height{0};
     GLenum internalFormat{GL_SRGB8};
@@ -49,5 +53,5 @@ struct Material
     SamplerArrayEntry albedo;
     SamplerArrayEntry ARM;
     SamplerArrayEntry normal;
-    GLuint cubemap{0};
+    SamplerArrayEntry cubemap;
 };

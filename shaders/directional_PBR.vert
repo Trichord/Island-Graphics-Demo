@@ -38,7 +38,7 @@ struct Metadata
 
 layout(binding = 2, std430) readonly buffer metadataSSBO
 {
-	Metadata metadata[];
+	Metadata metadataBuffer[];
 };
 
 out vsOut 
@@ -63,10 +63,10 @@ uniform mat4 lightViewProjection;
 
 void main () 
 {
-	Metadata primitiveData = metadata[gl_BaseInstance];
+	Metadata metadata = metadataBuffer[gl_BaseInstance];
 
-	uint matricesIndex = primitiveData.matricesBufferBaseIndex;
-	uint instanceIndex = indices[primitiveData.visibleInstancesBufferBaseIndex + gl_InstanceID];
+	uint matricesIndex = metadata.matricesBufferBaseIndex;
+	uint instanceIndex = indices[metadata.visibleInstancesBufferBaseIndex + gl_InstanceID];
 
 	mat4 modelMatrix = instances[matricesIndex + instanceIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
@@ -86,14 +86,14 @@ void main ()
 
 	vOut.texCoords = aTexCoords;
 
-	albedoArray = primitiveData.albedoArray;
-	albedoLayer = primitiveData.albedoLayer;
+	albedoArray = metadata.albedoArray;
+	albedoLayer = metadata.albedoLayer;
 	
-	armArray = primitiveData.armArray;
-	armLayer = primitiveData.armLayer;
+	armArray = metadata.armArray;
+	armLayer = metadata.armLayer;
 
-	normalArray = primitiveData.normalArray;
-	normalLayer = primitiveData.normalLayer;
+	normalArray = metadata.normalArray;
+	normalLayer = metadata.normalLayer;
 	
 	gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0);
 }
