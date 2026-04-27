@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
@@ -20,8 +19,6 @@
 #include "textures.h"
 #include "transform.h"
 #include "world_vectors.h"
-
-#include <iostream>
 
 Renderer::SceneTotals Renderer::getSceneTotals(Scene &scene)
 {
@@ -43,10 +40,9 @@ Renderer::SceneTotals Renderer::getSceneTotals(Scene &scene)
     return totals;
 }
 
-void Renderer::createBuffers(Scene &scene)
+void Renderer::createBuffers(Scene &scene, std::vector<PrimitiveMetadata> &metadata)
 {
     SceneTotals totals{getSceneTotals(scene)};
-    std::vector<PrimitiveMetadata> metadata;
     metadata.resize(drawEntries_.size());
 
     // UBOs
@@ -70,11 +66,11 @@ void Renderer::createBuffers(Scene &scene)
                          GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, visibleIndicesSSBO_);
 
-    // Per-primitive data
-    glCreateBuffers(1, &primitivesSSBO_);
-    glNamedBufferStorage(primitivesSSBO_, drawEntries_.size() * sizeof(PrimitiveMetadata), nullptr,
+    // Per primitive metadata
+    glCreateBuffers(1, &metadataSSBO_);
+    glNamedBufferStorage(metadataSSBO_, drawEntries_.size() * sizeof(PrimitiveMetadata), nullptr,
                          GL_DYNAMIC_STORAGE_BIT);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, primitivesSSBO_);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, metadataSSBO_);
 
     // Draw command buffer
     glCreateBuffers(1, &drawCommandBuffer_);
@@ -87,7 +83,7 @@ void Renderer::createBuffers(Scene &scene)
     populateVisibleIndicesBuffer(metadata, totals);
     populateMetadataMaterials(scene, metadata);
 
-    glNamedBufferSubData(primitivesSSBO_, 0, metadata.size() * sizeof(PrimitiveMetadata), metadata.data());
+    glNamedBufferSubData(metadataSSBO_, 0, metadata.size() * sizeof(PrimitiveMetadata), metadata.data());
 }
 
 void Renderer::populateMatricesSSBO(Scene &scene, std::vector<PrimitiveMetadata> &metadata, SceneTotals &stats)
@@ -139,8 +135,8 @@ void Renderer::populateMetadataMaterials(Scene &scene, std::vector<PrimitiveMeta
         metaEntry.normalArray = material.normal.array;
         metaEntry.normalLayer = material.normal.layer;
 
-        // primitiveData[primitiveIndex].cubemapArray = materials[matIndex].cubemap.array;
-        // primitiveData[primitiveIndex].cubemapLayer = materials[matIndex].cubemap.layer; 
+        metaEntry.cubemapArray = material.cubemap.array;
+        metaEntry.cubemapLayer = material.cubemap.layer;
     }
 }
 
@@ -246,7 +242,7 @@ void Renderer::borrowSkybox()
     }
 }
 
-void Renderer::createCubemaps(Scene &scene)
+void Renderer::createCubemaps(Scene &scene, SamplerArrayEntry reservedEntry)
 {
     using enum ShaderType;
 
@@ -255,9 +251,9 @@ void Renderer::createCubemaps(Scene &scene)
     if (waterIter == drawEntries_.end())
         return;
 
-    // Copy the start of the water iterator to renable visibility
     auto waterEnableIter = waterIter;
 
+    // Ensure reflections don't capture uninitialized other reflections or self geometry
     while (waterIter->shaderType == water)
     {
         waterIter->anyVisible = false;
@@ -266,9 +262,7 @@ void Renderer::createCubemaps(Scene &scene)
 
     Camera &camera{scene.getCamera()};
 
-    // Half size render targets for water reflections
-    int renderTargetSize{std::max(graphicsSettings_.screenWidth, graphicsSettings_.screenHeight) / 2};
-    int mipLevels = static_cast<int>(std::floor(std::log2(renderTargetSize)) + 1);
+    int faceSize{getReflectionResolution()};
 
     // Save camera settings before we make it bounce around the scene
     const glm::vec3 originalPos{camera.getPosition()};
@@ -281,11 +275,30 @@ void Renderer::createCubemaps(Scene &scene)
     camera.setFOV(90.0f);
     camera.setAspectRatio(1.0f);
 
-    glViewport(0, 0, renderTargetSize, renderTargetSize);
+    glViewport(0, 0, faceSize, faceSize);
+    GLenum colorFormat{textureManager_.getReflectionColorFormat()};
 
-    // Water should not be instanced because of the 1 cubemap per model. By walking the scene, we ensure each model gets
-    // one cubemap
-    for (SceneEntry entry : scene.getAllSceneEntries())
+    RenderTarget cubeFaces{faceSize, faceSize,
+                           RenderTarget::Settings{.msaa = graphicsSettings_.msaa,
+                                                  .depthType = RenderTarget::DepthType::TEXTURE,
+                                                  .internalFormat = colorFormat,
+                                                  .depthFormat = GL_DEPTH_COMPONENT24,
+                                                  .textureArray = true,
+                                                  .textureArrayDepth = 6}};
+
+    RenderTarget blitTarget{faceSize, faceSize,
+                            RenderTarget::Settings{.msaa = 0,
+                                                   .depthType = RenderTarget::DepthType::NONE,
+                                                   .internalFormat = colorFormat,
+                                                   .depthFormat = GL_NONE,
+                                                   .textureArray = true,
+                                                   .textureArrayDepth = 6}};
+
+    cubeFaces.bind();
+
+    // Water should not be instanced because of the 1 cubemap per model. By walking the scene instead of draw entries,
+    // we ensure each model gets one cubemap
+    for (SceneEntry &entry : scene.getAllSceneEntries())
     {
         if (entry.shaderType != water)
             continue;
@@ -294,25 +307,13 @@ void Renderer::createCubemaps(Scene &scene)
 
         // Set the camera in the center of the water plane
         camera.setPosition(transform.getPosition());
-
-        // Create the cubemap texture
-        GLuint cubeMapTextureID{0};
-        glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &cubeMapTextureID);
-        glTextureStorage2D(cubeMapTextureID, mipLevels, GL_SRGB8, renderTargetSize, renderTargetSize);
-
-        createCubemapFaces(scene, renderTargetSize, cubeMapTextureID);
-
-        // Texture params
-        glGenerateTextureMipmap(cubeMapTextureID);
-        glTextureParameteri(cubeMapTextureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTextureParameteri(cubeMapTextureID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTextureParameteri(cubeMapTextureID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTextureParameteri(cubeMapTextureID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTextureParameteri(cubeMapTextureID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        renderCubeFaces(scene, cubeFaces, blitTarget);
 
         // Assign the texture
         auto &waterPlane = entry.modelRef.get();
-        textureManager_.setCubemap(waterPlane.getHandle(), cubeMapTextureID);
+        textureManager_.setCubemap(waterPlane.getHandle(), blitTarget, reservedEntry);
+
+        ++reservedEntry.layer;
     }
 
     // Reset
@@ -329,46 +330,32 @@ void Renderer::createCubemaps(Scene &scene)
         ++waterEnableIter;
     }
 
-    // Restore default framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    cubeFaces.unbind();
     glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
 }
 
-void Renderer::createCubemapFaces(Scene &scene, int targetResolution, GLuint texture)
+void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget)
 {
-    // For iterating cubemap faces
     constexpr std::array<WorldOrientation, 6> faces{WorldOrientation::RIGHT, WorldOrientation::LEFT,
                                                     WorldOrientation::UP,    WorldOrientation::DOWN,
                                                     WorldOrientation::BACK,  WorldOrientation::FRONT};
 
-    // Helper for rendering the scene
-    auto renderFace = [&](RenderTarget &target, WorldOrientation orientation, Camera &camera) {
+    auto renderFace = [&](WorldOrientation orientation, Camera &camera) {
         camera.setWorldOrientation(orientation);
         updateCameraUBO(scene);
-        target.clear();
         renderAllSceneObjects();
     };
 
-    RenderTarget cubeFace(targetResolution, targetResolution,
-                          {graphicsSettings_.msaa, RenderTarget::DepthType::RBO, GL_SRGB8, GL_DEPTH_COMPONENT24});
-    RenderTarget blitTarget(targetResolution, targetResolution, {0, RenderTarget::DepthType::NONE, GL_SRGB8, GL_NONE});
-
     Camera &camera{scene.getCamera()};
-    const int renderTargetSize{cubeFace.getWidth()};
-    const GLuint blitTargetTexture{blitTarget.getColorTextureID()};
 
-    cubeFace.bind();
-
-    // Copy each MSAA direction into a cubemap face
     for (GLuint i{0}; i < 6; ++i)
     {
-        cubeFace.clear();
-        blitTarget.clear();
-        renderFace(cubeFace, faces[i], camera);
-        cubeFace.blitTo(blitTarget);
-        glCopyImageSubData(blitTargetTexture, GL_TEXTURE_2D, 0, 0, 0, 0, texture, GL_TEXTURE_CUBE_MAP, 0, 0, 0, i,
-                           renderTargetSize, renderTargetSize, 1);
-    }
+        target.setTextureLayer(i);
+        blitTarget.setTextureLayer(i);
 
-    cubeFace.unbind();
+        target.clear();
+        renderFace(faces[i], camera);
+
+        target.blitTo(blitTarget);
+    }
 }

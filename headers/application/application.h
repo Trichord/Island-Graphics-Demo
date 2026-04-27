@@ -7,11 +7,9 @@
 #include "gl_context.h"
 #include "graphics_settings.h"
 #include "jolt/Core/Core.h"
-#include "jolt/Core/JobSystemSingleThreaded.h"
 #include "jolt_impl.h"
 #include "player_physics.h"
 #include "scene.h"
-#include "settings_window.h"
 
 /**
  * @brief Handles window creation, user input, and the main loop.

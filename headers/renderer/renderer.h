@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <unordered_map>
 #include <vector>
 
@@ -11,14 +12,14 @@
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "graphics_settings.h"
+#include "primitive.h"
 #include "render_target.h"
 #include "scene.h"
 #include "shader.h"
 #include "texture_manager.h"
+#include "textures.h"
 #include "thread_pool.h"
 #include "transform.h"
-#include <cstdint>
-#include <primitive.h>
 
 // Struct for MultiDrawElements
 typedef struct
@@ -44,14 +45,12 @@ class Renderer
 
     void renderScene(Scene &scene);
     void initializeResources(Scene &scene);
+    int getReflectionResolution() const;
 
     std::uint32_t getFrameCount() const;
     TextureManager &getTextureManager();
 
   private:
-    static constexpr float depthClear_{1.0f};
-    static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
-
     struct DrawEntry
     {
         ModelHandle handle;
@@ -113,7 +112,13 @@ class Renderer
     };
 
     std::uint32_t framesRendered_{0};
+    static constexpr float depthClear_{1.0f};
+    static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
+
+    // Critical members
+    const GraphicsSettings graphicsSettings_;
     ThreadPool threadPool_;
+    TextureManager textureManager_;
 
     // UBO
     GLuint cameraUBO_{0};
@@ -141,18 +146,16 @@ class Renderer
      *
      */
 
+    // Buffers
     GLuint matricesSSBO_{0};
-    GLuint primitivesSSBO_{0};
+    GLuint metadataSSBO_{0};
     GLuint visibleIndicesSSBO_{0};
-
     GLuint drawCommandBuffer_{0};
 
     // Owned objects
     GLState glState_;
-    TextureManager textureManager_;
     std::vector<std::uint32_t> visibleMatrices_;
     std::array<Shader, static_cast<int>(ShaderType::count)> shaders_;
-    const GraphicsSettings graphicsSettings_;
     std::unordered_map<ModelHandle, std::vector<std::uint32_t>> drawEntriesByHandle_;
     std::vector<glm::mat4> updatedMatrices_;
 
@@ -169,28 +172,33 @@ class Renderer
     // Scene objects for drawing
     std::vector<DrawEntry> drawEntries_;
 
-    // Renderer initialization
+    // Shaders and Uniforms
     void loadShaders();
-
-    // Scene dependent initialization
-    void borrowSkybox();
-    void sortPrimitives();
-    SceneTotals getSceneTotals(Scene &scene);
-    void createBuffers(Scene &scene);
-    void buildDrawEntries(Scene &scene);
-    void createCubemaps(Scene &scene);
+    void setupShader(Shader &shader);
     void setSceneShaderUniforms(Scene &scene);
+
+    // Cubemap Generation
+    void borrowSkybox();
+    void createCubemaps(Scene &scene, SamplerArrayEntry reservedEntry);
+    void updateMetadataCubemaps(std::vector<PrimitiveMetadata> &metadata);
+    void renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget);
+
+    // GPU buffers
+    void assignMetadataIndices();
     void createVAO(Scene &scene, SceneTotals stats);
+    void createBuffers(Scene &scene, std::vector<PrimitiveMetadata> &metadata);
     void populateMetadataMaterials(Scene &scene, std::vector<PrimitiveMetadata> &metadata);
     void populateMatricesSSBO(Scene &scene, std::vector<PrimitiveMetadata> &metadata, SceneTotals &stats);
     void populateVisibleIndicesBuffer(std::vector<PrimitiveMetadata> &metadata, SceneTotals &stats);
-    void createCubemapFaces(Scene &scene, int renderTargetSize, GLuint texture);
-    void assignMetadataIndices();
 
-    // Scene independant initialization
-    void setupShader(Shader &shader);
+    // Counting
+    SceneTotals getSceneTotals(Scene &scene);
 
-    // Rendering
+    // Renderer Draw List setup
+    void sortPrimitives();
+    void buildDrawEntries(Scene &scene);
+
+    // Drawing
     void renderAllSceneObjects();
     void renderObject(Shader &shader, DrawEntry &renderable);
     void shadowPass(const CascadeShadow::LightMatrices &lightMatrices, Shader &shader, int cascade,

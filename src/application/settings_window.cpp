@@ -362,7 +362,7 @@ void SettingsWindow::loadConfigWindowImage()
     if (!imageData.size())
         return;
 
-    Texture texture{textureUtilities::generateTexture(imageData[0], Sampler{}, TextureRequest{})};
+    Texture texture{textureUtilities::generateTexture(imageData[0], Sampler{}, TextureDetails{})};
     textureID_ = texture.id;
 }
 

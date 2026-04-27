@@ -2,8 +2,6 @@
 
 const float lightBleedReduction = 0.2f;
 
-layout(location = 9) uniform sampler2DMS shadowMap;
-
 out vec2 fragColor;
 
 //Credit: Andrew Lauritzen

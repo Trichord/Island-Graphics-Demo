@@ -37,6 +37,7 @@ class RenderTarget
 
     int getWidth() const;
     int getHeight() const;
+    GLenum getInternalFormat() const;
     GLuint getColorTextureID() const;
     GLuint getDepthMapTextureID() const;
 
@@ -57,6 +58,7 @@ class RenderTarget
     GLuint depthRBO_{0};
     GLuint colorTextureID_{0};
     GLuint depthMapTextureID_{0};
+    GLenum internalFormat_{GL_SRGB8};
 
     void deleteResources();
     void createRenderTarget(int width, int height, const Settings &settings);
