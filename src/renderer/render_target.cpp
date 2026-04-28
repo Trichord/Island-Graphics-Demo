@@ -223,10 +223,10 @@ void RenderTarget::blitTo(const RenderTarget &target)
                            GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }
 
-void RenderTarget::setTextureLayer(GLuint layer)
+void RenderTarget::setTextureLayer(int layer)
 {
-    glNamedFramebufferTextureLayer(FBO_, GL_COLOR_ATTACHMENT0, colorTextureID_, 0, layer);
+    glNamedFramebufferTextureLayer(FBO_, GL_COLOR_ATTACHMENT0, colorTextureID_, 0, static_cast<GLuint>(layer));
 
     if (depthMapTextureID_ != 0)
-        glNamedFramebufferTextureLayer(FBO_, GL_DEPTH_ATTACHMENT, depthMapTextureID_, 0, layer);
+        glNamedFramebufferTextureLayer(FBO_, GL_DEPTH_ATTACHMENT, depthMapTextureID_, 0, static_cast<GLuint>(layer));
 }

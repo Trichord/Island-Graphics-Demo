@@ -19,6 +19,7 @@
 #include "model.h"
 #include "primitive.h"
 #include "render_target.h"
+#include "renderer_types.h"
 #include "scene.h"
 #include "shader.h"
 #include "texture_manager.h"
@@ -33,28 +34,28 @@ constexpr int shadowMapMSAA{2};
 Renderer::Renderer(const GraphicsSettings &settings)
     : graphicsSettings_{settings}, threadPool_{std::max(2u, std::thread::hardware_concurrency() / 2u)},
       textureManager_{threadPool_, settings, getReflectionResolution()},
-      shadowPassTarget_{settings.shadowResolution,
+      msaaShadowTarget_{settings.shadowResolution,
                         settings.shadowResolution,
                         {.msaa = shadowMapMSAA,
                          .depthType = RenderTarget::DepthType::RBO,
                          .internalFormat = GL_RG32F,
                          .depthFormat = GL_DEPTH_COMPONENT32F}},
 
-      shadowBlitTarget_{settings.shadowResolution,
+      shadowPassTarget_{settings.shadowResolution,
                         settings.shadowResolution,
                         {.msaa = 0,
                          .depthType = RenderTarget::DepthType::NONE,
                          .internalFormat = GL_RG32F,
                          .depthFormat = GL_NONE,
                          .textureArray = true,
-                         .textureArrayDepth = CascadeShadow::cascadeCount}}
+                         .textureArrayDepth = shadowCascadeCount}}
 {
     loadShaders();
 
     for (auto &shader : shaders_)
         setupShader(shader);
 
-    glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowBlitTarget_.getColorTextureID());
+    glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getColorTextureID());
 }
 
 Renderer::~Renderer()
@@ -70,11 +71,17 @@ void Renderer::renderScene(Scene &scene)
     glClearNamedFramebufferfv(0, GL_DEPTH, 0, &depthClear_);
 
     const bool globalLightUpdated{scene.getGlobalLightSource().directionHasUpdated()};
-    const bool sceneUpdated{!scene.getUpdatedModels().empty()};
     const bool cameraUpdated{scene.getCamera().hasUpdated()};
 
     updateSceneTransforms(scene);
     updateShaderUniforms(scene, globalLightUpdated);
+
+    /*
+    * Next: Optimize shadow pass
+    * 
+    if (globalLightUpdated)
+        bakeOuterShadowMap(scene);
+    */
 
     if (framesRendered_ % 2u && graphicsSettings_.shadowResolution > 1)
         updateShadowMaps(scene);
@@ -82,7 +89,8 @@ void Renderer::renderScene(Scene &scene)
     if (cameraUpdated)
         updateCameraUBO(scene);
 
-    cullAllModels(scene, scene.getCamera().getViewProjectionMatrix());
+    cullScene(scene, scene.getCamera().getViewProjectionMatrix());
+    updateDrawCommandBuffer();
     renderAllSceneObjects();
 }
 
@@ -110,8 +118,8 @@ void Renderer::loadShaders()
     shaders_[shaderIndex(water)] = Shader{water, "./shaders/water.vert", "./shaders/water.frag"};
     shaders_[shaderIndex(ocean)] = Shader{ocean, "./shaders/water.vert", "./shaders/ocean.frag"};
     shaders_[shaderIndex(shadowMap)] = Shader{shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
-    shaders_[shaderIndex(shadowMapAlphaTested)] =
-        Shader{shadowMapAlphaTested, "./shaders/shadow_pass_alpha.vert", "./shaders/shadow_pass_alpha.frag"};
+    shaders_[shaderIndex(shadowMapAlpha)] =
+        Shader{shadowMapAlpha, "./shaders/shadow_pass_alpha.vert", "./shaders/shadow_pass_alpha.frag"};
 
     if (graphicsSettings_.shadowResolution > 1)
         shaders_[shaderIndex(directionalPBR)] =
@@ -183,13 +191,16 @@ void Renderer::initializeResources(Scene &scene)
     // Sort the renderer's map by shader & state
     buildDrawEntries(scene);
     sortPrimitives();
+    drawCommands_.resize(drawEntries_.size());
 
     // Metadata indices must come after the drawEntries are built and sorted, since they map 1:1 to drawEntries.
     assignMetadataIndices();
 
     // Buffers rely on the renderer's draw list being populated
     std::vector<PrimitiveMetadata> metadata;
+    metadata.resize(drawEntries_.size());
     createBuffers(scene, metadata);
+    updateDrawCommandBuffer();
 
     // Skyboxes have to be borrowed before creating cubemaps. The scene must be ready to render, except water / ocean.
     // Cubemap face generation relies on default full visibility, before any culling has happened
@@ -336,4 +347,50 @@ int Renderer::getReflectionResolution() const
     constexpr int resolutionReduction{2};
 
     return std::max(graphicsSettings_.screenWidth, graphicsSettings_.screenHeight) / resolutionReduction;
+}
+
+void Renderer::updateDrawCommandBuffer()
+{
+    drawBuckets_.clear();
+
+    int start{0};
+    int end{0};
+
+    ShaderType currentShaderType{drawEntries_.front().shaderType};
+    fastgltf::AlphaMode currentAlphaMode{drawEntries_.front().alphaMode};
+
+    for (DrawEntry &entry : drawEntries_)
+    {
+        if (entry.shaderType != currentShaderType || entry.alphaMode != currentAlphaMode)
+        {
+            drawBuckets_.emplace_back(MultiDrawInfo{.count = end - start,
+                                                    .startIndex = start,
+                                                    .shaderType = currentShaderType,
+                                                    .alphaMode = currentAlphaMode});
+
+            start = end;
+            currentShaderType = entry.shaderType;
+            currentAlphaMode = entry.alphaMode;
+        }
+
+        if (entry.anyVisible)
+        {
+            drawCommands_[end++] = {.count = static_cast<unsigned int>(entry.primitive->indices.size()),
+                                    .instanceCount = entry.visibleInstances,
+                                    .firstIndex = entry.eboBaseIndex,
+                                    .baseVertex = entry.vaoBaseIndex,
+                                    .baseInstance = entry.metadataBufferIndex};
+        }
+    }
+
+    if (end - start > 0)
+        drawBuckets_.emplace_back(MultiDrawInfo{
+            .count = end - start,
+            .startIndex = start,
+            .shaderType = currentShaderType,
+            .alphaMode = currentAlphaMode,
+        });
+
+    glNamedBufferSubData(drawCommandBuffer_, 0, static_cast<GLsizeiptr>(end * sizeof(DrawElementsIndirectCommand)),
+                         drawCommands_.data());
 }
