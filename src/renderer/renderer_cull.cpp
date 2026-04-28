@@ -1,4 +1,5 @@
 #include <array>
+#include <cstdint>
 #include <vector>
 
 #include "aabb.h"
@@ -6,7 +7,9 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_access.hpp"
 #include "renderer.h"
+#include "renderer_types.h"
 #include "scene.h"
+#include "shader.h"
 #include "transform.h"
 
 static void normalizePlane(glm::vec4 &vec)
@@ -49,14 +52,14 @@ static std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
 }
 
 // Cull and build up the visible indices for the SSBO
-void Renderer::cullAllModels(Scene &scene, const glm::mat4 &cullMatrix)
+void Renderer::cullScene(Scene &scene, const glm::mat4 &cullMatrix)
 {
     const std::array<glm::vec4, 6> planes{getFrustumPlanes(cullMatrix)};
 
     for (DrawEntry &entry : drawEntries_)
     {
         if (entry.shaderType != ShaderType::skybox)
-            cullInstanced(entry, planes);
+            cullDrawEntry(entry, planes);
         else
             cullNone(entry);
     }
@@ -66,7 +69,7 @@ void Renderer::cullAllModels(Scene &scene, const glm::mat4 &cullMatrix)
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
-void Renderer::cullInstanced(DrawEntry &drawEntry, const std::array<glm::vec4, 6> &frustumPlanes)
+void Renderer::cullDrawEntry(DrawEntry &drawEntry, const std::array<glm::vec4, 6> &frustumPlanes)
 {
     bool anyVisible{false};
     drawEntry.visibleInstances = 0;

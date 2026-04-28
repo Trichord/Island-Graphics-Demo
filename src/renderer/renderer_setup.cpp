@@ -13,6 +13,7 @@
 #include "model.h"
 #include "primitive.h"
 #include "render_target.h"
+#include "renderer_types.h"
 #include "scene.h"
 #include "shader.h"
 #include "texture_manager.h"
@@ -20,7 +21,7 @@
 #include "transform.h"
 #include "world_vectors.h"
 
-Renderer::SceneTotals Renderer::getSceneTotals(Scene &scene)
+SceneTotals Renderer::getSceneTotals(Scene &scene)
 {
     SceneTotals totals;
 
@@ -43,7 +44,6 @@ Renderer::SceneTotals Renderer::getSceneTotals(Scene &scene)
 void Renderer::createBuffers(Scene &scene, std::vector<PrimitiveMetadata> &metadata)
 {
     SceneTotals totals{getSceneTotals(scene)};
-    metadata.resize(drawEntries_.size());
 
     // UBOs
     glCreateBuffers(1, &cameraUBO_);
@@ -51,7 +51,7 @@ void Renderer::createBuffers(Scene &scene, std::vector<PrimitiveMetadata> &metad
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, cameraUBO_);
 
     glCreateBuffers(1, &shadowCascadesUBO_);
-    glNamedBufferStorage(shadowCascadesUBO_, sizeof(PackedShadowCascadeData), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferStorage(shadowCascadesUBO_, sizeof(PackedCascadeShadows), nullptr, GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_UNIFORM_BUFFER, 1, shadowCascadesUBO_);
 
     // Instanced model matrices
@@ -77,6 +77,7 @@ void Renderer::createBuffers(Scene &scene, std::vector<PrimitiveMetadata> &metad
     glNamedBufferStorage(drawCommandBuffer_, drawEntries_.size() * sizeof(DrawElementsIndirectCommand), nullptr,
                          GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, drawCommandBuffer_);
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawCommandBuffer_);
 
     createVAO(scene, totals);
     populateMatricesSSBO(scene, metadata, totals);
@@ -348,7 +349,7 @@ void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget 
 
     Camera &camera{scene.getCamera()};
 
-    for (GLuint i{0}; i < 6; ++i)
+    for (int i{0}; i < 6; ++i)
     {
         target.setTextureLayer(i);
         blitTarget.setTextureLayer(i);

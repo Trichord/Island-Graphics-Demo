@@ -21,7 +21,7 @@ enum class ShaderType : std::size_t
     ocean,
     skybox,
     shadowMap,
-    shadowMapAlphaTested,
+    shadowMapAlpha,
     count
 };
 
