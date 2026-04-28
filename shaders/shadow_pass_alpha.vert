@@ -32,7 +32,6 @@ layout(binding = 2, std430) readonly buffer metadataSSBO
 };
 
 uniform mat4 lightViewProjection;
-uniform bool useIndices;
 
 out vec2 texCoords;
 
@@ -44,23 +43,13 @@ void main()
 	Metadata metadata = metadataBuffer[gl_BaseInstance];
 
 	uint matricesIndex = metadata.matricesBufferBaseIndex;
-	mat4 modelMatrix;
+	uint instanceIndex = indices[metadata.visibleInstancesBufferBaseIndex + gl_InstanceID];
 
-	if (useIndices)
-	{
-		uint instanceIndex = indices[metadata.visibleInstancesBufferBaseIndex + gl_InstanceID];
-		modelMatrix = instances[matricesIndex + instanceIndex];
-	}
-	else
-		modelMatrix = instances[matricesIndex + gl_InstanceID];
+	mat4 modelMatrix = instances[matricesIndex + instanceIndex];
 
-	vec4 vertexPos = lightViewProjection * modelMatrix * vec4(aPos, 1.0);
 	texCoords = aTexCoords;
-
 	albedoArray = metadata.albedoArray;
 	albedoLayer = metadata.albedoLayer;
 
-	gl_Position = vertexPos;
-
-
+	gl_Position = lightViewProjection * modelMatrix * vec4(aPos, 1.0);;
 }

@@ -1,9 +1,9 @@
 #version 460 core
 
-layout (std140, binding = 1) uniform shadowCascadeData
+layout (std140, binding = 1) uniform cascadeShadow
 {
-	mat4 matrices[3];
-	vec4 splits;
+    vec4 splits;
+    mat4 lightMatrices[3];
 };
 
 out vec4 fragColor;
@@ -126,13 +126,13 @@ int calculateCascadeIndex(float depth)
 		return 2;
 }
 
-float ShadowContribution(vec2 LightTexCoord, float DistanceToLight, int layer)
+float ShadowContribution(vec2 lightTexCoord, float distanceToLight, int layer)
 {	
 	// Read the moments from the variance shadow map.
-	vec2 moments = texture(shadowMap, vec3(LightTexCoord.xy, float(layer))).rg;
+	vec2 moments = texture(shadowMap, vec3(lightTexCoord.xy, float(layer))).rg;
 
 	// Compute the Chebyshev upper bound.
-	return ChebyshevUpperBound(moments, DistanceToLight);
+	return ChebyshevUpperBound(moments, distanceToLight);
 }
 
 //ACES film tone mapping (Krzysztof Narkowicz)
@@ -205,7 +205,7 @@ void main() {
 	int layer = calculateCascadeIndex(-fsIn.viewFragPos.z);
 
 	//Shadows
-	vec3 shadowCoords = vec3(matrices[layer] * fsIn.worldFragPos);
+	vec3 shadowCoords = vec3(lightMatrices[layer] * fsIn.worldFragPos);
 	shadowCoords = shadowCoords * 0.5 + 0.5;
 	float shadow = ShadowContribution(shadowCoords.xy, shadowCoords.z, layer);
 

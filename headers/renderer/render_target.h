@@ -41,12 +41,12 @@ class RenderTarget
     GLuint getColorTextureID() const;
     GLuint getDepthMapTextureID() const;
 
-    void setTextureLayer(GLuint layer);
+    void setTextureLayer(int layer);
 
     void generateMipMaps();
     void blitTo(const RenderTarget &target);
     void clear(bool color = true, bool depth = true);
-    
+
   private:
     static constexpr float depthColor{1.0f};
     static constexpr std::array<float, 4> clearColor{0.0f, 0.0f, 0.0f, 1.0f};
