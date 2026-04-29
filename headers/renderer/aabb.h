@@ -9,7 +9,7 @@ class AABB
   public:
     AABB() = default;
     AABB(float minX, float minY, float minZ, float maxX, float maxY, float maxZ);
-    AABB(const glm::vec3 &min_, const glm::vec3 &max_);
+    AABB(const glm::vec3 &min, const glm::vec3 &max);
 
     glm::vec3 getMin() const;
     glm::vec3 getMax() const;

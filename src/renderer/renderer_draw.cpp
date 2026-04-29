@@ -16,7 +16,7 @@
 constexpr float farPlaneReduction{0.2f};
 
 // Render objects, grouped by shader type
-void Renderer::renderAllSceneObjects()
+void Renderer::renderScene()
 {
     if (drawBuckets_.empty())
         return;
@@ -58,19 +58,7 @@ void Renderer::renderAllSceneObjects()
     glState_.setDepthFunction(GL_LESS);
 }
 
-void Renderer::updateCascadeShadowUBO(const Cascades &cascades)
-{
-    static_assert(shadowCascadeCount == 3);
-
-    packedCascadeShadows_.splits = {cascades[0].far, cascades[1].far, cascades[2].far, 0.0f};
-
-    for (std::size_t i{0}; i < cascades.size(); ++i)
-        packedCascadeShadows_.matrices[i] = cascades[i].viewProjection;
-
-    glNamedBufferSubData(shadowCascadesUBO_, 0, sizeof(PackedCascadeShadows), &packedCascadeShadows_);
-}
-
-void Renderer::updateShadowMaps(Scene &scene)
+void Renderer::renderShadowMaps(Scene &scene, bool lightChanged, bool initAll)
 {
     msaaShadowTarget_.bind();
     glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
@@ -79,7 +67,7 @@ void Renderer::updateShadowMaps(Scene &scene)
     Shader &shadowAlphaShader{shaders_[shaderIndex(ShaderType::shadowMapAlpha)]};
 
     Camera &camera{scene.getCamera()};
-    DirectionalLight &light{scene.getGlobalLightSource()};
+    DirectionalLight &light{scene.getGlobalLight()};
 
     // Move the far plane closer for tighter cascades
     const glm::mat4 cameraVP{camera.getResizedViewProjectionMatrix(farPlaneReduction)};
@@ -89,10 +77,13 @@ void Renderer::updateShadowMaps(Scene &scene)
     const Cascades &cascades{
         cascadeShadow_.updateCascadeShadows(cameraVP, light, graphicsSettings_.shadowResolution, farPlane)};
 
-    updateCascadeShadowUBO(cascades);
+    updateCascadeShadowUBO(cascades, lightChanged, initAll);
 
-    // Outermost cascade is pre-baked
-    for (int i{0}; i < shadowCascadeCount; ++i)
+    // Only update outer cascade if the light changed
+    int cascadeCount{lightChanged ? shadowCascadeCount : shadowCascadeCount - 1};
+
+    // Tighter cascades depend on player location and have to be updated
+    for (int i{0}; i < cascadeCount; ++i)
     {
         using enum ShaderType;
 
@@ -104,11 +95,11 @@ void Renderer::updateShadowMaps(Scene &scene)
 
         // Opaque geometry first
         shadowShader.use();
-        shadowPass(lightVP, shadowShader, false);
+        shadowPass(shadowShader, i, false);
 
         // Alpha tested geometry
         shadowAlphaShader.use();
-        shadowPass(lightVP, shadowAlphaShader, true);
+        shadowPass(shadowAlphaShader, i, true);
 
         // Hardware filter the variance shadow map
         shadowPassTarget_.setTextureLayer(i);
@@ -119,9 +110,9 @@ void Renderer::updateShadowMaps(Scene &scene)
     glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
 }
 
-void Renderer::shadowPass(const glm::mat4 lightVP, Shader &shader, bool alphaTested)
+void Renderer::shadowPass(Shader &shader, int cascade, bool alphaTested)
 {
-    shader.setMat4("lightViewProjection", lightVP);
+    shader.setInt("cascade", cascade);
 
     for (MultiDrawInfo &mdi : drawBuckets_)
     {

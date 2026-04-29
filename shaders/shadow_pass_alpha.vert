@@ -1,17 +1,6 @@
 #version 460 core
 
-layout (location = 0) in vec3 aPos;
-layout (location = 3) in vec2 aTexCoords;
-
-layout(binding = 0, std430) readonly buffer matricesSSBO 
-{
-    mat4 instances[];
-};
-
-layout(binding = 1, std430) readonly buffer indicesSSBO {
-    uint indices[];
-};
-
+// Types
 struct Metadata
 {
 	int albedoArray;
@@ -26,17 +15,39 @@ struct Metadata
 	uint visibleInstancesBufferBaseIndex;
 };
 
-layout(binding = 2, std430) readonly buffer metadataSSBO
+// Attributes
+layout (location = 0) in vec3 aPos;
+layout (location = 3) in vec2 aTexCoords;
+
+// UBOs
+layout (std140, binding = 1) uniform cascadeShadow
+{
+    vec4 splits;
+    mat4 lightMatrices[3];
+};
+
+// SSBOs
+layout(binding = 0, std430) restrict readonly buffer matricesSSBO 
+{
+    mat4 instances[];
+};
+
+layout(binding = 1, std430) restrict readonly buffer indicesSSBO {
+    uint indices[];
+};
+
+layout(binding = 2, std430) restrict readonly buffer metadataSSBO
 {
 	Metadata metadataBuffer[];
 };
 
-uniform mat4 lightViewProjection;
+// In
+uniform int cascade;
 
+// Out
 out vec2 texCoords;
 
-flat out int albedoArray;
-flat out int albedoLayer;
+flat out int metadataIndex;
 
 void main()
 {	
@@ -48,8 +59,7 @@ void main()
 	mat4 modelMatrix = instances[matricesIndex + instanceIndex];
 
 	texCoords = aTexCoords;
-	albedoArray = metadata.albedoArray;
-	albedoLayer = metadata.albedoLayer;
+	metadataIndex = gl_BaseInstance;
 
-	gl_Position = lightViewProjection * modelMatrix * vec4(aPos, 1.0);;
+	gl_Position = lightMatrices[cascade] * modelMatrix * vec4(aPos, 1.0);;
 }
