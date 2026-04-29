@@ -1,7 +1,9 @@
 #version 460 core
 
+// Constants
 const float lightBleedReduction = 0.2f;
 
+// Out
 out vec2 fragColor;
 
 //Credit: Andrew Lauritzen

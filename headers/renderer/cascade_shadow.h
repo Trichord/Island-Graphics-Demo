@@ -2,6 +2,7 @@
 
 #include <array>
 
+#include "aabb.h"
 #include "directional_light.h"
 #include "glm/glm.hpp"
 
@@ -19,7 +20,7 @@ class CascadeShadow
 {
   public:
     CascadeShadow() = default;
-    CascadeShadow(float nearPlane);
+    CascadeShadow(DirectionalLight &light, AABB worldAABB, float nearPlane);
 
     [[nodiscard]] const Cascades &updateCascadeShadows(const glm::mat4 &cameraVP, const DirectionalLight &light,
                                                        int shadowResolution, float farPlane);
@@ -32,6 +33,9 @@ class CascadeShadow
     };
 
     float nearPlane_{0.0f};
+    float worldRadius_{0.0f};
+    glm::vec3 worldCenter_{0.0f};
+    glm::mat4 outerCascadeProjection_{1.0f};
     std::array<Cascade, shadowCascadeCount> cascades_;
 
     void calculateCascadeSplits(float farPlane);

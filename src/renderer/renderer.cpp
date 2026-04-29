@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <span>
 #include <thread>
@@ -25,6 +26,8 @@
 #include "texture_manager.h"
 #include "textures.h"
 #include "transform.h"
+
+#include <iostream>
 
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.111f};
@@ -70,28 +73,21 @@ void Renderer::renderScene(Scene &scene)
     glClearNamedFramebufferfv(0, GL_COLOR, 0, clearColor_.data());
     glClearNamedFramebufferfv(0, GL_DEPTH, 0, &depthClear_);
 
-    const bool globalLightUpdated{scene.getGlobalLightSource().directionHasUpdated()};
+    const bool lightChanged{scene.getGlobalLight().directionHasUpdated()};
     const bool cameraUpdated{scene.getCamera().hasUpdated()};
 
     updateSceneTransforms(scene);
-    updateShaderUniforms(scene, globalLightUpdated);
-
-    /*
-    * Next: Optimize shadow pass
-    * 
-    if (globalLightUpdated)
-        bakeOuterShadowMap(scene);
-    */
+    updateShaderUniforms(scene, lightChanged);
 
     if (framesRendered_ % 2u && graphicsSettings_.shadowResolution > 1)
-        updateShadowMaps(scene);
+        renderShadowMaps(scene, lightChanged);
 
     if (cameraUpdated)
         updateCameraUBO(scene);
 
     cullScene(scene, scene.getCamera().getViewProjectionMatrix());
     updateDrawCommandBuffer();
-    renderAllSceneObjects();
+    renderScene();
 }
 
 void Renderer::updateCameraUBO(Scene &scene)
@@ -105,6 +101,32 @@ void Renderer::updateCameraUBO(Scene &scene)
     packedShaderUniforms_.time = static_cast<float>(glfwGetTime());
 
     glNamedBufferSubData(cameraUBO_, 0, sizeof(PackedShaderUniforms), &packedShaderUniforms_);
+}
+
+void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool initAll)
+{
+    static_assert(shadowCascadeCount == 3);
+
+    unsigned long long bytes{0};
+    std::size_t offset{initAll ? 0 : offsetof(PackedCascadeShadows, matrices)};
+    const void *data{initAll ? static_cast<void *>(&packedCascadeShadows_)
+                             : static_cast<void *>(&packedCascadeShadows_.matrices[0])};
+
+    if (initAll)
+    {
+        packedCascadeShadows_.splits = {cascades[0].far, cascades[1].far, cascades[2].far, 0.0f};
+        bytes += sizeof(packedCascadeShadows_.splits);
+    }
+
+    int cascadesCount{lightChanged ? shadowCascadeCount : shadowCascadeCount - 1};
+
+    for (int i{0}; i < cascadesCount; ++i)
+    {
+        packedCascadeShadows_.matrices[i] = cascades[i].viewProjection;
+        bytes += sizeof(packedCascadeShadows_.matrices[i]);
+    }
+
+    glNamedBufferSubData(shadowCascadesUBO_, offset, bytes, data);
 }
 
 void Renderer::loadShaders()
@@ -141,13 +163,13 @@ void Renderer::setupShader(Shader &shader)
     shader.setFloat("gamma", graphicsSettings_.gamma);
 }
 
-void Renderer::updateShaderUniforms(Scene &scene, bool lightDirectionChanged)
+void Renderer::updateShaderUniforms(Scene &scene, bool lightChanged)
 {
-    DirectionalLight &globalLight{scene.getGlobalLightSource()};
+    DirectionalLight &globalLight{scene.getGlobalLight()};
 
     for (auto &shader : shaders_)
     {
-        if (lightDirectionChanged)
+        if (lightChanged)
             shader.setVec3("lightDir", globalLight.getDirection());
     }
 }
@@ -157,7 +179,7 @@ void Renderer::setSceneShaderUniforms(Scene &scene)
     for (auto &shader : shaders_)
     {
         shader.setVec3("ambientLight", scene.getAmbientLight());
-        shader.setVec3("lightColor", scene.getGlobalLightSource().getColor());
+        shader.setVec3("lightColor", scene.getGlobalLight().getColor());
 
         shader.setFloat("windStrength", scene.getWindStrength());
         shader.setVec3("windDirection", scene.getWindDirection());
@@ -172,6 +194,26 @@ int countDynamicCubeMaps(Scene &scene)
             ++cubemaps;
 
     return cubemaps;
+}
+
+AABB getSceneBounds(Scene &scene)
+{
+    glm::vec3 min{std::numeric_limits<float>::infinity()};
+    glm::vec3 max{-std::numeric_limits<float>::infinity()};
+
+    for (SceneEntry &entry : scene.getAllSceneEntries())
+    {
+        Model &model{entry.modelRef.get()};
+        const AABB &aabb{model.getAABB()};
+
+        const glm::vec3 aabbMin{aabb.getMin()};
+        const glm::vec3 aabbMax{aabb.getMax()};
+
+        min = glm::min(min, aabbMin);
+        max = glm::max(max, aabbMax);
+    }
+
+    return {min, max};
 }
 
 void Renderer::initializeResources(Scene &scene)
@@ -211,8 +253,12 @@ void Renderer::initializeResources(Scene &scene)
     updateMetadataCubemaps(metadata);
 
     // Setup for cascade shadow maps. Must come after cubemaps due to cascade culling
-    cascadeShadow_ = CascadeShadow(scene.getCamera().getNearPlane());
-    updateShadowMaps(scene);
+    AABB worldAABB{getSceneBounds(scene)};
+    float nearPlane{scene.getCamera().getNearPlane()};
+    DirectionalLight &light{scene.getGlobalLight()};
+    cascadeShadow_ = CascadeShadow(light, worldAABB, nearPlane);
+
+    renderShadowMaps(scene, true, true);
 
     // Get ready for first frame
     updateCameraUBO(scene);

@@ -50,7 +50,7 @@ class Scene
     // Environment
     float getWindStrength() const;
     glm::vec3 getAmbientLight() const;
-    DirectionalLight &getGlobalLightSource();
+    DirectionalLight &getGlobalLight();
     const glm::vec3 &getWindDirection() const;
 
     // Accessors

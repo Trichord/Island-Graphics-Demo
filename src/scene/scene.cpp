@@ -41,7 +41,7 @@ SceneEntry &Scene::getEntryByName(const std::string &key)
     return iter->second;
 }
 
-DirectionalLight &Scene::getGlobalLightSource()
+DirectionalLight &Scene::getGlobalLight()
 {
     return globalLightSource_;
 }
