@@ -344,7 +344,7 @@ void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget 
     auto renderFace = [&](WorldOrientation orientation, Camera &camera) {
         camera.setWorldOrientation(orientation);
         updateCameraUBO(scene);
-        renderAllSceneObjects();
+        renderScene();
     };
 
     Camera &camera{scene.getCamera()};

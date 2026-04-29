@@ -2,14 +2,32 @@
 #include <array>
 #include <cmath>
 
+#include "aabb.h"
 #include "cascade_shadow.h"
 #include "directional_light.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "world_vectors.h"
 
-CascadeShadow::CascadeShadow(float nearPlane) : nearPlane_{nearPlane}
+CascadeShadow::CascadeShadow(DirectionalLight &light, AABB worldAABB, float nearPlane) : nearPlane_{nearPlane}
 {
+    const glm::vec3 center{worldAABB.getCenter()};
+    const glm::vec3 min{worldAABB.getMin()};
+    const glm::vec3 max{worldAABB.getMax()};
+    const glm::vec width{max - min};
+
+    const float radius{glm::length(width)};
+    const float halfExtent{std::max({width.x, width.y}) * 0.5f};
+
+    const glm::vec3 lightPos{center - light.getDirection() * radius};
+
+    const glm::mat4 view{glm::lookAt(lightPos, center, WorldVectors::worldUp)};
+    const glm::mat4 proj{glm::ortho(-halfExtent, halfExtent, -halfExtent, halfExtent, 0.0f, 2.0f * radius)};
+
+    worldRadius_ = radius;
+    worldCenter_ = center;
+    outerCascadeProjection_ = proj;
+    cascades_.back().viewProjection = proj * view;
 }
 
 /* Credit: Rouslan Dimitrov & NVIDIA Corporation
@@ -73,7 +91,7 @@ const Cascades &CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraVP, c
 
     calculateCascadeSplits(farPlane);
 
-    for (int i{0}; i < shadowCascadeCount; ++i)
+    for (int i{0}; i < shadowCascadeCount - 1; ++i)
     {
         std::array<glm::vec3, 8> frustumCorners{fullFrustumCorners};
         Cascade &cascade{cascades_[i]};
@@ -115,6 +133,10 @@ const Cascades &CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraVP, c
 
         cascade.viewProjection = lightProjection * lightView;
     }
+
+    const glm::vec3 lightPos{worldCenter_ - lightDir * worldRadius_};
+    const glm::mat4 view{glm::lookAt(lightPos, worldCenter_, WorldVectors::worldUp)};
+    cascades_.back().viewProjection = outerCascadeProjection_ * view;
 
     return cascades_;
 }

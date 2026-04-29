@@ -1,25 +1,27 @@
 #version 460 core
 
-out vec4 fragColor;
+// Types
+struct Metadata
+{
+	int albedoArray;
+	int albedoLayer;
+	int armArray;
+	int armLayer;
+	int normalArray;
+	int normalLayer;
+	int cubemapArray;
+	int cubemapLayer;
+	uint matricesBufferBaseIndex;
+	uint visibleInstancesBufferBaseIndex;
+};
 
-layout(binding = 0) uniform sampler2DArray textures[8];
-
-uniform vec3 ambientLight;
-uniform vec3 lightColor;
-uniform vec3 lightDir;
-
-uniform float gamma;
-uniform float mipScale;
-uniform float alphaCutoff;
-
-flat in int albedoArray;
-flat in int albedoLayer;
-
-flat in int armArray;
-flat in int armLayer;
-
+// Constants
 const float INVERSE_PI = 0.31830988618;
 
+// Samplers
+layout(binding = 0) uniform sampler2DArray textures[8];
+
+// UBOs
 layout (std140) uniform uniformData 
 {
 	layout (offset = 0) mat4 viewMatrix;
@@ -30,14 +32,36 @@ layout (std140) uniform uniformData
 	layout (offset = 272) float time;
 };
 
-in vsOut {
+// SSBOs
+layout(binding = 2, std430) restrict readonly buffer metadataSSBO
+{
+	Metadata metadataBuffer[];
+};
+
+// In
+uniform float gamma;
+uniform float mipScale;
+uniform float alphaCutoff;
+
+uniform vec3 lightDir;
+uniform vec3 lightColor;
+uniform vec3 ambientLight;
+
+flat in int metadataIndex;
+
+in vsOut 
+{
 	vec3 fragPos;
 	vec3 normal;
 	vec2 texCoords;
 } fsIn;
 
-//Burely diffuse (unrolled)
-float burleyDiffuseFactor(float FD90, float NdotL, float NdotV){
+// Out
+out vec4 fragColor;
+
+// Burely diffuse (unrolled)
+float burleyDiffuseFactor(float FD90, float NdotL, float NdotV)
+{
 	float L = 1.0 - NdotL;
 	float L2 = L * L;
 	float L4 = L2 * L2;
@@ -53,18 +77,19 @@ float burleyDiffuseFactor(float FD90, float NdotL, float NdotV){
 	return (1.0 + FDminusOne * L5) * (1.0 + FDminusOne * V5); 
 }
 
-//ACES film tone mapping (Krzysztof Narkowicz)
-vec3 ACESFilm(vec3 x) {
-const float a = 2.51;
-const float b = 0.03;
-const float c = 2.43;
-const float d = 0.59;
-const float e = 0.14;
+// ACES film tone mapping (Krzysztof Narkowicz)
+vec3 ACESFilm(vec3 x) 
+{
+	const float a = 2.51;
+	const float b = 0.03;
+	const float c = 2.43;
+	const float d = 0.59;
+	const float e = 0.14;
 
-return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+	return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
-//Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
+// Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
 float CalcMipLevel(vec2 texture_coord){
     vec2 dx = dFdx(texture_coord);
     vec2 dy = dFdy(texture_coord);
@@ -73,56 +98,58 @@ float CalcMipLevel(vec2 texture_coord){
     return max(0.0, 0.5 * log2(delta_max_sqr));
 }
 
-void main() {
-	//material properties, remap normal from [0, 1] to [-1, 1]
+void main() 
+{
+	Metadata metadata = metadataBuffer[metadataIndex];
 
-	vec4 albedo = texture(textures[albedoArray], vec3(fsIn.texCoords, albedoLayer));
-	vec3 ARM = texture(textures[armArray], vec3(fsIn.texCoords, armLayer)).rgb;
+	// Materials
+	vec4 albedo = texture(textures[metadata.albedoArray], vec3(fsIn.texCoords, metadata.albedoLayer));
+	vec3 ARM = texture(textures[metadata.armArray], vec3(fsIn.texCoords, metadata.armLayer)).rgb;
 	vec3 normal = normalize(fsIn.normal);
 
 	float ao = ARM.r;
 	float roughness = ARM.g;
 	float metallic = ARM.b;
 
-	//Scale alpha by mip level
+	// Scale alpha by mip level
     vec2 texSize = vec2(2048, 2048);
     albedo.a *= 1 + max(0, CalcMipLevel(fsIn.texCoords * texSize)) * mipScale;
 
 	// Rescale alpha by partial derivative. Credit: Ben Golus
     albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
 
-	//vectors
+	// Vectors
 	vec3 N = normalize(normal);
 	vec3 V = normalize(cameraPosition.xyz - fsIn.fragPos);
 	vec3 L = normalize(-lightDir);
 	vec3 H = normalize(L + V);
 	
-	//dot products
+	// Dot products
 	float NdotV = max(dot(N, V), 0.0);
 	float NdotL = max(dot(N, L), 0.0);
 	float HdotV = max(dot(H, V), 0.0);
 
-	//Alter diffuse by metallic-ness of the material
+	// Alter diffuse by metallic-ness of the material
 	vec3 kD = vec3(1.0);
 	kD *= 1.0 - metallic;
 
-	//Burley diffuse
+	// Burley diffuse
 	float FD90 = 0.5 + 2 * roughness * (HdotV * HdotV);
 	float burleyFactor = burleyDiffuseFactor(FD90, NdotL, NdotV);
 	vec3 diffuse = kD * albedo.rgb * INVERSE_PI * burleyFactor;
 
 	vec3 accumulatedLight = diffuse * lightColor * NdotL;
 	
-	//Ambient
+	// Ambient
 	vec3 ambient = ambientLight * albedo.rgb * ao;
 	
-	//Final color
+	// Final color
 	vec3 color = ambient + accumulatedLight;
 
-	//ACES tone mapping
+	// Tone mapping
 	color = ACESFilm(color);
 
-	//Gamma correction
+	// Gamma correction
 	color = pow(color, vec3(1.0/gamma));
 
 	fragColor = vec4(color, albedo.a);

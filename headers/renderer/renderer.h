@@ -128,9 +128,10 @@ class Renderer
     void buildDrawEntries(Scene &scene);
 
     // Drawing
-    void renderAllSceneObjects();
-    void shadowPass(const glm::mat4 lightVP, Shader &shader, bool alphaTested);
-
+    void renderScene();
+    void renderShadowMaps(Scene &scene, bool lightChanged, bool initAll = false);
+    void shadowPass(Shader &shader, int cascade, bool alphaTested);
+      
     // Culling
     void cullNone(DrawEntry &renderable);
     void cullScene(Scene &scene, const glm::mat4 &cullMatrix);
@@ -139,10 +140,9 @@ class Renderer
     // Updates
     void updateDrawCommandBuffer();
     void updateCameraUBO(Scene &scene);
-    void updateShadowMaps(Scene &scene);
     void updateSceneTransforms(Scene &scene);
-    void updateCascadeShadowUBO(const Cascades &cascades);
-    void updateShaderUniforms(Scene &scene, bool lightDirectionChanged);
+    void updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool initAll);
+    void updateShaderUniforms(Scene &scene, bool lightChanged);
 
     // Cleanup
     void deleteBuffers();
