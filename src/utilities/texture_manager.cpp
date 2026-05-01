@@ -266,7 +266,7 @@ void TextureManager::setCubemap(ModelHandle handle, RenderTarget &renderTarget, 
     for (Material &material : materialIter->second)
     {
         if (material.cubemap.array != -1 || material.cubemap.layer != -1)
-            std::cerr << "Warning: Orphaning cubemap for handle " << handle << std::endl;
+            std::cerr << "Warning: Orphaning own cubemaps for handle " << handle << std::endl;
 
         material.cubemap = arrayEntry;
     }
@@ -336,11 +336,11 @@ void TextureManager::borrowCubemaps(ModelHandle self, ModelHandle other)
 
     std::vector<Material> &selfEntry{selfIter->second};
     std::vector<Material> &otherEntry{otherIter->second};
-
+    
     for (std::size_t i{0}; i < selfEntry.size() && i < otherEntry.size(); ++i)
     {
         if (selfEntry[i].cubemap.array != -1 || selfEntry[i].cubemap.layer != -1)
-            std::cerr << "Warning: Orphaning cubemap for handle " << self << std::endl;
+            std::cerr << "Warning: Orphaning cubemap for handle " << self << ", borrowing from " << other << std::endl;
 
         selfEntry[i].cubemap = otherEntry[i].cubemap;
     }

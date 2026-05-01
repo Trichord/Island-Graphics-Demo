@@ -31,7 +31,7 @@ bool AABB::intersects(const std::array<glm::vec4, 6> &planes, const glm::mat4 &m
 {
     const AABB worldAABB{transform(modelMatrix)};
 
-    for (const auto &plane : planes)
+    for (const glm::vec4 &plane : planes)
     {
         float d{glm::dot(worldAABB.center_, glm::vec3{plane})};
         float r{glm::dot(worldAABB.extent_, glm::vec3{glm::abs(plane)})};
@@ -45,7 +45,7 @@ bool AABB::intersects(const std::array<glm::vec4, 6> &planes, const glm::mat4 &m
 
 bool AABB::intersects(const std::array<glm::vec4, 6> &planes) const
 {
-    for (const auto &plane : planes)
+    for (const glm::vec4 &plane : planes)
     {
         float d{glm::dot(center_, glm::vec3{plane})};
         float r{glm::dot(extent_, glm::vec3{glm::abs(plane)})};
