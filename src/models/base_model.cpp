@@ -27,7 +27,8 @@ BaseModel::BaseModel(TextureManager &textureManager, const std::filesystem::path
 }
 
 BaseModel::BaseModel(TextureManager &textureManager, const ModelHandle borrowHandle, const std::filesystem::path &path)
-    : handle_{textureManager.assignHandle()}, textureManager_{textureManager}, filePath_{path}
+    : handle_{textureManager.assignHandle()}, borrowedHandle_{borrowHandle}, textureManager_{textureManager},
+      filePath_{path}
 {
     textureManager.borrowMaterials(handle_, borrowHandle);
     loadModel(path, true);
@@ -42,6 +43,11 @@ AABB &BaseModel::getAABB()
 std::span<Primitive> BaseModel::getPrimitives()
 {
     return primitives_;
+}
+
+std::optional<ModelHandle> BaseModel::getBorrowedHandle() const
+{
+    return borrowedHandle_;
 }
 
 void BaseModel::loadModel(const std::filesystem::path &path, bool borrowed)

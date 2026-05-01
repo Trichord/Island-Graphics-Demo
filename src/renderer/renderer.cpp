@@ -190,8 +190,13 @@ int countDynamicCubeMaps(Scene &scene)
 {
     int cubemaps{0};
     for (SceneEntry &entry : scene.getAllSceneEntries())
-        if (entry.shaderType == ShaderType::water)
+    {
+        const Model &model{entry.modelRef.get()};
+        std::optional<ModelHandle> borrowed{model.getBorrowedHandle()};
+
+        if (entry.shaderType == ShaderType::water && !borrowed.has_value())
             ++cubemaps;
+    }
 
     return cubemaps;
 }
@@ -203,14 +208,22 @@ AABB getSceneBounds(Scene &scene)
 
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {
+        if (entry.shaderType == ShaderType::ocean)
+            continue;
+
         Model &model{entry.modelRef.get()};
         const AABB &aabb{model.getAABB()};
 
-        const glm::vec3 aabbMin{aabb.getMin()};
-        const glm::vec3 aabbMax{aabb.getMax()};
+        for (Transform &transform : entry.transforms)
+        {
+            const AABB worldAABB{aabb.transform(transform.getModelMatrix())};
 
-        min = glm::min(min, aabbMin);
-        max = glm::max(max, aabbMax);
+            const glm::vec3 aabbMin{worldAABB.getMin()};
+            const glm::vec3 aabbMax{worldAABB.getMax()};
+
+            min = glm::min(min, aabbMin);
+            max = glm::max(max, aabbMax);
+        }
     }
 
     return {min, max};
