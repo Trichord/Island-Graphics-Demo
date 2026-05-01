@@ -1,4 +1,4 @@
-#include "shader.h"
+#include "shader_base.h"
 
 #include <filesystem>
 #include <fstream>
@@ -14,19 +14,13 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-Shader::Shader(ShaderType type, const std::filesystem::path &vertexPath, const std::filesystem::path &fragmentPath)
-    : type_{type}
+void Shader::linkShader(std::span<GLuint> sourceIDs, const std::string_view path)
 {
-    GLuint vertexShaderID{0};
-    GLuint fragmentShaderID{0};
-
-    vertexShaderID = createShaderID(GL_VERTEX_SHADER, vertexPath);
-    fragmentShaderID = createShaderID(GL_FRAGMENT_SHADER, fragmentPath);
-
     id_ = glCreateProgram();
 
-    glAttachShader(id_, vertexShaderID);
-    glAttachShader(id_, fragmentShaderID);
+    for (GLuint sourceID : sourceIDs)
+        glAttachShader(id_, sourceID);
+
     glLinkProgram(id_);
 
     int success{0};
@@ -40,20 +34,19 @@ Shader::Shader(ShaderType type, const std::filesystem::path &vertexPath, const s
         infoLog.resize(logLength);
 
         glGetProgramInfoLog(id_, logLength, NULL, infoLog.data());
-        std::cerr << "ERROR: Shader Program - Linking Failed at:  " << vertexPath.string() << std::endl
-                  << infoLog.data() << std::endl;
+        std::cerr << "ERROR: Shader program link error: " << path << std::endl << infoLog.data() << std::endl;
 
-        glDeleteShader(vertexShaderID);
-        glDeleteShader(fragmentShaderID);
+        for (GLuint sourceID : sourceIDs)
+            glDeleteShader(sourceID);
 
         throw std::runtime_error("Shader program linking failed");
     }
 
-    glDeleteShader(vertexShaderID);
-    glDeleteShader(fragmentShaderID);
+    for (GLuint sourceID : sourceIDs)
+        glDeleteShader(sourceID);
 }
 
-Shader::Shader(Shader &&other) noexcept : type_{other.type_}
+Shader::Shader(Shader &&other) noexcept
 {
     id_ = other.id_;
     uniformLocations_ = std::move(other.uniformLocations_);
@@ -70,7 +63,6 @@ Shader &Shader::operator=(Shader &&other) noexcept
         id_ = other.id_;
         uniformLocations_ = std::move(other.uniformLocations_);
         other.id_ = 0;
-        type_ = other.type_;
     }
 
     return *this;
@@ -90,11 +82,6 @@ void Shader::use()
 GLuint Shader::getID() const
 {
     return id_;
-}
-
-ShaderType Shader::getType() const
-{
-    return type_;
 }
 
 void Shader::setBool(const std::string &name, bool value)
@@ -225,6 +212,9 @@ GLuint Shader::createShaderID(GLenum type, const std::filesystem::path &path)
             break;
         case GL_FRAGMENT_SHADER:
             shaderTypeString = "GL_FRAGMENT_SHADER";
+            break;
+        case GL_COMPUTE_SHADER:
+            shaderTypeString = "GL_COMPUTE_SHADER";
             break;
         default:
             shaderTypeString = "UNKNOWN_SHADER_TYPE";

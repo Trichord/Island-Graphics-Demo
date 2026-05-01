@@ -14,7 +14,7 @@
 #include "glm/glm.hpp"
 #include "instanced_model.h"
 #include "scene_resources.h"
-#include "shader.h"
+#include "graphics_shader.h"
 #include "texture_manager.h"
 #include "transform.h"
 

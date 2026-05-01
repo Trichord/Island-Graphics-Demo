@@ -18,7 +18,7 @@
 #include "render_target.h"
 #include "renderer_types.h"
 #include "scene.h"
-#include "shader.h"
+#include "graphics_shader.h"
 #include "texture_manager.h"
 #include "textures.h"
 #include "transform.h"
@@ -44,50 +44,43 @@ SceneTotals Renderer::getSceneTotals(Scene &scene)
     return totals;
 }
 
-void Renderer::createBuffers(Scene &scene, std::vector<PrimitiveMetadata> &metadata)
+void Renderer::createBuffers(std::vector<PrimitiveMetadata> &metadata, const SceneTotals& totals)
 {
-    SceneTotals totals{getSceneTotals(scene)};
-
     // UBOs
-    glCreateBuffers(1, &cameraUBO_);
-    glNamedBufferStorage(cameraUBO_, sizeof(PackedShaderUniforms), nullptr, GL_DYNAMIC_STORAGE_BIT);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 0, cameraUBO_);
+    glCreateBuffers(1, &shaderUniformsUBO_);
+    glNamedBufferStorage(shaderUniformsUBO_, sizeof(PackedShaderUniforms), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glBindBufferBase(GL_UNIFORM_BUFFER, static_cast<GLuint>(BindingPointUBO::shaderUniforms), shaderUniformsUBO_);
 
     glCreateBuffers(1, &shadowCascadesUBO_);
     glNamedBufferStorage(shadowCascadesUBO_, sizeof(PackedCascadeShadows), nullptr, GL_DYNAMIC_STORAGE_BIT);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 1, shadowCascadesUBO_);
+    glBindBufferBase(GL_UNIFORM_BUFFER, static_cast<GLuint>(BindingPointUBO::cascadeShadows), shadowCascadesUBO_);
 
     // Instanced model matrices
     glCreateBuffers(1, &matricesSSBO_);
     glNamedBufferStorage(matricesSSBO_, totals.matrices * sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, matricesSSBO_);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::matrices), matricesSSBO_);
 
     // Indices into the model matrices buffer. Each primitive has its own set of visible indicies, with the number of
     // model matrices being the upper bound
     glCreateBuffers(1, &visibleIndicesSSBO_);
     glNamedBufferStorage(visibleIndicesSSBO_, totals.visibleInstances * sizeof(std::uint32_t), nullptr,
                          GL_DYNAMIC_STORAGE_BIT);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, visibleIndicesSSBO_);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::visibleIndices),
+                     visibleIndicesSSBO_);
 
     // Per primitive metadata
     glCreateBuffers(1, &metadataSSBO_);
     glNamedBufferStorage(metadataSSBO_, drawEntries_.size() * sizeof(PrimitiveMetadata), nullptr,
                          GL_DYNAMIC_STORAGE_BIT);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, metadataSSBO_);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::metadata), metadataSSBO_);
 
     // Draw command buffer
-    glCreateBuffers(1, &drawCommandBuffer_);
-    glNamedBufferStorage(drawCommandBuffer_, drawEntries_.size() * sizeof(DrawElementsIndirectCommand), nullptr,
+    glCreateBuffers(1, &drawCommandsBuffer_);
+    glNamedBufferStorage(drawCommandsBuffer_, drawEntries_.size() * sizeof(DrawElementsIndirectCommand), nullptr,
                          GL_DYNAMIC_STORAGE_BIT);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, drawCommandBuffer_);
-    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawCommandBuffer_);
-
-    createVAO(scene, totals);
-    populateMatricesSSBO(scene, metadata, totals);
-    populateVisibleIndicesBuffer(metadata, totals);
-    populateMetadataMaterials(scene, metadata);
-
-    glNamedBufferSubData(metadataSSBO_, 0, metadata.size() * sizeof(PrimitiveMetadata), metadata.data());
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::drawCommands),
+                     drawCommandsBuffer_);
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawCommandsBuffer_);
 }
 
 void Renderer::populateMatricesSSBO(Scene &scene, std::vector<PrimitiveMetadata> &metadata, SceneTotals &stats)

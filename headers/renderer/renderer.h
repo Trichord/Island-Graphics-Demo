@@ -14,7 +14,7 @@
 #include "render_target.h"
 #include "renderer_types.h"
 #include "scene.h"
-#include "shader.h"
+#include "graphics_shader.h"
 #include "texture_manager.h"
 #include "textures.h"
 #include "thread_pool.h"
@@ -48,7 +48,7 @@ class Renderer
     TextureManager textureManager_;
 
     // UBO
-    GLuint cameraUBO_{0};
+    GLuint shaderUniformsUBO_{0};
     GLuint shadowCascadesUBO_{0};
     PackedShaderUniforms packedShaderUniforms_;
     PackedCascadeShadows packedCascadeShadows_;
@@ -77,12 +77,12 @@ class Renderer
     GLuint matricesSSBO_{0};
     GLuint metadataSSBO_{0};
     GLuint visibleIndicesSSBO_{0};
-    GLuint drawCommandBuffer_{0};
+    GLuint drawCommandsBuffer_{0};
 
     // Owned objects
     GLState glState_;
     std::vector<std::uint32_t> visibleMatrices_;
-    std::array<Shader, static_cast<int>(ShaderType::count)> shaders_;
+    std::array<GraphicsShader, static_cast<int>(ShaderType::count)> shaders_;
     std::unordered_map<ModelHandle, std::vector<std::uint32_t>> drawEntriesByHandle_;
     std::vector<glm::mat4> updatedMatrices_;
 
@@ -103,7 +103,7 @@ class Renderer
 
     // Shaders and Uniforms
     void loadShaders();
-    void setupShader(Shader &shader);
+    void setupShader(GraphicsShader &shader);
     void setSceneShaderUniforms(Scene &scene);
 
     // Cubemap Generation
@@ -115,8 +115,8 @@ class Renderer
     // GPU buffers
     void assignMetadataIndices();
     void createVAO(Scene &scene, SceneTotals stats);
-    void createBuffers(Scene &scene, std::vector<PrimitiveMetadata> &metadata);
     void populateMetadataMaterials(Scene &scene, std::vector<PrimitiveMetadata> &metadata);
+    void createBuffers(std::vector<PrimitiveMetadata> &metadata, const SceneTotals &totals);
     void populateMatricesSSBO(Scene &scene, std::vector<PrimitiveMetadata> &metadata, SceneTotals &stats);
     void populateVisibleIndicesBuffer(std::vector<PrimitiveMetadata> &metadata, SceneTotals &stats);
 
@@ -129,8 +129,8 @@ class Renderer
 
     // Drawing
     void renderScene();
+    void shadowPass(GraphicsShader &shader, int cascade, bool alphaTested);
     void renderShadowMaps(Scene &scene, bool lightChanged, bool initAll = false);
-    void shadowPass(Shader &shader, int cascade, bool alphaTested);
       
     // Culling
     void cullNone(DrawEntry &renderable);
