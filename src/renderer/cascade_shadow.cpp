@@ -36,7 +36,7 @@ slice start and end */
 void CascadeShadow::calculateCascadeSplits(float farPlane)
 {
     constexpr float cascadeOverlap{1.005f};
-    constexpr float splitWeight_{0.8f};
+    constexpr float splitWeight_{0.871012f};
 
     float ratio{farPlane / nearPlane_};
 
