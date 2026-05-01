@@ -4,7 +4,13 @@
 #include <vector>
 
 #include "cascade_shadow.h"
+
+#pragma warning(push)
+#pragma warning(disable: 5260)
 #include "fastgltf/types.hpp"
+#include "json/json.hpp"
+#pragma warning(pop)
+
 #include "glm/glm.hpp"
 #include "primitive.h"
 #include "shader.h"

@@ -320,6 +320,14 @@ void Renderer::createCubemaps(Scene &scene, SamplerArrayEntry reservedEntry)
         if (entry.shaderType != water)
             continue;
 
+        const Model &model{entry.modelRef.get()};
+
+        if (std::optional<ModelHandle> borrowed = model.getBorrowedHandle(); borrowed.has_value())
+        {
+            textureManager_.borrowCubemaps(model.getHandle(), borrowed.value());
+            continue;
+        }
+
         Transform &transform{entry.transforms.front()};
 
         // Set the camera in the center of the water plane
