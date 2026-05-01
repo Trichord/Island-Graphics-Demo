@@ -9,7 +9,7 @@
 #include "renderer.h"
 #include "renderer_types.h"
 #include "scene.h"
-#include "shader.h"
+#include "graphics_shader.h"
 #include "transform.h"
 
 static void normalizePlane(glm::vec4 &vec)

@@ -8,7 +8,7 @@
 #include "primitive.h"
 #include "renderer.h"
 #include "scene.h"
-#include "shader.h"
+#include "graphics_shader.h"
 #include "texture_manager.h"
 #include "textures.h"
 
@@ -21,7 +21,7 @@ void Renderer::renderScene()
     if (drawBuckets_.empty())
         return;
 
-    Shader *shader{&shaders_.front()};
+    GraphicsShader *shader{&shaders_.front()};
     ShaderType currentShaderType{shader->getType()};
     shader->use();
 
@@ -63,8 +63,8 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged, bool initAll)
     msaaShadowTarget_.bind();
     glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
 
-    Shader &shadowShader{shaders_[shaderIndex(ShaderType::shadowMap)]};
-    Shader &shadowAlphaShader{shaders_[shaderIndex(ShaderType::shadowMapAlpha)]};
+    GraphicsShader &shadowShader{shaders_[shaderIndex(ShaderType::shadowMap)]};
+    GraphicsShader &shadowAlphaShader{shaders_[shaderIndex(ShaderType::shadowMapAlpha)]};
 
     Camera &camera{scene.getCamera()};
     DirectionalLight &light{scene.getGlobalLight()};
@@ -110,7 +110,7 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged, bool initAll)
     glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
 }
 
-void Renderer::shadowPass(Shader &shader, int cascade, bool alphaTested)
+void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)
 {
     shader.setInt("cascade", cascade);
 

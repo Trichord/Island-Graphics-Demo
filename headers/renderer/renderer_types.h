@@ -13,7 +13,7 @@
 
 #include "glm/glm.hpp"
 #include "primitive.h"
-#include "shader.h"
+#include "graphics_shader.h"
 #include "texture_manager.h"
 #include "transform.h"
 
@@ -96,4 +96,18 @@ struct MultiDrawInfo
     int startIndex{0};
     ShaderType shaderType{ShaderType::directionalPBR};
     fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
+};
+
+enum class BindingPointSSBO : unsigned int
+{
+    matrices,
+    visibleIndices,
+    metadata,
+    drawCommands
+};
+
+enum class BindingPointUBO : unsigned int
+{
+    shaderUniforms,
+    cascadeShadows
 };

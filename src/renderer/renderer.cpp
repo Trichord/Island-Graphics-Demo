@@ -17,17 +17,15 @@
 #include "gl_context.h"
 #include "glm/glm.hpp"
 #include "graphics_settings.h"
+#include "graphics_shader.h"
 #include "model.h"
 #include "primitive.h"
 #include "render_target.h"
 #include "renderer_types.h"
 #include "scene.h"
-#include "shader.h"
 #include "texture_manager.h"
 #include "textures.h"
 #include "transform.h"
-
-#include <iostream>
 
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.111f};
@@ -100,7 +98,7 @@ void Renderer::updateCameraUBO(Scene &scene)
     packedShaderUniforms_.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
     packedShaderUniforms_.time = static_cast<float>(glfwGetTime());
 
-    glNamedBufferSubData(cameraUBO_, 0, sizeof(PackedShaderUniforms), &packedShaderUniforms_);
+    glNamedBufferSubData(shaderUniformsUBO_, 0, sizeof(PackedShaderUniforms), &packedShaderUniforms_);
 }
 
 void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool initAll)
@@ -133,25 +131,29 @@ void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    shaders_[shaderIndex(grass)] = Shader{grass, "./shaders/grass.vert", "./shaders/grass.frag"};
-    shaders_[shaderIndex(trees)] = Shader{trees, "./shaders/trees.vert", "./shaders/trees.frag"};
-    shaders_[shaderIndex(reflective)] = Shader{reflective, "./shaders/reflective.vert", "./shaders/reflective.frag"};
-    shaders_[shaderIndex(skybox)] = Shader{skybox, "./shaders/skybox.vert", "./shaders/skybox.frag"};
-    shaders_[shaderIndex(water)] = Shader{water, "./shaders/water.vert", "./shaders/water.frag"};
-    shaders_[shaderIndex(ocean)] = Shader{ocean, "./shaders/water.vert", "./shaders/ocean.frag"};
-    shaders_[shaderIndex(shadowMap)] = Shader{shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
-    shaders_[shaderIndex(shadowMapAlpha)] =
-        Shader{shadowMapAlpha, "./shaders/shadow_pass_alpha.vert", "./shaders/shadow_pass_alpha.frag"};
-
     if (graphicsSettings_.shadowResolution > 1)
-        shaders_[shaderIndex(directionalPBR)] =
-            Shader{directionalPBR, "./shaders/directional_PBR_shadow.vert", "./shaders/directional_PBR_shadow.frag"};
+        shaders_[shaderIndex(directionalPBR)] = GraphicsShader{directionalPBR, "./shaders/directional_PBR_shadow.vert",
+                                                               "./shaders/directional_PBR_shadow.frag"};
     else
         shaders_[shaderIndex(directionalPBR)] =
-            Shader{directionalPBR, "./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"};
+            GraphicsShader{directionalPBR, "./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"};
+
+    shaders_[shaderIndex(grass)] = GraphicsShader{grass, "./shaders/grass.vert", "./shaders/grass.frag"};
+    shaders_[shaderIndex(trees)] = GraphicsShader{trees, "./shaders/trees.vert", "./shaders/trees.frag"};
+    shaders_[shaderIndex(reflective)] =
+        GraphicsShader{reflective, "./shaders/reflective.vert", "./shaders/reflective.frag"};
+    shaders_[shaderIndex(skybox)] = GraphicsShader{skybox, "./shaders/skybox.vert", "./shaders/skybox.frag"};
+    shaders_[shaderIndex(water)] = GraphicsShader{water, "./shaders/water.vert", "./shaders/water.frag"};
+    shaders_[shaderIndex(ocean)] = GraphicsShader{ocean, "./shaders/water.vert", "./shaders/ocean.frag"};
+
+    // Renderer internal shaders
+    shaders_[shaderIndex(shadowMap)] =
+        GraphicsShader{shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
+    shaders_[shaderIndex(shadowMapAlpha)] =
+        GraphicsShader{shadowMapAlpha, "./shaders/shadow_pass_alpha.vert", "./shaders/shadow_pass_alpha.frag"};
 }
 
-void Renderer::setupShader(Shader &shader)
+void Renderer::setupShader(GraphicsShader &shader)
 {
     using enum TextureUnit;
 
@@ -254,7 +256,17 @@ void Renderer::initializeResources(Scene &scene)
     // Buffers rely on the renderer's draw list being populated
     std::vector<PrimitiveMetadata> metadata;
     metadata.resize(drawEntries_.size());
-    createBuffers(scene, metadata);
+
+    SceneTotals totals{getSceneTotals(scene)};
+
+    createBuffers(metadata, totals);
+    createVAO(scene, totals);
+    populateMatricesSSBO(scene, metadata, totals);
+    populateVisibleIndicesBuffer(metadata, totals);
+    populateMetadataMaterials(scene, metadata);
+    glNamedBufferSubData(metadataSSBO_, 0, metadata.size() * sizeof(PrimitiveMetadata), metadata.data());
+
+    // Fill the command buffer for the cubemap step
     updateDrawCommandBuffer();
 
     // Skyboxes have to be borrowed before creating cubemaps. The scene must be ready to render, except water / ocean.
@@ -289,13 +301,13 @@ void Renderer::deleteBuffers()
     glDeleteBuffers(1, &globalVBO_);
     glDeleteBuffers(1, &globalEBO_);
 
-    glDeleteBuffers(1, &cameraUBO_);
+    glDeleteBuffers(1, &shaderUniformsUBO_);
     glDeleteBuffers(1, &shadowCascadesUBO_);
 
     glDeleteBuffers(1, &visibleIndicesSSBO_);
     glDeleteBuffers(1, &matricesSSBO_);
     glDeleteBuffers(1, &metadataSSBO_);
-    glDeleteBuffers(1, &drawCommandBuffer_);
+    glDeleteBuffers(1, &drawCommandsBuffer_);
 }
 
 // Convert from buffer sub data to a persistant map
@@ -450,6 +462,6 @@ void Renderer::updateDrawCommandBuffer()
             .alphaMode = currentAlphaMode,
         });
 
-    glNamedBufferSubData(drawCommandBuffer_, 0, static_cast<GLsizeiptr>(end * sizeof(DrawElementsIndirectCommand)),
+    glNamedBufferSubData(drawCommandsBuffer_, 0, static_cast<GLsizeiptr>(end * sizeof(DrawElementsIndirectCommand)),
                          drawCommands_.data());
 }
