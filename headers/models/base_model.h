@@ -19,15 +19,18 @@ class BaseModel : public Model
     AABB &getAABB() override;
     ModelHandle getHandle() const override;
     std::span<Primitive> getPrimitives() override;
+    std::optional<ModelHandle> getBorrowedHandle() const override;
     std::optional<std::vector<Primitive>> loadCollisionMesh() const override;
 
   protected:
+    AABB aabb_;
     ModelHandle handle_{0};
+    std::optional<ModelHandle> borrowedHandle_{};
+
     TextureManager &textureManager_;
     std::filesystem::path filePath_;
     std::vector<Primitive> primitives_;
-    AABB aabb_;
-
+    
     void loadModel(const std::filesystem::path &path, bool borrowed);
     void calculateAABB();
 };

@@ -237,7 +237,7 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
 
     //SceneEntry &spaceModel{scene.getEntryByName("spaceModel")};
     //Transform &transform{spaceModel.transforms.front()};
-    DirectionalLight &light{scene.getGlobalLightSource()};
+    DirectionalLight &light{scene.getGlobalLight()};
     glm::vec3 dir{light.getDirection()};
 
     if (glfwGetKey(window_, GLFW_KEY_KP_8) == GLFW_PRESS)
