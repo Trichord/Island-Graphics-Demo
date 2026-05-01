@@ -4,7 +4,10 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
 #include <iterator>
+#include <stdexcept>
+#include <unordered_set>
 #include <vector>
 
 #include "camera.h"
@@ -127,6 +130,12 @@ void Renderer::populateMetadataMaterials(Scene &scene, std::vector<PrimitiveMeta
         const std::vector<Material> &materials{textureManager_.getMaterials(drawEntry.handle)};
         const Material &material{materials[matIndex]};
 
+        if (matIndex < 0 || matIndex >= static_cast<int>(materials.size()))
+        {
+            std::cerr << "Material index out of bound for model handle " << drawEntry.handle << std::endl;
+            throw std::runtime_error("Material index out of bounds");
+        }
+
         metaEntry.albedoArray = material.albedo.array;
         metaEntry.albedoLayer = material.albedo.layer;
 
@@ -235,11 +244,18 @@ void Renderer::borrowSkybox()
         return;
 
     ModelHandle skyboxHandle{skyboxIter->handle};
+    std::unordered_set<ModelHandle> seenHandles;
 
     while (oceanIter->shaderType == ShaderType::ocean)
     {
-        textureManager_.borrowCubemaps(oceanIter->handle, skyboxHandle);
+        ModelHandle handle{oceanIter->handle};
         ++oceanIter;
+
+        if (seenHandles.contains(handle))
+            continue;
+
+        textureManager_.borrowCubemaps(handle, skyboxHandle);
+        seenHandles.insert(handle);
     }
 }
 
