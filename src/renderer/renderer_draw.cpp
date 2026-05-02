@@ -5,10 +5,10 @@
 #include "cascade_shadow.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
+#include "graphics_shader.h"
 #include "primitive.h"
 #include "renderer.h"
 #include "scene.h"
-#include "graphics_shader.h"
 #include "texture_manager.h"
 #include "textures.h"
 
@@ -58,7 +58,7 @@ void Renderer::renderScene()
     glState_.setDepthFunction(GL_LESS);
 }
 
-void Renderer::renderShadowMaps(Scene &scene, bool lightChanged, bool initAll)
+void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
 {
     msaaShadowTarget_.bind();
     glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
@@ -77,7 +77,9 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged, bool initAll)
     const Cascades &cascades{
         cascadeShadow_.updateCascadeShadows(cameraVP, light, graphicsSettings_.shadowResolution, farPlane)};
 
-    updateCascadeShadowUBO(cascades, lightChanged, initAll);
+    // Splits never change, only set on renderer initialization
+    const bool updateFullUBO{framesRendered_ == 0};
+    updateCascadeShadowUBO(cascades, lightChanged, updateFullUBO);
 
     // Only update outer cascade if the light changed
     int cascadeCount{lightChanged ? shadowCascadeCount : shadowCascadeCount - 1};

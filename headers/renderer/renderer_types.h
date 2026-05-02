@@ -103,7 +103,9 @@ enum class BindingPointSSBO : unsigned int
     matrices,
     visibleIndices,
     metadata,
-    drawCommands
+    drawCommands,
+    drawCommandsSource,
+    aabb
 };
 
 enum class BindingPointUBO : unsigned int

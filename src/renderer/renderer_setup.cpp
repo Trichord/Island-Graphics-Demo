@@ -13,12 +13,12 @@
 #include "camera.h"
 #include "gl_context.h"
 #include "glm/glm.hpp"
+#include "graphics_shader.h"
 #include "model.h"
 #include "primitive.h"
 #include "render_target.h"
 #include "renderer_types.h"
 #include "scene.h"
-#include "graphics_shader.h"
 #include "texture_manager.h"
 #include "textures.h"
 #include "transform.h"
@@ -44,7 +44,7 @@ SceneTotals Renderer::getSceneTotals(Scene &scene)
     return totals;
 }
 
-void Renderer::createBuffers(std::vector<PrimitiveMetadata> &metadata, const SceneTotals& totals)
+void Renderer::createBuffers(std::vector<PrimitiveMetadata> &metadata, const SceneTotals &totals)
 {
     // UBOs
     glCreateBuffers(1, &shaderUniformsUBO_);
@@ -76,8 +76,8 @@ void Renderer::createBuffers(std::vector<PrimitiveMetadata> &metadata, const Sce
 
     // Draw command buffer
     glCreateBuffers(1, &drawCommandsBuffer_);
-    glNamedBufferStorage(drawCommandsBuffer_, drawEntries_.size() * sizeof(DrawElementsIndirectCommand), nullptr,
-                         GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferStorage(drawCommandsBuffer_, drawCommands_.size() * sizeof(DrawElementsIndirectCommand),
+                         drawCommands_.data(), GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::drawCommands),
                      drawCommandsBuffer_);
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawCommandsBuffer_);
@@ -256,6 +256,10 @@ void Renderer::createCubemaps(Scene &scene, SamplerArrayEntry reservedEntry)
 {
     using enum ShaderType;
 
+    // Set everything visible
+    for (DrawEntry &entry : drawEntries_)
+        cullNone(entry);
+
     auto waterIter = std::ranges::lower_bound(drawEntries_, water, {}, &DrawEntry::shaderType);
 
     if (waterIter == drawEntries_.end())
@@ -269,6 +273,9 @@ void Renderer::createCubemaps(Scene &scene, SamplerArrayEntry reservedEntry)
         waterIter->anyVisible = false;
         ++waterIter;
     }
+
+    // Fix the draw command buffer now that water is invisible
+    updateDrawCommandBuffer();
 
     Camera &camera{scene.getCamera()};
 
