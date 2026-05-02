@@ -101,16 +101,16 @@ void Renderer::updateCameraUBO(Scene &scene)
     glNamedBufferSubData(shaderUniformsUBO_, 0, sizeof(PackedShaderUniforms), &packedShaderUniforms_);
 }
 
-void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool initAll)
+void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll)
 {
     static_assert(shadowCascadeCount == 3);
 
     unsigned long long bytes{0};
-    std::size_t offset{initAll ? 0 : offsetof(PackedCascadeShadows, matrices)};
-    const void *data{initAll ? static_cast<void *>(&packedCascadeShadows_)
-                             : static_cast<void *>(&packedCascadeShadows_.matrices[0])};
+    std::size_t offset{uploadAll ? 0 : offsetof(PackedCascadeShadows, matrices)};
+    const void *data{uploadAll ? static_cast<void *>(&packedCascadeShadows_)
+                               : static_cast<void *>(&packedCascadeShadows_.matrices[0])};
 
-    if (initAll)
+    if (uploadAll)
     {
         packedCascadeShadows_.splits = {cascades[0].far, cascades[1].far, cascades[2].far, 0.0f};
         bytes += sizeof(packedCascadeShadows_.splits);
@@ -178,10 +178,13 @@ void Renderer::updateShaderUniforms(Scene &scene, bool lightChanged)
 
 void Renderer::setSceneShaderUniforms(Scene &scene)
 {
+    const DirectionalLight &light{scene.getGlobalLight()};
+
     for (auto &shader : shaders_)
     {
         shader.setVec3("ambientLight", scene.getAmbientLight());
-        shader.setVec3("lightColor", scene.getGlobalLight().getColor());
+        shader.setVec3("lightColor", light.getColor());
+        shader.setVec3("lightDir", light.getDirection());
 
         shader.setFloat("windStrength", scene.getWindStrength());
         shader.setVec3("windDirection", scene.getWindDirection());
@@ -233,32 +236,36 @@ AABB getSceneBounds(Scene &scene)
 
 void Renderer::initializeResources(Scene &scene)
 {
-    setSceneShaderUniforms(scene);
+    // Reserve space up front for any load-time generated cubemaps
+    int cubemapRes{getReflectionResolution()};
+    int dynamicCubemaps{countDynamicCubeMaps(scene)};
+    GLenum colorFormat{textureManager_.getReflectionColorFormat()};
+
+    SamplerArrayEntry reservedEntry{textureManager_.reserveDynamicCubemaps(dynamicCubemaps, cubemapRes, colorFormat)};
 
     // Setup all static scene textures
     textureManager_.finalize2dAllocations();
     textureManager_.build2dTextures();
-
-    SamplerArrayEntry reservedArrayEntry{textureManager_.reserveDynamicCubemaps(
-        countDynamicCubeMaps(scene), getReflectionResolution(), textureManager_.getReflectionColorFormat())};
-
     textureManager_.finalizeCubemapAllocations();
     textureManager_.buildCubemapTextures();
 
     // Sort the renderer's map by shader & state
     buildDrawEntries(scene);
     sortPrimitives();
+
+    // Resizing and counting. Must be done after drawEntries has been filled.
+    std::vector<PrimitiveMetadata> metadata;
+    SceneTotals totals{getSceneTotals(scene)};
+    metadata.resize(drawEntries_.size());
     drawCommands_.resize(drawEntries_.size());
 
     // Metadata indices must come after the drawEntries are built and sorted, since they map 1:1 to drawEntries.
     assignMetadataIndices();
 
-    // Buffers rely on the renderer's draw list being populated
-    std::vector<PrimitiveMetadata> metadata;
-    metadata.resize(drawEntries_.size());
+    // Fill the draw command buffer for SSBO creation
+    updateDrawCommandBuffer(false);
 
-    SceneTotals totals{getSceneTotals(scene)};
-
+    // GPU Resources. SSBOs rely on the renderer's draw entries being populated.
     createBuffers(metadata, totals);
     createVAO(scene, totals);
     populateMatricesSSBO(scene, metadata, totals);
@@ -266,24 +273,26 @@ void Renderer::initializeResources(Scene &scene)
     populateMetadataMaterials(scene, metadata);
     glNamedBufferSubData(metadataSSBO_, 0, metadata.size() * sizeof(PrimitiveMetadata), metadata.data());
 
-    // Fill the command buffer for the cubemap step
-    updateDrawCommandBuffer();
-
-    // Skyboxes have to be borrowed before creating cubemaps. The scene must be ready to render, except water / ocean.
-    // Cubemap face generation relies on default full visibility, before any culling has happened
-    borrowSkybox();
-    createCubemaps(scene, reservedArrayEntry);
-
-    // Push the new cubemaps through
-    updateMetadataCubemaps(metadata);
-
-    // Setup for cascade shadow maps. Must come after cubemaps due to cascade culling
+    // Setup for cascade shadow maps
     AABB worldAABB{getSceneBounds(scene)};
     float nearPlane{scene.getCamera().getNearPlane()};
     DirectionalLight &light{scene.getGlobalLight()};
     cascadeShadow_ = CascadeShadow(light, worldAABB, nearPlane);
 
-    renderShadowMaps(scene, true, true);
+    // Set the light based uniforms and draw shadows
+    setSceneShaderUniforms(scene);
+
+    if (graphicsSettings_.shadowResolution > 1)
+        renderShadowMaps(scene, true);
+
+    // Assign the skybox to any ocean shaders
+    borrowSkybox();
+
+    // Dynamic cubemap generation. The scene must be ready to render, except water / ocean.
+    createCubemaps(scene, reservedEntry);
+
+    // Push the new cubemaps through
+    updateMetadataCubemaps(metadata);
 
     // Get ready for first frame
     updateCameraUBO(scene);
@@ -420,7 +429,7 @@ int Renderer::getReflectionResolution() const
     return std::max(graphicsSettings_.screenWidth, graphicsSettings_.screenHeight) / resolutionReduction;
 }
 
-void Renderer::updateDrawCommandBuffer()
+void Renderer::updateDrawCommandBuffer(bool upload)
 {
     drawBuckets_.clear();
 
@@ -462,6 +471,7 @@ void Renderer::updateDrawCommandBuffer()
             .alphaMode = currentAlphaMode,
         });
 
-    glNamedBufferSubData(drawCommandsBuffer_, 0, static_cast<GLsizeiptr>(end * sizeof(DrawElementsIndirectCommand)),
-                         drawCommands_.data());
+    if (upload)
+        glNamedBufferSubData(drawCommandsBuffer_, 0, static_cast<GLsizeiptr>(end * sizeof(DrawElementsIndirectCommand)),
+                             drawCommands_.data());
 }
