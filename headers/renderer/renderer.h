@@ -11,10 +11,10 @@
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "graphics_settings.h"
+#include "graphics_shader.h"
 #include "render_target.h"
 #include "renderer_types.h"
 #include "scene.h"
-#include "graphics_shader.h"
 #include "texture_manager.h"
 #include "textures.h"
 #include "thread_pool.h"
@@ -130,19 +130,19 @@ class Renderer
     // Drawing
     void renderScene();
     void shadowPass(GraphicsShader &shader, int cascade, bool alphaTested);
-    void renderShadowMaps(Scene &scene, bool lightChanged, bool initAll = false);
-      
+    void renderShadowMaps(Scene &scene, bool lightChanged);
+
     // Culling
     void cullNone(DrawEntry &renderable);
     void cullScene(Scene &scene, const glm::mat4 &cullMatrix);
     void cullDrawEntry(DrawEntry &renderable, const std::array<glm::vec4, 6> &frustumPlanes);
 
     // Updates
-    void updateDrawCommandBuffer();
     void updateCameraUBO(Scene &scene);
     void updateSceneTransforms(Scene &scene);
-    void updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool initAll);
+    void updateDrawCommandBuffer(bool upload = true);
     void updateShaderUniforms(Scene &scene, bool lightChanged);
+    void updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll);
 
     // Cleanup
     void deleteBuffers();
