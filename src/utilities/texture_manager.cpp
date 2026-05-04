@@ -346,7 +346,7 @@ void TextureManager::borrowCubemaps(ModelHandle self, ModelHandle other)
     }
 }
 
-void TextureManager::finalize2dAllocations()
+void TextureManager::texturesReserved()
 {
     if (textures2dAllocated_)
     {
@@ -383,7 +383,7 @@ void TextureManager::finalize2dAllocations()
     textures2dAllocated_ = true;
 }
 
-void TextureManager::build2dTextures()
+void TextureManager::buildTextures()
 {
     if (pending2dTextures_.empty())
         return;
@@ -419,7 +419,7 @@ void TextureManager::build2dTextures()
     glFinish();
 }
 
-void TextureManager::buildCubemapTextures()
+void TextureManager::buildCubemaps()
 {
     if (pendingCubemaps_.empty())
         return;
@@ -451,7 +451,7 @@ void TextureManager::buildCubemapTextures()
     glFinish();
 }
 
-SamplerArrayEntry TextureManager::reserveDynamicCubemaps(int numCubemaps, int resolution, GLenum internalFormat)
+SamplerArrayEntry TextureManager::reserveCubemaps(int numCubemaps, int resolution, GLenum internalFormat)
 {
     for (std::size_t i{0}; i < cubemapArrayTextures_.size(); ++i)
     {
@@ -472,7 +472,7 @@ SamplerArrayEntry TextureManager::reserveDynamicCubemaps(int numCubemaps, int re
     throw std::runtime_error("ArrayTexture bucket not found");
 }
 
-void TextureManager::finalizeCubemapAllocations()
+void TextureManager::cubemapsReserved()
 {
     if (texturesCubemapAllocated_)
     {

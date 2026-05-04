@@ -2,11 +2,10 @@
 
 #include "shader_base.h"
 
-/* Order is important.When a scene is passed to the renderer, these enums will
- * be rendered in order (skybox is usually last) as an optimization.
+/* When a scene is passed to the renderer, these enums will be rendered in order.
  */
 
-enum class ShaderType : std::size_t
+enum class ShaderType
 {
     directionalPBR,
     reflective,
@@ -20,9 +19,9 @@ enum class ShaderType : std::size_t
     count
 };
 
-constexpr std::size_t shaderIndex(ShaderType type)
+constexpr int shaderIndex(ShaderType type)
 {
-    return static_cast<std::size_t>(type);
+    return static_cast<int>(type);
 }
 
 class GraphicsShader : public Shader

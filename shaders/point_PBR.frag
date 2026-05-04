@@ -11,7 +11,6 @@ uniform float gamma;
 
 const float INVERSE_PI = 0.31830988618;
 
-
 //Positions in tangent view space
 in vsOut {
 	vec3 cameraPos;

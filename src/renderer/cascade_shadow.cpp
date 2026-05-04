@@ -11,13 +11,16 @@
 
 CascadeShadow::CascadeShadow(DirectionalLight &light, AABB worldAABB, float nearPlane) : nearPlane_{nearPlane}
 {
+    //Small adjustment so the furthest cascade perfectly fits
+    constexpr float orthoBoxModifier{1.05f};
+
     const glm::vec3 center{worldAABB.getCenter()};
     const glm::vec3 min{worldAABB.getMin()};
     const glm::vec3 max{worldAABB.getMax()};
     const glm::vec width{max - min};
 
     const float radius{glm::length(width)};
-    const float halfExtent{std::max({width.x, width.y}) * 0.5f};
+    const float halfExtent{std::max({width.x, width.y}) * 0.5f * orthoBoxModifier};
 
     const glm::vec3 lightPos{center - light.getDirection() * radius};
 
