@@ -56,7 +56,6 @@ class Scene
     // Accessors
     Camera &getCamera();
     std::vector<SceneEntry> &getAllSceneEntries();
-    SceneEntry &getEntryByHandle(ModelHandle handle);
     SceneEntry &getEntryByName(const std::string &key);
 
     // Per-frame Update
@@ -110,9 +109,6 @@ class Scene
         SceneEntry sceneEntry{.modelRef = modelRef, .transforms = {transform}, .shaderType = shaderType};
 
         sceneEntries_.emplace_back(sceneEntry);
-
-        // Store an access point to the instances, by model handle
-        entriesByHandle_.emplace(modelRef.getHandle(), std::ref(sceneEntries_.back()));
 
         // Add a lookup to get a reference to a model's instances by a user-defined name
         if (name.has_value())

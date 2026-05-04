@@ -4,12 +4,14 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <span>
 #include <thread>
 #include <tuple>
 #include <unordered_set>
 #include <vector>
 
+#include "aabb.h"
 #include "camera.h"
 #include "cascade_shadow.h"
 #include "directional_light.h"
@@ -26,6 +28,7 @@
 #include "texture_manager.h"
 #include "textures.h"
 #include "transform.h"
+#include <optional>
 
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.111f};
@@ -83,22 +86,23 @@ void Renderer::renderScene(Scene &scene)
     if (cameraUpdated)
         updateCameraUBO(scene);
 
-    cullScene(scene, scene.getCamera().getViewProjectionMatrix());
-    updateDrawCommandBuffer();
+    cullScene(scene.getCamera().getViewProjectionMatrix());
     renderScene();
 }
 
 void Renderer::updateCameraUBO(Scene &scene)
 {
-    Camera &camera{scene.getCamera()};
-    packedShaderUniforms_.viewMatrix = camera.getViewMatrix();
-    packedShaderUniforms_.projectionMatrix = camera.getProjectionMatrix();
-    packedShaderUniforms_.viewProjectionMatrix = camera.getViewProjectionMatrix();
-    packedShaderUniforms_.inverseViewProjectMatrix = glm::inverse(packedShaderUniforms_.viewProjectionMatrix);
-    packedShaderUniforms_.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
-    packedShaderUniforms_.time = static_cast<float>(glfwGetTime());
+    PackedShaderUniforms uniforms;
 
-    glNamedBufferSubData(shaderUniformsUBO_, 0, sizeof(PackedShaderUniforms), &packedShaderUniforms_);
+    Camera &camera{scene.getCamera()};
+    uniforms.viewMatrix = camera.getViewMatrix();
+    uniforms.projectionMatrix = camera.getProjectionMatrix();
+    uniforms.viewProjectionMatrix = camera.getViewProjectionMatrix();
+    uniforms.inverseViewProjectMatrix = glm::inverse(uniforms.viewProjectionMatrix);
+    uniforms.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
+    uniforms.time = static_cast<float>(glfwGetTime());
+
+    glNamedBufferSubData(shaderUniformsUBO_, 0, sizeof(PackedShaderUniforms), &uniforms);
 }
 
 void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll)
@@ -106,22 +110,24 @@ void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChange
     static_assert(shadowCascadeCount == 3);
 
     unsigned long long bytes{0};
+    PackedCascadeShadows cascadeShadows;
+
     std::size_t offset{uploadAll ? 0 : offsetof(PackedCascadeShadows, matrices)};
-    const void *data{uploadAll ? static_cast<void *>(&packedCascadeShadows_)
-                               : static_cast<void *>(&packedCascadeShadows_.matrices[0])};
+    const void *data{uploadAll ? static_cast<void *>(&cascadeShadows)
+                               : static_cast<void *>(&cascadeShadows.matrices[0])};
 
     if (uploadAll)
     {
-        packedCascadeShadows_.splits = {cascades[0].far, cascades[1].far, cascades[2].far, 0.0f};
-        bytes += sizeof(packedCascadeShadows_.splits);
+        cascadeShadows.splits = {cascades[0].far, cascades[1].far, cascades[2].far, 0.0f};
+        bytes += sizeof(cascadeShadows.splits);
     }
 
     int cascadesCount{lightChanged ? shadowCascadeCount : shadowCascadeCount - 1};
 
     for (int i{0}; i < cascadesCount; ++i)
     {
-        packedCascadeShadows_.matrices[i] = cascades[i].viewProjection;
-        bytes += sizeof(packedCascadeShadows_.matrices[i]);
+        cascadeShadows.matrices[i] = cascades[i].viewProjection;
+        bytes += sizeof(cascadeShadows.matrices[i]);
     }
 
     glNamedBufferSubData(shadowCascadesUBO_, offset, bytes, data);
@@ -191,19 +197,34 @@ void Renderer::setSceneShaderUniforms(Scene &scene)
     }
 }
 
-int countDynamicCubeMaps(Scene &scene)
+SceneTotals getSceneTotals(Scene &scene)
 {
-    int cubemaps{0};
+    SceneTotals totals;
+
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {
-        const Model &model{entry.modelRef.get()};
+        Model &model{entry.modelRef.get()};
         std::optional<ModelHandle> borrowed{model.getBorrowedHandle()};
+        std::span<Primitive> primitives{model.getPrimitives()};
+
+        std::size_t numTransforms{entry.transforms.size()};
+        std::size_t numPrimitives{primitives.size()};
 
         if (entry.shaderType == ShaderType::water && !borrowed.has_value())
-            ++cubemaps;
+            ++totals.dynamicCubemaps;
+
+        totals.matrices += numTransforms;
+        totals.primitives += numPrimitives;
+        totals.visibleInstances += numTransforms * numPrimitives;
+
+        for (Primitive &primitive : primitives)
+        {
+            totals.indices += primitive.indices.size();
+            totals.vertices += primitive.vertices.size();
+        }
     }
 
-    return cubemaps;
+    return totals;
 }
 
 AABB getSceneBounds(Scene &scene)
@@ -234,44 +255,87 @@ AABB getSceneBounds(Scene &scene)
     return {min, max};
 }
 
+std::vector<DrawElementsIndirectCommand> buildDrawCommandBuffer(std::vector<DrawEntry> &entries,
+                                                                DrawElementsIndirectCommand &skybox,
+                                                                SceneTotals &totals)
+{
+    std::vector<DrawElementsIndirectCommand> commands;
+    commands.reserve(totals.primitives);
+
+    int vaoIndex{0};
+    std::uint32_t eboIndex{0};
+
+    for (std::size_t i{0}; i < entries.size(); ++i)
+    {
+        DrawEntry &entry{entries[i]};
+        const std::vector<Transform> &transforms{*entry.transforms};
+        std::size_t numTransforms{transforms.size()};
+
+        commands.emplace_back(
+            DrawElementsIndirectCommand{.count = static_cast<unsigned int>(entry.primitive->indices.size()),
+                                        .instanceCount = static_cast<unsigned int>(numTransforms),
+                                        .firstIndex = eboIndex,
+                                        .baseVertex = vaoIndex,
+                                        .baseInstance = static_cast<unsigned int>(i)});
+
+        vaoIndex += static_cast<std::uint32_t>(entry.primitive->vertices.size());
+        eboIndex += static_cast<std::uint32_t>(entry.primitive->indices.size());
+    }
+
+    return commands;
+}
+
 void Renderer::initializeResources(Scene &scene)
 {
-    // Reserve space up front for any load-time generated cubemaps
-    int cubemapRes{getReflectionResolution()};
-    int dynamicCubemaps{countDynamicCubeMaps(scene)};
-    GLenum colorFormat{textureManager_.getReflectionColorFormat()};
+    if (scene.getAllSceneEntries().empty())
+        return;
 
-    SamplerArrayEntry reservedEntry{textureManager_.reserveDynamicCubemaps(dynamicCubemaps, cubemapRes, colorFormat)};
-
-    // Setup all static scene textures
-    textureManager_.finalize2dAllocations();
-    textureManager_.build2dTextures();
-    textureManager_.finalizeCubemapAllocations();
-    textureManager_.buildCubemapTextures();
-
-    // Sort the renderer's map by shader & state
-    buildDrawEntries(scene);
-    sortPrimitives();
-
-    // Resizing and counting. Must be done after drawEntries has been filled.
-    std::vector<PrimitiveMetadata> metadata;
     SceneTotals totals{getSceneTotals(scene)};
-    metadata.resize(drawEntries_.size());
-    drawCommands_.resize(drawEntries_.size());
 
-    // Metadata indices must come after the drawEntries are built and sorted, since they map 1:1 to drawEntries.
-    assignMetadataIndices();
+    // 2D Textures
+    textureManager_.texturesReserved();
+    textureManager_.buildTextures();
 
-    // Fill the draw command buffer for SSBO creation
-    updateDrawCommandBuffer(false);
+    // Cubemaps. Reserve space up front for any load-time generated cubemaps
+    int resolution{getReflectionResolution()};
+    int numCubemaps{static_cast<int>(totals.dynamicCubemaps)};
+    GLenum colorFormat{textureManager_.getReflectionColorFormat()};
+    SamplerArrayEntry reservedEntry{textureManager_.reserveCubemaps(numCubemaps, resolution, colorFormat)};
 
-    // GPU Resources. SSBOs rely on the renderer's draw entries being populated.
-    createBuffers(metadata, totals);
-    createVAO(scene, totals);
-    populateMatricesSSBO(scene, metadata, totals);
-    populateVisibleIndicesBuffer(metadata, totals);
-    populateMetadataMaterials(scene, metadata);
-    glNamedBufferSubData(metadataSSBO_, 0, metadata.size() * sizeof(PrimitiveMetadata), metadata.data());
+    textureManager_.cubemapsReserved();
+    textureManager_.buildCubemaps();
+
+    // Create DrawEntries for building the draw command buffer
+    std::vector<DrawEntry> drawEntries{createDrawEntries(scene, totals)};
+    sortDrawEntries(drawEntries);
+
+    // Build draw command buffer for SSBO creation. Make a copy so we can adjust counts
+    drawCommandsSource_ = buildDrawCommandBuffer(drawEntries, skybox_, totals);
+    drawCommands_ = drawCommandsSource_;
+    cullResults_.resize(drawCommands_.size());
+
+    createDrawBuckets(drawEntries);
+    drawCounts_.resize(drawBuckets_.size());
+
+    // GPU Resources
+    createBuffers(totals);
+    createVAO(drawEntries, totals);
+
+    // Metadata buffer setup
+    std::vector<PrimitiveMetadata> metadata;
+    metadata.resize(drawEntries.size());
+    populateMatricesSSBO(drawEntries, metadata, totals);
+    setVisibleInstancesBaseIndex(drawEntries, metadata, totals);
+    setMetadataMaterials(drawEntries, metadata);
+
+    glNamedBufferSubData(metadataBuffer_, 0, metadata.size() * sizeof(PrimitiveMetadata), metadata.data());
+    metadata_ = metadata;
+
+    // Must be done after GPU buffers are complete
+    createBufferMap(drawEntries, totals);
+
+    // Culling setup
+    createAABBs(drawEntries, totals);
 
     // Setup for cascade shadow maps
     AABB worldAABB{getSceneBounds(scene)};
@@ -286,13 +350,13 @@ void Renderer::initializeResources(Scene &scene)
         renderShadowMaps(scene, true);
 
     // Assign the skybox to any ocean shaders
-    borrowSkybox();
+    borrowSkybox(drawEntries);
 
     // Dynamic cubemap generation. The scene must be ready to render, except water / ocean.
-    createCubemaps(scene, reservedEntry);
+    createCubemaps(scene, drawEntries, reservedEntry);
 
     // Push the new cubemaps through
-    updateMetadataCubemaps(metadata);
+    updateMetadataCubemaps(drawEntries, metadata);
 
     // Get ready for first frame
     updateCameraUBO(scene);
@@ -313,10 +377,11 @@ void Renderer::deleteBuffers()
     glDeleteBuffers(1, &shaderUniformsUBO_);
     glDeleteBuffers(1, &shadowCascadesUBO_);
 
-    glDeleteBuffers(1, &visibleIndicesSSBO_);
-    glDeleteBuffers(1, &matricesSSBO_);
-    glDeleteBuffers(1, &metadataSSBO_);
-    glDeleteBuffers(1, &drawCommandsBuffer_);
+    glDeleteBuffers(1, &aabbBuffer_);
+    glDeleteBuffers(1, &matricesBuffer_);
+    glDeleteBuffers(1, &metadataBuffer_);
+    glDeleteBuffers(1, &visibleInstancesBuffer_);
+    glDeleteBuffers(1, &drawCommandsSourceBuffer_);
 }
 
 // Convert from buffer sub data to a persistant map
@@ -326,22 +391,16 @@ void Renderer::updateSceneTransforms(Scene &scene)
 
     for (ModelHandle handle : updatedTransformHandles)
     {
-        std::vector<std::uint32_t> &drawEntryIndices{drawEntriesByHandle_.at(handle)};
-
-        Model &model{scene.getEntryByHandle(handle).modelRef.get()};
-
-        // Because all primitives of a model share the same underlaying matrices, we can grab the first primitive
-        DrawEntry &entry{drawEntries_[drawEntryIndices.front()]};
-
-        std::size_t numMatrices{entry.transforms->size()};
+        ModelTransforms &modelTransforms{transformsByHandle_.at(handle)};
+        std::size_t numMatrices{modelTransforms.transforms->size()};
 
         updatedMatrices_.clear();
         updatedMatrices_.reserve(numMatrices);
 
-        for (Transform &transform : *entry.transforms)
+        for (Transform &transform : *modelTransforms.transforms)
             updatedMatrices_.emplace_back(transform.getModelMatrix());
 
-        glNamedBufferSubData(matricesSSBO_, entry.matricesBufferBaseIndex * sizeof(glm::mat4),
+        glNamedBufferSubData(matricesBuffer_, modelTransforms.matricesBufferBaseIndex * sizeof(glm::mat4),
                              numMatrices * sizeof(glm::mat4), updatedMatrices_.data());
     }
 
@@ -354,9 +413,10 @@ std::uint32_t Renderer::getFrameCount() const
 }
 
 // Build up all scene entries by shader type
-void Renderer::buildDrawEntries(Scene &scene)
+std::vector<DrawEntry> Renderer::createDrawEntries(Scene &scene, const SceneTotals &totals)
 {
-    drawEntries_.reserve(scene.getAllSceneEntries().size());
+    std::vector<DrawEntry> drawEntries;
+    drawEntries.reserve(totals.primitives);
 
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {
@@ -370,43 +430,33 @@ void Renderer::buildDrawEntries(Scene &scene)
         {
             using enum fastgltf::AlphaMode;
 
-            drawEntries_.emplace_back(DrawEntry{.handle = handle,
-                                                .primitive = &primitive,
-                                                .transforms = &entry.transforms,
-                                                .shaderType = entry.shaderType,
-                                                .alphaMode = primitive.alphaMode,
-                                                .visibleInstances = numTransforms});
+            drawEntries.emplace_back(DrawEntry{.handle = handle,
+                                               .primitive = &primitive,
+                                               .transforms = &entry.transforms,
+                                               .shaderType = entry.shaderType,
+                                               .alphaMode = primitive.alphaMode});
         }
     }
+
+    return drawEntries;
 }
 
-void Renderer::sortPrimitives()
+void Renderer::sortDrawEntries(std::vector<DrawEntry> &entries)
 {
-    std::ranges::sort(drawEntries_, [](const DrawEntry &a, const DrawEntry &b) {
+    std::ranges::sort(entries, [](const DrawEntry &a, const DrawEntry &b) {
         return std::tie(a.shaderType, a.alphaMode) < std::tie(b.shaderType, b.alphaMode);
     });
-
-    drawEntriesByHandle_.clear();
-
-    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(drawEntries_.size()); ++i)
-        drawEntriesByHandle_[drawEntries_[i].handle].push_back(i);
 }
 
-void Renderer::assignMetadataIndices()
+void Renderer::updateMetadataCubemaps(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata)
 {
-    for (std::uint32_t i{0}; i < static_cast<uint32_t>(drawEntries_.size()); ++i)
-        drawEntries_[i].metadataBufferIndex = i;
-}
-
-void Renderer::updateMetadataCubemaps(std::vector<PrimitiveMetadata> &metadata)
-{
-    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(drawEntries_.size()); ++i)
+    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(entries.size()); ++i)
     {
         using enum ShaderType;
 
-        if (drawEntries_[i].shaderType == water || drawEntries_[i].shaderType == ocean)
+        if (entries[i].shaderType == water || entries[i].shaderType == ocean)
         {
-            DrawEntry &drawEntry{drawEntries_[i]};
+            const DrawEntry &drawEntry{entries[i]};
             PrimitiveMetadata &metaEntry{metadata[i]};
 
             const int matIndex{drawEntry.primitive->materialIndex};
@@ -416,7 +466,7 @@ void Renderer::updateMetadataCubemaps(std::vector<PrimitiveMetadata> &metadata)
             metaEntry.cubemapArray = material.cubemap.array;
             metaEntry.cubemapLayer = material.cubemap.layer;
 
-            glNamedBufferSubData(metadataSSBO_, static_cast<GLintptr>(i * sizeof(PrimitiveMetadata)),
+            glNamedBufferSubData(metadataBuffer_, static_cast<GLintptr>(i * sizeof(PrimitiveMetadata)),
                                  static_cast<GLsizeiptr>(sizeof(PrimitiveMetadata)), &metaEntry);
         }
     }
@@ -429,49 +479,81 @@ int Renderer::getReflectionResolution() const
     return std::max(graphicsSettings_.screenWidth, graphicsSettings_.screenHeight) / resolutionReduction;
 }
 
-void Renderer::updateDrawCommandBuffer(bool upload)
+void Renderer::createDrawBuckets(const std::vector<DrawEntry> &entries)
 {
-    drawBuckets_.clear();
+    using enum ShaderType;
+    using enum fastgltf::AlphaMode;
 
-    int start{0};
-    int end{0};
+    ShaderType currentShaderType{entries.front().shaderType};
+    fastgltf::AlphaMode currentAlphaMode{entries.front().alphaMode};
 
-    ShaderType currentShaderType{drawEntries_.front().shaderType};
-    fastgltf::AlphaMode currentAlphaMode{drawEntries_.front().alphaMode};
+    std::uint32_t start{0};
+    std::uint32_t end{0};
 
-    for (DrawEntry &entry : drawEntries_)
+    for (const DrawEntry &entry : entries)
     {
-        if (entry.shaderType != currentShaderType || entry.alphaMode != currentAlphaMode)
+        if (currentShaderType != entry.shaderType || currentAlphaMode != entry.alphaMode)
         {
-            drawBuckets_.emplace_back(MultiDrawInfo{.count = end - start,
-                                                    .startIndex = start,
-                                                    .shaderType = currentShaderType,
-                                                    .alphaMode = currentAlphaMode});
+            drawBuckets_.emplace_back(MultiDrawBucket{.maxCount = end - start,
+                                                      .startIndex = start,
+                                                      .shaderType = currentShaderType,
+                                                      .alphaMode = currentAlphaMode});
 
             start = end;
             currentShaderType = entry.shaderType;
             currentAlphaMode = entry.alphaMode;
         }
 
-        if (entry.anyVisible)
-        {
-            drawCommands_[end++] = {.count = static_cast<unsigned int>(entry.primitive->indices.size()),
-                                    .instanceCount = entry.visibleInstances,
-                                    .firstIndex = entry.eboBaseIndex,
-                                    .baseVertex = entry.vaoBaseIndex,
-                                    .baseInstance = entry.metadataBufferIndex};
-        }
+        ++end;
     }
 
     if (end - start > 0)
-        drawBuckets_.emplace_back(MultiDrawInfo{
-            .count = end - start,
-            .startIndex = start,
-            .shaderType = currentShaderType,
-            .alphaMode = currentAlphaMode,
-        });
+        drawBuckets_.emplace_back(MultiDrawBucket{.maxCount = end - start,
+                                                  .startIndex = start,
+                                                  .shaderType = currentShaderType,
+                                                  .alphaMode = currentAlphaMode});
+}
 
-    if (upload)
-        glNamedBufferSubData(drawCommandsBuffer_, 0, static_cast<GLsizeiptr>(end * sizeof(DrawElementsIndirectCommand)),
-                             drawCommands_.data());
+void Renderer::createAABBs(const std::vector<DrawEntry> &entries, const SceneTotals &totals)
+{
+    aabbs_.reserve(totals.primitives);
+
+    for (const DrawEntry &entry : entries)
+        aabbs_.emplace_back(entry.primitive->aabb);
+}
+
+void Renderer::createBufferMap(const std::vector<DrawEntry> &entries, const SceneTotals &totals)
+{
+    bufferMap_.reserve(totals.visibleInstances);
+
+    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(entries.size()); ++i)
+    {
+        const PrimitiveMetadata &metadata{metadata_[i]};
+        std::vector<Transform> &transforms{*entries[i].transforms};
+
+        std::uint32_t bucket{0};
+        std::uint32_t matricesBufferbaseIndex{transformsByHandle_.at(entries[i].handle).matricesBufferBaseIndex};
+
+        for (std::uint32_t j{0}; j < static_cast<std::uint32_t>(drawBuckets_.size() - 1); ++j)
+        {
+            if (i >= drawBuckets_[j].startIndex && i < drawBuckets_[j + 1].startIndex)
+            {
+                break;
+            }
+            else
+            {
+                ++bucket;
+            }
+        }
+
+        for (std::uint32_t k{0}; k < static_cast<std::uint32_t>(transforms.size()); ++k)
+        {
+            bufferMap_.emplace_back(BufferMap{
+                .matricesIndex = matricesBufferbaseIndex + k,
+                .sharedBaseIndex = i,
+                .drawBucket = bucket,
+                .drawBucketBaseIndex = drawBuckets_[bucket].startIndex,
+            });
+        }
+    }
 }

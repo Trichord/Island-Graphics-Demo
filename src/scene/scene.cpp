@@ -76,11 +76,6 @@ std::unordered_set<ModelHandle> &Scene::getUpdatedModels()
     return updatedModels_;
 }
 
-SceneEntry &Scene::getEntryByHandle(ModelHandle handle)
-{
-    return entriesByHandle_.at(handle);
-}
-
 void Scene::addInstancedObjectToScene(InstancedModel &modelRef, ShaderType shaderType,
                                       const std::optional<std::string> name)
 {

@@ -11,7 +11,6 @@ struct Metadata
 	int normalLayer;
 	int cubemapArray;
 	int cubemapLayer;
-	uint matricesBufferBaseIndex;
 	uint visibleInstancesBufferBaseIndex;
 };
 
@@ -68,11 +67,9 @@ out vsOut
 void main() 
 {
 	Metadata metadata = metadataBuffer[gl_BaseInstance];
+	uint matrixIndex = indices[metadata.visibleInstancesBufferBaseIndex + gl_InstanceID];
 
-	uint matricesIndex = metadata.matricesBufferBaseIndex;
-	uint instanceIndex = indices[metadata.visibleInstancesBufferBaseIndex + gl_InstanceID];
-
-	mat4 modelMatrix = instances[matricesIndex + instanceIndex];
+	mat4 modelMatrix = instances[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
 
 	//TBN matrix for normal map

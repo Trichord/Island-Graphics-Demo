@@ -11,7 +11,6 @@ struct Metadata
 	int normalLayer;
 	int cubemapArray;
 	int cubemapLayer;
-	uint matricesBufferBaseIndex;
 	uint visibleInstancesBufferBaseIndex;
 };
 
