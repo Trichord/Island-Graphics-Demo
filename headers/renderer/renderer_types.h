@@ -6,14 +6,14 @@
 #include "cascade_shadow.h"
 
 #pragma warning(push)
-#pragma warning(disable: 5260)
+#pragma warning(disable : 5260)
 #include "fastgltf/types.hpp"
 #include "json/json.hpp"
 #pragma warning(pop)
 
 #include "glm/glm.hpp"
-#include "primitive.h"
 #include "graphics_shader.h"
+#include "primitive.h"
 #include "texture_manager.h"
 #include "transform.h"
 
@@ -36,15 +36,6 @@ struct DrawEntry
 
     ShaderType shaderType{ShaderType::directionalPBR};
     fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
-
-    bool anyVisible{true};
-    std::uint32_t visibleInstances{0};
-
-    int vaoBaseIndex{0};
-    std::uint32_t eboBaseIndex{0};
-    std::uint32_t metadataBufferIndex{0};
-    std::uint32_t matricesBufferBaseIndex{0};
-    std::uint32_t visibleIndiciesBufferBaseIndex{0};
 };
 
 // Packs all uniforms for sharing across shaders
@@ -76,7 +67,6 @@ struct PrimitiveMetadata
     int normalLayer{0};
     int cubemapArray{0};
     int cubemapLayer{0};
-    std::uint32_t matricesBufferBaseIndex{0};
     std::uint32_t visibleInstancesBufferBaseIndex{0};
 };
 
@@ -86,16 +76,33 @@ struct SceneTotals
     std::size_t vertices{0};
     std::size_t indices{0};
     std::size_t matrices{0};
+    std::size_t primitives{0};
+    std::size_t dynamicCubemaps{0};
     std::size_t visibleInstances{0};
 };
 
 // Buffer offset and primitive count for Multi Draw Indirect calls
-struct MultiDrawInfo
+struct MultiDrawBucket
 {
-    int count{0};
-    int startIndex{0};
+    std::uint32_t maxCount{0};
+    std::uint32_t startIndex{0};
     ShaderType shaderType{ShaderType::directionalPBR};
     fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
+};
+
+struct ModelTransforms
+{
+    std::uint32_t matricesBufferBaseIndex{0};
+    std::vector<Transform> *transforms{nullptr};
+};
+
+// Maps an entry in the visibility buffer, so that a compute shader global ID can find its resources
+struct BufferMap
+{
+    std::uint32_t matricesIndex{0};
+    std::uint32_t sharedBaseIndex{0};     // AABB and Draw Command
+    std::uint32_t drawBucket{0};          // For writing into the final glMultiDrawElementsIndirectCount drawcount
+    std::uint32_t drawBucketBaseIndex{0}; // For compaction. To maintain proper offsets into the draw command buffer
 };
 
 enum class BindingPointSSBO : unsigned int
@@ -105,7 +112,9 @@ enum class BindingPointSSBO : unsigned int
     metadata,
     drawCommands,
     drawCommandsSource,
-    aabb
+    cullResults,
+    matrixMapBuffer,
+    aabb,
 };
 
 enum class BindingPointUBO : unsigned int

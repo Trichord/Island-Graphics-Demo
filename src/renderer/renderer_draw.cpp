@@ -1,16 +1,15 @@
-#include <cstring>
 #include <vector>
 
 #include "camera.h"
 #include "cascade_shadow.h"
+#include "directional_light.h"
+#include "fastgltf/types.hpp"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
-#include "primitive.h"
 #include "renderer.h"
+#include "renderer_types.h"
 #include "scene.h"
-#include "texture_manager.h"
-#include "textures.h"
 
 // Reduce the distance of the camera's far plane by 80% for shadow cascades.
 constexpr float farPlaneReduction{0.2f};
@@ -27,34 +26,39 @@ void Renderer::renderScene()
 
     fastgltf::AlphaMode currentAlphaMode{drawBuckets_.front().alphaMode};
 
-    for (MultiDrawInfo &mdi : drawBuckets_)
+    for (std::size_t i{0}; i < drawBuckets_.size(); ++i)
     {
-        if (currentShaderType != mdi.shaderType)
-        {
-            using enum ShaderType;
+        using enum ShaderType;
 
-            if (mdi.shaderType == skybox)
+        MultiDrawBucket &mdb{drawBuckets_[i]};
+
+        if (currentShaderType != mdb.shaderType)
+        {
+            if (mdb.shaderType == skybox)
                 glState_.setDepthFunction(GL_LEQUAL);
 
             if (currentShaderType == skybox)
                 glState_.setDepthFunction(GL_LESS);
 
-            shader = &shaders_[static_cast<int>(mdi.shaderType)];
+            shader = &shaders_[static_cast<int>(mdb.shaderType)];
             shader->use();
-            currentShaderType = mdi.shaderType;
+            currentShaderType = mdb.shaderType;
         }
 
-        if (currentAlphaMode != mdi.alphaMode)
+        if (currentAlphaMode != mdb.alphaMode)
         {
-            glState_.setAlphaMode(mdi.alphaMode);
-            currentAlphaMode = mdi.alphaMode;
+            glState_.setAlphaMode(mdb.alphaMode);
+            currentAlphaMode = mdb.alphaMode;
         }
+
+        GLsizei drawCount{currentShaderType == skybox ? static_cast<GLsizei>(mdb.maxCount)
+                                                      : static_cast<GLsizei>(drawCounts_[i])};
 
         glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT,
-                                    (void *)(mdi.startIndex * sizeof(DrawElementsIndirectCommand)), mdi.count, 0);
+                                    (void *)(mdb.startIndex * sizeof(DrawElementsIndirectCommand)), drawCount, 0);
     }
 
-    // Assume skybox was last and reset for next frame
+    // Assume skybox was last
     glState_.setDepthFunction(GL_LESS);
 }
 
@@ -92,8 +96,7 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
         const glm::mat4 lightVP{cascades[i].viewProjection};
 
         msaaShadowTarget_.clear();
-        cullScene(scene, lightVP);
-        updateDrawCommandBuffer();
+        cullScene(lightVP);
 
         // Opaque geometry first
         shadowShader.use();
@@ -116,20 +119,23 @@ void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)
 {
     shader.setInt("cascade", cascade);
 
-    for (MultiDrawInfo &mdi : drawBuckets_)
+    for (std::size_t i{0}; i < drawBuckets_.size(); ++i)
     {
+        MultiDrawBucket &mdb{drawBuckets_[i]};
         using enum ShaderType;
         using enum fastgltf::AlphaMode;
 
-        if (mdi.shaderType == skybox || mdi.shaderType == ocean)
+        if (mdb.shaderType == ocean || mdb.shaderType == skybox)
             continue;
 
-        const bool a2c{mdi.alphaMode == Mask};
+        const bool a2c{mdb.alphaMode == Mask};
 
         if (a2c != alphaTested)
             continue;
 
+        GLsizei drawCount{static_cast<GLsizei>(drawCounts_[i])};
+
         glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT,
-                                    (void *)(mdi.startIndex * sizeof(DrawElementsIndirectCommand)), mdi.count, 0);
+                                    (void *)(mdb.startIndex * sizeof(DrawElementsIndirectCommand)), drawCount, 0);
     }
 }

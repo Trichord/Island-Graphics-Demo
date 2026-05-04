@@ -6,12 +6,13 @@
 #include <cstdint>
 #include <iostream>
 #include <iterator>
+#include <optional>
 #include <stdexcept>
 #include <unordered_set>
 #include <vector>
 
 #include "camera.h"
-#include "gl_context.h"
+#include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
 #include "model.h"
@@ -24,28 +25,11 @@
 #include "transform.h"
 #include "world_vectors.h"
 
-SceneTotals Renderer::getSceneTotals(Scene &scene)
+void Renderer::createBuffers(const SceneTotals &totals)
 {
-    SceneTotals totals;
+    GLsizeiptr drawCommandBufferSize{
+        static_cast<GLsizeiptr>(drawCommandsSource_.size() * sizeof(DrawElementsIndirectCommand))};
 
-    for (SceneEntry &entry : scene.getAllSceneEntries())
-    {
-        std::size_t numTransforms{entry.transforms.size()};
-        totals.matrices += numTransforms;
-        totals.visibleInstances += numTransforms * entry.modelRef.get().getPrimitives().size();
-
-        for (Primitive &primitive : entry.modelRef.get().getPrimitives())
-        {
-            totals.indices += primitive.indices.size();
-            totals.vertices += primitive.vertices.size();
-        }
-    }
-
-    return totals;
-}
-
-void Renderer::createBuffers(std::vector<PrimitiveMetadata> &metadata, const SceneTotals &totals)
-{
     // UBOs
     glCreateBuffers(1, &shaderUniformsUBO_);
     glNamedBufferStorage(shaderUniformsUBO_, sizeof(PackedShaderUniforms), nullptr, GL_DYNAMIC_STORAGE_BIT);
@@ -56,76 +40,80 @@ void Renderer::createBuffers(std::vector<PrimitiveMetadata> &metadata, const Sce
     glBindBufferBase(GL_UNIFORM_BUFFER, static_cast<GLuint>(BindingPointUBO::cascadeShadows), shadowCascadesUBO_);
 
     // Instanced model matrices
-    glCreateBuffers(1, &matricesSSBO_);
-    glNamedBufferStorage(matricesSSBO_, totals.matrices * sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::matrices), matricesSSBO_);
+    glCreateBuffers(1, &matricesBuffer_);
+    glNamedBufferStorage(matricesBuffer_, totals.matrices * sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::matrices), matricesBuffer_);
 
     // Indices into the model matrices buffer. Each primitive has its own set of visible indicies, with the number of
     // model matrices being the upper bound
-    glCreateBuffers(1, &visibleIndicesSSBO_);
-    glNamedBufferStorage(visibleIndicesSSBO_, totals.visibleInstances * sizeof(std::uint32_t), nullptr,
+    glCreateBuffers(1, &visibleInstancesBuffer_);
+    glNamedBufferStorage(visibleInstancesBuffer_, totals.visibleInstances * sizeof(std::uint32_t), nullptr,
                          GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::visibleIndices),
-                     visibleIndicesSSBO_);
+                     visibleInstancesBuffer_);
 
     // Per primitive metadata
-    glCreateBuffers(1, &metadataSSBO_);
-    glNamedBufferStorage(metadataSSBO_, drawEntries_.size() * sizeof(PrimitiveMetadata), nullptr,
+    glCreateBuffers(1, &metadataBuffer_);
+    glNamedBufferStorage(metadataBuffer_, drawCommandBufferSize * sizeof(PrimitiveMetadata), nullptr,
                          GL_DYNAMIC_STORAGE_BIT);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::metadata), metadataSSBO_);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::metadata), metadataBuffer_);
 
-    // Draw command buffer
+    // Draw command buffer (unchanging)
+    glCreateBuffers(1, &drawCommandsSourceBuffer_);
+    glNamedBufferStorage(drawCommandsSourceBuffer_, drawCommandBufferSize, drawCommands_.data(), 0);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::drawCommandsSource),
+                     drawCommandsSourceBuffer_);
+
+    // Draw command buffer (dynamic)
     glCreateBuffers(1, &drawCommandsBuffer_);
-    glNamedBufferStorage(drawCommandsBuffer_, drawCommands_.size() * sizeof(DrawElementsIndirectCommand),
-                         drawCommands_.data(), GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferStorage(drawCommandsBuffer_, drawCommandBufferSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::drawCommands),
                      drawCommandsBuffer_);
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawCommandsBuffer_);
 }
 
-void Renderer::populateMatricesSSBO(Scene &scene, std::vector<PrimitiveMetadata> &metadata, SceneTotals &stats)
+void Renderer::populateMatricesSSBO(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata,
+                                    const SceneTotals &totals)
 {
     std::uint32_t matricesIndex{0};
     std::vector<glm::mat4> modelMatrices;
-    modelMatrices.reserve(stats.matrices);
+    modelMatrices.reserve(totals.matrices);
 
-    for (SceneEntry &sceneEntry : scene.getAllSceneEntries())
+    for (std::size_t i{0}; i < entries.size(); ++i)
     {
-        ModelHandle handle{sceneEntry.modelRef.get().getHandle()};
+        auto [iter, inserted] = transformsByHandle_.try_emplace(entries[i].handle);
 
-        for (Transform &transform : sceneEntry.transforms)
+        if (inserted)
         {
-            modelMatrices.emplace_back(transform.getModelMatrix());
-        }
+            std::vector<Transform> &transforms{*entries[i].transforms};
 
-        for (std::uint32_t index : drawEntriesByHandle_.at(handle))
-        {
-            drawEntries_[index].matricesBufferBaseIndex = matricesIndex;
-            metadata[index].matricesBufferBaseIndex = matricesIndex;
-        }
+            for (Transform &transform : transforms)
+                modelMatrices.emplace_back(transform.getModelMatrix());
 
-        matricesIndex += static_cast<std::uint32_t>(sceneEntry.transforms.size());
+            iter->second = {matricesIndex, &transforms};
+
+            matricesIndex += static_cast<std::uint32_t>(transforms.size());
+        }
     }
 
-    glNamedBufferSubData(matricesSSBO_, 0, modelMatrices.size() * sizeof(glm::mat4), modelMatrices.data());
+    matrices_ = modelMatrices;
+    glNamedBufferSubData(matricesBuffer_, 0, modelMatrices.size() * sizeof(glm::mat4), modelMatrices.data());
 }
 
-void Renderer::populateMetadataMaterials(Scene &scene, std::vector<PrimitiveMetadata> &metadata)
+void Renderer::setMetadataMaterials(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata)
 {
-    // Each draw entry (primitive) gets its own section of the visibility buffer sized to the underlying model's number
-    // of instances
-    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(drawEntries_.size()); ++i)
+    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(entries.size()); ++i)
     {
-        DrawEntry &drawEntry{drawEntries_[i]};
+        const DrawEntry &entry{entries[i]};
         PrimitiveMetadata &metaEntry{metadata[i]};
 
-        const int matIndex{drawEntry.primitive->materialIndex};
-        const std::vector<Material> &materials{textureManager_.getMaterials(drawEntry.handle)};
+        const int matIndex{entry.primitive->materialIndex};
+        const std::vector<Material> &materials{textureManager_.getMaterials(entry.handle)};
         const Material &material{materials[matIndex]};
 
         if (matIndex < 0 || matIndex >= static_cast<int>(materials.size()))
         {
-            std::cerr << "Material index out of bound for model handle " << drawEntry.handle << std::endl;
+            std::cerr << "Material index out of bound for model handle " << entry.handle << std::endl;
             throw std::runtime_error("Material index out of bounds");
         }
 
@@ -143,29 +131,20 @@ void Renderer::populateMetadataMaterials(Scene &scene, std::vector<PrimitiveMeta
     }
 }
 
-void Renderer::populateVisibleIndicesBuffer(std::vector<PrimitiveMetadata> &metadata, SceneTotals &stats)
+void Renderer::setVisibleInstancesBaseIndex(const std::vector<DrawEntry> &entries,
+                                            std::vector<PrimitiveMetadata> &metadata, const SceneTotals &totals)
 {
     std::uint32_t visibleIndex{0};
-    visibleMatrices_.reserve(stats.visibleInstances);
+    visibleInstances_.resize(totals.visibleInstances);
 
-    // For the cubemaps, push every transform index so everything is visible
-    for (std::size_t i{0}; i < drawEntries_.size(); ++i)
+    for (std::size_t i{0}; i < entries.size(); ++i)
     {
-        std::vector<Transform> &transforms{*drawEntries_[i].transforms};
+        const std::vector<Transform> &transforms{*entries[i].transforms};
+        const std::uint32_t numTransforms{static_cast<uint32_t>(transforms.size())};
 
-        for (std::size_t j{0}; j < transforms.size(); ++j)
-        {
-            visibleMatrices_.emplace_back(static_cast<std::uint32_t>(j));
-        }
-
-        drawEntries_[i].visibleIndiciesBufferBaseIndex = visibleIndex;
         metadata[i].visibleInstancesBufferBaseIndex = visibleIndex;
-
-        visibleIndex += static_cast<uint32_t>(transforms.size());
+        visibleIndex += numTransforms;
     }
-
-    glNamedBufferSubData(visibleIndicesSSBO_, 0, visibleMatrices_.size() * sizeof(std::uint32_t),
-                         visibleMatrices_.data());
 }
 
 /* Vertex attribute layout:
@@ -174,7 +153,7 @@ void Renderer::populateVisibleIndicesBuffer(std::vector<PrimitiveMetadata> &meta
  * 2 - tangent (vec4)
  * 3 - texture coordinates (vec2)
  */
-void Renderer::createVAO(Scene &scene, SceneTotals stats)
+void Renderer::createVAO(const std::vector<DrawEntry> &entries, const SceneTotals &stats)
 {
     glCreateVertexArrays(1, &globalVAO_);
     glBindVertexArray(globalVAO_);
@@ -187,22 +166,13 @@ void Renderer::createVAO(Scene &scene, SceneTotals stats)
     std::vector<Primitive::Vertex> vertices;
     std::vector<std::uint32_t> indices;
 
-    std::uint32_t vaoIndex{0};
-    std::uint32_t eboIndex{0};
-
     vertices.reserve(stats.vertices);
     indices.reserve(stats.indices);
 
-    for (DrawEntry &entry : drawEntries_)
+    for (const DrawEntry &entry : entries)
     {
         std::copy(entry.primitive->vertices.begin(), entry.primitive->vertices.end(), std::back_inserter(vertices));
         std::copy(entry.primitive->indices.begin(), entry.primitive->indices.end(), std::back_inserter(indices));
-
-        entry.vaoBaseIndex = vaoIndex;
-        entry.eboBaseIndex = eboIndex;
-
-        vaoIndex += static_cast<std::uint32_t>(entry.primitive->vertices.size());
-        eboIndex += static_cast<std::uint32_t>(entry.primitive->indices.size());
     }
 
     glCreateBuffers(1, &globalVBO_);
@@ -226,14 +196,14 @@ void Renderer::createVAO(Scene &scene, SceneTotals stats)
     glVertexArrayAttribBinding(globalVAO_, 3, 0);
 }
 
-void Renderer::borrowSkybox()
+void Renderer::borrowSkybox(const std::vector<DrawEntry> &entries)
 {
     using enum ShaderType;
 
-    auto skyboxIter = std::ranges::lower_bound(drawEntries_, ShaderType::skybox, {}, &DrawEntry::shaderType);
-    auto oceanIter = std::ranges::lower_bound(drawEntries_, ShaderType::ocean, {}, &DrawEntry::shaderType);
+    auto skyboxIter = std::ranges::lower_bound(entries, ShaderType::skybox, {}, &DrawEntry::shaderType);
+    auto oceanIter = std::ranges::lower_bound(entries, ShaderType::ocean, {}, &DrawEntry::shaderType);
 
-    if (skyboxIter == drawEntries_.end() || oceanIter == drawEntries_.end())
+    if (skyboxIter == entries.end() || oceanIter == entries.end())
         return;
 
     ModelHandle skyboxHandle{skyboxIter->handle};
@@ -252,36 +222,36 @@ void Renderer::borrowSkybox()
     }
 }
 
-void Renderer::createCubemaps(Scene &scene, SamplerArrayEntry reservedEntry)
+void Renderer::createCubemaps(Scene &scene, const std::vector<DrawEntry> &entries, SamplerArrayEntry reservedEntry)
 {
     using enum ShaderType;
 
     // Set everything visible
-    for (DrawEntry &entry : drawEntries_)
-        cullNone(entry);
+    for (std::size_t i{0}; i < drawCommandsSource_.size(); ++i)
+        drawCommands_[i] = drawCommandsSource_[i];
 
-    auto waterIter = std::ranges::lower_bound(drawEntries_, water, {}, &DrawEntry::shaderType);
+    std::size_t waterIter{0};
 
-    if (waterIter == drawEntries_.end())
+    while (entries[waterIter].shaderType != water && waterIter < entries.size())
+        ++waterIter;
+
+    if (waterIter == entries.size())
         return;
 
-    auto waterEnableIter = waterIter;
-
     // Ensure reflections don't capture uninitialized other reflections or self geometry
-    while (waterIter->shaderType == water)
+    while (entries[waterIter].shaderType == water)
     {
-        waterIter->anyVisible = false;
+        drawCommands_[waterIter].count = 0;
         ++waterIter;
     }
 
-    // Fix the draw command buffer now that water is invisible
-    updateDrawCommandBuffer();
-
-    Camera &camera{scene.getCamera()};
-
-    int faceSize{getReflectionResolution()};
+    // Update the draw command buffer now that water is invisible
+    GLsizeiptr drawCommandBufferSize{
+        static_cast<GLsizeiptr>(drawCommands_.size() * sizeof(DrawElementsIndirectCommand))};
+    glNamedBufferSubData(drawCommandsBuffer_, 0, drawCommandBufferSize, drawCommands_.data());
 
     // Save camera settings before we make it bounce around the scene
+    Camera &camera{scene.getCamera()};
     const glm::vec3 originalPos{camera.getPosition()};
     const float originalPitch{camera.getPitch()};
     const float originalYaw{camera.getYaw()};
@@ -292,9 +262,10 @@ void Renderer::createCubemaps(Scene &scene, SamplerArrayEntry reservedEntry)
     camera.setFOV(90.0f);
     camera.setAspectRatio(1.0f);
 
+    int faceSize{getReflectionResolution()};
     glViewport(0, 0, faceSize, faceSize);
-    GLenum colorFormat{textureManager_.getReflectionColorFormat()};
 
+    GLenum colorFormat{textureManager_.getReflectionColorFormat()};
     RenderTarget cubeFaces{faceSize, faceSize,
                            RenderTarget::Settings{.msaa = graphicsSettings_.msaa,
                                                   .depthType = RenderTarget::DepthType::TEXTURE,
@@ -313,7 +284,7 @@ void Renderer::createCubemaps(Scene &scene, SamplerArrayEntry reservedEntry)
 
     cubeFaces.bind();
 
-    // Water should not be instanced because of the 1 cubemap per model. By walking the scene instead of draw entries,
+    // Water should not be instanced, limit one cubemap per model. By walking the scene instead of draw entries,
     // we ensure each model gets one cubemap
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {
@@ -348,12 +319,6 @@ void Renderer::createCubemaps(Scene &scene, SamplerArrayEntry reservedEntry)
     camera.setPitch(originalPitch);
     camera.setYaw(originalYaw);
     updateCameraUBO(scene);
-
-    while (waterEnableIter->shaderType == water)
-    {
-        waterEnableIter->anyVisible = true;
-        ++waterEnableIter;
-    }
 
     cubeFaces.unbind();
     glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);

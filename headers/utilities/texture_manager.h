@@ -40,13 +40,13 @@ class TextureManager
     void setCubemap(ModelHandle handle, RenderTarget &renderTarget, SamplerArrayEntry arrayEntry);
 
     // Bindless array texture setup
-    void build2dTextures();
-    void buildCubemapTextures();
-    SamplerArrayEntry reserveDynamicCubemaps(int numCubemaps, int resolution, GLenum internalFormat);
+    void buildTextures();
+    void buildCubemaps();
+    SamplerArrayEntry reserveCubemaps(int numCubemaps, int resolution, GLenum internalFormat);
 
     // Lock in GPU resources
-    void finalize2dAllocations();
-    void finalizeCubemapAllocations();
+    void texturesReserved();
+    void cubemapsReserved();
 
   private:
     struct ArrayTexture

@@ -24,9 +24,8 @@ PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JP
 {
     using namespace JPH;
 
-    bodyInterface_ = &physicsSystem_.GetBodyInterfaceNoLock();
-
-    player_.init(physicsSystem, tempAllocator);
+    //bodyInterface_ = &physicsSystem_.GetBodyInterfaceNoLock();
+    bodyInterface_ = &physicsSystem_.GetBodyInterface();
 
     // Build the static collision mesh from scene
     physicsUtilities::CollisionMesh collisionMesh{physicsUtilities::buildCollisionMesh(scene)};
@@ -59,6 +58,8 @@ PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JP
     }
 
     physicsSystem_.OptimizeBroadPhase();
+
+    player_.init(physicsSystem, tempAllocator);
 
     // Set start position
     glm::vec3 cameraPos{scene.getCamera().getPosition()};

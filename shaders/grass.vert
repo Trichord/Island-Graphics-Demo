@@ -11,7 +11,6 @@ struct Metadata
 	int normalLayer;
 	int cubemapArray;
 	int cubemapLayer;
-	uint matricesBufferBaseIndex;
 	uint visibleInstancesBufferBaseIndex;
 };
 
@@ -84,11 +83,9 @@ vec3 calcWindTranslation(mat4 transform, float timeStamp, vec3 windDir, float wi
 void main() 
 {
 	Metadata metadata = metadataBuffer[gl_BaseInstance];
+	uint matrixIndex = indices[metadata.visibleInstancesBufferBaseIndex + gl_InstanceID];
 
-	uint matricesIndex = metadata.matricesBufferBaseIndex;
-	uint instanceIndex = indices[metadata.visibleInstancesBufferBaseIndex + gl_InstanceID];
-
-	mat4 modelMatrix = instances[matricesIndex + instanceIndex];
+	mat4 modelMatrix = instances[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
 	
 	texCoords = aTexCoords;

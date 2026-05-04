@@ -165,18 +165,36 @@ std::vector<Primitive> fastgltfLoader::loadMeshes(const fastgltf::Asset &asset)
             auto &positionAccessor = asset.accessors[positionIt->accessorIndex];
             vertices.resize(positionAccessor.count);
 
-            fastgltf::iterateAccessorWithIndex<glm::vec3>(
-                asset, positionAccessor,
-                [&](glm::vec3 position, std::size_t index) { vertices[index].position = position; });
+            if (positionAccessor.type == fastgltf::AccessorType::Vec3)
+            {
+                fastgltf::iterateAccessorWithIndex<glm::vec3>(
+                    asset, positionAccessor,
+                    [&](glm::vec3 position, std::size_t index) { vertices[index].position = position; });
+            }
+#ifdef DEBUG
+            else
+            {
+                std::cerr << "ERROR: Fastgltf loading non-vec3 positions" << std::endl;
+            }
+#endif // DEBUG
 
             // Normals
             if (normalIt)
             {
                 auto &normalAccessor = asset.accessors[normalIt->accessorIndex];
 
-                fastgltf::iterateAccessorWithIndex<glm::vec3>(
-                    asset, normalAccessor,
-                    [&](glm::vec3 normal, std::size_t index) { vertices[index].normal = normal; });
+                if (normalAccessor.type == fastgltf::AccessorType::Vec3)
+                {
+                    fastgltf::iterateAccessorWithIndex<glm::vec3>(
+                        asset, normalAccessor,
+                        [&](glm::vec3 normal, std::size_t index) { vertices[index].normal = normal; });
+                }
+#ifdef DEBUG
+                else
+                {
+                    std::cerr << "ERROR: Fastgltf loading non-vec3 normals" << std::endl;
+                }
+#endif // DEBUG
             }
 
             // Tangents
@@ -184,9 +202,18 @@ std::vector<Primitive> fastgltfLoader::loadMeshes(const fastgltf::Asset &asset)
             {
                 auto &tangentAccessor = asset.accessors[tangentIt->accessorIndex];
 
-                fastgltf::iterateAccessorWithIndex<glm::vec4>(
-                    asset, tangentAccessor,
-                    [&](glm::vec4 tangent, std::size_t index) { vertices[index].tangent = tangent; });
+                if (tangentAccessor.type == fastgltf::AccessorType::Vec4)
+                {
+                    fastgltf::iterateAccessorWithIndex<glm::vec4>(
+                        asset, tangentAccessor,
+                        [&](glm::vec4 tangent, std::size_t index) { vertices[index].tangent = tangent; });
+                }
+#ifdef DEBUG
+                else
+                {
+                    std::cerr << "ERROR: Fastgltf loading non-vec4 tangents" << std::endl;
+                }
+#endif // DEBUG
             }
 
             // Texture coordinates
@@ -194,9 +221,19 @@ std::vector<Primitive> fastgltfLoader::loadMeshes(const fastgltf::Asset &asset)
             {
                 auto &texCoordAccessor = asset.accessors[texCoordIt->accessorIndex];
 
-                fastgltf::iterateAccessorWithIndex<glm::vec2>(
-                    asset, texCoordAccessor,
-                    [&](glm::vec2 texCoords, std::size_t index) { vertices[index].texCoords = texCoords; });
+                if (texCoordAccessor.type == fastgltf::AccessorType::Vec2)
+                {
+
+                    fastgltf::iterateAccessorWithIndex<glm::vec2>(
+                        asset, texCoordAccessor,
+                        [&](glm::vec2 texCoords, std::size_t index) { vertices[index].texCoords = texCoords; });
+                }
+#ifdef DEBUG
+                else
+                {
+                    std::cerr << "ERROR: Fastgltf loading non-vec2 uv coordinates" << std::endl;
+                }
+#endif // DEBUG
             }
 
             // Indices
@@ -205,9 +242,18 @@ std::vector<Primitive> fastgltfLoader::loadMeshes(const fastgltf::Asset &asset)
                 auto &indicesAccessor = asset.accessors[gltfPrimitive.indicesAccessor.value()];
                 indices.resize(indicesAccessor.count);
 
-                std::size_t idx{0};
-                fastgltf::iterateAccessor<std::uint32_t>(asset, indicesAccessor,
-                                                         [&](std::uint32_t index) { indices[idx++] = index; });
+                if (indicesAccessor.type == fastgltf::AccessorType::Scalar)
+                {
+                    std::size_t idx{0};
+                    fastgltf::iterateAccessor<std::uint32_t>(asset, indicesAccessor,
+                                                             [&](std::uint32_t index) { indices[idx++] = index; });
+                }
+#ifdef DEBUG
+                else
+                {
+                    std::cerr << "ERROR: Fastgltf loading non-scalar indices" << std::endl;
+                }
+#endif // DEBUG
             }
 
             // Check if there are any materials at all

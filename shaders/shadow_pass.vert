@@ -11,7 +11,6 @@ struct Metadata
 	int normalLayer;
 	int cubemapArray;
 	int cubemapLayer;
-	uint matricesBufferBaseIndex;
 	uint visibleInstancesBufferBaseIndex;
 };
 
@@ -46,11 +45,9 @@ uniform int cascade;
 void main()
 {	
 	Metadata metadata = metadataBuffer[gl_BaseInstance];
+	uint matrixIndex = indices[metadata.visibleInstancesBufferBaseIndex + gl_InstanceID];
 
-	uint matricesIndex = metadata.matricesBufferBaseIndex;
-	uint instanceIndex = indices[metadata.visibleInstancesBufferBaseIndex + gl_InstanceID];
-
-	mat4 modelMatrix = instances[matricesIndex + instanceIndex];
+	mat4 modelMatrix = instances[matrixIndex];
 
 	gl_Position = lightMatrices[cascade] * modelMatrix * vec4(aPos, 1.0);
 }

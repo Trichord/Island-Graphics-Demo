@@ -8,18 +8,15 @@
 #include "glm/gtc/matrix_access.hpp"
 #include "renderer.h"
 #include "renderer_types.h"
-#include "scene.h"
-#include "graphics_shader.h"
-#include "transform.h"
 
-static void normalizePlane(glm::vec4 &vec)
+void normalizePlane(glm::vec4 &vec)
 {
     const float length = glm::length(glm::vec3{vec});
     vec /= length;
 }
 
 // Planes are order of: Left, Right, Top, Bottom, Near, Far
-static std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
+std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
 {
     std::array<glm::vec4, 6> planes;
     const glm::vec4 row0{glm::row(matrix, 0)};
@@ -51,52 +48,71 @@ static std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
     return planes;
 }
 
-// Cull and build up the visible indices for the SSBO
-void Renderer::cullScene(Scene &scene, const glm::mat4 &cullMatrix)
+void Renderer::compactBuffer()
+{
+    // Clear the per MDI draw call count
+    for (std::uint32_t &count : drawCounts_)
+        count = 0;
+
+    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(cullResults_.size()); ++i)
+    {
+        if (cullResults_[i] == 0)
+            continue;
+
+        std::uint32_t visibilityBufferBaseIndex{
+            metadata_[drawCommands_[i].baseInstance].visibleInstancesBufferBaseIndex};
+        BufferMap map{bufferMap_[visibilityBufferBaseIndex]};
+
+        // Use the per-mdi draw call as a write index. As we write dracommands, the final number for the draw call
+        // increases, so we can take advantage of that as our new offset
+        std::uint32_t writeIndex{map.drawBucketBaseIndex + drawCounts_[map.drawBucket]};
+
+        drawCommands_[writeIndex] = drawCommandsSource_[i];
+        drawCommands_[writeIndex].instanceCount = cullResults_[i];
+        ++drawCounts_[map.drawBucket];
+    }
+}
+
+void Renderer::cullScene(const glm::mat4 &cullMatrix)
 {
     const std::array<glm::vec4, 6> planes{getFrustumPlanes(cullMatrix)};
 
-    for (DrawEntry &entry : drawEntries_)
+    // "Compute shader 1 - culling"
+    for (const DrawElementsIndirectCommand &command : drawCommandsSource_)
     {
-        if (entry.shaderType != ShaderType::skybox)
-            cullDrawEntry(entry, planes);
-        else
-            cullNone(entry);
+        std::uint32_t visibleInstancesBufferBaseIndex{metadata_[command.baseInstance].visibleInstancesBufferBaseIndex};
+        BufferMap map{bufferMap_[visibleInstancesBufferBaseIndex]};
+
+        // Clear previous cull result
+        std::uint32_t &counter{cullResults_[map.sharedBaseIndex]};
+        counter = 0;
+
+        for (std::uint32_t i{0}; i < command.instanceCount; ++i)
+            cullVisibilityIndex(visibleInstancesBufferBaseIndex, visibleInstancesBufferBaseIndex + i, counter, planes);
     }
 
-    glNamedBufferSubData(visibleIndicesSSBO_, 0, static_cast<GLsizeiptr>(visibleMatrices_.size() * sizeof(GLuint)),
-                         visibleMatrices_.data());
+    // "Compute shader 2 - command compaction"
+    compactBuffer();
+
+    glNamedBufferSubData(visibleInstancesBuffer_, 0, static_cast<GLsizeiptr>(visibleInstances_.size() * sizeof(GLuint)),
+                         visibleInstances_.data());
+    glNamedBufferSubData(drawCommandsBuffer_, 0,
+                         static_cast<GLsizeiptr>(drawCommands_.size() * sizeof(DrawElementsIndirectCommand)),
+                         drawCommands_.data());
+
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
-void Renderer::cullDrawEntry(DrawEntry &drawEntry, const std::array<glm::vec4, 6> &frustumPlanes)
+void Renderer::cullVisibilityIndex(std::uint32_t baseVisibilityIndex, std::uint32_t visibilityIndex,
+                                   std::uint32_t &counter, const std::array<glm::vec4, 6> &frustumPlanes)
 {
-    bool anyVisible{false};
-    drawEntry.visibleInstances = 0;
+    BufferMap map{bufferMap_[visibilityIndex]};
+    const AABB &aabb{aabbs_[map.sharedBaseIndex]};
+    const glm::mat4 matrix{matrices_[map.matricesIndex]};
 
-    const AABB &modelAABB{drawEntry.primitive->aabb};
-    std::vector<Transform> &transforms{*drawEntry.transforms};
-    std::uint32_t visibleIndex{drawEntry.visibleIndiciesBufferBaseIndex};
-
-    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(transforms.size()); ++i)
+    if (aabb.intersects(frustumPlanes, matrix))
     {
-        if (modelAABB.intersects(frustumPlanes, transforms[i].getModelMatrix()))
-        {
-            anyVisible = true;
-            visibleMatrices_[visibleIndex++] = i;
-            ++drawEntry.visibleInstances;
-        }
+        visibleInstances_[baseVisibilityIndex + counter] = map.matricesIndex;
+        ++counter;
     }
-
-    drawEntry.anyVisible = anyVisible;
-}
-
-void Renderer::cullNone(DrawEntry &drawEntry)
-{
-    drawEntry.anyVisible = true;
-    drawEntry.visibleInstances = static_cast<int>(drawEntry.transforms->size());
-    std::uint32_t visibleIndex{drawEntry.visibleIndiciesBufferBaseIndex};
-
-    for (std::uint32_t i{0}; i < drawEntry.visibleInstances; ++i)
-        visibleMatrices_[visibleIndex++] = i;
 }
