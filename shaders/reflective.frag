@@ -29,9 +29,9 @@ layout (std140) uniform uniformData
 };
 
 // SSBOs
-layout(binding = 2, std430) restrict readonly buffer metadataSSBO
+layout(binding = 3, std430) restrict readonly buffer metadataSSBO
 {
-	Metadata metadataBuffer[];
+	Metadata metadata[];
 };
 
 // In
@@ -45,13 +45,14 @@ in vec3 position;
 // Out
 out vec4 fragColor;
 
-void main() {
-	Metadata metadata = metadataBuffer[metadataIndex];
+void main() 
+{
+	Metadata meta = metadata[metadataIndex];
 
 	vec3 viewDir = normalize(position - cameraPosition.xyz);
 	vec3 reflectDir = reflect(viewDir, normalize(normal));
 
-	vec3 color = texture(cubemaps[metadata.cubemapArray], vec4(reflectDir, metadata.cubemapLayer)).rgb;
+	vec3 color = texture(cubemaps[meta.cubemapArray], vec4(reflectDir, meta.cubemapLayer)).rgb;
 	color = pow(color, vec3(1.0/gamma));
 	
 	fragColor = vec4(color, 1.0); 

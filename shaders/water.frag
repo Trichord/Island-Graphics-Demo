@@ -38,9 +38,9 @@ layout (std140) uniform uniformData
 };
 
 // SSBOs
-layout(binding = 2, std430) restrict readonly buffer metadataSSBO
+layout(binding = 3, std430) restrict readonly buffer metadataSSBO
 {
-	Metadata metadataBuffer[];
+	Metadata metadata[];
 };
 
 // In
@@ -62,7 +62,7 @@ out vec4 fragColor;
 
 void main() 
 {	
-	Metadata metadata = metadataBuffer[metadataIndex];
+	Metadata meta = metadata[metadataIndex];
 
 	vec3 V = normalize(cameraPosition.xyz - fsIn.fragPos);
 	vec3 L = normalize(-lightDir);
@@ -79,10 +79,10 @@ void main()
 	vec2 d2 = fsIn.texCoords * tileFactor + vec2(0.0, movement);
 	
 	// Distortion from dudv, remapped to [-1, 1] to sample distortion in all directions
-	vec2 distortion1 = texture(textures[metadata.armArray], vec3(d1, metadata.armLayer)).rg;
+	vec2 distortion1 = texture(textures[meta.armArray], vec3(d1, meta.armLayer)).rg;
 	distortion1 = (distortion1 * 2.0 - 1.0) * dudvStrength;
 
-	vec2 distortion2 = texture(textures[metadata.armArray], vec3(d2, metadata.armLayer)).rg;
+	vec2 distortion2 = texture(textures[meta.armArray], vec3(d2, meta.armLayer)).rg;
 	distortion2 = (distortion2 * 2.0 - 1.0) * dudvStrength;
 	
 	// Total distortion from dudv
@@ -90,7 +90,7 @@ void main()
 
 	// Normal, biased towards the sky for less choppy water. Swizzled because the plane is horizontal
 	vec2 normalCoords = vec2(fsIn.texCoords * tileFactor + totalDistortion);
-	vec3 N = texture(textures[metadata.normalArray], vec3(normalCoords, metadata.normalLayer)).xyz * 2.0 - 1.0;
+	vec3 N = texture(textures[meta.normalArray], vec3(normalCoords, meta.normalLayer)).xyz * 2.0 - 1.0;
 	N = normalize(vec3(N.x, N.z, -N.y));
 
 	// Specular
@@ -103,7 +103,7 @@ void main()
 
 	// Reflection 
 	vec3 reflectDir = reflect(-V, N);
-	vec3 reflection = texture(cubemaps[metadata.cubemapArray], vec4(reflectDir, metadata.cubemapLayer)).rgb;
+	vec3 reflection = texture(cubemaps[meta.cubemapArray], vec4(reflectDir, meta.cubemapLayer)).rgb;
 	
 	float alpha = mix(waterTransparency, 1.0, fresnel);
 

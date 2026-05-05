@@ -8,14 +8,14 @@
 #include "primitive.h"
 #include "texture_manager.h"
 
-class Model
+class Renderable
 {
   public:   
     virtual AABB &getAABB() = 0;
-    virtual ModelHandle getHandle() const = 0;
+    virtual Handle getHandle() const = 0;
     virtual std::span<Primitive> getPrimitives() = 0;
-    virtual std::optional<ModelHandle> getBorrowedHandle() const = 0;
+    virtual std::optional<Handle> getBorrowedHandle() const = 0;
     virtual std::optional<std::vector<Primitive>> loadCollisionMesh() const = 0;
     
-    virtual ~Model() = default;
+    virtual ~Renderable() = default;
 };

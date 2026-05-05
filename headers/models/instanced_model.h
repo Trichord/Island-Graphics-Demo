@@ -8,13 +8,13 @@
 #include "texture_manager.h"
 #include "transform.h"
 
-class InstancedModel : public BaseModel
+class InstancedModel : public Model
 {
   public:
     InstancedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
                    const std::filesystem::path &positionsPath, float minSize = 1.0f, float maxSize = 1.0f,
                    int numPositions = 0);
-    InstancedModel(TextureManager &textureManager, const ModelHandle borrowHandle,
+    InstancedModel(TextureManager &textureManager, const Handle borrowHandle,
                    const std::filesystem::path &modelPath, const std::filesystem::path &positionsPath,
                    float minSize = 1.0f, float maxSize = 1.0f, int numPositions = 0);
 

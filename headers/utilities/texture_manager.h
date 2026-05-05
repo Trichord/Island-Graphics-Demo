@@ -15,7 +15,7 @@
 // To do: Verify process for generating mipmaps. Texture utilities may not need to take in anything other than sRGB and
 // aniso. Allow or deny setting of dynamic cubemap internal format (through constructor).
 
-using ModelHandle = int;
+using Handle = int;
 
 class TextureManager
 {
@@ -23,21 +23,21 @@ class TextureManager
     TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings, int reflectionResolution);
     ~TextureManager();
 
-    ModelHandle assignHandle();
+    Handle assignHandle();
 
     // Static loaded textures
-    void loadCubemapTextures(const ModelHandle handle, std::vector<std::filesystem::path> images,
+    void loadCubemapTextures(const Handle handle, std::vector<std::filesystem::path> images,
                              const std::filesystem::path &parentPath = "./", bool mipmaps = true);
-    void loadModelTextures(const ModelHandle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath);
+    void loadModelTextures(const Handle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath);
 
     // Dynamic texture borrowing
-    void borrowCubemaps(ModelHandle self, ModelHandle other);
-    void borrowMaterials(ModelHandle self, ModelHandle other);
+    void borrowCubemaps(Handle self, Handle other);
+    void borrowMaterials(Handle self, Handle other);
 
     // Accessors and mutators
     GLenum getReflectionColorFormat() const;
-    const std::vector<Material> &getMaterials(ModelHandle modelHandle) const;
-    void setCubemap(ModelHandle handle, RenderTarget &renderTarget, SamplerArrayEntry arrayEntry);
+    const std::vector<Material> &getMaterials(Handle modelHandle) const;
+    void setCubemap(Handle handle, RenderTarget &renderTarget, SamplerArrayEntry arrayEntry);
 
     // Bindless array texture setup
     void buildTextures();
@@ -86,14 +86,14 @@ class TextureManager
 
     ThreadPool &threadPool_;
     float globalAnisotropicDegree_{0.0f};
-    std::unordered_map<ModelHandle, std::vector<Material>> materialLookup_;
+    std::unordered_map<Handle, std::vector<Material>> materialLookup_;
 
     bool textures2dAllocated_{false};
     bool texturesCubemapAllocated_{false};
 
     // Textures from loaded models
-    void texturesFromAsset(fastgltf::Asset &asset, ModelHandle handle, std::filesystem::path parentPath);
-    void cubemapFromPaths(ModelHandle handle, const std::vector<std::filesystem::path> &images, bool mipmaps);
+    void texturesFromAsset(fastgltf::Asset &asset, Handle handle, std::filesystem::path parentPath);
+    void cubemapFromPaths(Handle handle, const std::vector<std::filesystem::path> &images, bool mipmaps);
 
     // Helpers for assigning to texture buckets
     SamplerArrayEntry assignToTextureArray(Texture &texture);

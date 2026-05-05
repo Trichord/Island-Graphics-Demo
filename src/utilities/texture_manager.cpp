@@ -50,25 +50,25 @@ TextureManager::~TextureManager()
             glDeleteTextures(1, &texture.id);
 }
 
-void TextureManager::loadModelTextures(const ModelHandle handle, fastgltf::Asset &&asset,
+void TextureManager::loadModelTextures(const Handle handle, fastgltf::Asset &&asset,
                                        const std::filesystem::path &parentPath)
 {
     texturesFromAsset(asset, handle, parentPath);
 }
 
-void TextureManager::loadCubemapTextures(const ModelHandle handle, std::vector<std::filesystem::path> imagePaths,
+void TextureManager::loadCubemapTextures(const Handle handle, std::vector<std::filesystem::path> imagePaths,
                                          const std::filesystem::path &parentPath, bool mipmaps)
 {
     cubemapFromPaths(handle, std::move(imagePaths), mipmaps);
 }
 
-const std::vector<Material> &TextureManager::getMaterials(ModelHandle handle) const
+const std::vector<Material> &TextureManager::getMaterials(Handle handle) const
 {
     auto iter = materialLookup_.find(handle);
 
     if (iter == materialLookup_.end())
     {
-        std::cerr << "ERROR: Could not acquire materials, handle does not exist" << std::endl;
+        std::cerr << "ERROR: missing handle. Could not get materials" << std::endl;
         throw std::runtime_error("Missing handle");
     }
     return iter->second;
@@ -80,24 +80,24 @@ GLenum TextureManager::getReflectionColorFormat() const
     return dynamicCubemapInternalFormat_;
 }
 
-ModelHandle TextureManager::assignHandle()
+Handle TextureManager::assignHandle()
 {
-    static ModelHandle nextHandle{1};
+    static Handle nextHandle{1};
 
-    ModelHandle handle{nextHandle++};
+    Handle handle{nextHandle++};
 
     materialLookup_[handle];
 
     return handle;
 }
 
-void TextureManager::texturesFromAsset(fastgltf::Asset &asset, ModelHandle handle, std::filesystem::path parentPath)
+void TextureManager::texturesFromAsset(fastgltf::Asset &asset, Handle handle, std::filesystem::path parentPath)
 {
     auto materialIter = materialLookup_.find(handle);
 
     if (materialIter == materialLookup_.end())
     {
-        std::cerr << "ERROR: " << parentPath.string() << " attempted to load with no model handle" << std::endl;
+        std::cerr << "ERROR: missing handle from " << parentPath.string() << std::endl;
         throw std::runtime_error("Missing handle");
     }
 
@@ -185,8 +185,7 @@ void TextureManager::texturesFromAsset(fastgltf::Asset &asset, ModelHandle handl
     }
 }
 
-void TextureManager::cubemapFromPaths(ModelHandle handle, const std::vector<std::filesystem::path> &imagePaths,
-                                      bool mipmaps)
+void TextureManager::cubemapFromPaths(Handle handle, const std::vector<std::filesystem::path> &imagePaths, bool mipmaps)
 {
     if (imagePaths.empty())
         return;
@@ -195,7 +194,7 @@ void TextureManager::cubemapFromPaths(ModelHandle handle, const std::vector<std:
 
     if (materialIter == materialLookup_.end())
     {
-        std::cerr << "ERROR: " << imagePaths[0].string() << " attempted to load with no model handle" << std::endl;
+        std::cerr << "ERROR: missing handle from " << imagePaths[0].string() << std::endl;
         throw std::runtime_error("Missing handle");
     }
 
@@ -219,14 +218,14 @@ void TextureManager::cubemapFromPaths(ModelHandle handle, const std::vector<std:
 
 // Borrow another model's materials. Callers should verify that "self" has not loaded any textures, as they will be
 // orphaned
-void TextureManager::borrowMaterials(ModelHandle self, ModelHandle other)
+void TextureManager::borrowMaterials(Handle self, Handle other)
 {
     auto selfIter = materialLookup_.find(self);
     auto otherIter = materialLookup_.find(other);
 
     if (selfIter == materialLookup_.end() || otherIter == materialLookup_.end())
     {
-        std::cerr << "ERROR: attempted to borrow from non-existing handle" << std::endl;
+        std::cerr << "ERROR: missing handle. Borrowing failed" << std::endl;
         throw std::runtime_error("Missing handle");
     }
 
@@ -240,13 +239,13 @@ void TextureManager::borrowMaterials(ModelHandle self, ModelHandle other)
 }
 
 // Overwrites any existing cubemaps for this model
-void TextureManager::setCubemap(ModelHandle handle, RenderTarget &renderTarget, SamplerArrayEntry arrayEntry)
+void TextureManager::setCubemap(Handle handle, RenderTarget &renderTarget, SamplerArrayEntry arrayEntry)
 {
     auto materialIter = materialLookup_.find(handle);
 
     if (materialIter == materialLookup_.end())
     {
-        std::cerr << "ERROR: non-existant handle" << std::endl;
+        std::cerr << "ERROR: missing handle" << std::endl;
         throw std::runtime_error("Missing handle");
     }
 
@@ -323,20 +322,20 @@ SamplerArrayEntry TextureManager::assignToCubeArray(Texture &texture)
     throw std::runtime_error("ArrayTexture bucket not found");
 }
 
-void TextureManager::borrowCubemaps(ModelHandle self, ModelHandle other)
+void TextureManager::borrowCubemaps(Handle self, Handle other)
 {
     auto selfIter = materialLookup_.find(self);
     auto otherIter = materialLookup_.find(other);
 
     if (selfIter == materialLookup_.end() || otherIter == materialLookup_.end())
     {
-        std::cerr << "ERROR: attempted to borrow from non-existing handle" << std::endl;
+        std::cerr << "ERROR: missing handle" << std::endl;
         throw std::runtime_error("Missing handle");
     }
 
     std::vector<Material> &selfEntry{selfIter->second};
     std::vector<Material> &otherEntry{otherIter->second};
-    
+
     for (std::size_t i{0}; i < selfEntry.size() && i < otherEntry.size(); ++i)
     {
         if (selfEntry[i].cubemap.array != -1 || selfEntry[i].cubemap.layer != -1)

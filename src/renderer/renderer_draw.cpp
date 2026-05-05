@@ -51,11 +51,11 @@ void Renderer::renderScene()
             currentAlphaMode = mdb.alphaMode;
         }
 
-        GLsizei drawCount{currentShaderType == skybox ? static_cast<GLsizei>(mdb.maxCount)
-                                                      : static_cast<GLsizei>(drawCounts_[i])};
+        GLsizei drawCount{currentShaderType == skybox ? static_cast<GLsizei>(mdb.maxCount) : static_cast<GLsizei>(i)};
 
-        glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT,
-                                    (void *)(mdb.startIndex * sizeof(DrawElementsIndirectCommand)), drawCount, 0);
+        glMultiDrawElementsIndirectCount(GL_TRIANGLES, GL_UNSIGNED_INT,
+                                         (void *)(mdb.startIndex * sizeof(DrawElementsIndirectCommand)),
+                                         static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.maxCount, 0);
     }
 
     // Assume skybox was last
@@ -96,6 +96,7 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
         const glm::mat4 lightVP{cascades[i].viewProjection};
 
         msaaShadowTarget_.clear();
+
         cullScene(lightVP);
 
         // Opaque geometry first
@@ -133,9 +134,8 @@ void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)
         if (a2c != alphaTested)
             continue;
 
-        GLsizei drawCount{static_cast<GLsizei>(drawCounts_[i])};
-
-        glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT,
-                                    (void *)(mdb.startIndex * sizeof(DrawElementsIndirectCommand)), drawCount, 0);
+        glMultiDrawElementsIndirectCount(GL_TRIANGLES, GL_UNSIGNED_INT,
+                                         (void *)(mdb.startIndex * sizeof(DrawElementsIndirectCommand)),
+                                         static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.maxCount, 0);
     }
 }

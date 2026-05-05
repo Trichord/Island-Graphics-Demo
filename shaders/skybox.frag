@@ -18,9 +18,9 @@ struct Metadata
 layout(binding = 8) uniform samplerCubeArray cubemaps[3];
 
 // SSBOs
-layout(binding = 2, std430) restrict readonly buffer metadataSSBO
+layout(binding = 3, std430) restrict readonly buffer metadataSSBO
 {
-	Metadata metadataBuffer[];
+	Metadata metadata[];
 };
 
 // In
@@ -33,10 +33,11 @@ in vec3 texCoords;
 // Out
 out vec4 fragColor;
 
-void main() {
-	Metadata metadata = metadataBuffer[metadataIndex];
+void main() 
+{
+	Metadata meta = metadata[metadataIndex];
 
-	vec3 color = texture(cubemaps[metadata.cubemapArray], vec4(texCoords, metadata.cubemapLayer)).rgb;
+	vec3 color = texture(cubemaps[meta.cubemapArray], vec4(texCoords, meta.cubemapLayer)).rgb;
 	
 	// Gamma correction
 	color = pow(color, vec3(1.0/gamma));

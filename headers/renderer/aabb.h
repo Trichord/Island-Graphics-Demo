@@ -13,7 +13,8 @@ class AABB
 
     glm::vec3 getMin() const;
     glm::vec3 getMax() const;
-    glm::vec3 getCenter() const;
+    const glm::vec3& getCenter() const;
+    const glm::vec3& getExtent() const;
 
     void resize(float scale);
 

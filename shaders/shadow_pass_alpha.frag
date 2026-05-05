@@ -21,9 +21,9 @@ const float lightBleedReduction = 0.2f;
 layout(binding = 0) uniform sampler2DArray arrayTextures[8];
 
 // SSBOs
-layout(binding = 2, std430) restrict readonly buffer metadataSSBO
+layout(binding = 3, std430) restrict readonly buffer metadataSSBO
 {
-	Metadata metadataBuffer[];
+	Metadata metadata[];
 };
 
 // In
@@ -44,9 +44,9 @@ vec2 computeMoments(float depth)
 
 void main()
 {	
-	Metadata metadata = metadataBuffer[metadataIndex];
-	int albedoArray = metadata.albedoArray;
-	int albedoLayer = metadata.albedoLayer;
+	Metadata meta = metadata[metadataIndex];
+	int albedoArray = meta.albedoArray;
+	int albedoLayer = meta.albedoLayer;
 
 	float alpha = texture(arrayTextures[albedoArray], vec3(texCoords, albedoLayer)).a;
 

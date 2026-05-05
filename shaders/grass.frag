@@ -30,9 +30,9 @@ layout (std140, binding = 1) uniform shadowCascadeData
 };
 
 // SSBOs
-layout(binding = 2, std430) restrict readonly buffer metadataSSBO
+layout(binding = 3, std430) restrict readonly buffer metadataSSBO
 {
-	Metadata metadataBuffer[];
+	Metadata metadata[];
 };
 
 // In
@@ -74,10 +74,11 @@ float CalcMipLevel(vec2 texture_coord)
     return max(0.0, 0.5 * log2(delta_max_sqr));
 }
 
-void main() {
-    Metadata metadata = metadataBuffer[metadataIndex];
+void main() 
+{
+    Metadata meta = metadata[metadataIndex];
 
-    vec4 albedo = texture(textures[metadata.albedoArray], vec3(texCoords, metadata.albedoLayer));
+    vec4 albedo = texture(textures[meta.albedoArray], vec3(texCoords, meta.albedoLayer));
 
     // Flip normal if 2D quad is facing away
     vec3 normalizedNormal = normalize(normal);
@@ -91,7 +92,7 @@ void main() {
     float diffuseStrength = NdotL * 0.5 + 0.6;
 
 	// Scale alpha by mip level 0
-    vec2 texSize = vec2(textureSize(textures[metadata.albedoArray], 0));
+    vec2 texSize = vec2(textureSize(textures[meta.albedoArray], 0));
     albedo.a *= 1 + max(0, CalcMipLevel(texCoords * texSize)) * mipScale;
 
 	// Rescale alpha by partial derivative. Credit: Ben Golus

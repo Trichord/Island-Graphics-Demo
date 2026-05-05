@@ -1,0 +1,89 @@
+#version 460 core
+
+// Types
+struct DrawElementsIndirectCommand
+{
+    unsigned int count;
+    unsigned int instanceCount;
+    unsigned int firstIndex;
+    int baseVertex;
+    unsigned int baseInstance;
+};
+
+struct BufferMap
+{
+    uint matricesIndex;
+    uint sharedBaseIndex;
+    uint drawBucket;
+    uint drawBucketBaseIndex;
+    uint visibleInstancesBaseIndex;
+};
+
+struct Metadata
+{
+	int albedoArray;
+	int albedoLayer;
+	int armArray;
+	int armLayer;
+	int normalArray;
+	int normalLayer;
+	int cubemapArray;
+	int cubemapLayer;
+	uint visibleInstancesBufferBaseIndex;
+};
+
+// Attributes
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+// SSBOs
+layout(binding = 0, std430) restrict readonly buffer mapSSBO
+{
+    BufferMap maps[];
+};
+
+layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+{
+    Metadata metadata[];
+};
+
+layout(binding = 4, std430) buffer drawCountsSSBO
+{
+    uint drawCounts[];
+};
+
+layout(binding = 5, std430) restrict readonly buffer cullResultsSSBO
+{
+    uint cullResults[];
+};
+
+layout(binding = 6, std430) restrict writeonly buffer drawCommandsSSBO
+{
+    DrawElementsIndirectCommand commandsDestination[];
+};
+
+layout(binding = 8, std430) restrict readonly buffer drawCommandsSourceSSBO
+{
+    DrawElementsIndirectCommand commandsSource[];
+};
+
+void main()
+{
+    if (gl_GlobalInvocationID.x >= commandsSource.length())
+        return;
+
+    uint cullResult = cullResults[gl_GlobalInvocationID.x];
+
+    if (cullResult == 0)
+        return;
+
+    uint mapIndex = metadata[gl_GlobalInvocationID.x].visibleInstancesBufferBaseIndex;
+    BufferMap map = maps[mapIndex];
+
+    // Use the MDI drawcount as a write index. As we write draw commands, the final number for the draw call
+    // increases, so we can take advantage of that as our new offset
+    uint writeOffset = atomicAdd(drawCounts[map.drawBucket], 1);
+    uint writeIndex = map.drawBucketBaseIndex + writeOffset;
+
+    commandsDestination[writeIndex] = commandsSource[gl_GlobalInvocationID.x];
+    commandsDestination[writeIndex].instanceCount = cullResults[gl_GlobalInvocationID.x];
+}

@@ -62,9 +62,14 @@ void AABB::resize(float scale)
     extent_ *= scale;
 }
 
-glm::vec3 AABB::getCenter() const
+const glm::vec3& AABB::getCenter() const
 {
     return center_;
+}
+
+const glm::vec3 &AABB::getExtent() const
+{
+    return extent_;
 }
 
 glm::vec3 AABB::getMin() const

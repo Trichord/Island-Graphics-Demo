@@ -21,23 +21,23 @@ class SceneResources
   public:
     SceneResources(TextureManager &textureManager);
 
-    BaseModel &loadModel(const std::filesystem::path &modelPath);
-    BaseModel &loadModel(const ModelHandle borrowHandle, const std::filesystem::path &modelPath);
+    Model &loadModel(const std::filesystem::path &modelPath);
+    Model &loadModel(const Handle borrowHandle, const std::filesystem::path &modelPath);
 
     InstancedModel &loadInstancedModel(const std::filesystem::path &modelPath,
                                        const std::filesystem::path &positionsPath, float minSize = 1.0f,
                                        float maxSize = 1.0f, unsigned int numPositions = 0);
-    InstancedModel &loadInstancedModel(const ModelHandle borrowHandle, const std::filesystem::path &modelPath,
+    InstancedModel &loadInstancedModel(const Handle borrowHandle, const std::filesystem::path &modelPath,
                                        const std::filesystem::path &positionsPath, float minSize = 1.0f,
                                        float maxSize = 1.0f, unsigned int numPositions = 0);
 
     CubeMappedModel &loadCubeMappedModel(const std::filesystem::path &modelPath,
                                          const std::vector<std::filesystem::path> &imagePaths, bool mipmaps = true);
-    CubeMappedModel &loadCubeMappedModel(const ModelHandle borrowHandle, const std::filesystem::path &modelPath);
+    CubeMappedModel &loadCubeMappedModel(const Handle borrowHandle, const std::filesystem::path &modelPath);
 
   private:
     TextureManager &textureManager_;
-    std::vector<BaseModel> models_;
+    std::vector<Model> models_;
     std::vector<CubeMappedModel> cubeMappedModels_;
     std::vector<InstancedModel> instancedModels_;
 };

@@ -71,7 +71,7 @@ float Scene::getWindStrength() const
     return windStrength_;
 }
 
-std::unordered_set<ModelHandle> &Scene::getUpdatedModels()
+std::unordered_set<Handle> &Scene::getUpdatedModels()
 {
     return updatedModels_;
 }
@@ -83,7 +83,7 @@ void Scene::addInstancedObjectToScene(InstancedModel &modelRef, ShaderType shade
 
     // Store a reference to the stable vector in Scene Resources, organized by shader
     sceneEntries_.emplace_back(
-        SceneEntry{.modelRef = modelRef, .transforms = std::move(transforms), .shaderType = shaderType});
+        SceneEntry{.renderableRef = modelRef, .transforms = std::move(transforms), .shaderType = shaderType});
 
     // Store an access point to the instances, by model handle
     entriesByHandle_.emplace(modelRef.getHandle(), std::ref(sceneEntries_.back()));
