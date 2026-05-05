@@ -18,7 +18,7 @@ SceneResources::SceneResources(TextureManager &textureManager) : textureManager_
     cubeMappedModels_.reserve(cubeMappedModels);
 }
 
-BaseModel &SceneResources::loadModel(const std::filesystem::path &modelPath)
+Model &SceneResources::loadModel(const std::filesystem::path &modelPath)
 {
     using namespace sceneMaxObjects;
 
@@ -28,7 +28,7 @@ BaseModel &SceneResources::loadModel(const std::filesystem::path &modelPath)
     return models_.emplace_back(textureManager_, modelPath);
 }
 
-BaseModel &SceneResources::loadModel(const ModelHandle borrowHandle, const std::filesystem::path &modelPath)
+Model &SceneResources::loadModel(const Handle borrowHandle, const std::filesystem::path &modelPath)
 {
     using namespace sceneMaxObjects;
 
@@ -50,7 +50,7 @@ InstancedModel &SceneResources::loadInstancedModel(const std::filesystem::path &
     return instancedModels_.emplace_back(textureManager_, modelPath, positionsPath, minSize, maxSize, numPositions);
 }
 
-InstancedModel &SceneResources::loadInstancedModel(const ModelHandle borrowHandle,
+InstancedModel &SceneResources::loadInstancedModel(const Handle borrowHandle,
                                                    const std::filesystem::path &modelPath,
                                                    const std::filesystem::path &positionsPath, float minSize,
                                                    float maxSize, unsigned int numPositions)
@@ -75,7 +75,7 @@ CubeMappedModel &SceneResources::loadCubeMappedModel(const std::filesystem::path
     return cubeMappedModels_.emplace_back(textureManager_, modelPath, imagePaths, mipmaps);
 }
 
-CubeMappedModel &SceneResources::loadCubeMappedModel(const ModelHandle borrowHandle,
+CubeMappedModel &SceneResources::loadCubeMappedModel(const Handle borrowHandle,
                                                      const std::filesystem::path &modelPath)
 {
     using namespace sceneMaxObjects;

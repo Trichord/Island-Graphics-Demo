@@ -32,9 +32,9 @@ layout (std140, binding = 1) uniform cascadeShadow
 };
 
 // SSBOs
-layout(binding = 2, std430) restrict readonly buffer metadataSSBO
+layout(binding = 3, std430) restrict readonly buffer metadataSSBO
 {
-	Metadata metadataBuffer[];
+	Metadata metadata[];
 };
 
 // In
@@ -165,13 +165,14 @@ vec3 ACESFilm(vec3 x)
 	return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
-void main() {
-	Metadata metadata = metadataBuffer[metadataIndex];
+void main() 
+{
+	Metadata meta = metadata[metadataIndex];
 
 	// Material properties, remap normal from [0, 1] to [-1, 1]
-	vec4 albedo = texture(textures[metadata.albedoArray], vec3(fsIn.texCoords, metadata.albedoLayer));
-	vec3 normal = texture(textures[metadata.normalArray], vec3(fsIn.texCoords, metadata.normalLayer)).rgb * 2.0 - 1.0;
-	vec3 ARM = texture(textures[metadata.armArray], vec3(fsIn.texCoords, metadata.armLayer)).rgb;
+	vec4 albedo = texture(textures[meta.albedoArray], vec3(fsIn.texCoords, meta.albedoLayer));
+	vec3 normal = texture(textures[meta.normalArray], vec3(fsIn.texCoords, meta.normalLayer)).rgb * 2.0 - 1.0;
+	vec3 ARM = texture(textures[meta.armArray], vec3(fsIn.texCoords, meta.armLayer)).rgb;
 
 	// Vectors
 	vec3 N = normalize(normal);

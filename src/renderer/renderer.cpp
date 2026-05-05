@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <span>
 #include <thread>
 #include <tuple>
@@ -18,6 +19,7 @@
 #include "fastgltf/types.hpp"
 #include "gl_context.h"
 #include "glm/glm.hpp"
+#include "glm/gtc/matrix_access.hpp"
 #include "graphics_settings.h"
 #include "graphics_shader.h"
 #include "model.h"
@@ -28,12 +30,13 @@
 #include "texture_manager.h"
 #include "textures.h"
 #include "transform.h"
-#include <optional>
 
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.111f};
 constexpr float alphaCutoff{0.425f};
 constexpr int shadowMapMSAA{2};
+
+const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix);
 
 Renderer::Renderer(const GraphicsSettings &settings)
     : graphicsSettings_{settings}, threadPool_{std::max(2u, std::thread::hardware_concurrency() / 2u)},
@@ -105,6 +108,12 @@ void Renderer::updateCameraUBO(Scene &scene)
     glNamedBufferSubData(shaderUniformsUBO_, 0, sizeof(PackedShaderUniforms), &uniforms);
 }
 
+void Renderer::updateFrustumPlanesUBO(const glm::mat4 &cullMatrix)
+{
+    const std::array<glm::vec4, 6> planes{getFrustumPlanes(cullMatrix)};
+    glNamedBufferSubData(frustumPlanesUBO_, 0, 6 * sizeof(glm::vec4), planes.data());
+}
+
 void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll)
 {
     static_assert(shadowCascadeCount == 3);
@@ -152,11 +161,15 @@ void Renderer::loadShaders()
     shaders_[shaderIndex(water)] = GraphicsShader{water, "./shaders/water.vert", "./shaders/water.frag"};
     shaders_[shaderIndex(ocean)] = GraphicsShader{ocean, "./shaders/water.vert", "./shaders/ocean.frag"};
 
-    // Renderer internal shaders
+    // Internal use only shaders
     shaders_[shaderIndex(shadowMap)] =
         GraphicsShader{shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
     shaders_[shaderIndex(shadowMapAlpha)] =
         GraphicsShader{shadowMapAlpha, "./shaders/shadow_pass_alpha.vert", "./shaders/shadow_pass_alpha.frag"};
+
+    // Compute
+    cullShader_ = ComputeShader{"./shaders/frustum_cull.comp"};
+    compactionShader_ = ComputeShader{"./shaders/compact_draws.comp"};
 }
 
 void Renderer::setupShader(GraphicsShader &shader)
@@ -203,9 +216,9 @@ SceneTotals getSceneTotals(Scene &scene)
 
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {
-        Model &model{entry.modelRef.get()};
-        std::optional<ModelHandle> borrowed{model.getBorrowedHandle()};
-        std::span<Primitive> primitives{model.getPrimitives()};
+        Renderable &renderable{entry.renderableRef.get()};
+        std::optional<Handle> borrowed{renderable.getBorrowedHandle()};
+        std::span<Primitive> primitives{renderable.getPrimitives()};
 
         std::size_t numTransforms{entry.transforms.size()};
         std::size_t numPrimitives{primitives.size()};
@@ -237,8 +250,8 @@ AABB getSceneBounds(Scene &scene)
         if (entry.shaderType == ShaderType::ocean)
             continue;
 
-        Model &model{entry.modelRef.get()};
-        const AABB &aabb{model.getAABB()};
+        Renderable &renderable{entry.renderableRef.get()};
+        const AABB &aabb{renderable.getAABB()};
 
         for (Transform &transform : entry.transforms)
         {
@@ -310,15 +323,17 @@ void Renderer::initializeResources(Scene &scene)
     sortDrawEntries(drawEntries);
 
     // Build draw command buffer for SSBO creation. Make a copy so we can adjust counts
-    drawCommandsSource_ = buildDrawCommandBuffer(drawEntries, skybox_, totals);
-    drawCommands_ = drawCommandsSource_;
-    cullResults_.resize(drawCommands_.size());
+    std::vector<DrawElementsIndirectCommand> commands{buildDrawCommandBuffer(drawEntries, skybox_, totals)};
 
     createDrawBuckets(drawEntries);
-    drawCounts_.resize(drawBuckets_.size());
+
+    // Culling setup
+    std::vector<AABB> aabbs{createAABBs(drawEntries, totals)};
+    cullWorkGroupSize_ = static_cast<std::uint32_t>(totals.visibleInstances);
+    compactionWorkGroupSize_ = static_cast<std::uint32_t>(totals.primitives);
 
     // GPU Resources
-    createBuffers(totals);
+    createBuffers(commands, aabbs, totals);
     createVAO(drawEntries, totals);
 
     // Metadata buffer setup
@@ -329,13 +344,9 @@ void Renderer::initializeResources(Scene &scene)
     setMetadataMaterials(drawEntries, metadata);
 
     glNamedBufferSubData(metadataBuffer_, 0, metadata.size() * sizeof(PrimitiveMetadata), metadata.data());
-    metadata_ = metadata;
 
     // Must be done after GPU buffers are complete
-    createBufferMap(drawEntries, totals);
-
-    // Culling setup
-    createAABBs(drawEntries, totals);
+    createBufferMap(drawEntries, metadata, totals);
 
     // Setup for cascade shadow maps
     AABB worldAABB{getSceneBounds(scene)};
@@ -370,37 +381,42 @@ TextureManager &Renderer::getTextureManager()
 
 void Renderer::deleteBuffers()
 {
-    glDeleteVertexArrays(1, &globalVAO_);
-    glDeleteBuffers(1, &globalVBO_);
-    glDeleteBuffers(1, &globalEBO_);
-
-    glDeleteBuffers(1, &shaderUniformsUBO_);
-    glDeleteBuffers(1, &shadowCascadesUBO_);
-
+    glDeleteBuffers(1, &mapBuffer_);
     glDeleteBuffers(1, &aabbBuffer_);
     glDeleteBuffers(1, &matricesBuffer_);
     glDeleteBuffers(1, &metadataBuffer_);
+    glDeleteBuffers(1, &drawCountsBuffer_);
+    glDeleteBuffers(1, &cullResultsBuffer_);
+    glDeleteBuffers(1, &drawCommandsBuffer_);
     glDeleteBuffers(1, &visibleInstancesBuffer_);
     glDeleteBuffers(1, &drawCommandsSourceBuffer_);
+
+    glDeleteBuffers(1, &frustumPlanesUBO_);
+    glDeleteBuffers(1, &shaderUniformsUBO_);
+    glDeleteBuffers(1, &shadowCascadesUBO_);
+
+    glDeleteBuffers(1, &globalEBO_);
+    glDeleteBuffers(1, &globalVBO_);
+    glDeleteVertexArrays(1, &globalVAO_);
 }
 
 // Convert from buffer sub data to a persistant map
 void Renderer::updateSceneTransforms(Scene &scene)
 {
-    std::unordered_set<ModelHandle> &updatedTransformHandles{scene.getUpdatedModels()};
+    std::unordered_set<Handle> &updatedTransformHandles{scene.getUpdatedModels()};
 
-    for (ModelHandle handle : updatedTransformHandles)
+    for (Handle handle : updatedTransformHandles)
     {
-        ModelTransforms &modelTransforms{transformsByHandle_.at(handle)};
-        std::size_t numMatrices{modelTransforms.transforms->size()};
+        BufferTransforms &transforms{transformsByHandle_.at(handle)};
+        std::size_t numMatrices{transforms.transforms->size()};
 
         updatedMatrices_.clear();
         updatedMatrices_.reserve(numMatrices);
 
-        for (Transform &transform : *modelTransforms.transforms)
+        for (Transform &transform : *transforms.transforms)
             updatedMatrices_.emplace_back(transform.getModelMatrix());
 
-        glNamedBufferSubData(matricesBuffer_, modelTransforms.matricesBufferBaseIndex * sizeof(glm::mat4),
+        glNamedBufferSubData(matricesBuffer_, transforms.matricesBufferBaseIndex * sizeof(glm::mat4),
                              numMatrices * sizeof(glm::mat4), updatedMatrices_.data());
     }
 
@@ -420,10 +436,10 @@ std::vector<DrawEntry> Renderer::createDrawEntries(Scene &scene, const SceneTota
 
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {
-        Model &model{entry.modelRef.get()};
-        ModelHandle handle{model.getHandle()};
+        Renderable &renderable{entry.renderableRef.get()};
+        Handle handle{renderable.getHandle()};
 
-        std::span<Primitive> primitives{model.getPrimitives()};
+        std::span<Primitive> primitives{renderable.getPrimitives()};
         std::uint32_t numTransforms{static_cast<std::uint32_t>(entry.transforms.size())};
 
         for (Primitive &primitive : primitives)
@@ -514,25 +530,29 @@ void Renderer::createDrawBuckets(const std::vector<DrawEntry> &entries)
                                                   .alphaMode = currentAlphaMode});
 }
 
-void Renderer::createAABBs(const std::vector<DrawEntry> &entries, const SceneTotals &totals)
+std::vector<AABB> Renderer::createAABBs(const std::vector<DrawEntry> &entries, const SceneTotals &totals)
 {
-    aabbs_.reserve(totals.primitives);
+    std::vector<AABB> aabbs;
+    aabbs.reserve(totals.primitives);
 
     for (const DrawEntry &entry : entries)
-        aabbs_.emplace_back(entry.primitive->aabb);
+    {
+        const AABB &aabb{entry.primitive->aabb};
+        aabbs.emplace_back(aabb);
+    }
+
+    return aabbs;
 }
 
-void Renderer::createBufferMap(const std::vector<DrawEntry> &entries, const SceneTotals &totals)
+void Renderer::createBufferMap(const std::vector<DrawEntry> &entries, const std::vector<PrimitiveMetadata> &metadata,
+                               const SceneTotals &totals)
 {
-    bufferMap_.reserve(totals.visibleInstances);
+    std::vector<BufferMap> bufferMap;
+    bufferMap.reserve(totals.visibleInstances);
 
     for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(entries.size()); ++i)
     {
-        const PrimitiveMetadata &metadata{metadata_[i]};
-        std::vector<Transform> &transforms{*entries[i].transforms};
-
         std::uint32_t bucket{0};
-        std::uint32_t matricesBufferbaseIndex{transformsByHandle_.at(entries[i].handle).matricesBufferBaseIndex};
 
         for (std::uint32_t j{0}; j < static_cast<std::uint32_t>(drawBuckets_.size() - 1); ++j)
         {
@@ -546,14 +566,55 @@ void Renderer::createBufferMap(const std::vector<DrawEntry> &entries, const Scen
             }
         }
 
-        for (std::uint32_t k{0}; k < static_cast<std::uint32_t>(transforms.size()); ++k)
+        const std::uint32_t numTransforms{static_cast<std::uint32_t>(entries[i].transforms->size())};
+        const std::uint32_t matricesBufferBaseIndex{transformsByHandle_.at(entries[i].handle).matricesBufferBaseIndex};
+        const std::uint32_t visibleInstancesBufferBaseIndex{metadata[i].visibleInstancesBufferBaseIndex};
+
+        for (std::uint32_t k{0}; k < numTransforms; ++k)
         {
-            bufferMap_.emplace_back(BufferMap{
-                .matricesIndex = matricesBufferbaseIndex + k,
+            bufferMap.emplace_back(BufferMap{
+                .matricesIndex = matricesBufferBaseIndex + k,
                 .sharedBaseIndex = i,
                 .drawBucket = bucket,
                 .drawBucketBaseIndex = drawBuckets_[bucket].startIndex,
+                .visibleInstancesBaseIndex = visibleInstancesBufferBaseIndex,
             });
         }
     }
+
+    glNamedBufferSubData(mapBuffer_, 0, bufferMap.size() * sizeof(BufferMap), bufferMap.data());
+}
+
+const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
+{
+    const glm::vec4 row0{glm::row(matrix, 0)};
+    const glm::vec4 row1{glm::row(matrix, 1)};
+    const glm::vec4 row2{glm::row(matrix, 2)};
+    const glm::vec4 row3{glm::row(matrix, 3)};
+
+    const glm::vec4 left{glm::normalize(row3 + row0)};
+    const glm::vec4 right{glm::normalize(row3 - row0)};
+    const glm::vec4 top{glm::normalize(row3 - row1)};
+    const glm::vec4 bottom{glm::normalize(row3 + row1)};
+    const glm::vec4 near{glm::normalize(row3 + row2)};
+    const glm::vec4 far{glm::normalize(row3 - row2)};
+
+    return {left, right, top, bottom, near, far};
+}
+
+void Renderer::cullScene(const glm::mat4 &cullMatrix)
+{
+    glClearNamedBufferData(drawCountsBuffer_, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+    glClearNamedBufferData(cullResultsBuffer_, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+
+    updateFrustumPlanesUBO(cullMatrix);
+
+    cullShader_.use();
+    cullShader_.dispatch((cullWorkGroupSize_ + (ComputeShader::localSize - 1u)) / ComputeShader::localSize, 1u, 1u);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+    compactionShader_.use();
+    compactionShader_.dispatch((compactionWorkGroupSize_ + (ComputeShader::localSize - 1u)) / ComputeShader::localSize,
+                               1u, 1u);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT);
 }

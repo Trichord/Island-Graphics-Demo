@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <iostream>
 #include <iterator>
-#include <optional>
 #include <stdexcept>
 #include <unordered_set>
 #include <vector>
@@ -15,7 +14,6 @@
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
-#include "model.h"
 #include "primitive.h"
 #include "render_target.h"
 #include "renderer_types.h"
@@ -25,10 +23,25 @@
 #include "transform.h"
 #include "world_vectors.h"
 
-void Renderer::createBuffers(const SceneTotals &totals)
+void Renderer::createBuffers(const std::vector<DrawElementsIndirectCommand> &commands, const std::vector<AABB> &aabbs,
+                             const SceneTotals &totals)
 {
-    GLsizeiptr drawCommandBufferSize{
-        static_cast<GLsizeiptr>(drawCommandsSource_.size() * sizeof(DrawElementsIndirectCommand))};
+    struct SimpleAABB
+    {
+        glm::vec4 center;
+        glm::vec4 extent;
+    };
+
+    std::vector<SimpleAABB> simpleAABBs;
+    simpleAABBs.reserve(aabbs.size());
+
+    for (const AABB &aabb : aabbs)
+        simpleAABBs.emplace_back(SimpleAABB{
+            .center = glm::vec4{aabb.getCenter(), 0.0f},
+            .extent = glm::vec4{aabb.getExtent(), 0.0f},
+        });
+
+    GLsizeiptr drawCommandSize{static_cast<GLsizeiptr>(commands.size())};
 
     // UBOs
     glCreateBuffers(1, &shaderUniformsUBO_);
@@ -39,37 +52,62 @@ void Renderer::createBuffers(const SceneTotals &totals)
     glNamedBufferStorage(shadowCascadesUBO_, sizeof(PackedCascadeShadows), nullptr, GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_UNIFORM_BUFFER, static_cast<GLuint>(BindingPointUBO::cascadeShadows), shadowCascadesUBO_);
 
+    glCreateBuffers(1, &frustumPlanesUBO_);
+    glNamedBufferStorage(frustumPlanesUBO_, 6 * sizeof(glm::vec4), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glBindBufferBase(GL_UNIFORM_BUFFER, static_cast<GLuint>(BindingPointUBO::frustumPlanes), frustumPlanesUBO_);
+
+    // Buffer Maps
+    glCreateBuffers(1, &mapBuffer_);
+    glNamedBufferStorage(mapBuffer_, totals.visibleInstances * sizeof(BufferMap), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::map), mapBuffer_);
+
+    // AABBs
+    glCreateBuffers(1, &aabbBuffer_);
+    glNamedBufferStorage(aabbBuffer_, simpleAABBs.size() * sizeof(SimpleAABB), simpleAABBs.data(), 0);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::aabb), aabbBuffer_);
+
     // Instanced model matrices
     glCreateBuffers(1, &matricesBuffer_);
     glNamedBufferStorage(matricesBuffer_, totals.matrices * sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::matrices), matricesBuffer_);
 
-    // Indices into the model matrices buffer. Each primitive has its own set of visible indicies, with the number of
-    // model matrices being the upper bound
-    glCreateBuffers(1, &visibleInstancesBuffer_);
-    glNamedBufferStorage(visibleInstancesBuffer_, totals.visibleInstances * sizeof(std::uint32_t), nullptr,
-                         GL_DYNAMIC_STORAGE_BIT);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::visibleIndices),
-                     visibleInstancesBuffer_);
-
     // Per primitive metadata
     glCreateBuffers(1, &metadataBuffer_);
-    glNamedBufferStorage(metadataBuffer_, drawCommandBufferSize * sizeof(PrimitiveMetadata), nullptr,
-                         GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferStorage(metadataBuffer_, drawCommandSize * sizeof(PrimitiveMetadata), nullptr, GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::metadata), metadataBuffer_);
 
-    // Draw command buffer (unchanging)
-    glCreateBuffers(1, &drawCommandsSourceBuffer_);
-    glNamedBufferStorage(drawCommandsSourceBuffer_, drawCommandBufferSize, drawCommands_.data(), 0);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::drawCommandsSource),
-                     drawCommandsSourceBuffer_);
+    // Draw Counts (drawcount for glMultiDrawElementsIndirectCount)
+    glCreateBuffers(1, &drawCountsBuffer_);
+    glNamedBufferStorage(drawCountsBuffer_, static_cast<GLuint>(drawBuckets_.size() * sizeof(std::uint32_t)), nullptr,
+                         0);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::drawCounts), drawCountsBuffer_);
+    glBindBuffer(GL_PARAMETER_BUFFER, drawCountsBuffer_);
+
+    // Cull results
+    glCreateBuffers(1, &cullResultsBuffer_);
+    glNamedBufferStorage(cullResultsBuffer_, drawCommandSize * sizeof(std::uint32_t), nullptr, 0);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::cullResults), cullResultsBuffer_);
 
     // Draw command buffer (dynamic)
     glCreateBuffers(1, &drawCommandsBuffer_);
-    glNamedBufferStorage(drawCommandsBuffer_, drawCommandBufferSize, nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glNamedBufferStorage(drawCommandsBuffer_, drawCommandSize * sizeof(DrawElementsIndirectCommand), nullptr, 0);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::drawCommands),
                      drawCommandsBuffer_);
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawCommandsBuffer_);
+
+    // Indices into the model matrices buffer. Each primitive has its own set of visible indicies, with the number of
+    // model matrices being the upper bound
+    glCreateBuffers(1, &visibleInstancesBuffer_);
+    glNamedBufferStorage(visibleInstancesBuffer_, totals.visibleInstances * sizeof(std::uint32_t), nullptr, 0);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::visibleInstances),
+                     visibleInstancesBuffer_);
+
+    // Draw command buffer (unchanging)
+    glCreateBuffers(1, &drawCommandsSourceBuffer_);
+    glNamedBufferStorage(drawCommandsSourceBuffer_, drawCommandSize * sizeof(DrawElementsIndirectCommand),
+                         commands.data(), 0);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::drawCommandsSource),
+                     drawCommandsSourceBuffer_);
 }
 
 void Renderer::populateMatricesSSBO(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata,
@@ -96,7 +134,6 @@ void Renderer::populateMatricesSSBO(const std::vector<DrawEntry> &entries, std::
         }
     }
 
-    matrices_ = modelMatrices;
     glNamedBufferSubData(matricesBuffer_, 0, modelMatrices.size() * sizeof(glm::mat4), modelMatrices.data());
 }
 
@@ -113,7 +150,7 @@ void Renderer::setMetadataMaterials(const std::vector<DrawEntry> &entries, std::
 
         if (matIndex < 0 || matIndex >= static_cast<int>(materials.size()))
         {
-            std::cerr << "Material index out of bound for model handle " << entry.handle << std::endl;
+            std::cerr << "Material index out of bound for handle " << entry.handle << std::endl;
             throw std::runtime_error("Material index out of bounds");
         }
 
@@ -135,7 +172,6 @@ void Renderer::setVisibleInstancesBaseIndex(const std::vector<DrawEntry> &entrie
                                             std::vector<PrimitiveMetadata> &metadata, const SceneTotals &totals)
 {
     std::uint32_t visibleIndex{0};
-    visibleInstances_.resize(totals.visibleInstances);
 
     for (std::size_t i{0}; i < entries.size(); ++i)
     {
@@ -206,12 +242,12 @@ void Renderer::borrowSkybox(const std::vector<DrawEntry> &entries)
     if (skyboxIter == entries.end() || oceanIter == entries.end())
         return;
 
-    ModelHandle skyboxHandle{skyboxIter->handle};
-    std::unordered_set<ModelHandle> seenHandles;
+    Handle skyboxHandle{skyboxIter->handle};
+    std::unordered_set<Handle> seenHandles;
 
     while (oceanIter->shaderType == ShaderType::ocean)
     {
-        ModelHandle handle{oceanIter->handle};
+        Handle handle{oceanIter->handle};
         ++oceanIter;
 
         if (seenHandles.contains(handle))
@@ -225,7 +261,7 @@ void Renderer::borrowSkybox(const std::vector<DrawEntry> &entries)
 void Renderer::createCubemaps(Scene &scene, const std::vector<DrawEntry> &entries, SamplerArrayEntry reservedEntry)
 {
     using enum ShaderType;
-
+    /*
     // Set everything visible
     for (std::size_t i{0}; i < drawCommandsSource_.size(); ++i)
         drawCommands_[i] = drawCommandsSource_[i];
@@ -322,6 +358,7 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawEntry> &entrie
 
     cubeFaces.unbind();
     glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
+    */
 }
 
 void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget)

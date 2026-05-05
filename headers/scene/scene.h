@@ -14,10 +14,10 @@
 #include "directional_light.h"
 #include "glm/glm.hpp"
 #include "graphics_settings.h"
+#include "graphics_shader.h"
 #include "instanced_model.h"
 #include "model.h"
 #include "scene_resources.h"
-#include "graphics_shader.h"
 #include "texture_manager.h"
 #include "transform.h"
 
@@ -31,7 +31,7 @@
 
 struct SceneEntry
 {
-    std::reference_wrapper<Model> modelRef;
+    std::reference_wrapper<Renderable> renderableRef;
     std::vector<Transform> transforms;
 
     ShaderType shaderType{ShaderType::directionalPBR};
@@ -59,7 +59,7 @@ class Scene
     SceneEntry &getEntryByName(const std::string &key);
 
     // Per-frame Update
-    std::unordered_set<ModelHandle> &getUpdatedModels();
+    std::unordered_set<Handle> &getUpdatedModels();
 
     // Mutators
     void setAmbientLight(const glm::vec3 &ambient);
@@ -82,14 +82,16 @@ class Scene
     DirectionalLight globalLightSource_;
 
     // Access points
-    std::unordered_set<ModelHandle> updatedModels_;
+    std::unordered_set<Handle> updatedModels_;
     std::unordered_map<std::string, std::reference_wrapper<SceneEntry>> entriesByName_;
-    std::unordered_map<ModelHandle, std::reference_wrapper<SceneEntry>> entriesByHandle_;
+    std::unordered_map<Handle, std::reference_wrapper<SceneEntry>> entriesByHandle_;
 
     // For updating existing transforms. Do not add or remove them.
     virtual void onUpdate(float deltaTime) = 0;
+
     virtual void addAllModelsToScene() = 0;
     virtual void setupEnvironment() = 0;
+
     virtual void setupCamera(const GraphicsSettings &graphicsSettings) = 0;
     virtual void initializeScene(const GraphicsSettings &graphicsSettings) = 0;
 
@@ -102,11 +104,11 @@ class Scene
      * it in a scene's onUpdate() method.
      */
     template <typename T>
-        requires std::derived_from<T, BaseModel> && (!std::same_as<T, InstancedModel>)
-    void addObjectToScene(T &modelRef, ShaderType shaderType, Transform &&transform = {},
+        requires std::derived_from<T, Model> && (!std::same_as<T, InstancedModel>)
+    void addObjectToScene(T &renderableRef, ShaderType shaderType, Transform &&transform = {},
                           const std::optional<std::string> name = std::nullopt)
     {
-        SceneEntry sceneEntry{.modelRef = modelRef, .transforms = {transform}, .shaderType = shaderType};
+        SceneEntry sceneEntry{.renderableRef = renderableRef, .transforms = {transform}, .shaderType = shaderType};
 
         sceneEntries_.emplace_back(sceneEntry);
 

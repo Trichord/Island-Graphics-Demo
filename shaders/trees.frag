@@ -32,9 +32,9 @@ layout (std140) uniform uniformData
 };
 
 // SSBOs
-layout(binding = 2, std430) restrict readonly buffer metadataSSBO
+layout(binding = 3, std430) restrict readonly buffer metadataSSBO
 {
-	Metadata metadataBuffer[];
+	Metadata metadata[];
 };
 
 // In
@@ -99,11 +99,11 @@ float CalcMipLevel(vec2 texture_coord){
 
 void main() 
 {
-	Metadata metadata = metadataBuffer[metadataIndex];
+	Metadata meta = metadata[metadataIndex];
 
 	// Materials
-	vec4 albedo = texture(textures[metadata.albedoArray], vec3(fsIn.texCoords, metadata.albedoLayer));
-	vec3 ARM = texture(textures[metadata.armArray], vec3(fsIn.texCoords, metadata.armLayer)).rgb;
+	vec4 albedo = texture(textures[meta.albedoArray], vec3(fsIn.texCoords, meta.albedoLayer));
+	vec3 ARM = texture(textures[meta.armArray], vec3(fsIn.texCoords, meta.armLayer)).rgb;
 	vec3 normal = normalize(fsIn.normal);
 
 	float ao = ARM.r;

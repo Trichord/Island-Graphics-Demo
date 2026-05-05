@@ -1,0 +1,103 @@
+#version 460 core
+
+// Types
+struct DrawElementsIndirectCommand
+{
+    unsigned int count;
+    unsigned int instanceCount;
+    unsigned int firstIndex;
+    int baseVertex;
+    unsigned int baseInstance;
+};
+
+struct BufferMap
+{
+    uint matricesIndex;
+    uint sharedBaseIndex;
+    uint drawBucket;
+    uint drawBucketBaseIndex;
+    uint visibleInstancesBaseIndex;
+};
+
+struct AABB
+{
+    vec4 center;
+    vec4 extent;
+};
+
+// Attributes
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+// UBOs
+layout(binding = 2, std140) uniform frustumPlanes
+{
+    vec4 planes[6];
+};
+
+// SSBOs
+layout(binding = 0, std430) restrict readonly buffer mapSSBO
+{
+    BufferMap maps[];
+};
+
+layout(binding = 1, std430) restrict readonly buffer aabbSSBO
+{
+    AABB AABBs[];
+};
+
+layout(binding = 2, std430) restrict readonly buffer matricesSSBO 
+{
+    mat4 matrices[];
+};
+
+layout(binding = 5, std430) restrict writeonly buffer cullResultsSSBO
+{
+    uint cullResults[];
+};
+
+layout(binding = 7, std430) restrict writeonly buffer visibleInstancesSSBO
+{
+    uint visibleInstances[];
+};
+
+layout(binding = 8, std430) restrict readonly buffer drawCommandsSourceSSBO
+{
+    DrawElementsIndirectCommand commands[];
+};
+
+bool aabbIntersectsFrustum(AABB aabb, mat4 modelMatrix)
+{
+    mat3 RS = mat3(modelMatrix);
+    mat3 absRS = mat3(abs(RS[0]), abs(RS[1]), abs(RS[2]));
+
+    vec3 worldCenter = vec3(modelMatrix * vec4(aabb.center.xyz, 1.0));
+    vec3 worldExtent =  absRS * aabb.extent.xyz;
+
+    for (int i = 0; i < 6; ++i)
+    {
+        float d = dot(worldCenter, planes[i].xyz);
+        float r = dot(worldExtent, abs(planes[i].xyz));
+
+        if (d + r < -planes[i].w)
+            return false;
+    }
+
+    return true;
+}
+
+void main()
+{
+    if (gl_GlobalInvocationID.x >= visibleInstances.length())
+        return;
+
+    BufferMap map = maps[gl_GlobalInvocationID.x];
+    AABB aabb = AABBs[map.sharedBaseIndex];
+    mat4 modelMatrix = matrices[map.matricesIndex];
+    uint visibilityBufferBaseIndex = map.visibleInstancesBaseIndex;
+
+    if (aabbIntersectsFrustum(aabb, modelMatrix))
+    {
+        uint counter = atomicAdd(cullResults[map.sharedBaseIndex], 1);
+        visibleInstances[visibilityBufferBaseIndex + counter] = map.matricesIndex;    
+    }
+}

@@ -60,7 +60,7 @@ void IslandScene::addAllModelsToScene()
     auto &rock1 = sceneResources_.loadInstancedModel("./res/models/rocks/rock1/rock1.gltf", "./res/positions/rock1.txt",
                                                      0.9f, 2.0f, 11);
     addInstancedObjectToScene(rock1, directionalPBR);
-    ModelHandle rockHandle{rock1.getHandle()};
+    Handle rockHandle{rock1.getHandle()};
 
     // Rock 2
     auto &rock2 = sceneResources_.loadInstancedModel(rockHandle, "./res/models/rocks/rock2/rock2.gltf",
@@ -112,7 +112,7 @@ void IslandScene::addAllModelsToScene()
     auto &whiteFlowers = sceneResources_.loadInstancedModel("./res/models/vegetation/whiteflower/whiteflower.gltf",
                                                             "./res/positions/whiteflower.txt", 0.9f, 1.1f, 488);
     addInstancedObjectToScene(whiteFlowers, grass);
-    ModelHandle whiteFlowerHandle{whiteFlowers.getHandle()};
+    Handle whiteFlowerHandle{whiteFlowers.getHandle()};
 
     // Blue flowers
     auto &blueFlowers =
@@ -148,7 +148,7 @@ void IslandScene::addAllModelsToScene()
     auto &tree1 = sceneResources_.loadInstancedModel("./res/models/trees/tree1/tree1.gltf", "./res/positions/tree1.txt",
                                                      0.8f, 1.2f, 66);
     addInstancedObjectToScene(tree1, trees);
-    ModelHandle tree1Handle{tree1.getHandle()};
+    Handle tree1Handle{tree1.getHandle()};
 
     // Tree 2
     auto &tree2 = sceneResources_.loadInstancedModel(tree1Handle, "./res/models/trees/tree2/tree2.gltf",
@@ -260,7 +260,7 @@ void IslandScene::onUpdate(float deltaTime)
 {
     // Rotate the fancy space model
     auto &spaceModelEntry = getEntryByName("spaceModel");
-    Model &spaceModel{spaceModelEntry.modelRef.get()};
+    Renderable &spaceModel{spaceModelEntry.renderableRef.get()};
     AABB &spaceAABB{spaceModel.getAABB()};
 
     for (std::size_t i{0}; i < spaceModelEntry.transforms.size(); ++i)

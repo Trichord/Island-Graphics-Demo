@@ -19,14 +19,14 @@
 
 #include "texture_manager.h"
 
-BaseModel::BaseModel(TextureManager &textureManager, const std::filesystem::path &path)
+Model::Model(TextureManager &textureManager, const std::filesystem::path &path)
     : handle_{textureManager.assignHandle()}, textureManager_{textureManager}, filePath_{path}
 {
     loadModel(path, false);
     calculateAABB();
 }
 
-BaseModel::BaseModel(TextureManager &textureManager, const ModelHandle borrowHandle, const std::filesystem::path &path)
+Model::Model(TextureManager &textureManager, const Handle borrowHandle, const std::filesystem::path &path)
     : handle_{textureManager.assignHandle()}, borrowedHandle_{borrowHandle}, textureManager_{textureManager},
       filePath_{path}
 {
@@ -35,22 +35,22 @@ BaseModel::BaseModel(TextureManager &textureManager, const ModelHandle borrowHan
     calculateAABB();
 }
 
-AABB &BaseModel::getAABB()
+AABB &Model::getAABB()
 {
     return aabb_;
 }
 
-std::span<Primitive> BaseModel::getPrimitives()
+std::span<Primitive> Model::getPrimitives()
 {
     return primitives_;
 }
 
-std::optional<ModelHandle> BaseModel::getBorrowedHandle() const
+std::optional<Handle> Model::getBorrowedHandle() const
 {
     return borrowedHandle_;
 }
 
-void BaseModel::loadModel(const std::filesystem::path &path, bool borrowed)
+void Model::loadModel(const std::filesystem::path &path, bool borrowed)
 {
     fastgltf::Asset asset = fastgltfLoader::loadAsset(path);
 
@@ -60,12 +60,12 @@ void BaseModel::loadModel(const std::filesystem::path &path, bool borrowed)
         textureManager_.loadModelTextures(handle_, std::move(asset), path.parent_path());
 }
 
-ModelHandle BaseModel::getHandle() const
+Handle Model::getHandle() const
 {
     return handle_;
 }
 
-void BaseModel::calculateAABB()
+void Model::calculateAABB()
 {
     glm::vec3 min{std::numeric_limits<float>::infinity()};
     glm::vec3 max{-std::numeric_limits<float>::infinity()};
@@ -79,7 +79,7 @@ void BaseModel::calculateAABB()
     aabb_ = AABB{min, max};
 }
 
-std::optional<std::vector<Primitive>> BaseModel::loadCollisionMesh() const
+std::optional<std::vector<Primitive>> Model::loadCollisionMesh() const
 {
     std::filesystem::path collisionMeshPath{filePath_.parent_path() / "collision"};
     std::string gltf{filePath_.stem().string() + "_collision.gltf"};
