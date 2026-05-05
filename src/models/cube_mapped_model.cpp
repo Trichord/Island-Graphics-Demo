@@ -8,13 +8,13 @@
 
 CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
                                  const std::vector<std::filesystem::path> &imagePaths, bool mipmaps)
-    : BaseModel{textureManager, modelPath}
+    : Model{textureManager, modelPath}
 {
     textureManager.loadCubemapTextures(handle_, imagePaths, "./", mipmaps);
 }
 
-CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const ModelHandle borrowHandle,
+CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const Handle borrowHandle,
                                  const std::filesystem::path &modelPath)
-    : BaseModel{textureManager, borrowHandle, modelPath}
+    : Model{textureManager, borrowHandle, modelPath}
 {
 }

@@ -18,19 +18,19 @@
 #include "transform.h"
 
 // Struct for MultiDrawElements
-typedef struct
+struct DrawElementsIndirectCommand
 {
     unsigned int count;
     unsigned int instanceCount;
     unsigned int firstIndex;
     int baseVertex;
     unsigned int baseInstance;
-} DrawElementsIndirectCommand;
+};
 
 // Describes a single gLTF primitive for the renderer
 struct DrawEntry
 {
-    ModelHandle handle;
+    Handle handle;
     Primitive *primitive;
     std::vector<Transform> *transforms;
 
@@ -90,7 +90,7 @@ struct MultiDrawBucket
     fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
 };
 
-struct ModelTransforms
+struct BufferTransforms
 {
     std::uint32_t matricesBufferBaseIndex{0};
     std::vector<Transform> *transforms{nullptr};
@@ -100,25 +100,28 @@ struct ModelTransforms
 struct BufferMap
 {
     std::uint32_t matricesIndex{0};
-    std::uint32_t sharedBaseIndex{0};     // AABB and Draw Command
-    std::uint32_t drawBucket{0};          // For writing into the final glMultiDrawElementsIndirectCount drawcount
-    std::uint32_t drawBucketBaseIndex{0}; // For compaction. To maintain proper offsets into the draw command buffer
+    std::uint32_t sharedBaseIndex{0};     
+    std::uint32_t drawBucket{0};          
+    std::uint32_t drawBucketBaseIndex{0};
+    std::uint32_t visibleInstancesBaseIndex{0};
 };
 
 enum class BindingPointSSBO : unsigned int
 {
-    matrices,
-    visibleIndices,
-    metadata,
-    drawCommands,
-    drawCommandsSource,
-    cullResults,
-    matrixMapBuffer,
+    map,
     aabb,
+    matrices,
+    metadata,
+    drawCounts,
+    cullResults,
+    drawCommands,
+    visibleInstances,
+    drawCommandsSource,
 };
 
 enum class BindingPointUBO : unsigned int
 {
     shaderUniforms,
-    cascadeShadows
+    cascadeShadows,
+    frustumPlanes
 };

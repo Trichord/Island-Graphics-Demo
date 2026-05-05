@@ -16,15 +16,15 @@
 InstancedModel::InstancedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
                                const std::filesystem::path &positionsPath, float minSize, float maxSize,
                                int numPositions)
-    : BaseModel{textureManager, modelPath}, numInstances_(numPositions), minSize_(minSize), maxSize_(maxSize),
+    : Model{textureManager, modelPath}, numInstances_(numPositions), minSize_(minSize), maxSize_(maxSize),
       positionsPath_{positionsPath}
 {
 }
 
-InstancedModel::InstancedModel(TextureManager &textureManager, const ModelHandle borrowHandle,
+InstancedModel::InstancedModel(TextureManager &textureManager, const Handle borrowHandle,
                                const std::filesystem::path &modelPath, const std::filesystem::path &positionsPath,
                                float minSize, float maxSize, int numPositions)
-    : BaseModel{textureManager, borrowHandle, modelPath}, numInstances_(numPositions), minSize_(minSize),
+    : Model{textureManager, borrowHandle, modelPath}, numInstances_(numPositions), minSize_(minSize),
       maxSize_(maxSize), positionsPath_{positionsPath}
 {
 }

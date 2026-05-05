@@ -3,7 +3,6 @@
 #include <array>
 #include <cstdint>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
 #include "cascade_shadow.h"
@@ -18,6 +17,7 @@
 #include "texture_manager.h"
 #include "textures.h"
 #include "thread_pool.h"
+#include "compute_shader.h"
 
 class Renderer
 {
@@ -50,7 +50,7 @@ class Renderer
     // Owned objects
     GLState glState_;
     std::vector<glm::mat4> updatedMatrices_;
-    std::unordered_map<ModelHandle, ModelTransforms> transformsByHandle_;
+    std::unordered_map<Handle, BufferTransforms> transformsByHandle_;
     std::array<GraphicsShader, static_cast<int>(ShaderType::count)> shaders_;
 
     // Global VAO
@@ -59,28 +59,45 @@ class Renderer
     GLuint globalEBO_{0};
 
     // UBO
+    GLuint frustumPlanesUBO_{0};
     GLuint shaderUniformsUBO_{0};
     GLuint shadowCascadesUBO_{0};
 
     /* Buffers
      *
-     * AABB: Per gLTF primitive AABBs
-     * Matrices: Per Model transforms (multiple primitives share)
-     * Metadata: Per Primitive materials, buffer offsets
-     * DrawCommands: Per primitive, updated every frame
-     * DrawCommandsSource: Per primitive. Set once during loading
-     * VisibleInstances: Indexes into the matrices buffer. Each primitive gets its own section, sized to the number
-     *                   of model instances. Used for culling.
+     * Overall strategy: maintain set regions for each primitive so that a base index is always known. From there, any
+     * instancing is always base + instance.
      *
-     * AABBs, Metadata, DrawCommands, and DrawCommandsSource are all mapped 1:1.
-     * i.e. Metadata[i] gives texture info for DrawCommands[i]
+     * Map: Per (primitive × instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
+     *      - matricesIndex: index into Matrices buffer
+     *      - sharedBaseIndex: index into AABBs/Metadata/DrawCommands (the primitive)
+     *      - drawBucket: which draw bucket this primitive belongs to
+     *      - drawBucketBaseIndex: start of that bucket in DrawCommands
+     *      - visibleInstancesBaseIndex: start of the (primitive x instance) in the visibility buffer
+     *
+     * AABB: Per primitive. Local-space bounding boxes
+     * Matrices: Per model. World-space transforms (multiple primitives share one range)
+     * Metadata: Per primitive. Material textures, visibility buffer base index
+     * DrawCounts: Per draw bucket. Number of surviving draw commands after compaction
+     * CullResults: Per primitive. Number of surviving instances after frustum test
+     * DrawCommands: Per primitive. Compacted each frame from DrawCommandsSource
+     * VisibleInstances: Per (primitive × instance) pair. Indices into Matrices for
+     *                   instances that passed the frustum test. Each primitive owns a
+     *                   contiguous section sized to its instance count.
+     * DrawCommandsSource: Per primitive. Immutable source of truth, set once at load
+     *
+     * 1:1 indexed buffers: AABB[i], Metadata[i], DrawCommands[i], DrawCommandsSource[i]
+     * Flattened buffers: Map[j], VisibleInstances[j] where j spans all (primitive × instance) pairs
      *
      */
 
     // Buffers
+    GLuint mapBuffer_{0};
     GLuint aabbBuffer_{0};
     GLuint matricesBuffer_{0};
     GLuint metadataBuffer_{0};
+    GLuint drawCountsBuffer_{0};
+    GLuint cullResultsBuffer_{0};
     GLuint drawCommandsBuffer_{0};
     GLuint visibleInstancesBuffer_{0};
     GLuint drawCommandsSourceBuffer_{0};
@@ -93,17 +110,12 @@ class Renderer
     // Drawing
     DrawElementsIndirectCommand skybox_;
     std::vector<MultiDrawBucket> drawBuckets_;
-    std::vector<DrawElementsIndirectCommand> drawCommands_;
-    std::vector<DrawElementsIndirectCommand> drawCommandsSource_;
 
-    // Culling (currently simulating SSBOs)
-    std::vector<AABB> aabbs_;
-    std::vector<glm::mat4> matrices_;
-    std::vector<std::uint32_t> visibleInstances_;
-    std::vector<PrimitiveMetadata> metadata_;
-    std::vector<BufferMap> bufferMap_;
-    std::vector<std::uint32_t> drawCounts_;        // atomic MDI Count buffer
-    std::vector<std::uint32_t> cullResults_; // per draw command visibility result
+    // Compute Shaders
+    ComputeShader cullShader_;
+    ComputeShader compactionShader_;
+    std::uint32_t cullWorkGroupSize_{0};
+    std::uint32_t compactionWorkGroupSize_{0};
 
     // Shaders and Uniforms
     void loadShaders();
@@ -117,8 +129,9 @@ class Renderer
     void updateMetadataCubemaps(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata);
 
     // GPU buffers
-    void createBuffers(const SceneTotals &totals);
     void createVAO(const std::vector<DrawEntry> &entries, const SceneTotals &totals);
+    void createBuffers(const std::vector<DrawElementsIndirectCommand> &commands, const std::vector<AABB> &aabbs,
+                       const SceneTotals &totals);
 
     // Metadata Setup
     void setMetadataMaterials(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata);
@@ -131,23 +144,20 @@ class Renderer
     void sortDrawEntries(std::vector<DrawEntry> &entries);
     void createDrawBuckets(const std::vector<DrawEntry> &entries);
     std::vector<DrawEntry> createDrawEntries(Scene &scene, const SceneTotals &totals);
-    void createAABBs(const std::vector<DrawEntry> &entries, const SceneTotals &totals);
-    void createBufferMap(const std::vector<DrawEntry> &entries, const SceneTotals &totals);
+    std::vector<AABB> createAABBs(const std::vector<DrawEntry> &entries, const SceneTotals &totals);
+    void createBufferMap(const std::vector<DrawEntry> &entries, const std::vector<PrimitiveMetadata> &metadata,
+                         const SceneTotals &totals);
 
     // Drawing
     void renderScene();
+    void cullScene(const glm::mat4 &cullMatrix);
     void renderShadowMaps(Scene &scene, bool lightChanged);
     void shadowPass(GraphicsShader &shader, int cascade, bool alphaTested);
-
-    // Culling
-    void compactBuffer();
-    void cullScene(const glm::mat4 &cullMatrix);
-    void cullVisibilityIndex(std::uint32_t baseVisibilityIndex, std::uint32_t visibilityIndex, std::uint32_t &counter,
-                             const std::array<glm::vec4, 6> &frustumPlanes);
 
     // Updates
     void updateCameraUBO(Scene &scene);
     void updateSceneTransforms(Scene &scene);
+    void updateFrustumPlanesUBO(const glm::mat4 &cullMatrix);
     void updateShaderUniforms(Scene &scene, bool lightChanged);
     void updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll);
 

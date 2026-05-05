@@ -10,22 +10,22 @@
 #include "primitive.h"
 #include "texture_manager.h"
 
-class BaseModel : public Model
+class Model : public Renderable
 {
   public:
-    BaseModel(TextureManager &textureManager, const std::filesystem::path &path);
-    BaseModel(TextureManager &textureManager, const ModelHandle borrowHandle, const std::filesystem::path &path);
+    Model(TextureManager &textureManager, const std::filesystem::path &path);
+    Model(TextureManager &textureManager, const Handle borrowHandle, const std::filesystem::path &path);
 
     AABB &getAABB() override;
-    ModelHandle getHandle() const override;
+    Handle getHandle() const override;
     std::span<Primitive> getPrimitives() override;
-    std::optional<ModelHandle> getBorrowedHandle() const override;
+    std::optional<Handle> getBorrowedHandle() const override;
     std::optional<std::vector<Primitive>> loadCollisionMesh() const override;
 
   protected:
     AABB aabb_;
-    ModelHandle handle_{0};
-    std::optional<ModelHandle> borrowedHandle_{};
+    Handle handle_{0};
+    std::optional<Handle> borrowedHandle_{};
 
     TextureManager &textureManager_;
     std::filesystem::path filePath_;

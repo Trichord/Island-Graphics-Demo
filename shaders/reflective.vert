@@ -30,17 +30,19 @@ layout (std140) uniform uniformData
 };
 
 // SSBOs
-layout(binding = 0, std430) restrict readonly buffer matricesSSBO {
-    mat4 instances[];
-};
-
-layout(binding = 1, std430) restrict readonly buffer indicesSSBO {
-    uint indices[];
-};
-
-layout(binding = 2, std430) restrict readonly buffer metadataSSBO
+layout(binding = 2, std430) restrict readonly buffer matricesSSBO 
 {
-	Metadata metadataBuffer[];
+   mat4 matrices[];
+};
+
+layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+{
+	Metadata metadata[];
+};
+
+layout(binding = 7, std430) restrict readonly buffer visibleInstancesSSBO 
+{
+   uint instances[];
 };
 
 // Out
@@ -52,10 +54,10 @@ out vec3 position;
 
 void main() 
 {
-	Metadata metadata = metadataBuffer[gl_BaseInstance];
-	uint matrixIndex = indices[metadata.visibleInstancesBufferBaseIndex + gl_InstanceID];
+	Metadata meta = metadata[gl_BaseInstance];
+	uint matrixIndex = instances[meta.visibleInstancesBufferBaseIndex + gl_InstanceID];
 
-	mat4 modelMatrix = instances[matrixIndex];
+	mat4 modelMatrix = matrices[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
 
 	normal = normalMatrix * aNorm;

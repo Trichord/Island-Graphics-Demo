@@ -42,7 +42,7 @@ physicsUtilities::CollisionMesh physicsUtilities::buildCollisionMesh(Scene &scen
 
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {
-        Model &model{entry.modelRef.get()};
+        Renderable &model{entry.renderableRef.get()};
 
         auto objectCollisionMesh = model.loadCollisionMesh();
 

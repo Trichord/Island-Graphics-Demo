@@ -29,11 +29,10 @@ layout (std140) uniform uniformData
 };
 
 // SSBOs
-layout(binding = 2, std430) restrict readonly buffer metadataSSBO
+layout(binding = 3, std430) restrict readonly buffer metadataSSBO
 {
-	Metadata metadataBuffer[];
+	Metadata metadata[];
 };
-
 
 // Out
 flat out int metadataIndex;
@@ -41,7 +40,8 @@ flat out int metadataIndex;
 out vec3 texCoords;
 
 
-void main() {
+void main() 
+{
 	mat4 viewNoTrans = mat4(mat3(viewMatrix));
 	vec4 pos = projectionMatrix * viewNoTrans * vec4(aPos, 1.0f);
 
