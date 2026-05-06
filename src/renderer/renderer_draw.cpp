@@ -121,11 +121,15 @@ void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)
 
     for (std::size_t i{0}; i < drawBuckets_.size(); ++i)
     {
-        MultiDrawBucket &mdb{drawBuckets_[i]};
         using enum ShaderType;
         using enum fastgltf::AlphaMode;
 
+        MultiDrawBucket &mdb{drawBuckets_[i]};
+        
         if (mdb.shaderType == ocean || mdb.shaderType == skybox)
+            continue;
+
+        if (mdb.shaderType == grass && cascade != 0)
             continue;
 
         const bool a2c{mdb.alphaMode == Mask};

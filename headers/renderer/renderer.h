@@ -133,9 +133,6 @@ class Renderer
     void createVAO(const std::vector<DrawEntry> &entries, const SceneTotals &totals);
     void createBuffers(const std::vector<DrawElementsIndirectCommand> &commands, const std::vector<AABB> &aabbs,
                        const SceneTotals &totals);
-
-    // Metadata Setup
-    void setMetadataMaterials(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata);
     void populateMatricesSSBO(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata,
                               const SceneTotals &totals);
 

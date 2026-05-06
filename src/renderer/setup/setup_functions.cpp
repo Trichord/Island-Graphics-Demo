@@ -1,3 +1,7 @@
+#include <cstdint>
+#include <iostream>
+#include <limits>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <vector>
@@ -12,37 +16,8 @@
 #include "scene.h"
 #include "setup_functions.h"
 #include "texture_manager.h"
+#include "textures.h"
 #include "transform.h"
-
-AABB getSceneBounds(Scene &scene)
-{
-    glm::vec3 min{std::numeric_limits<float>::infinity()};
-    glm::vec3 max{-std::numeric_limits<float>::infinity()};
-
-    for (SceneEntry &entry : scene.getAllSceneEntries())
-    {
-        using enum ShaderType;
-
-        if (entry.shaderType == ocean || entry.shaderType == skybox)
-            continue;
-
-        Renderable &renderable{entry.renderableRef.get()};
-        const AABB &aabb{renderable.getAABB()};
-
-        for (Transform &transform : entry.transforms)
-        {
-            const AABB worldAABB{aabb.transform(transform.getModelMatrix())};
-
-            const glm::vec3 aabbMin{worldAABB.getMin()};
-            const glm::vec3 aabbMax{worldAABB.getMax()};
-
-            min = glm::min(min, aabbMin);
-            max = glm::max(max, aabbMax);
-        }
-    }
-
-    return {min, max};
-}
 
 SceneTotals getSceneTotals(Scene &scene)
 {
@@ -72,20 +47,6 @@ SceneTotals getSceneTotals(Scene &scene)
     }
 
     return totals;
-}
-
-void setVisibleInstancesBaseIndex(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata)
-{
-    std::uint32_t visibleIndex{0};
-
-    for (std::size_t i{0}; i < entries.size(); ++i)
-    {
-        const std::vector<Transform> &transforms{*entries[i].transforms};
-        const std::uint32_t numTransforms{static_cast<uint32_t>(transforms.size())};
-
-        metadata[i].visibleInstancesBufferBaseIndex = visibleIndex;
-        visibleIndex += numTransforms;
-    }
 }
 
 // Build up all scene entries by shader type
@@ -156,6 +117,34 @@ std::vector<MultiDrawBucket> createDrawBuckets(const std::vector<DrawEntry> &ent
     return buckets;
 }
 
+std::vector<DrawElementsIndirectCommand> createDrawCommandBuffer(std::vector<DrawEntry> &entries, SceneTotals &totals)
+{
+    std::vector<DrawElementsIndirectCommand> commands;
+    commands.reserve(totals.primitives);
+
+    int vaoIndex{0};
+    std::uint32_t eboIndex{0};
+
+    for (std::size_t i{0}; i < entries.size(); ++i)
+    {
+        DrawEntry &entry{entries[i]};
+        const std::vector<Transform> &transforms{*entry.transforms};
+        std::size_t numTransforms{transforms.size()};
+
+        commands.emplace_back(
+            DrawElementsIndirectCommand{.count = static_cast<unsigned int>(entry.primitive->indices.size()),
+                                        .instanceCount = static_cast<unsigned int>(numTransforms),
+                                        .firstIndex = eboIndex,
+                                        .baseVertex = vaoIndex,
+                                        .baseInstance = static_cast<unsigned int>(i)});
+
+        vaoIndex += static_cast<std::uint32_t>(entry.primitive->vertices.size());
+        eboIndex += static_cast<std::uint32_t>(entry.primitive->indices.size());
+    }
+
+    return commands;
+}
+
 std::vector<AABB> createAABBs(const std::vector<DrawEntry> &entries, const SceneTotals &totals)
 {
     std::vector<AABB> aabbs;
@@ -168,4 +157,80 @@ std::vector<AABB> createAABBs(const std::vector<DrawEntry> &entries, const Scene
     }
 
     return aabbs;
+}
+
+void setVisibleInstancesBaseIndex(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata)
+{
+    std::uint32_t visibleIndex{0};
+
+    for (std::size_t i{0}; i < entries.size(); ++i)
+    {
+        const std::vector<Transform> &transforms{*entries[i].transforms};
+        const std::uint32_t numTransforms{static_cast<uint32_t>(transforms.size())};
+
+        metadata[i].visibleInstancesBufferBaseIndex = visibleIndex;
+        visibleIndex += numTransforms;
+    }
+}
+
+void setMetadataMaterials(TextureManager &manager, const std::vector<DrawEntry> &entries,
+                          std::vector<PrimitiveMetadata> &metadata)
+{
+    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(entries.size()); ++i)
+    {
+        const DrawEntry &entry{entries[i]};
+        PrimitiveMetadata &metaEntry{metadata[i]};
+
+        const int matIndex{entry.primitive->materialIndex};
+        const std::vector<Material> &materials{manager.getMaterials(entry.handle)};
+        const Material &material{materials[matIndex]};
+
+        if (matIndex < 0 || matIndex >= static_cast<int>(materials.size()))
+        {
+            std::cerr << "Material index out of bound for handle " << entry.handle << std::endl;
+            throw std::runtime_error("Material index out of bounds");
+        }
+
+        metaEntry.albedoArray = material.albedo.array;
+        metaEntry.albedoLayer = material.albedo.layer;
+
+        metaEntry.armArray = material.ARM.array;
+        metaEntry.armLayer = material.ARM.layer;
+
+        metaEntry.normalArray = material.normal.array;
+        metaEntry.normalLayer = material.normal.layer;
+
+        metaEntry.cubemapArray = material.cubemap.array;
+        metaEntry.cubemapLayer = material.cubemap.layer;
+    }
+}
+
+AABB getSceneBounds(Scene &scene)
+{
+    glm::vec3 min{std::numeric_limits<float>::infinity()};
+    glm::vec3 max{-std::numeric_limits<float>::infinity()};
+
+    for (SceneEntry &entry : scene.getAllSceneEntries())
+    {
+        using enum ShaderType;
+
+        if (entry.shaderType == ocean || entry.shaderType == skybox)
+            continue;
+
+        Renderable &renderable{entry.renderableRef.get()};
+        const AABB &aabb{renderable.getAABB()};
+
+        for (Transform &transform : entry.transforms)
+        {
+            const AABB worldAABB{aabb.transform(transform.getModelMatrix())};
+
+            const glm::vec3 aabbMin{worldAABB.getMin()};
+            const glm::vec3 aabbMax{worldAABB.getMax()};
+
+            min = glm::min(min, aabbMin);
+            max = glm::max(max, aabbMax);
+        }
+    }
+
+    return {min, max};
 }

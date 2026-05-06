@@ -19,14 +19,14 @@
 #include "texture_manager.h"
 #include "transform.h"
 
-Scene::Scene(TextureManager &textureManager) : sceneResources_{textureManager}
+Scene::Scene(TextureManager &textureManager) : resources_{textureManager}
 {
-    sceneEntries_.reserve(sceneMaxObjects::maxTotal);
+    entries_.reserve(sceneMaxObjects::maxTotal);
 }
 
 std::vector<SceneEntry> &Scene::getAllSceneEntries()
 {
-    return sceneEntries_;
+    return entries_;
 }
 
 SceneEntry &Scene::getEntryByName(const std::string &key)
@@ -83,25 +83,25 @@ void Scene::addInstancedObjectToScene(InstancedModel &renderableRef, ShaderType 
     std::vector<Transform> transforms{renderableRef.loadInstancedTransforms()};
 
     // Store a reference to the stable vector in Scene Resources, organized by shader
-    sceneEntries_.emplace_back(SceneEntry{
+    entries_.emplace_back(SceneEntry{
         .renderableRef = renderableRef,
         .transforms = std::move(transforms),
         .shaderType = shaderType,
     });
 
     // Store an access point to the instances, by model handle
-    entriesByHandle_.emplace(renderableRef.getHandle(), std::ref(sceneEntries_.back()));
+    entriesByHandle_.emplace(renderableRef.getHandle(), std::ref(entries_.back()));
 
     // Add a lookup to get a reference to a model's instances by a user-defined name
     if (name.has_value())
-        entriesByName_.emplace(name.value(), std::ref(sceneEntries_.back()));
+        entriesByName_.emplace(name.value(), std::ref(entries_.back()));
 }
 
 void Scene::addSkyboxToScene(Skybox &skybox)
 {
     std::vector<Transform> transforms{{}};
 
-    sceneEntries_.emplace_back(SceneEntry{
+    entries_.emplace_back(SceneEntry{
         .renderableRef = skybox,
         .transforms = std::move(transforms),
         .shaderType = ShaderType::skybox,

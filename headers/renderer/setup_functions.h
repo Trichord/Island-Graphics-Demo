@@ -37,9 +37,13 @@ struct DrawEntry
 AABB getSceneBounds(Scene &scene);
 SceneTotals getSceneTotals(Scene &scene);
 
-// Buffer building helpers
+// Creating resources for buffers
 std::vector<DrawEntry> createDrawEntries(Scene &scene, const SceneTotals &totals);
 std::vector<MultiDrawBucket> createDrawBuckets(const std::vector<DrawEntry> &entries);
 std::vector<AABB> createAABBs(const std::vector<DrawEntry> &entries, const SceneTotals &totals);
+std::vector<DrawElementsIndirectCommand> createDrawCommandBuffer(std::vector<DrawEntry> &entries, SceneTotals &totals);
+
+// Updating resources
 void setVisibleInstancesBaseIndex(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata);
-std::vector<DrawElementsIndirectCommand> buildDrawCommandBuffer(std::vector<DrawEntry> &entries, SceneTotals &totals);
+void setMetadataMaterials(TextureManager &manager, const std::vector<DrawEntry> &entries,
+                          std::vector<PrimitiveMetadata> &metadata);
