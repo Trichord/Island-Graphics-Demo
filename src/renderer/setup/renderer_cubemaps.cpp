@@ -6,9 +6,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "aabb.h"
 #include "camera.h"
-#include "cascade_shadow.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"

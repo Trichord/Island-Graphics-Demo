@@ -69,10 +69,10 @@ class Scene
     Camera camera_;
 
     // Permanent storage
-    SceneResources sceneResources_;
+    SceneResources resources_;
 
     // Associated data
-    std::vector<SceneEntry> sceneEntries_;
+    std::vector<SceneEntry> entries_;
 
     // Wind
     float windStrength_{0.0f};
@@ -101,22 +101,23 @@ class Scene
     // Instanced models load positions and generate transforms from disk
     void addInstancedObjectToScene(InstancedModel &renderableRef, ShaderType shaderType,
                                    const std::optional<std::string> name = std::nullopt);
-    
-        /**
-         * @brief Adds an object to the scene.  Optional: give the object a name to access
-         * it in a scene's onUpdate() method.
-         */
-        template <typename T>
-        requires std::derived_from<T, Model> && (!std::same_as<T, InstancedModel>)
+
+    /**
+     * @brief Adds an object to the scene.  Optional: give the object a name to access
+     * it in a scene's onUpdate() method.
+     */
+    template <typename T>
+        requires std::derived_from<T, Renderable> && (!std::same_as<T, InstancedModel> && !std::same_as<T, Skybox>)
     void addObjectToScene(T &renderableRef, ShaderType shaderType, Transform &&transform = {},
                           const std::optional<std::string> name = std::nullopt)
     {
-        SceneEntry sceneEntry{.renderableRef = renderableRef, .transforms = {transform}, .shaderType = shaderType};
+        SceneEntry entry{
+            .renderableRef = renderableRef, .transforms = {std::move(transform)}, .shaderType = shaderType};
 
-        sceneEntries_.emplace_back(sceneEntry);
+        entries_.emplace_back(entry);
 
         // Add a lookup to get a reference to a model's instances by a user-defined name
         if (name.has_value())
-            entriesByName_.emplace(name.value(), std::ref(sceneEntries_.back()));
+            entriesByName_.emplace(name.value(), std::ref(entries_.back()));
     }
 };
