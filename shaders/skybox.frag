@@ -14,6 +14,17 @@ struct Metadata
 	uint visibleInstancesBufferBaseIndex;
 };
 
+// UBOs
+layout (std140) uniform uniformData 
+{
+	layout (offset = 0) mat4 viewMatrix;
+	layout (offset = 64) mat4 projectionMatrix;
+	layout (offset = 128) mat4 projectionViewMatrix;
+	layout (offset = 192) mat4 inverseViewProjectMatrix;
+	layout (offset = 256) vec4 cameraPosition;
+	layout (offset = 272) float time;
+};
+
 // Samplers
 layout(binding = 8) uniform samplerCubeArray cubemaps[3];
 
@@ -28,7 +39,7 @@ uniform float gamma;
 
 flat in int metadataIndex;
 
-in vec3 texCoords;
+in vec4 texCoords;
 
 // Out
 out vec4 fragColor;
@@ -37,7 +48,8 @@ void main()
 {
 	Metadata meta = metadata[metadataIndex];
 
-	vec3 color = texture(cubemaps[meta.cubemapArray], vec4(texCoords, meta.cubemapLayer)).rgb;
+	vec3 skyboxCoords = texCoords.xyz / texCoords.w;
+	vec3 color = texture(cubemaps[meta.cubemapArray], vec4(skyboxCoords, meta.cubemapLayer)).rgb;
 	
 	// Gamma correction
 	color = pow(color, vec3(1.0/gamma));

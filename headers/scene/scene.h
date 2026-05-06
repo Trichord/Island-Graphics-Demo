@@ -9,7 +9,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "base_model.h"
 #include "camera.h"
 #include "directional_light.h"
 #include "glm/glm.hpp"
@@ -17,7 +16,9 @@
 #include "graphics_shader.h"
 #include "instanced_model.h"
 #include "model.h"
+#include "renderable.h"
 #include "scene_resources.h"
+#include "skybox.h"
 #include "texture_manager.h"
 #include "transform.h"
 
@@ -95,15 +96,17 @@ class Scene
     virtual void setupCamera(const GraphicsSettings &graphicsSettings) = 0;
     virtual void initializeScene(const GraphicsSettings &graphicsSettings) = 0;
 
-    // Instanced models load positions and generate transforms from disk
-    void addInstancedObjectToScene(InstancedModel &modelRef, ShaderType shaderType,
-                                   const std::optional<std::string> name = std::nullopt);
+    void addSkyboxToScene(Skybox &skybox);
 
-    /**
-     * @brief Adds an object to the scene.  Optional: give the object a name to access
-     * it in a scene's onUpdate() method.
-     */
-    template <typename T>
+    // Instanced models load positions and generate transforms from disk
+    void addInstancedObjectToScene(InstancedModel &renderableRef, ShaderType shaderType,
+                                   const std::optional<std::string> name = std::nullopt);
+    
+        /**
+         * @brief Adds an object to the scene.  Optional: give the object a name to access
+         * it in a scene's onUpdate() method.
+         */
+        template <typename T>
         requires std::derived_from<T, Model> && (!std::same_as<T, InstancedModel>)
     void addObjectToScene(T &renderableRef, ShaderType shaderType, Transform &&transform = {},
                           const std::optional<std::string> name = std::nullopt)

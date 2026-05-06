@@ -9,14 +9,12 @@
 #include "directional_light.h"
 #include "glm/glm.hpp"
 #include "graphics_settings.h"
-#include "model.h"
-#include "object_positions.h"
-#include "scene.h"
 #include "graphics_shader.h"
+#include "object_positions.h"
+#include "renderable.h"
+#include "scene.h"
 #include "texture_manager.h"
 #include "transform.h"
-
-#include <iostream>
 
 IslandScene::IslandScene(TextureManager &textureManager, const GraphicsSettings &graphicsSettings)
     : Scene(textureManager)
@@ -202,9 +200,8 @@ void IslandScene::addAllModelsToScene()
         "./res/textures/skybox/right.png",  "./res/textures/skybox/left.png",  "./res/textures/skybox/top.png",
         "./res/textures/skybox/bottom.png", "./res/textures/skybox/front.png", "./res/textures/skybox/back.png"};
 
-    auto &skyboxModel =
-        sceneResources_.loadCubeMappedModel("./res/models/set_pieces/skybox/skybox.gltf", skyBoxPaths, false);
-    addObjectToScene(skyboxModel, skybox);
+    auto &skyboxModel = sceneResources_.loadSkybox(skyBoxPaths);
+    addSkyboxToScene(skyboxModel);
 
     /***************
      *             *

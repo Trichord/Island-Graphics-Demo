@@ -6,15 +6,16 @@
 #include <vector>
 
 #include "aabb.h"
-#include "model.h"
 #include "primitive.h"
+#include "renderable.h"
 #include "texture_manager.h"
 
-class Model : public Renderable
+class Skybox : public Renderable
 {
   public:
-    Model(TextureManager &textureManager, const std::filesystem::path &path);
-    Model(TextureManager &textureManager, const Handle borrowHandle, const std::filesystem::path &path);
+    Skybox() = default;
+    Skybox(TextureManager &textureManager, const std::vector<std::filesystem::path> &imagePaths);
+    Skybox(TextureManager &textureManager, const Handle borrowHandle);
 
     AABB &getAABB() override;
     Handle getHandle() const override;
@@ -27,10 +28,5 @@ class Model : public Renderable
     Handle handle_{0};
     std::optional<Handle> borrowedHandle_{};
 
-    TextureManager &textureManager_;
-    std::filesystem::path filePath_;
     std::vector<Primitive> primitives_;
-    
-    void loadModel(const std::filesystem::path &path, bool borrowed);
-    void calculateAABB();
 };
