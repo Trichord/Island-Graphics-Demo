@@ -3,18 +3,15 @@
 #include <cstdint>
 #include <vector>
 
-#include "cascade_shadow.h"
-
 #pragma warning(push)
 #pragma warning(disable : 5260)
 #include "fastgltf/types.hpp"
 #include "json/json.hpp"
 #pragma warning(pop)
 
+#include "cascade_shadow.h"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
-#include "primitive.h"
-#include "texture_manager.h"
 #include "transform.h"
 
 // Struct for MultiDrawElements
@@ -25,17 +22,6 @@ struct DrawElementsIndirectCommand
     unsigned int firstIndex;
     int baseVertex;
     unsigned int baseInstance;
-};
-
-// Describes a single gLTF primitive for the renderer
-struct DrawEntry
-{
-    Handle handle;
-    Primitive *primitive;
-    std::vector<Transform> *transforms;
-
-    ShaderType shaderType{ShaderType::directionalPBR};
-    fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
 };
 
 // Packs all uniforms for sharing across shaders
@@ -70,17 +56,6 @@ struct PrimitiveMetadata
     std::uint32_t visibleInstancesBufferBaseIndex{0};
 };
 
-// Keep track of the number of vertices and indices in an entire scene
-struct SceneTotals
-{
-    std::size_t vertices{0};
-    std::size_t indices{0};
-    std::size_t matrices{0};
-    std::size_t primitives{0};
-    std::size_t dynamicCubemaps{0};
-    std::size_t visibleInstances{0};
-};
-
 // Buffer offset and primitive count for Multi Draw Indirect calls
 struct MultiDrawBucket
 {
@@ -100,8 +75,8 @@ struct BufferTransforms
 struct BufferMap
 {
     std::uint32_t matricesIndex{0};
-    std::uint32_t sharedBaseIndex{0};     
-    std::uint32_t drawBucket{0};          
+    std::uint32_t sharedBaseIndex{0};
+    std::uint32_t drawBucket{0};
     std::uint32_t drawBucketBaseIndex{0};
     std::uint32_t visibleInstancesBaseIndex{0};
 };
