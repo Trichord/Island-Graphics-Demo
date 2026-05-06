@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "cascade_shadow.h"
+#include "compute_shader.h"
 #include "gl_state.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
@@ -14,10 +15,10 @@
 #include "render_target.h"
 #include "renderer_types.h"
 #include "scene.h"
+#include "setup_functions.h"
 #include "texture_manager.h"
 #include "textures.h"
 #include "thread_pool.h"
-#include "compute_shader.h"
 
 class Renderer
 {
@@ -52,16 +53,6 @@ class Renderer
     std::vector<glm::mat4> updatedMatrices_;
     std::unordered_map<Handle, BufferTransforms> transformsByHandle_;
     std::array<GraphicsShader, static_cast<int>(ShaderType::count)> shaders_;
-
-    // Global VAO
-    GLuint globalVAO_{0};
-    GLuint globalVBO_{0};
-    GLuint globalEBO_{0};
-
-    // UBO
-    GLuint frustumPlanesUBO_{0};
-    GLuint shaderUniformsUBO_{0};
-    GLuint shadowCascadesUBO_{0};
 
     /* Buffers
      *
@@ -102,13 +93,22 @@ class Renderer
     GLuint visibleInstancesBuffer_{0};
     GLuint drawCommandsSourceBuffer_{0};
 
+    // Global VAO
+    GLuint globalVAO_{0};
+    GLuint globalVBO_{0};
+    GLuint globalEBO_{0};
+
+    // UBO
+    GLuint frustumPlanesUBO_{0};
+    GLuint shaderUniformsUBO_{0};
+    GLuint shadowCascadesUBO_{0};
+
     // Textures
     CascadeShadow cascadeShadow_;
     RenderTarget msaaShadowTarget_;
     RenderTarget shadowPassTarget_;
 
     // Drawing
-    DrawElementsIndirectCommand skybox_;
     std::vector<MultiDrawBucket> drawBuckets_;
 
     // Compute Shaders
@@ -125,7 +125,8 @@ class Renderer
     // Cubemap Generation
     void borrowSkybox(const std::vector<DrawEntry> &entries);
     void renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget);
-    void createCubemaps(Scene &scene, const std::vector<DrawEntry> &entries, SamplerArrayEntry reservedEntry);
+    void createCubemaps(Scene &scene, const std::vector<DrawElementsIndirectCommand> &commandsSource,
+                        const std::vector<DrawEntry> &entries, SamplerArrayEntry reservedEntry);
     void updateMetadataCubemaps(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata);
 
     // GPU buffers
@@ -137,14 +138,8 @@ class Renderer
     void setMetadataMaterials(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata);
     void populateMatricesSSBO(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata,
                               const SceneTotals &totals);
-    void setVisibleInstancesBaseIndex(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata,
-                                      const SceneTotals &totals);
 
     // Renderer internal setup
-    void sortDrawEntries(std::vector<DrawEntry> &entries);
-    void createDrawBuckets(const std::vector<DrawEntry> &entries);
-    std::vector<DrawEntry> createDrawEntries(Scene &scene, const SceneTotals &totals);
-    std::vector<AABB> createAABBs(const std::vector<DrawEntry> &entries, const SceneTotals &totals);
     void createBufferMap(const std::vector<DrawEntry> &entries, const std::vector<PrimitiveMetadata> &metadata,
                          const SceneTotals &totals);
 
@@ -160,7 +155,4 @@ class Renderer
     void updateFrustumPlanesUBO(const glm::mat4 &cullMatrix);
     void updateShaderUniforms(Scene &scene, bool lightChanged);
     void updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll);
-
-    // Cleanup
-    void deleteBuffers();
 };
