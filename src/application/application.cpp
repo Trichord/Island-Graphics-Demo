@@ -4,7 +4,6 @@
 #include <iostream>
 
 #include "camera.h"
-#include "settings_window.h"
 #include "gl_context.h"
 #include "glfw_callbacks.h"
 #include "glm/glm.hpp"
@@ -20,6 +19,7 @@
 #include "player_physics.h"
 #include "renderer.h"
 #include "scene.h"
+#include "settings_window.h"
 
 Application::~Application()
 {
@@ -236,9 +236,9 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
     //****************************************
     constexpr float objectSpeed{0.0005f};
 
-    auto &transforms{scene.getInstancesByName("spaceModel")};
-    Transform &transform{transforms.instances.get().front().transform};
-    DirectionalLight &light{scene.getGlobalLightSource()};
+    //SceneEntry &spaceModel{scene.getEntryByName("spaceModel")};
+    //Transform &transform{spaceModel.transforms.front()};
+    DirectionalLight &light{scene.getGlobalLight()};
     glm::vec3 dir{light.getDirection()};
 
     if (glfwGetKey(window_, GLFW_KEY_KP_8) == GLFW_PRESS)
@@ -261,7 +261,7 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
 
     if (glfwGetKey(window_, GLFW_KEY_P) == GLFW_PRESS)
     {
-        //Print stuff
+        // Print stuff
     }
     */
 }

@@ -15,21 +15,19 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"Cube"
+			"name":"island_collision"
 		}
 	],
 	"meshes":[
 		{
-			"name":"Cube.001",
+			"name":"Mesh.066",
 			"primitives":[
 				{
 					"attributes":{
 						"POSITION":0,
-						"NORMAL":1,
-						"TEXCOORD_0":2,
-						"TANGENT":3
+						"NORMAL":1
 					},
-					"indices":4
+					"indices":2
 				}
 			]
 		}
@@ -38,80 +36,56 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":24,
+			"count":68630,
 			"max":[
-				0.5,
-				0.5,
-				0.5
+				231.23104858398438,
+				20.796499252319336,
+				315.53118896484375
 			],
 			"min":[
-				-0.5,
-				-0.5,
-				-0.5
+				-273.07330322265625,
+				-10.259279251098633,
+				-221.88307189941406
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":24,
+			"count":68630,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
-			"componentType":5126,
-			"count":24,
-			"type":"VEC2"
-		},
-		{
-			"bufferView":3,
-			"componentType":5126,
-			"count":24,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":4,
-			"componentType":5123,
-			"count":36,
+			"componentType":5125,
+			"count":393069,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":288,
+			"byteLength":823560,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":288,
-			"byteOffset":288,
+			"byteLength":823560,
+			"byteOffset":823560,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":192,
-			"byteOffset":576,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":384,
-			"byteOffset":768,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":72,
-			"byteOffset":1152,
+			"byteLength":1572276,
+			"byteOffset":1647120,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":1224,
-			"uri":"skybox.bin"
+			"byteLength":3219396,
+			"uri":"island_collision.bin"
 		}
 	]
 }

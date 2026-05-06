@@ -1,7 +1,5 @@
 #include "player_physics.h"
 
-#include <cstdint>
-
 #include "jolt/jolt.h"
 
 #include "glm/glm.hpp"
@@ -26,32 +24,42 @@ PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JP
 {
     using namespace JPH;
 
-    bodyInterface_ = &physicsSystem_.GetBodyInterfaceNoLock();
+    //bodyInterface_ = &physicsSystem_.GetBodyInterfaceNoLock();
+    bodyInterface_ = &physicsSystem_.GetBodyInterface();
+
+    // Build the static collision mesh from scene
+    physicsUtilities::CollisionMesh collisionMesh{physicsUtilities::buildCollisionMesh(scene)};
+
+    if (!collisionMesh.mesh.empty())
+    {
+        resetHeight_ = collisionMesh.minimumHeight;
+
+        // Create terrain and flag it to survive this constructor call
+        MeshShapeSettings terrainShapeSettings{collisionMesh.mesh};
+        terrainShapeSettings.SetEmbedded();
+
+        // Create the shape
+        ShapeSettings::ShapeResult terrainResult{terrainShapeSettings.Create()};
+        ShapeRefC terrainShape{terrainResult.Get()};
+
+        // Terrain properties
+        BodyCreationSettings terrainSettings{terrainShape, RVec3::sZero(), Quat::sIdentity(), EMotionType::Static,
+                                             Layers::NON_MOVING};
+
+        // Create the actual rigid body
+        terrain_ = bodyInterface_->CreateBody(terrainSettings);
+
+        // Add it to the world
+        bodyInterface_->AddBody(terrain_->GetID(), EActivation::DontActivate);
+    }
+    else
+    {
+        resetHeight_ = -1000000.0f;
+    }
+
+    physicsSystem_.OptimizeBroadPhase();
 
     player_.init(physicsSystem, tempAllocator);
-
-    //Build the static collision mesh from scene
-    physicsUtilities::CollisionMesh collisionMesh{physicsUtilities::buildCollisionMesh(scene)};
-    resetHeight_ = collisionMesh.minimumHeight;
-
-    // Create terrain and flag it to survive this constructor call
-    MeshShapeSettings terrainShapeSettings{collisionMesh.mesh};
-    terrainShapeSettings.SetEmbedded();
-
-    // Create the shape
-    ShapeSettings::ShapeResult terrainResult{terrainShapeSettings.Create()};
-    ShapeRefC terrainShape{terrainResult.Get()};
-
-    // Terrain properties
-    BodyCreationSettings terrainSettings{terrainShape, RVec3::sZero(), Quat::sIdentity(), EMotionType::Static,
-                                         Layers::NON_MOVING};
-
-    // Create the actual rigid body
-    terrain_ = bodyInterface_->CreateBody(terrainSettings);
-
-    // Add it to the world
-    bodyInterface_->AddBody(terrain_->GetID(), EActivation::DontActivate);
-    physicsSystem_.OptimizeBroadPhase();
 
     // Set start position
     glm::vec3 cameraPos{scene.getCamera().getPosition()};
@@ -62,17 +70,27 @@ PlayerPhysics::~PlayerPhysics()
 {
     using namespace JPH;
 
-    bodyInterface_->RemoveBody(terrain_->GetID());
-    bodyInterface_->DestroyBody(terrain_->GetID());
+    if (terrain_)
+    {
+        bodyInterface_->RemoveBody(terrain_->GetID());
+        bodyInterface_->DestroyBody(terrain_->GetID());
+    }
 }
 
 void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime)
 {
+    constexpr float maxFallVelocity{-30.0f};
+
     // Player has fallen through the world
     if (player_.getPosition().GetY() < resetHeight_)
     {
         player_.setPosition(resetPosition_);
         previousPosition_ = toGLM(resetPosition_);
+
+        JPH::Vec3 velocity{player_.getVelocity()};
+        JPH::Vec3 newVelocity{velocity.GetX(), std::max(velocity.GetY(), maxFallVelocity), velocity.GetZ()};
+        player_.setVelocity(newVelocity);
+
         return;
     }
 

@@ -2,23 +2,23 @@
 
 #include <concepts>
 #include <functional>
-#include <iostream>
-#include <map>
 #include <optional>
-#include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "camera.h"
-#include "settings_window.h"
 #include "directional_light.h"
 #include "glm/glm.hpp"
-#include "light.h"
-#include "point_light.h"
+#include "graphics_settings.h"
+#include "graphics_shader.h"
+#include "instanced_model.h"
+#include "model.h"
 #include "renderable.h"
 #include "scene_resources.h"
-#include "shader_type.h"
+#include "skybox.h"
 #include "texture_manager.h"
 #include "transform.h"
 
@@ -30,12 +30,12 @@
  * safer ownership model.
  */
 
-using Instances = std::reference_wrapper<std::vector<Instance>>;
-
-struct ModelInstances
+struct SceneEntry
 {
-    ModelHandle handle;
-    Instances instances;
+    std::reference_wrapper<Renderable> renderableRef;
+    std::vector<Transform> transforms;
+
+    ShaderType shaderType{ShaderType::directionalPBR};
 };
 
 class Scene
@@ -48,20 +48,31 @@ class Scene
     Scene &operator=(Scene &&other) noexcept = default;
     virtual ~Scene() = default;
 
-    Camera &getCamera();
+    // Environment
     float getWindStrength() const;
     glm::vec3 getAmbientLight() const;
-    DirectionalLight &getGlobalLightSource();
+    DirectionalLight &getGlobalLight();
     const glm::vec3 &getWindDirection() const;
+
+    // Accessors
+    Camera &getCamera();
+    std::vector<SceneEntry> &getAllSceneEntries();
+    SceneEntry &getEntryByName(const std::string &key);
+
+    // Per-frame Update
+    std::unordered_set<Handle> &getUpdatedModels();
+
+    // Mutators
     void setAmbientLight(const glm::vec3 &ambient);
-    std::unordered_set<ModelHandle> &getTransformsUpdated();
-    ModelInstances &getInstancesByName(const std::string &key);
-    std::map<ShaderType, std::vector<Renderable>> &getRenderablesByShader();
-    std::vector<Instance>& getInstancesByHandle(ModelHandle handle) const;
 
   protected:
     Camera camera_;
-    SceneResources sceneResources_;
+
+    // Permanent storage
+    SceneResources resources_;
+
+    // Associated data
+    std::vector<SceneEntry> entries_;
 
     // Wind
     float windStrength_{0.0f};
@@ -72,40 +83,41 @@ class Scene
     DirectionalLight globalLightSource_;
 
     // Access points
-    std::unordered_set<ModelHandle> transformsUpdated_;
-    std::map<ShaderType, std::vector<Renderable>> sceneRenderables_;
-    std::unordered_map<std::string, ModelInstances> namedInstances_;
-    std::unordered_map<ModelHandle, Instances> instancesByHandle_;
+    std::unordered_set<Handle> updatedModels_;
+    std::unordered_map<std::string, std::reference_wrapper<SceneEntry>> entriesByName_;
+    std::unordered_map<Handle, std::reference_wrapper<SceneEntry>> entriesByHandle_;
+
+    // For updating existing transforms. Do not add or remove them.
+    virtual void onUpdate(float deltaTime) = 0;
 
     virtual void addAllModelsToScene() = 0;
     virtual void setupEnvironment() = 0;
-    virtual void onUpdate(float deltaTime) = 0;
+
     virtual void setupCamera(const GraphicsSettings &graphicsSettings) = 0;
     virtual void initializeScene(const GraphicsSettings &graphicsSettings) = 0;
+
+    void addSkyboxToScene(Skybox &skybox);
+
+    // Instanced models load positions and generate transforms from disk
+    void addInstancedObjectToScene(InstancedModel &renderableRef, ShaderType shaderType,
+                                   const std::optional<std::string> name = std::nullopt);
 
     /**
      * @brief Adds an object to the scene.  Optional: give the object a name to access
      * it in a scene's onUpdate() method.
      */
     template <typename T>
-        requires std::derived_from<T, Model>
-    void addObjectToScene(T &modelRef, ShaderType shaderType, ObjectProperties &&properties = {},
+        requires std::derived_from<T, Renderable> && (!std::same_as<T, InstancedModel> && !std::same_as<T, Skybox>)
+    void addObjectToScene(T &renderableRef, ShaderType shaderType, Transform &&transform = {},
                           const std::optional<std::string> name = std::nullopt)
     {
-        if (properties.instances.empty())
-            properties.instances.emplace_back(Transform{}, modelRef.getAABB());
+        SceneEntry entry{
+            .renderableRef = renderableRef, .transforms = {std::move(transform)}, .shaderType = shaderType};
 
-        // Store a reference to the stable vector in Scene Resources, organized by shader
-        sceneRenderables_[shaderType].emplace_back(Renderable{std::ref(modelRef), std::move(properties)});
-
-        ModelHandle handle{modelRef.getHandle()};
-        std::vector<Instance> &instances{sceneRenderables_[shaderType].back().properties.instances};
-
-        // Store an access point to the instances, by model handle
-        instancesByHandle_.emplace(handle, std::ref(instances));
+        entries_.emplace_back(entry);
 
         // Add a lookup to get a reference to a model's instances by a user-defined name
         if (name.has_value())
-            namedInstances_.emplace(name.value(), ModelInstances{handle, std::ref(instances)});
+            entriesByName_.emplace(name.value(), std::ref(entries_.back()));
     }
 };

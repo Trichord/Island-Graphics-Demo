@@ -12,11 +12,14 @@ class GLState
 
     void bindTexture(GLuint unit, GLuint id);
     void setAlphaMode(fastgltf::AlphaMode mode);
+    void setDepthFunction(GLenum depthFunction);
 
   private:
-    bool alphaMaskEnabled_{false};
-    bool alphaBlendEnabled_{false};
+    bool a2cEnabled_{false};
+    bool blendEnabled_{false};
     bool cullFaceEnabled_{false};
+
+    GLenum currentDepthFunc_{GL_LESS};
 
     std::vector<GLuint> textureUnits_;
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "settings_window.h"
+#include "graphics_settings.h"
 #include "scene.h"
 #include "texture_manager.h"
 

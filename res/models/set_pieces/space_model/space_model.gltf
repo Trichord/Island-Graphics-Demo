@@ -1,12 +1,8 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v4.5.48",
+		"generator":"Khronos glTF Blender I/O v5.0.21",
 		"version":"2.0"
 	},
-	"extensionsUsed":[
-		"KHR_materials_clearcoat",
-		"KHR_materials_specular"
-	],
 	"scene":0,
 	"scenes":[
 		{
@@ -22,29 +18,6 @@
 			"name":"Alpha_001"
 		}
 	],
-	"materials":[
-		{
-			"extensions":{
-				"KHR_materials_clearcoat":{
-					"clearcoatFactor":1,
-					"clearcoatRoughnessFactor":0.03999999910593033
-				},
-				"KHR_materials_specular":{
-					"specularFactor":0.32494592666625977
-				}
-			},
-			"name":"Alpha_001.001",
-			"pbrMetallicRoughness":{
-				"baseColorFactor":[
-					1,
-					0.57571941614151,
-					0,
-					0.9660948514938354
-				],
-				"roughnessFactor":0.1734016388654709
-			}
-		}
-	],
 	"meshes":[
 		{
 			"name":"Alpha_001.001",
@@ -53,10 +26,10 @@
 					"attributes":{
 						"POSITION":0,
 						"NORMAL":1,
-						"COLOR_0":2
+						"TEXCOORD_0":2,
+						"TANGENT":3
 					},
-					"indices":3,
-					"material":0
+					"indices":4
 				}
 			]
 		}
@@ -65,7 +38,7 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":17444,
+			"count":18080,
 			"max":[
 				1.5024909973144531,
 				0.521881103515625,
@@ -81,18 +54,23 @@
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":17444,
+			"count":18080,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
-			"componentType":5123,
-			"count":17444,
-			"normalized":true,
-			"type":"VEC4"
+			"componentType":5126,
+			"count":18080,
+			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
+			"componentType":5126,
+			"count":18080,
+			"type":"VEC4"
+		},
+		{
+			"bufferView":4,
 			"componentType":5123,
 			"count":28752,
 			"type":"SCALAR"
@@ -101,32 +79,38 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":209328,
+			"byteLength":216960,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":209328,
-			"byteOffset":209328,
+			"byteLength":216960,
+			"byteOffset":216960,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":139552,
-			"byteOffset":418656,
+			"byteLength":144640,
+			"byteOffset":433920,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":289280,
+			"byteOffset":578560,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":57504,
-			"byteOffset":558208,
+			"byteOffset":867840,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":615712,
+			"byteLength":925344,
 			"uri":"space_model.bin"
 		}
 	]

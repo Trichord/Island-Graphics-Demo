@@ -5,10 +5,15 @@
 #include "glm/glm.hpp"
 #include "jolt/Core/Reference.h"
 #include "jolt/Core/TempAllocator.h"
+#include "jolt/Math/Math.h"
+#include "jolt/Math/MathTypes.h"
+#include "jolt/Math/Real.h"
 #include "jolt/Math/Vec3.h"
-#include "jolt/Physics/Character/Character.h"
+#include "jolt/Physics/Body/BodyID.h"
 #include "jolt/Physics/Character/CharacterVirtual.h"
+#include "jolt/Physics/Collision/PhysicsMaterial.h"
 #include "jolt/Physics/Collision/Shape/Shape.h"
+#include "jolt/Physics/Collision/Shape/SubShapeID.h"
 #include "jolt/Physics/PhysicsSystem.h"
 
 class Player : public JPH::CharacterContactListener
@@ -49,7 +54,7 @@ class Player : public JPH::CharacterContactListener
     static constexpr float innerShapeFraction_{0.9f};
 
     // Terrain interaction
-    static constexpr float maxSlopeAngle_{JPH::DegreesToRadians(45.0f)};
+    static constexpr float maxSlopeAngle_{JPH::DegreesToRadians(50.0f)};
 
     // Character movement properties
     static constexpr float jumpSpeed_{2.75f};

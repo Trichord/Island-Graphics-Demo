@@ -13,12 +13,12 @@ layout (std140, binding = 0) uniform cameraData {
 	layout (offset = 256) vec4 cameraPosition;
 };
 
-out VS_OUT {
+out vsOut {
 	vec3 cameraPos;
 	vec3 lightPos;
 	vec3 fragPos;
 	vec2 texCoords;
-} vs_out;
+} vOut;
 
 uniform mat4 modelMatrix;
 uniform vec3 lightPosition;
@@ -33,10 +33,10 @@ void main () {
 	vec3 B = normalize(cross(N, T) * aTangent.w);
 	mat3 TBN = transpose(mat3(T, B, N));
 
-	vs_out.texCoords = aTexCoords;
-	vs_out.fragPos = TBN * (modelMatrix * vec4(aPos, 1.0)).xyz;
-	vs_out.lightPos = TBN * lightPosition;
-	vs_out.cameraPos = TBN * cameraPosition.xyz;
+	vOut.texCoords = aTexCoords;
+	vOut.fragPos = TBN * (modelMatrix * vec4(aPos, 1.0)).xyz;
+	vOut.lightPos = TBN * lightPosition;
+	vOut.cameraPos = TBN * cameraPosition.xyz;
 	
 	gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0);
 }

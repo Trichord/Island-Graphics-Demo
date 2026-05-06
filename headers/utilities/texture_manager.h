@@ -1,71 +1,101 @@
 #pragma once
 
+#include <array>
 #include <fastgltf/types.hpp>
 #include <filesystem>
-#include <optional>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
-#include "settings_window.h"
 #include "glad/glad.h"
-#include "texture_units.h"
+#include "graphics_settings.h"
+#include "render_target.h"
+#include "textures.h"
 #include "thread_pool.h"
 
-using ModelHandle = int;
+// To do: Verify process for generating mipmaps. Texture utilities may not need to take in anything other than sRGB and
+// aniso. Allow or deny setting of dynamic cubemap internal format (through constructor).
 
-struct Material
-{
-    GLuint albedo{0};
-    GLuint occlusionRoughnessMetallic{0};
-    GLuint normal{0};
-    GLuint cubemap{0};
-};
+using Handle = int;
 
 class TextureManager
 {
   public:
-    explicit TextureManager(ThreadPool &threadPool, const GraphicsSettings& settings);
+    TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings, int reflectionResolution);
+    ~TextureManager();
 
-    ModelHandle assignHandle();
-    void releaseHandle(ModelHandle handle);
+    Handle assignHandle();
 
-    const std::vector<Material> &getMaterials(ModelHandle modelHandle) const;
-    void setMaterial(ModelHandle handle, Texture texture, GLuint textureID, int materialIndex = 0);
-    const std::vector<Material> &borrowAssignMaterials(ModelHandle self, ModelHandle other,
-                                                       std::optional<Texture> texture = std::nullopt,
-                                                       int materialIndex = 0);
+    // Static loaded textures
+    void loadCubemapTextures(const Handle handle, std::vector<std::filesystem::path> images,
+                             const std::filesystem::path &parentPath = "./", bool mipmaps = true);
+    void loadModelTextures(const Handle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath);
 
-    void loadCubemap(const ModelHandle handle, std::vector<std::filesystem::path> images,
-                     const std::filesystem::path &parentPath = "./", bool mipmaps = true, bool sRGB = true);
-    void loadModel(const ModelHandle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath);
-    void allModelsLoaded();
+    // Dynamic texture borrowing
+    void borrowCubemaps(Handle self, Handle other);
+    void borrowMaterials(Handle self, Handle other);
+
+    // Accessors and mutators
+    GLenum getReflectionColorFormat() const;
+    const std::vector<Material> &getMaterials(Handle modelHandle) const;
+    void setCubemap(Handle handle, RenderTarget &renderTarget, SamplerArrayEntry arrayEntry);
+
+    // Bindless array texture setup
+    void buildTextures();
+    void buildCubemaps();
+    SamplerArrayEntry reserveCubemaps(int numCubemaps, int resolution, GLenum internalFormat);
+
+    // Lock in GPU resources
+    void texturesReserved();
+    void cubemapsReserved();
 
   private:
-    // Each entry in the vector corresponds to a gltf material index. Materials vector can contain duplicate IDs
-    // (multiple materials referencing the same texture atlas, etc.). glTextureHandles keeps track of which IDs need to
-    // be freed on destruction. Lender keeps track of who the textures were borrowed from.
-    struct ModelResources
+    struct ArrayTexture
     {
-        int refCount{1};
-        std::vector<Material> materials;
-        std::unordered_set<GLuint> glTextureHandles;
-        ModelHandle lender{-1};
+        GLuint id{0};
+        int width{0};
+        int count{0};
+        GLenum internalFormat{GL_SRGB8};
     };
 
-    float globalAnisotropicDegree_{0.0f};
-    bool globalAnisoEnabled_{false};
+    struct PendingTexture
+    {
+        GLuint id{0};
+        SamplerArrayEntry arrayEntry;
+    };
+
+    std::array<ArrayTexture, 8> arrayTextures_{{{.width = 4096, .internalFormat = GL_RGB8},
+                                                {.width = 4096, .internalFormat = GL_SRGB8},
+                                                {.width = 2048, .internalFormat = GL_RGB8},
+                                                {.width = 2048, .internalFormat = GL_SRGB8},
+                                                {.width = 2048, .internalFormat = GL_SRGB8_ALPHA8},
+                                                {.width = 1024, .internalFormat = GL_RGB8},
+                                                {.width = 1024, .internalFormat = GL_SRGB8},
+                                                {.width = 512, .internalFormat = GL_RGB8}}};
+
+    // Third slot empty to handle run-time selection of reflection cubemaps
+    std::array<ArrayTexture, 3> cubemapArrayTextures_{{
+        {.width = 4096, .internalFormat = GL_SRGB8},
+        {.width = 2048, .internalFormat = GL_SRGB8},
+    }};
+
+    GLenum dynamicCubemapInternalFormat_{GL_SRGB8};
+
+    // Textures to be uploaded
+    std::vector<PendingTexture> pendingCubemaps_;
+    std::vector<PendingTexture> pending2dTextures_;
 
     ThreadPool &threadPool_;
-    std::unordered_map<ModelHandle, ModelResources> textureCache_;
+    float globalAnisotropicDegree_{0.0f};
+    std::unordered_map<Handle, std::vector<Material>> materialLookup_;
 
-    // From a fastgltf::asset
-    void textureFromAsset(fastgltf::Asset &asset, ModelHandle handle, std::filesystem::path parentPath);
+    bool textures2dAllocated_{false};
+    bool texturesCubemapAllocated_{false};
 
-    // Create cubemap from vector of paths
-    void cubemapFromPaths(ModelHandle handle, const std::vector<std::filesystem::path> &images, bool mipmaps,
-                          bool sRGB);
+    // Textures from loaded models
+    void texturesFromAsset(fastgltf::Asset &asset, Handle handle, std::filesystem::path parentPath);
+    void cubemapFromPaths(Handle handle, const std::vector<std::filesystem::path> &images, bool mipmaps);
 
-    void freeResources(ModelResources &resources);
-    void setMaterial(ModelResources &self, ModelResources &other, Texture texture, int index);
+    // Helpers for assigning to texture buckets
+    SamplerArrayEntry assignToTextureArray(Texture &texture);
+    SamplerArrayEntry assignToCubeArray(Texture &texture);
 };

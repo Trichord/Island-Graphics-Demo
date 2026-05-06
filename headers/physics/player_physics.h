@@ -5,15 +5,11 @@
 #include "jolt/Jolt.h"
 
 #include "glm/glm.hpp"
-#include "jolt/Core/Core.h"
-#include "jolt/Core/JobSystemSingleThreaded.h"
 #include "jolt/Core/TempAllocator.h"
-#include "jolt/Geometry/Triangle.h"
 #include "jolt/Math/Vec3.h"
 #include "jolt/Physics/Body/Body.h"
 #include "jolt/Physics/Body/BodyInterface.h"
 #include "jolt/Physics/PhysicsSystem.h"
-#include "jolt_impl.h"
 #include "player.h"
 #include "scene.h"
 
@@ -51,13 +47,13 @@ class PlayerPhysics
     JPH::Vec3 resetPosition_{0.0f, 0.0f, 0.0f};
 
     JPH::PhysicsSystem &physicsSystem_;
-    JPH::BodyInterface *bodyInterface_; 
+    JPH::BodyInterface *bodyInterface_;
     JPH::TempAllocatorImpl &tempAllocator_;
-    
+
     // Physics body for terrain
     JPH::Body *terrain_{nullptr};
 
-    //The player capsule
+    // The player capsule
     Player player_;
 
     void movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime);
