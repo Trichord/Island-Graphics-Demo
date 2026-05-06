@@ -6,7 +6,7 @@
 
 #include "glm/glm.hpp"
 #include "jolt_impl.h"
-#include "model.h"
+#include "renderable.h"
 #include "primitive.h"
 #include "scene.h"
 #include "transform.h"

@@ -1,4 +1,4 @@
-#include "base_model.h"
+#include "model.h"
 
 #include <filesystem>
 #include <iostream>
@@ -20,18 +20,17 @@
 #include "texture_manager.h"
 
 Model::Model(TextureManager &textureManager, const std::filesystem::path &path)
-    : handle_{textureManager.assignHandle()}, textureManager_{textureManager}, filePath_{path}
+    : handle_{textureManager.assignHandle()}, filePath_{path}
 {
-    loadModel(path, false);
+    loadModel(textureManager, path, false);
     calculateAABB();
 }
 
 Model::Model(TextureManager &textureManager, const Handle borrowHandle, const std::filesystem::path &path)
-    : handle_{textureManager.assignHandle()}, borrowedHandle_{borrowHandle}, textureManager_{textureManager},
-      filePath_{path}
+    : handle_{textureManager.assignHandle()}, borrowedHandle_{borrowHandle}, filePath_{path}
 {
     textureManager.borrowMaterials(handle_, borrowHandle);
-    loadModel(path, true);
+    loadModel(textureManager, path, true);
     calculateAABB();
 }
 
@@ -50,14 +49,14 @@ std::optional<Handle> Model::getBorrowedHandle() const
     return borrowedHandle_;
 }
 
-void Model::loadModel(const std::filesystem::path &path, bool borrowed)
+void Model::loadModel(TextureManager &manager, const std::filesystem::path &path, bool borrowed)
 {
     fastgltf::Asset asset = fastgltfLoader::loadAsset(path);
 
     primitives_ = fastgltfLoader::loadMeshes(asset);
 
     if (!borrowed)
-        textureManager_.loadModelTextures(handle_, std::move(asset), path.parent_path());
+        manager.loadModelTextures(handle_, std::move(asset), path.parent_path());
 }
 
 Handle Model::getHandle() const

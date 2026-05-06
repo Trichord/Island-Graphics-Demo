@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <vector>
 
-#include "base_model.h"
+#include "model.h"
 #include "texture_manager.h"
 
 CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,

@@ -22,9 +22,9 @@
 #include "glm/gtc/matrix_access.hpp"
 #include "graphics_settings.h"
 #include "graphics_shader.h"
-#include "model.h"
 #include "primitive.h"
 #include "render_target.h"
+#include "renderable.h"
 #include "renderer_types.h"
 #include "scene.h"
 #include "texture_manager.h"
@@ -247,7 +247,9 @@ AABB getSceneBounds(Scene &scene)
 
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {
-        if (entry.shaderType == ShaderType::ocean)
+        using enum ShaderType;
+
+        if (entry.shaderType == ocean || entry.shaderType == skybox)
             continue;
 
         Renderable &renderable{entry.renderableRef.get()};
@@ -617,4 +619,9 @@ void Renderer::cullScene(const glm::mat4 &cullMatrix)
     compactionShader_.dispatch((compactionWorkGroupSize_ + (ComputeShader::localSize - 1u)) / ComputeShader::localSize,
                                1u, 1u);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT);
+
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT);
+
+    std::vector<std::uint32_t> debugCounts(drawBuckets_.size());
+    glGetNamedBufferSubData(drawCountsBuffer_, 0, debugCounts.size() * sizeof(std::uint32_t), debugCounts.data());
 }

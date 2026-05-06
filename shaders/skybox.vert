@@ -37,16 +37,12 @@ layout(binding = 3, std430) restrict readonly buffer metadataSSBO
 // Out
 flat out int metadataIndex;
 
-out vec3 texCoords;
-
+out vec4 texCoords;
 
 void main() 
 {
-	mat4 viewNoTrans = mat4(mat3(viewMatrix));
-	vec4 pos = projectionMatrix * viewNoTrans * vec4(aPos, 1.0f);
-
-	texCoords = aPos;
+	texCoords = inverseViewProjectMatrix * vec4(aPos, 1.0);
 	metadataIndex = gl_BaseInstance;
 
-	gl_Position = pos.xyww;
+	gl_Position = vec4(aPos, 1.0);
 }

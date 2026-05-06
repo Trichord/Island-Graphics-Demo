@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <vector>
 
-#include "base_model.h"
+#include "model.h"
 #include "texture_manager.h"
 
 /* Cube mapped texture paths should be filled in this order: right,
