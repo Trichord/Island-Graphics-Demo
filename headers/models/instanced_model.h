@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <vector>
 
-#include "base_model.h"
+#include "model.h"
 #include "glm/glm.hpp"
 #include "texture_manager.h"
 #include "transform.h"

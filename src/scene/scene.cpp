@@ -12,9 +12,10 @@
 #include "camera.h"
 #include "directional_light.h"
 #include "glm/glm.hpp"
+#include "graphics_shader.h"
 #include "instanced_model.h"
 #include "scene_resources.h"
-#include "graphics_shader.h"
+#include "skybox.h"
 #include "texture_manager.h"
 #include "transform.h"
 
@@ -76,19 +77,33 @@ std::unordered_set<Handle> &Scene::getUpdatedModels()
     return updatedModels_;
 }
 
-void Scene::addInstancedObjectToScene(InstancedModel &modelRef, ShaderType shaderType,
+void Scene::addInstancedObjectToScene(InstancedModel &renderableRef, ShaderType shaderType,
                                       const std::optional<std::string> name)
 {
-    std::vector<Transform> transforms{modelRef.loadInstancedTransforms()};
+    std::vector<Transform> transforms{renderableRef.loadInstancedTransforms()};
 
     // Store a reference to the stable vector in Scene Resources, organized by shader
-    sceneEntries_.emplace_back(
-        SceneEntry{.renderableRef = modelRef, .transforms = std::move(transforms), .shaderType = shaderType});
+    sceneEntries_.emplace_back(SceneEntry{
+        .renderableRef = renderableRef,
+        .transforms = std::move(transforms),
+        .shaderType = shaderType,
+    });
 
     // Store an access point to the instances, by model handle
-    entriesByHandle_.emplace(modelRef.getHandle(), std::ref(sceneEntries_.back()));
+    entriesByHandle_.emplace(renderableRef.getHandle(), std::ref(sceneEntries_.back()));
 
     // Add a lookup to get a reference to a model's instances by a user-defined name
     if (name.has_value())
         entriesByName_.emplace(name.value(), std::ref(sceneEntries_.back()));
+}
+
+void Scene::addSkyboxToScene(Skybox &skybox)
+{
+    std::vector<Transform> transforms{{}};
+
+    sceneEntries_.emplace_back(SceneEntry{
+        .renderableRef = skybox,
+        .transforms = std::move(transforms),
+        .shaderType = ShaderType::skybox,
+    });
 }

@@ -82,7 +82,7 @@ void ImageLoader::loadFromFile(const std::filesystem::path &path, unsigned int i
         std::cerr << "STBI Failed to load image at: " << path.string() << std::endl;
 
     // Lock and insert.  If stbi_load fails, we get a nullptr which is handled by
-    // model.h
+    // the texture utilities
     {
         std::unique_lock<std::mutex> lock{imagesMutex_};
         loadedImages_[index] = LoadedImage{data, width, height, nrChannels};

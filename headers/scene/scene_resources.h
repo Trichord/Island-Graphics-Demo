@@ -5,7 +5,8 @@
 
 #include "cube_mapped_model.h"
 #include "instanced_model.h"
-#include "base_model.h"
+#include "model.h"
+#include "skybox.h"
 #include "texture_manager.h"
 
 namespace sceneMaxObjects
@@ -34,10 +35,14 @@ class SceneResources
     CubeMappedModel &loadCubeMappedModel(const std::filesystem::path &modelPath,
                                          const std::vector<std::filesystem::path> &imagePaths, bool mipmaps = true);
     CubeMappedModel &loadCubeMappedModel(const Handle borrowHandle, const std::filesystem::path &modelPath);
+    Skybox &loadSkybox(const std::vector<std::filesystem::path> &imagePaths);
+    Skybox &loadSkybox(Handle borrowHandle);
 
   private:
     TextureManager &textureManager_;
-    std::vector<Model> models_;
+
+    Skybox skybox_;
+    std::vector<Model> models_;  
+    std::vector<InstancedModel> instancedModels_;  
     std::vector<CubeMappedModel> cubeMappedModels_;
-    std::vector<InstancedModel> instancedModels_;
 };

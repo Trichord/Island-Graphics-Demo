@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <vector>
 
 #include "camera.h"
@@ -50,8 +51,6 @@ void Renderer::renderScene()
             glState_.setAlphaMode(mdb.alphaMode);
             currentAlphaMode = mdb.alphaMode;
         }
-
-        GLsizei drawCount{currentShaderType == skybox ? static_cast<GLsizei>(mdb.maxCount) : static_cast<GLsizei>(i)};
 
         glMultiDrawElementsIndirectCount(GL_TRIANGLES, GL_UNSIGNED_INT,
                                          (void *)(mdb.startIndex * sizeof(DrawElementsIndirectCommand)),

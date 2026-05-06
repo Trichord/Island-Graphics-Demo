@@ -327,7 +327,7 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawEntry> &entrie
         if (entry.shaderType != water)
             continue;
 
-        const Model &model{entry.modelRef.get()};
+        const Model &model{entry.renderableRef.get()};
 
         if (std::optional<ModelHandle> borrowed = model.getBorrowedHandle(); borrowed.has_value())
         {
@@ -342,7 +342,7 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawEntry> &entrie
         renderCubeFaces(scene, cubeFaces, blitTarget);
 
         // Assign the texture
-        auto &waterPlane = entry.modelRef.get();
+        auto &waterPlane = entry.renderableRef.get();
         textureManager_.setCubemap(waterPlane.getHandle(), blitTarget, reservedEntry);
 
         ++reservedEntry.layer;
