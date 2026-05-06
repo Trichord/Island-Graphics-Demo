@@ -23,8 +23,6 @@
 #include "textures.h"
 #include "transform.h"
 
-const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix);
-
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.111f};
 constexpr float alphaCutoff{0.425f};
@@ -240,6 +238,23 @@ void Renderer::cullScene(const glm::mat4 &cullMatrix)
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT);
 }
 
+const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
+{
+    const glm::vec4 row0{glm::row(matrix, 0)};
+    const glm::vec4 row1{glm::row(matrix, 1)};
+    const glm::vec4 row2{glm::row(matrix, 2)};
+    const glm::vec4 row3{glm::row(matrix, 3)};
+
+    const glm::vec4 left{glm::normalize(row3 + row0)};
+    const glm::vec4 right{glm::normalize(row3 - row0)};
+    const glm::vec4 top{glm::normalize(row3 - row1)};
+    const glm::vec4 bottom{glm::normalize(row3 + row1)};
+    const glm::vec4 near{glm::normalize(row3 + row2)};
+    const glm::vec4 far{glm::normalize(row3 - row2)};
+
+    return {left, right, top, bottom, near, far};
+}
+
 Renderer::~Renderer()
 {
     glDeleteBuffers(1, &mapBuffer_);
@@ -259,21 +274,4 @@ Renderer::~Renderer()
     glDeleteBuffers(1, &globalEBO_);
     glDeleteBuffers(1, &globalVBO_);
     glDeleteVertexArrays(1, &globalVAO_);
-}
-
-const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
-{
-    const glm::vec4 row0{glm::row(matrix, 0)};
-    const glm::vec4 row1{glm::row(matrix, 1)};
-    const glm::vec4 row2{glm::row(matrix, 2)};
-    const glm::vec4 row3{glm::row(matrix, 3)};
-
-    const glm::vec4 left{glm::normalize(row3 + row0)};
-    const glm::vec4 right{glm::normalize(row3 - row0)};
-    const glm::vec4 top{glm::normalize(row3 - row1)};
-    const glm::vec4 bottom{glm::normalize(row3 + row1)};
-    const glm::vec4 near{glm::normalize(row3 + row2)};
-    const glm::vec4 far{glm::normalize(row3 - row2)};
-
-    return {left, right, top, bottom, near, far};
 }
