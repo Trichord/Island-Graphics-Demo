@@ -1,10 +1,26 @@
 #version 460 core
 
+// Types
+struct Metadata
+{
+	int albedoArray;
+	int albedoLayer;
+	int armArray;
+	int armLayer;
+	int normalArray;
+	int normalLayer;
+	int cubemapArray;
+	int cubemapLayer;
+	uint visibleInstancesBufferBaseIndex;
+};
+
+// Attributes
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
 
+// UBOs
 layout (std140) uniform cameraData 
 {
 	layout (offset = 0) mat4 viewMatrix;
@@ -14,34 +30,46 @@ layout (std140) uniform cameraData
 	layout (offset = 256) vec4 cameraPosition;
 };
 
-layout(binding = 0, std430) readonly buffer matricesSSBO {
-    mat4 instances[];
+// SSBOs
+layout(binding = 2, std430) restrict readonly buffer matricesSSBO 
+{
+   mat4 matrices[];
 };
 
-layout(binding = 1, std430) readonly buffer indicesSSBO {
-    uint indices[];
+layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+{
+	Metadata metadata[];
 };
 
-out VS_OUT 
+layout(binding = 7, std430) restrict readonly buffer visibleInstancesSSBO 
+{
+   uint instances[];
+};
+
+// In
+uniform vec3 lightDir;
+uniform mat4 lightViewProjection;
+
+// Out
+flat out int metadataIndex;
+
+out vsOut 
 {
 	vec3 cameraPos;
 	vec3 lightDir;
 	vec3 tangentFragPos;
 	vec2 texCoords;
-} vs_out;
-
-uniform uint matricesOffset;
-uniform uint indicesOffset;
-uniform vec3 lightDir;
-uniform mat4 lightViewProjection;
+} vOut;
 
 void main () 
 {
-	uint instanceIndex = indices[indicesOffset + gl_InstanceID];
-	mat4 modelMatrix = instances[matricesOffset + instanceIndex];
+	Metadata meta = metadata[gl_BaseInstance];
+	uint matrixIndex = instances[meta.visibleInstancesBufferBaseIndex + gl_InstanceID];
+
+	mat4 modelMatrix = matrices[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
 
-	//TBN matrix for normal map
+	// TBN matrix for normal map
 	vec3 T = normalize(normalMatrix * aTangent.xyz);
 	vec3 N = normalize(normalMatrix * aNormal);
 	T = normalize(T - dot(T, N) * N); 
@@ -50,11 +78,12 @@ void main ()
 
 	vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
 
-	vs_out.tangentFragPos = TBN * worldPos.xyz;
-	vs_out.lightDir = TBN * lightDir;
-	vs_out.cameraPos = TBN * cameraPosition.xyz;
+	metadataIndex = gl_BaseInstance;
 
-	vs_out.texCoords = aTexCoords;
-	
-	gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0);
+	vOut.tangentFragPos = TBN * worldPos.xyz;
+	vOut.lightDir = TBN * lightDir;
+	vOut.cameraPos = TBN * cameraPosition.xyz;
+	vOut.texCoords = aTexCoords;
+
+	gl_Position = projectionViewMatrix * worldPos;
 }

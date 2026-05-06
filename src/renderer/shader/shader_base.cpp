@@ -1,6 +1,5 @@
-#include "shader.h"
+#include "shader_base.h"
 
-#include <array>
 #include <filesystem>
 #include <fstream>
 #include <ios>
@@ -15,18 +14,13 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-Shader::Shader(const std::filesystem::path &vertexPath, const std::filesystem::path &fragmentPath)
+void Shader::linkShader(std::span<GLuint> sourceIDs, const std::string_view path)
 {
-    GLuint vertexShaderID{0};
-    GLuint fragmentShaderID{0};
-
-    vertexShaderID = createShaderID(GL_VERTEX_SHADER, vertexPath);
-    fragmentShaderID = createShaderID(GL_FRAGMENT_SHADER, fragmentPath);
-
     id_ = glCreateProgram();
 
-    glAttachShader(id_, vertexShaderID);
-    glAttachShader(id_, fragmentShaderID);
+    for (GLuint sourceID : sourceIDs)
+        glAttachShader(id_, sourceID);
+
     glLinkProgram(id_);
 
     int success{0};
@@ -40,16 +34,16 @@ Shader::Shader(const std::filesystem::path &vertexPath, const std::filesystem::p
         infoLog.resize(logLength);
 
         glGetProgramInfoLog(id_, logLength, NULL, infoLog.data());
-        std::cerr << "ERROR: Shader Program - Linking Failed" << std::endl << infoLog.data() << std::endl;
+        std::cerr << "ERROR: Shader program link error: " << path << std::endl << infoLog.data() << std::endl;
 
-        glDeleteShader(vertexShaderID);
-        glDeleteShader(fragmentShaderID);
+        for (GLuint sourceID : sourceIDs)
+            glDeleteShader(sourceID);
 
         throw std::runtime_error("Shader program linking failed");
     }
 
-    glDeleteShader(vertexShaderID);
-    glDeleteShader(fragmentShaderID);
+    for (GLuint sourceID : sourceIDs)
+        glDeleteShader(sourceID);
 }
 
 Shader::Shader(Shader &&other) noexcept
@@ -219,12 +213,14 @@ GLuint Shader::createShaderID(GLenum type, const std::filesystem::path &path)
         case GL_FRAGMENT_SHADER:
             shaderTypeString = "GL_FRAGMENT_SHADER";
             break;
+        case GL_COMPUTE_SHADER:
+            shaderTypeString = "GL_COMPUTE_SHADER";
+            break;
         default:
             shaderTypeString = "UNKNOWN_SHADER_TYPE";
         }
 
-        std::cerr << "ERROR: shader type " << shaderTypeString << " at " << path.filename() << " compilation failed"
-                  << std::endl
+        std::cerr << "ERROR: " << shaderTypeString << " compilation from " << path.filename() << " failed" << std::endl
                   << infoLog.data() << std::endl;
         glDeleteShader(shaderID);
 

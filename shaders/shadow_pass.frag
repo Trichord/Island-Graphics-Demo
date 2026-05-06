@@ -1,9 +1,9 @@
 #version 460 core
 
+// Constants
 const float lightBleedReduction = 0.2f;
 
-uniform sampler2DMS shadowMap;
-
+// Out
 out vec2 fragColor;
 
 //Credit: Andrew Lauritzen

@@ -1,7 +1,5 @@
 #include "player.h"
 
-#include "jolt/Jolt.h"
-
 #include "jolt/Core/Reference.h"
 #include "jolt/Core/TempAllocator.h"
 #include "jolt/Geometry/Plane.h"
@@ -15,6 +13,10 @@
 #include "jolt/Physics/Collision/Shape/Shape.h"
 #include "jolt/Physics/PhysicsSystem.h"
 #include "jolt_impl.h"
+#include <jolt/Math/MathTypes.h>
+#include <jolt/Physics/Body/BodyID.h>
+#include <jolt/Physics/Collision/PhysicsMaterial.h>
+#include <jolt/Physics/Collision/Shape/SubShapeID.h>
 
 void Player::init(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator)
 {

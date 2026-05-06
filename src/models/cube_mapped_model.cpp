@@ -7,18 +7,14 @@
 #include "texture_manager.h"
 
 CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
-                                 const std::vector<std::filesystem::path> &imagePaths, bool skybox)
+                                 const std::vector<std::filesystem::path> &imagePaths, bool mipmaps)
     : Model{textureManager, modelPath}
 {
-    textureManager.loadCubemap(handle_, imagePaths, "./", skybox);
-    if (!hasMaterials())
-        assignMaterialIndex(0);
+    textureManager.loadCubemapTextures(handle_, imagePaths, "./", mipmaps);
 }
 
-CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const ModelHandle borrowHandle,
+CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const Handle borrowHandle,
                                  const std::filesystem::path &modelPath)
     : Model{textureManager, borrowHandle, modelPath}
 {
-    if (!hasMaterials())
-        assignMaterialIndex(0);
 }
