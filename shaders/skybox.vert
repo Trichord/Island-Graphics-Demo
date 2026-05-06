@@ -1,22 +1,48 @@
 #version 460 core
 
+// Types
+struct Metadata
+{
+	int albedoArray;
+	int albedoLayer;
+	int armArray;
+	int armLayer;
+	int normalArray;
+	int normalLayer;
+	int cubemapArray;
+	int cubemapLayer;
+	uint visibleInstancesBufferBaseIndex;
+};
+
+// Attributes
 layout (location = 0) in vec3 aPos;
 
-layout (std140, binding = 0) uniform cameraData {
+// UBOs
+layout (std140) uniform uniformData 
+{
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionMatrix;
 	layout (offset = 128) mat4 projectionViewMatrix;
 	layout (offset = 192) mat4 inverseViewProjectMatrix;
 	layout (offset = 256) vec4 cameraPosition;
+	layout (offset = 272) float time;
 };
 
-out vec3 texCoords;
+// SSBOs
+layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+{
+	Metadata metadata[];
+};
 
-void main() {
-	texCoords = aPos;
+// Out
+flat out int metadataIndex;
 
-	mat4 viewNoTrans = mat4(mat3(viewMatrix));
+out vec4 texCoords;
 
-	vec4 pos = projectionMatrix * viewNoTrans * vec4(aPos, 1.0f);
-	gl_Position = pos.xyww;
+void main() 
+{
+	texCoords = inverseViewProjectMatrix * vec4(aPos, 1.0);
+	metadataIndex = gl_BaseInstance;
+
+	gl_Position = vec4(aPos, 1.0);
 }

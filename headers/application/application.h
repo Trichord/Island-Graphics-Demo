@@ -1,11 +1,12 @@
 #pragma once
 
+#include <filesystem>
+
 #include "jolt/Jolt.h"
 
-#include "settings_window.h"
 #include "gl_context.h"
+#include "graphics_settings.h"
 #include "jolt/Core/Core.h"
-#include "jolt/Core/JobSystemSingleThreaded.h"
 #include "jolt_impl.h"
 #include "player_physics.h"
 #include "scene.h"

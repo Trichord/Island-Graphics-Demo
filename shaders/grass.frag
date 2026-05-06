@@ -1,31 +1,72 @@
 #version 460 core
 
-out vec4 fragColor;
+// Types
+struct Metadata
+{
+	int albedoArray;
+	int albedoLayer;
+	int armArray;
+	int armLayer;
+	int normalArray;
+	int normalLayer;
+	int cubemapArray;
+	int cubemapLayer;
+	uint visibleInstancesBufferBaseIndex;
+};
 
-uniform sampler2D albedoMap;
-uniform vec3 ambientLight;
-uniform vec3 lightDir;
-uniform vec3 lightColor;
+// Constants
+const float minVariance = 0.000001;
+const int cascadeCount = 3;
+const float lightBleedReduction = 0.2;
+
+// Samplers
+layout(binding = 0) uniform sampler2DArray textures[8];
+
+// UBOs
+layout (std140, binding = 1) uniform shadowCascadeData
+{
+	mat4 matrices[3];
+	vec4 splits;
+};
+
+// SSBOs
+layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+{
+	Metadata metadata[];
+};
+
+// In
 uniform float gamma;
 uniform float mipScale;
 uniform float alphaCutoff;
 
-in vec2 texCoords;
+uniform vec3 lightDir;
+uniform vec3 lightColor;
+uniform vec3 ambientLight;
+
+flat in int metadataIndex;
+
 in vec3 normal;
+in vec2 texCoords;
 
-//ACES film tone mapping (Krzysztof Narkowicz)
-vec3 ACESFilm(vec3 x) {
-const float a = 2.51;
-const float b = 0.03;
-const float c = 2.43;
-const float d = 0.59;
-const float e = 0.14;
+// Out
+out vec4 fragColor;
 
-return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+// ACES film tone mapping (Krzysztof Narkowicz)
+vec3 ACESFilm(vec3 x) 
+{
+    const float a = 2.51;
+    const float b = 0.03;
+    const float c = 2.43;
+    const float d = 0.59;
+    const float e = 0.14;
+
+    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
 }
 
-//Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
-float CalcMipLevel(vec2 texture_coord){
+// Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
+float CalcMipLevel(vec2 texture_coord)
+{
     vec2 dx = dFdx(texture_coord);
     vec2 dy = dFdy(texture_coord);
     float delta_max_sqr = max(dot(dx, dx), dot(dy, dy));
@@ -33,39 +74,42 @@ float CalcMipLevel(vec2 texture_coord){
     return max(0.0, 0.5 * log2(delta_max_sqr));
 }
 
-void main() {
-    vec4 albedo = texture(albedoMap, texCoords);
+void main() 
+{
+    Metadata meta = metadata[metadataIndex];
 
-    //Flip normal if 2D quad is facing away
+    vec4 albedo = texture(textures[meta.albedoArray], vec3(texCoords, meta.albedoLayer));
+
+    // Flip normal if 2D quad is facing away
     vec3 normalizedNormal = normalize(normal);
     normalizedNormal = gl_FrontFacing ? normalizedNormal : -normalizedNormal;
 
-    //Light Direction
+    // Light Direction
     vec3 lightDirection = normalize(-lightDir);
     float NdotL = dot(normalizedNormal, lightDirection);
 
-    //Diffuse
+    // Diffuse
     float diffuseStrength = NdotL * 0.5 + 0.6;
 
-	//Scale alpha by mip level 0
-    vec2 texSize = vec2(textureSize(albedoMap, 0));
+	// Scale alpha by mip level 0
+    vec2 texSize = vec2(textureSize(textures[meta.albedoArray], 0));
     albedo.a *= 1 + max(0, CalcMipLevel(texCoords * texSize)) * mipScale;
 
 	// Rescale alpha by partial derivative. Credit: Ben Golus
     albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
     
-    //Ambient
+    // Ambient
     vec3 ambient = ambientLight * lightColor * albedo.rgb;
     
-    //Diffuse continued after filling texture load with math
+    // Diffuse continued after filling texture load with math
     vec3 diffuse = diffuseStrength * lightColor * albedo.rgb;
-
+    
     vec3 color = ambient + diffuse;
 
-    //Tone mapping
+    // Tone mapping
     color = ACESFilm(color);
 
-    //Gamma correction
+    // Gamma correction
 	color = pow(color, vec3(1.0/gamma)); 
    
     fragColor = vec4(color, albedo.a);

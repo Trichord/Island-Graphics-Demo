@@ -15,7 +15,7 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"rock2_low_rocks_texture_0"
+			"name":"rock2_collision"
 		}
 	],
 	"meshes":[
@@ -25,11 +25,9 @@
 				{
 					"attributes":{
 						"POSITION":0,
-						"NORMAL":1,
-						"TEXCOORD_0":2,
-						"TANGENT":3
+						"NORMAL":1
 					},
-					"indices":4
+					"indices":2
 				}
 			]
 		}
@@ -59,18 +57,6 @@
 		},
 		{
 			"bufferView":2,
-			"componentType":5126,
-			"count":129,
-			"type":"VEC2"
-		},
-		{
-			"bufferView":3,
-			"componentType":5126,
-			"count":129,
-			"type":"VEC4"
-		},
-		{
-			"bufferView":4,
 			"componentType":5123,
 			"count":558,
 			"type":"SCALAR"
@@ -91,26 +77,14 @@
 		},
 		{
 			"buffer":0,
-			"byteLength":1032,
-			"byteOffset":3096,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":2064,
-			"byteOffset":4128,
-			"target":34962
-		},
-		{
-			"buffer":0,
 			"byteLength":1116,
-			"byteOffset":6192,
+			"byteOffset":3096,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":7308,
+			"byteLength":4212,
 			"uri":"rock2_collision.bin"
 		}
 	]

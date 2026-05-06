@@ -1,44 +1,44 @@
 #include "instanced_model.h"
+
 #include <fstream>
 #include <iostream>
 #include <random>
-#include <span>
 #include <utility>
+#include <vector>
 
-#include "aabb.h"
-#include "glad/glad.h"
+#include "model.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
-#include "model.h"
 #include "texture_manager.h"
+#include "transform.h"
 #include "world_vectors.h"
 
 InstancedModel::InstancedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
                                const std::filesystem::path &positionsPath, float minSize, float maxSize,
-                               unsigned int numPositions)
+                               int numPositions)
     : Model{textureManager, modelPath}, numInstances_(numPositions), minSize_(minSize), maxSize_(maxSize),
       positionsPath_{positionsPath}
 {
 }
 
-InstancedModel::InstancedModel(TextureManager &textureManager, const ModelHandle borrowHandle,
+InstancedModel::InstancedModel(TextureManager &textureManager, const Handle borrowHandle,
                                const std::filesystem::path &modelPath, const std::filesystem::path &positionsPath,
-                               float minSize, float maxSize, unsigned int numPositions)
-    : Model{textureManager, borrowHandle, modelPath}, numInstances_(numPositions), minSize_(minSize), maxSize_(maxSize),
-      positionsPath_{positionsPath}
+                               float minSize, float maxSize, int numPositions)
+    : Model{textureManager, borrowHandle, modelPath}, numInstances_(numPositions), minSize_(minSize),
+      maxSize_(maxSize), positionsPath_{positionsPath}
 {
 }
 
-std::optional<std::vector<Instance>> InstancedModel::generateInstancedData()
+std::vector<Transform> InstancedModel::loadInstancedTransforms()
 {
     std::vector<glm::vec3> positions{loadPositions()};
 
     if (positions.empty())
-        return std::nullopt;
+        return {};
 
-    std::vector<Instance> instances{randomizeRotationScale(positions)};
+    std::vector<Transform> transforms{randomizeRotationScale(positions)};
 
-    return instances;
+    return transforms;
 }
 
 std::vector<glm::vec3> InstancedModel::loadPositions()
@@ -67,13 +67,13 @@ std::vector<glm::vec3> InstancedModel::loadPositions()
     return instances;
 }
 
-std::vector<Instance> InstancedModel::randomizeRotationScale(std::vector<glm::vec3> &positions)
+std::vector<Transform> InstancedModel::randomizeRotationScale(std::vector<glm::vec3> &positions)
 {
     std::random_device rd;
     std::mt19937 mt(rd());
 
-    std::vector<Instance> instances;
-    instances.reserve(positions.size());
+    std::vector<Transform> transforms;
+    transforms.reserve(positions.size());
 
     // Rotate the model somewhere in the 360 degree range
     std::uniform_real_distribution<float> randRotation{0.0f, 360.0f};
@@ -89,8 +89,8 @@ std::vector<Instance> InstancedModel::randomizeRotationScale(std::vector<glm::ve
         transform.rotateAroundAxis(instanceRotation, WorldVectors::worldUp);
         transform.setAbsoluteScale(instanceScale);
 
-        instances.emplace_back(std::move(transform), aabb_);
+        transforms.emplace_back(std::move(transform));
     }
 
-    return instances;
+    return transforms;
 }

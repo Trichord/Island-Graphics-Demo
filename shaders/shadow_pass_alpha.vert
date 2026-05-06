@@ -1,38 +1,63 @@
 #version 460 core
 
+// Types
+struct Metadata
+{
+	int albedoArray;
+	int albedoLayer;
+	int armArray;
+	int armLayer;
+	int normalArray;
+	int normalLayer;
+	int cubemapArray;
+	int cubemapLayer;
+	uint visibleInstancesBufferBaseIndex;
+};
+
+// Attributes
 layout (location = 0) in vec3 aPos;
 layout (location = 3) in vec2 aTexCoords;
 
-layout(binding = 0, std430) readonly buffer matricesSSBO 
+// UBOs
+layout (std140, binding = 1) uniform cascadeShadow
 {
-    mat4 instances[];
+    vec4 splits;
+    mat4 lightMatrices[3];
 };
 
-layout(binding = 1, std430) readonly buffer indicesSSBO {
-    uint indices[];
+// SSBOs
+layout(binding = 2, std430) restrict readonly buffer matricesSSBO 
+{
+   mat4 matrices[];
 };
 
-uniform uint matricesOffset;
-uniform uint indicesOffset;
-uniform mat4 lightViewProjection;
-uniform bool useIndices;
+layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+{
+	Metadata metadata[];
+};
 
+layout(binding = 7, std430) restrict readonly buffer visibleInstancesSSBO 
+{
+   uint instances[];
+};
+
+// In
+uniform int cascade;
+
+// Out
 out vec2 texCoords;
+
+flat out int metadataIndex;
 
 void main()
 {	
-	mat4 modelMatrix;
+	Metadata meta = metadata[gl_BaseInstance];
+	uint matrixIndex = instances[meta.visibleInstancesBufferBaseIndex + gl_InstanceID];
 
-	if (useIndices)
-	{
-		uint instanceIndex = indices[indicesOffset + gl_InstanceID];
-		modelMatrix = instances[matricesOffset + instanceIndex];
-	}
-	else
-		modelMatrix = instances[matricesOffset + gl_InstanceID];
+	mat4 modelMatrix = matrices[matrixIndex];
 
-	vec4 vertexPos = lightViewProjection * modelMatrix * vec4(aPos, 1.0);
 	texCoords = aTexCoords;
+	metadataIndex = gl_BaseInstance;
 
-	gl_Position = vertexPos;
+	gl_Position = lightMatrices[cascade] * modelMatrix * vec4(aPos, 1.0);;
 }

@@ -1,11 +1,13 @@
 #include "model.h"
 
-#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <limits>
 #include <optional>
 #include <span>
+#include <stdexcept>
+#include <string>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -14,45 +16,22 @@
 #include "fastgltf_loader.h"
 #include "glm/glm.hpp"
 #include "primitive.h"
-#include "renderable.h"
+
 #include "texture_manager.h"
 
-void findMaterials(std::vector<Primitive::Mesh> &meshes, bool &hasMaterials)
-{
-    for (const auto &mesh : meshes)
-        for (const auto &primitive : mesh.primitives)
-            if (primitive.materialsExist())
-                hasMaterials = true;
-}
-
 Model::Model(TextureManager &textureManager, const std::filesystem::path &path)
-    : handle_{textureManager.assignHandle()}, textureManager_{textureManager}, filePath_{path}
+    : handle_{textureManager.assignHandle()}, filePath_{path}
 {
-    loadModel(path, false);
+    loadModel(textureManager, path, false);
     calculateAABB();
-    findMaterials(meshes_, hasMaterials_);
 }
 
-Model::Model(TextureManager &textureManager, const ModelHandle borrowHandle, const std::filesystem::path &path)
-    : handle_{textureManager.assignHandle()}, textureManager_{textureManager}, filePath_{path}
+Model::Model(TextureManager &textureManager, const Handle borrowHandle, const std::filesystem::path &path)
+    : handle_{textureManager.assignHandle()}, borrowedHandle_{borrowHandle}, filePath_{path}
 {
-    textureManager.borrowAssignMaterials(handle_, borrowHandle);
-    loadModel(path, true);
+    textureManager.borrowMaterials(handle_, borrowHandle);
+    loadModel(textureManager, path, true);
     calculateAABB();
-    findMaterials(meshes_, hasMaterials_);
-}
-
-Model::Model(Model &&other) noexcept
-    : handle_{other.handle_}, textureManager_{other.textureManager_}, meshes_{std::move(other.meshes_)},
-      aabb_{std::move(other.aabb_)}
-{
-    other.handle_ = 0;
-}
-
-Model::~Model()
-{
-    if (handle_)
-        textureManager_.releaseHandle(handle_);
 }
 
 AABB &Model::getAABB()
@@ -60,43 +39,29 @@ AABB &Model::getAABB()
     return aabb_;
 }
 
-std::span<Primitive::Mesh> Model::getMeshes()
+std::span<Primitive> Model::getPrimitives()
 {
-    return meshes_;
+    return primitives_;
 }
 
-std::optional<std::vector<Instance>> Model::generateInstancedData()
+std::optional<Handle> Model::getBorrowedHandle() const
 {
-    return std::nullopt;
+    return borrowedHandle_;
 }
 
-void Model::loadModel(const std::filesystem::path &path, bool borrowed)
+void Model::loadModel(TextureManager &manager, const std::filesystem::path &path, bool borrowed)
 {
     fastgltf::Asset asset = fastgltfLoader::loadAsset(path);
 
-    meshes_ = fastgltfLoader::loadMeshes(asset);
+    primitives_ = fastgltfLoader::loadMeshes(asset);
 
     if (!borrowed)
-        textureManager_.loadModel(handle_, std::move(asset), path.parent_path());
+        manager.loadModelTextures(handle_, std::move(asset), path.parent_path());
 }
 
-const ModelHandle Model::getHandle() const
+Handle Model::getHandle() const
 {
     return handle_;
-}
-
-void Model::assignMaterialIndex(std::size_t newIndex)
-{
-    for (auto &mesh : meshes_)
-        for (auto &primitive : mesh.primitives)
-            primitive.setMaterialIndex(newIndex);
-
-    hasMaterials_ = true;
-}
-
-bool Model::hasMaterials() const
-{
-    return hasMaterials_;
 }
 
 void Model::calculateAABB()
@@ -104,25 +69,16 @@ void Model::calculateAABB()
     glm::vec3 min{std::numeric_limits<float>::infinity()};
     glm::vec3 max{-std::numeric_limits<float>::infinity()};
 
-    for (const auto &mesh : meshes_)
-        for (const auto &primitive : mesh.primitives)
-        {
-            const AABB &primAABB{primitive.getAABB()};
-
-            min = glm::min(min, primAABB.getMin());
-            max = glm::max(max, primAABB.getMax());
-        }
+    for (const Primitive &primitive : primitives_)
+    {
+        min = glm::min(min, primitive.aabb.getMin());
+        max = glm::max(max, primitive.aabb.getMax());
+    }
 
     aabb_ = AABB{min, max};
 }
 
-void Model::setMeshVisibility(bool visible)
-{
-    for (auto &mesh : meshes_)
-        mesh.isVisible = visible;
-}
-
-std::optional<std::vector<Primitive::Mesh>> Model::loadCollisionMesh()
+std::optional<std::vector<Primitive>> Model::loadCollisionMesh() const
 {
     std::filesystem::path collisionMeshPath{filePath_.parent_path() / "collision"};
     std::string gltf{filePath_.stem().string() + "_collision.gltf"};

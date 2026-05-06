@@ -1,229 +1,144 @@
-#include "cull_method.h"
+#include <cstdint>
+#include <vector>
+
+#include "camera.h"
+#include "cascade_shadow.h"
+#include "directional_light.h"
+#include "fastgltf/types.hpp"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "primitive.h"
-#include "renderable.h"
+#include "graphics_shader.h"
 #include "renderer.h"
+#include "renderer_types.h"
 #include "scene.h"
-#include "shader.h"
-#include "shader_type.h"
-#include "texture_manager.h"
-#include "texture_units.h"
 
-// Reduce the distance of the camera's far plane by 80% for shadow cascades. (1024 res)
+// Reduce the distance of the camera's far plane by 80% for shadow cascades.
 constexpr float farPlaneReduction{0.2f};
 
 // Render objects, grouped by shader type
-void Renderer::renderAllSceneObjects(Scene &scene)
+void Renderer::renderScene()
 {
-    using enum ShaderType;
+    if (drawBuckets_.empty())
+        return;
 
-    for (auto &[shaderType, objectList] : scene.getRenderablesByShader())
-    {
-        if (objectList.empty() || shaderType == COUNT)
-            continue;
+    GraphicsShader *shader{&shaders_.front()};
+    ShaderType currentShaderType{shader->getType()};
+    shader->use();
 
-        Shader &shader{shaders_.at(shaderType)};
-        shader.use();
+    fastgltf::AlphaMode currentAlphaMode{drawBuckets_.front().alphaMode};
 
-        if (shaderType == SKYBOX)
-            glDepthFunc(GL_LEQUAL);
-
-        for (auto &renderable : objectList)
-        {
-            if (!renderable.properties.isVisible)
-                continue;
-
-            const auto &object = renderable.objectRef.get();
-            const auto &properties = renderable.properties;
-            const auto iter = modelBaseIndices_.find(object.getHandle());
-
-            if (iter == modelBaseIndices_.end())
-                throw std::runtime_error("ERROR: Missing handle in SSBO lookup map");
-
-            ssboOffsets offsets{iter->second};
-
-            shader.setIntU("matricesOffset", offsets.matricesOffset);
-            shader.setIntU("indicesOffset", offsets.indicesOffset);
-            shader.setVec3("scale", properties.instances[0].transform.getScale());
-
-            // Draw it
-            renderObject(renderable);
-        }
-
-        if (shaderType == SKYBOX)
-            glDepthFunc(GL_LESS);
-    }
-}
-
-void Renderer::renderObject(Renderable &renderable)
-{
-    auto &object = renderable.objectRef.get();
-    const auto &properties = renderable.properties;
-    const auto &materials{textureManager_.getMaterials(object.getHandle())};
-    const GLsizei instanceCount{static_cast<GLsizei>(properties.visibleInstances)};
-
-    for (const Primitive::Mesh &mesh : object.getMeshes())
-    {
-        if (!mesh.isVisible)
-            continue;
-
-        for (const Primitive &primitive : mesh.primitives)
-        {
-            glState_.setAlphaMode(primitive.getAlphaMode());
-            GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
-
-            if (primitive.materialsExist())
-            {
-                std::size_t materialIndex{primitive.getMaterialIndex()};
-                bindTextures(materials[materialIndex]);
-            }
-
-            glBindVertexArray(primitive.getVAO());
-            glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0, instanceCount);
-        }
-    }
-}
-
-void Renderer::bindTextures(const Material &materials)
-{
-    using enum Texture;
-
-    if (materials.albedo)
-        glState_.bindTexture(static_cast<GLuint>(ALBEDO), materials.albedo);
-
-    if (materials.occlusionRoughnessMetallic)
-        glState_.bindTexture(static_cast<GLuint>(ARM), materials.occlusionRoughnessMetallic);
-
-    if (materials.normal)
-        glState_.bindTexture(static_cast<GLuint>(NORMAL), materials.normal);
-
-    if (materials.cubemap)
-        glState_.bindTexture(static_cast<GLuint>(CUBEMAP), materials.cubemap);
-}
-
-void Renderer::updateCascadeShadowUBO(const CascadeShadow::CascadeSplits &cascades,
-                                      const CascadeShadow::LightMatrices &matrices)
-{
-    static_assert(CascadeShadow::cascadeCount == 3);
-
-    packedShadowCascadeData_.splits = {cascades.splits[0].far, cascades.splits[1].far, cascades.splits[2].far, 0.0f};
-    memcpy(packedShadowCascadeData_.matrices, matrices.viewProjections, sizeof(packedShadowCascadeData_.matrices));
-
-    glNamedBufferSubData(shadowCascadesUBO_, 0, sizeof(PackedShadowCascadeData), &packedShadowCascadeData_);
-}
-
-void Renderer::updateShadowMaps(Scene &scene)
-{
-    glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
-
-    // Get the new orthographic projections and upload to a UBO
-    Camera &camera{scene.getCamera()};
-    cascadeShadow_.updateCascadeShadows(camera.getResizedViewProjectionMatrix(farPlaneReduction),
-                                        scene.getGlobalLightSource(), graphicsSettings_.shadowResolution,
-                                        camera.getFarPlane() * farPlaneReduction);
-
-    const auto &splitDistances = cascadeShadow_.getSplitDistances();
-    const auto &lightMatrices = cascadeShadow_.getLightMatrices();
-    updateCascadeShadowUBO(splitDistances, lightMatrices);
-
-    shadowPassTarget_.bind();
-    // Draw the outer cascade first, then cull and work our way closer
-    for (int cascade{CascadeShadow::cascadeCount - 1}; cascade >= 0; --cascade)
-    {
-        shadowPassTarget_.clear();
-
-        // Opaque geometry first
-        Shader &shadowShader{shaders_[ShaderType::SHADOW_MAP]};
-        shadowShader.use();
-        shadowPass(scene, lightMatrices, shadowShader, cascade, false);
-
-        // Use culling and indexed drawing for the inner 2 cascades
-        if (cascade == 1)
-            cullRenderables(scene, lightMatrices.viewProjections[cascade]);
-
-        // Alpha tested geometry
-        Shader &shadowAlphaShader{shaders_[ShaderType::SHADOW_MAP_ALPHA]};
-        shadowAlphaShader.use();
-        shadowPass(scene, lightMatrices, shadowAlphaShader, cascade, true);
-
-        shadowBlitTarget_.setTextureLayer(static_cast<GLuint>(cascade));
-        shadowPassTarget_.blitTo(shadowBlitTarget_);
-    }
-
-    shadowPassTarget_.unbind();
-    glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
-}
-
-void Renderer::shadowPass(Scene &scene, const CascadeShadow::LightMatrices &lightMatrices, Shader &shader, int cascade,
-                          bool drawAlphaTested)
-{
-    const glm::mat4 lightVP{lightMatrices.viewProjections[cascade]};
-    shader.setMat4("lightViewProjection", lightVP);
-    shader.setBool("useIndices", cascade != 2);
-
-    for (auto &[shaderType, renderables] : scene.getRenderablesByShader())
+    for (std::size_t i{0}; i < drawBuckets_.size(); ++i)
     {
         using enum ShaderType;
 
-        if (shaderType == SKYBOX || shaderType == OCEAN || shaderType == COUNT)
-            continue;
+        MultiDrawBucket &mdb{drawBuckets_[i]};
 
-        // Never try and draw grass outside the closest cascade
-        if (shaderType == GRASS && cascade != 0)
-            continue;
-
-        // Only draw grass or trees if alpha tested geometry has been requested
-        bool alphaTestedShader{shaderType == GRASS || shaderType == TREES};
-
-        if (drawAlphaTested != alphaTestedShader)
-            continue;
-
-        for (auto &renderable : renderables)
+        if (currentShaderType != mdb.shaderType)
         {
-            if (!renderable.properties.isVisible)
-                continue;
+            if (mdb.shaderType == skybox)
+                glState_.setDepthFunction(GL_LEQUAL);
 
-            auto &object = renderable.objectRef.get();
-            const auto &properties = renderable.properties;
-            const auto iter = modelBaseIndices_.find(object.getHandle());
-            const auto &materials{textureManager_.getMaterials(object.getHandle())};
+            if (currentShaderType == skybox)
+                glState_.setDepthFunction(GL_LESS);
 
-            if (iter == modelBaseIndices_.end())
-                throw std::runtime_error("ERROR: Missing handle in SSBO lookup map");
-
-            // Offsets into the main buffer and the indices buffer
-            ssboOffsets offsets{iter->second};
-            shader.setIntU("matricesOffset", offsets.matricesOffset);
-
-            if (cascade != 2)
-                shader.setIntU("indicesOffset", offsets.indicesOffset);
-
-            // Instance count
-            GLsizei instanceCount{0};
-            if (cascade == 2)
-                instanceCount = static_cast<GLsizei>(properties.instances.size());
-            else
-                instanceCount = properties.visibleInstances;
-
-            // Render primitives
-            for (const Primitive::Mesh &mesh : object.getMeshes())
-            {
-                for (const Primitive &primitive : mesh.primitives)
-                {
-                    const GLuint numIndices{static_cast<GLuint>(primitive.getIndices().size())};
-
-                    if (primitive.materialsExist() && drawAlphaTested)
-                    {
-                        std::size_t materialIndex{primitive.getMaterialIndex()};
-                        bindTextures(materials[materialIndex]);
-                    }
-
-                    glBindVertexArray(primitive.getVAO());
-                    glDrawElementsInstanced(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0, instanceCount);
-                }
-            }
+            shader = &shaders_[static_cast<int>(mdb.shaderType)];
+            shader->use();
+            currentShaderType = mdb.shaderType;
         }
+
+        if (currentAlphaMode != mdb.alphaMode)
+        {
+            glState_.setAlphaMode(mdb.alphaMode);
+            currentAlphaMode = mdb.alphaMode;
+        }
+
+        glMultiDrawElementsIndirectCount(GL_TRIANGLES, GL_UNSIGNED_INT,
+                                         (void *)(mdb.startIndex * sizeof(DrawElementsIndirectCommand)),
+                                         static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.maxCount, 0);
+    }
+
+    // Assume skybox was last
+    glState_.setDepthFunction(GL_LESS);
+}
+
+void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
+{
+    msaaShadowTarget_.bind();
+    glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
+
+    GraphicsShader &shadowShader{shaders_[shaderIndex(ShaderType::shadowMap)]};
+    GraphicsShader &shadowAlphaShader{shaders_[shaderIndex(ShaderType::shadowMapAlpha)]};
+
+    Camera &camera{scene.getCamera()};
+    DirectionalLight &light{scene.getGlobalLight()};
+
+    // Move the far plane closer for tighter cascades
+    const glm::mat4 cameraVP{camera.getResizedViewProjectionMatrix(farPlaneReduction)};
+    float farPlane{camera.getFarPlane() * farPlaneReduction};
+
+    // Recalculate frustum splits and light VP matrices
+    const Cascades &cascades{
+        cascadeShadow_.updateCascadeShadows(cameraVP, light, graphicsSettings_.shadowResolution, farPlane)};
+
+    // Splits never change, only set on renderer initialization
+    const bool updateFullUBO{framesRendered_ == 0};
+    updateCascadeShadowUBO(cascades, lightChanged, updateFullUBO);
+
+    // Only update outer cascade if the light changed
+    int cascadeCount{lightChanged ? shadowCascadeCount : shadowCascadeCount - 1};
+
+    // Tighter cascades depend on player location and have to be updated
+    for (int i{0}; i < cascadeCount; ++i)
+    {
+        using enum ShaderType;
+
+        const glm::mat4 lightVP{cascades[i].viewProjection};
+
+        msaaShadowTarget_.clear();
+
+        cullScene(lightVP);
+
+        // Opaque geometry first
+        shadowShader.use();
+        shadowPass(shadowShader, i, false);
+
+        // Alpha tested geometry
+        shadowAlphaShader.use();
+        shadowPass(shadowAlphaShader, i, true);
+
+        // Hardware filter the variance shadow map
+        shadowPassTarget_.setTextureLayer(i);
+        msaaShadowTarget_.blitTo(shadowPassTarget_);
+    }
+
+    msaaShadowTarget_.unbind();
+    glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
+}
+
+void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)
+{
+    shader.setInt("cascade", cascade);
+
+    for (std::size_t i{0}; i < drawBuckets_.size(); ++i)
+    {
+        using enum ShaderType;
+        using enum fastgltf::AlphaMode;
+
+        MultiDrawBucket &mdb{drawBuckets_[i]};
+        
+        if (mdb.shaderType == ocean || mdb.shaderType == skybox)
+            continue;
+
+        if (mdb.shaderType == grass && cascade != 0)
+            continue;
+
+        const bool a2c{mdb.alphaMode == Mask};
+
+        if (a2c != alphaTested)
+            continue;
+
+        glMultiDrawElementsIndirectCount(GL_TRIANGLES, GL_UNSIGNED_INT,
+                                         (void *)(mdb.startIndex * sizeof(DrawElementsIndirectCommand)),
+                                         static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.maxCount, 0);
     }
 }

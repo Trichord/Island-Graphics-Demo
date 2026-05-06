@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -9,34 +10,26 @@
 #include "renderable.h"
 #include "texture_manager.h"
 
-class Model : public IRenderable
+class Model : public Renderable
 {
   public:
     Model(TextureManager &textureManager, const std::filesystem::path &path);
-    Model(TextureManager &textureManager, const ModelHandle borrowHandle, const std::filesystem::path &path);
-    Model(const Model &) = delete;
-    Model &operator=(const Model &) = delete;
-    Model(Model &&other) noexcept;
-    Model &operator=(Model &&other) = delete;
-    ~Model();
+    Model(TextureManager &textureManager, const Handle borrowHandle, const std::filesystem::path &path);
 
     AABB &getAABB() override;
-    void setMeshVisibility(bool visible) override;
-    const ModelHandle getHandle() const override;
-    std::span<Primitive::Mesh> getMeshes() override;
-    std::optional<std::vector<Primitive::Mesh>> loadCollisionMesh() override;
-    std::optional<std::vector<Instance>> generateInstancedData() override;
+    Handle getHandle() const override;
+    std::span<Primitive> getPrimitives() override;
+    std::optional<Handle> getBorrowedHandle() const override;
+    std::optional<std::vector<Primitive>> loadCollisionMesh() const override;
 
   protected:
-    ModelHandle handle_{0};
-    TextureManager &textureManager_;
-    std::filesystem::path filePath_;
-    std::vector<Primitive::Mesh> meshes_;
     AABB aabb_;
-    bool hasMaterials_{false};
+    Handle handle_{0};
+    std::optional<Handle> borrowedHandle_{};
 
-    void loadModel(const std::filesystem::path &path, bool borrowed);
+    std::filesystem::path filePath_;
+    std::vector<Primitive> primitives_;
+
+    void loadModel(TextureManager &manager, const std::filesystem::path &path, bool borrowed);
     void calculateAABB();
-    void assignMaterialIndex(std::size_t newIndex);
-    bool hasMaterials() const;
 };

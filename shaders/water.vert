@@ -1,43 +1,78 @@
 #version 460 core
 
+// Types
+struct Metadata
+{
+	int albedoArray;
+	int albedoLayer;
+	int armArray;
+	int armLayer;
+	int normalArray;
+	int normalLayer;
+	int cubemapArray;
+	int cubemapLayer;
+	uint visibleInstancesBufferBaseIndex;
+};
+
+// Attributes
 layout (location = 0) in vec3 aPos;
 layout (location = 3) in vec2 aTexCoords;
 
-layout (std140, binding = 0) uniform cameraData {
+// UBOs
+layout (std140) uniform uniformData 
+{
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionMatrix;
 	layout (offset = 128) mat4 projectionViewMatrix;
 	layout (offset = 192) mat4 inverseViewProjectMatrix;
 	layout (offset = 256) vec4 cameraPosition;
+	layout (offset = 272) float time;
 };
 
-layout(binding = 0, std430) readonly buffer matricesSSBO {
-    mat4 instances[];
+// SSBOs
+layout(binding = 2, std430) restrict readonly buffer matricesSSBO 
+{
+   mat4 matrices[];
 };
 
-layout(binding = 1, std430) readonly buffer indicesSSBO {
-    uint indices[];
+layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+{
+	Metadata metadata[];
 };
 
-out VS_OUT 
+layout(binding = 7, std430) restrict readonly buffer visibleInstancesSSBO 
+{
+   uint instances[];
+};
+
+
+// Out
+flat out float scale;
+flat out int metadataIndex;
+
+out vsOut 
 {
 	vec2 texCoords;
 	vec3 fragPos;
 	vec4 clipSpace;
-} vs_out;
-
-uniform uint matricesOffset;
-uniform uint indicesOffset;
+} vOut;
 
 void main () 
 {
-	uint instanceIndex = indices[indicesOffset + gl_InstanceID];
-	mat4 modelMatrix = instances[matricesOffset + instanceIndex];
+	Metadata meta = metadata[gl_BaseInstance];
+	uint matrixIndex = instances[meta.visibleInstancesBufferBaseIndex + gl_InstanceID];
+
+	mat4 modelMatrix = matrices[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
 
-	vs_out.texCoords = aTexCoords;
-	vs_out.fragPos = (modelMatrix * vec4(aPos, 1.0)).xyz;
-	vs_out.clipSpace = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0);
+	vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
 
-	gl_Position = vs_out.clipSpace;
+	vOut.texCoords = aTexCoords;
+	vOut.fragPos = worldPos.xyz;
+	vOut.clipSpace = projectionViewMatrix * worldPos;
+
+	metadataIndex = gl_BaseInstance;
+	scale = length(modelMatrix[0]);
+
+	gl_Position = vOut.clipSpace;
 }
