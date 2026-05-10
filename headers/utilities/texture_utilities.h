@@ -13,9 +13,9 @@ struct TextureDetails
 
 namespace textureUtilities
 {
+GLenum toSRGB(GLenum format);
+GLenum gliToGL(const gli::texture &texture);
 int calculateMipmapLevels(int width, int height);
-gli::gl::internal_format toSRGB(gli::gl::internal_format format);
 GLuint textureFromFile(std::filesystem::path path, TextureDetails details);
-void insertIntoSamplerArray(GLuint arrayID, gli::texture &texture, int arrayLayer,
-                            gli::gl::internal_format internalFormat);
+void insertIntoSamplerArray(const gli::texture &texture, GLuint arrayID, int arrayLayer, GLenum internalFormat);
 } // namespace textureUtilities

@@ -33,7 +33,7 @@ class TextureManager
                              std::vector<int> &materialIndices);
 
     GLenum getReflectionColorFormat() const;
-    const std::vector<Material> &getMaterials(Handle modelHandle) const;
+    const std::vector<Material> &getMaterials(Handle handle) const;
 
     // Dynamic cubemap borrowing
     void borrowCubemaps(Handle self, Handle other);
@@ -48,10 +48,10 @@ class TextureManager
         GLuint id{0};
         int size{0};
         int count{0};
-        GLenum internalFormat{GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM};
+        GLenum internalFormat{GL_COMPRESSED_RGBA_BPTC_UNORM};
     };
 
-    struct PendingTexture
+    struct DeferredTexture
     {
         Handle handle{0};
         std::filesystem::path path;
@@ -59,8 +59,10 @@ class TextureManager
         Material::Type type;
         SamplerArrayEntry entry;
 
+        int size{0};
         bool textureRepeat{true};
         std::vector<int> materialIndices;
+        GLenum internalFormat{GL_COMPRESSED_RGBA_BPTC_UNORM};
     };
 
     std::array<ArrayTexture, 10> arrayTextures_{{{.size = 4096, .internalFormat = GL_COMPRESSED_RG_RGTC2},
@@ -91,28 +93,28 @@ class TextureManager
     std::unordered_map<Handle, std::vector<Material>> materialLookup_;
 
     // Textures to be uploaded
-    std::vector<PendingTexture> pendingCubemaps_;
-    std::vector<PendingTexture> pending2dTextures_;
+    std::vector<DeferredTexture> deferredCubemaps_;
+    std::vector<DeferredTexture> deferredTextures_;
 
     // Borrows to be resolved after textures are done
     std::vector<std::pair<Handle, Handle>> pendingBorrows_;
 
-    // Textures from loaded models
-    std::vector<gli::texture> loadTexturesFromPool(const std::vector<PendingTexture> &textures);
+    // Textures from disk
+    std::vector<gli::texture> loadTexturesFromPool(const std::vector<DeferredTexture> &textures);
     void texturesFromAsset(fastgltf::Asset &asset, Handle handle, std::filesystem::path parentPath);
     void resolveBorrows();
 
+    // Deferred texture processing  
+    bool validateTexture(const gli::texture &texture);
+    void createTextureLayers(auto &arrayTextures, bool cubemaps);
+    void promoteToSRGB(DeferredTexture& deferred, const gli::texture& texture);
+    void allocateAndFillArray(auto &array, std::vector<DeferredTexture> &deferred, bool cubemaps);
+    void insertTexture(auto &array, const DeferredTexture &deferred, const gli::texture &texture);
+
     // Helpers for assigning to texture buckets
-    SamplerArrayEntry assignToTextureArray(int size, GLenum internalFormat);
-    SamplerArrayEntry assignToCubeArray(int size, GLenum internalFormat);
+    ArrayTexture &findArrayEntry(auto &arrayTextures, int size, GLenum internalFormat);
+    SamplerArrayEntry assignToTextureArray(auto &arrayTextures, int size, GLenum internalFormat);
 
-    // Lock in GPU resources
-    void allocateTextures(const std::vector<PendingTexture> &pendingTextures, std::vector<gli::texture> &textures);
-    void allocateCubemaps(const std::vector<PendingTexture> &pendingTextures, std::vector<gli::texture> &textures);
-
-    // Fill arays
-    void buildTextures(std::vector<PendingTexture> &pendingTextures, bool cubemaps);
-
-    // Private helper for material lookups. Mirros the public API, except its not const
+    // Private helper for material lookups. Mirrors the public API, except its not const
     std::vector<Material> &findMaterials(Handle handle);
 };

@@ -30,87 +30,38 @@ GLuint magentaTexture()
 }
 } // namespace
 
-gli::gl::internal_format textureUtilities::toSRGB(gli::gl::internal_format format)
+GLenum textureUtilities::gliToGL(const gli::texture &texture)
 {
-    using enum gli::gl::internal_format;
+    static const gli::gl glTranslator(gli::gl::PROFILE_GL33);
 
+    const gli::gl::format format = glTranslator.translate(texture.format(), texture.swizzles());
+    const glm::tvec3<GLsizei> extent{texture.extent()};
+    const int size{static_cast<int>(extent.x)};
+
+    return static_cast<GLenum>(format.Internal);
+}
+
+GLenum textureUtilities::toSRGB(GLenum format)
+{
     switch (format)
     {
     // Uncompressed
-    case INTERNAL_R8_UNORM:
-        return INTERNAL_SR8;
-    case INTERNAL_RG8_UNORM:
-        return INTERNAL_SRG8;
-    case INTERNAL_RGB8_UNORM:
-        return INTERNAL_SRGB8;
-    case INTERNAL_RGBA8_UNORM:
-        return INTERNAL_SRGB8_ALPHA8;
-
-    // DXT/BC
-    case INTERNAL_RGB_DXT1:
-        return INTERNAL_SRGB_DXT1;
-    case INTERNAL_RGBA_DXT1:
-        return INTERNAL_SRGB_ALPHA_DXT1;
-    case INTERNAL_RGBA_DXT3:
-        return INTERNAL_SRGB_ALPHA_DXT3;
-    case INTERNAL_RGBA_DXT5:
-        return INTERNAL_SRGB_ALPHA_DXT5;
+    case GL_RGB8:
+        return GL_SRGB8;
+    case GL_RGBA8:
+        return GL_SRGB8_ALPHA8;
 
     // BPTC/BC7
-    case INTERNAL_RGB_BP_UNORM:
-        return INTERNAL_SRGB_BP_UNORM;
+    case GL_COMPRESSED_RGBA_BPTC_UNORM:
+        return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
 
-    // PVRTC
-    case INTERNAL_RGB_PVRTC_2BPPV1:
-        return INTERNAL_SRGB_PVRTC_2BPPV1;
-    case INTERNAL_RGB_PVRTC_4BPPV1:
-        return INTERNAL_SRGB_PVRTC_4BPPV1;
-    case INTERNAL_RGBA_PVRTC_2BPPV1:
-        return INTERNAL_SRGB_ALPHA_PVRTC_2BPPV1;
-    case INTERNAL_RGBA_PVRTC_4BPPV1:
-        return INTERNAL_SRGB_ALPHA_PVRTC_4BPPV1;
-    case INTERNAL_RGBA_PVRTC_2BPPV2:
-        return INTERNAL_SRGB_ALPHA_PVRTC_2BPPV2;
-    case INTERNAL_RGBA_PVRTC_4BPPV2:
-        return INTERNAL_SRGB_ALPHA_PVRTC_4BPPV2;
-
-    // ETC
-    case INTERNAL_RGB_ETC2:
-        return INTERNAL_SRGB8_ETC2;
-    case INTERNAL_RGBA_PUNCHTHROUGH_ETC2:
-        return INTERNAL_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2;
-    case INTERNAL_RGBA_ETC2:
-        return INTERNAL_SRGB8_ALPHA8_ETC2_EAC;
-
-    // ASTC
-    case INTERNAL_RGBA_ASTC_4x4:
-        return INTERNAL_SRGB8_ALPHA8_ASTC_4x4;
-    case INTERNAL_RGBA_ASTC_5x4:
-        return INTERNAL_SRGB8_ALPHA8_ASTC_5x4;
-    case INTERNAL_RGBA_ASTC_5x5:
-        return INTERNAL_SRGB8_ALPHA8_ASTC_5x5;
-    case INTERNAL_RGBA_ASTC_6x5:
-        return INTERNAL_SRGB8_ALPHA8_ASTC_6x5;
-    case INTERNAL_RGBA_ASTC_6x6:
-        return INTERNAL_SRGB8_ALPHA8_ASTC_6x6;
-    case INTERNAL_RGBA_ASTC_8x5:
-        return INTERNAL_SRGB8_ALPHA8_ASTC_8x5;
-    case INTERNAL_RGBA_ASTC_8x6:
-        return INTERNAL_SRGB8_ALPHA8_ASTC_8x6;
-    case INTERNAL_RGBA_ASTC_8x8:
-        return INTERNAL_SRGB8_ALPHA8_ASTC_8x8;
-    case INTERNAL_RGBA_ASTC_10x5:
-        return INTERNAL_SRGB8_ALPHA8_ASTC_10x5;
-    case INTERNAL_RGBA_ASTC_10x6:
-        return INTERNAL_SRGB8_ALPHA8_ASTC_10x6;
-    case INTERNAL_RGBA_ASTC_10x8:
-        return INTERNAL_SRGB8_ALPHA8_ASTC_10x8;
-    case INTERNAL_RGBA_ASTC_10x10:
-        return INTERNAL_SRGB8_ALPHA8_ASTC_10x10;
-    case INTERNAL_RGBA_ASTC_12x10:
-        return INTERNAL_SRGB8_ALPHA8_ASTC_12x10;
-    case INTERNAL_RGBA_ASTC_12x12:
-        return INTERNAL_SRGB8_ALPHA8_ASTC_12x12;
+    // ETC2
+    case GL_COMPRESSED_RGB8_ETC2:
+        return GL_COMPRESSED_SRGB8_ETC2;
+    case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+        return GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2;
+    case GL_COMPRESSED_RGBA8_ETC2_EAC:
+        return GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC;
 
     // Already sRGB or no sRGB equivalent exists
     default:
@@ -126,11 +77,9 @@ int textureUtilities::calculateMipmapLevels(int width, int height)
     return static_cast<int>(std::floor(std::log2(maxDimension / 4))) + 1;
 }
 
-void textureUtilities::insertIntoSamplerArray(GLuint arrayID, gli::texture &texture, int arrayLayer,
-                                              gli::gl::internal_format internalFormat)
+void textureUtilities::insertIntoSamplerArray(const gli::texture &texture, GLuint arrayID, int arrayLayer,
+                                              GLenum internalFormat)
 {
-    GLenum format{static_cast<GLenum>(internalFormat)};
-
     for (std::size_t layer{0}; layer < texture.layers(); ++layer)
         for (std::size_t face{0}; face < texture.faces(); ++face)
             for (std::size_t level{0}; level < texture.levels(); ++level)
@@ -141,9 +90,9 @@ void textureUtilities::insertIntoSamplerArray(GLuint arrayID, gli::texture &text
                 if (extent.x < 4 || extent.y < 4)
                     break;
 
-                glCompressedTextureSubImage3D(arrayID, static_cast<GLint>(level), 0, 0, static_cast<GLint>(zOffset),
-                                              extent.x, extent.y, 1, format, static_cast<GLsizei>(texture.size(level)),
-                                              texture.data(layer, face, level));
+                glCompressedTextureSubImage3D(
+                    arrayID, static_cast<GLint>(level), 0, 0, static_cast<GLint>(zOffset), extent.x, extent.y, 1,
+                    internalFormat, static_cast<GLsizei>(texture.size(level)), texture.data(layer, face, level));
             }
 }
 
@@ -172,7 +121,7 @@ GLuint textureUtilities::textureFromFile(std::filesystem::path path, TextureDeta
     glCreateTextures(target, 1, &id);
 
     glm::tvec3<GLsizei> maxWidth{texture.extent()};
-    gli::gl::internal_format internalFormat{glFormat.Internal};
+    GLenum internalFormat{static_cast<GLenum>(glFormat.Internal)};
 
     if (details.sRGB)
         internalFormat = toSRGB(internalFormat);
@@ -203,7 +152,7 @@ GLuint textureUtilities::textureFromFile(std::filesystem::path path, TextureDeta
     glTextureParameteri(id, GL_TEXTURE_WRAP_S, details.sampler.wrapS);
     glTextureParameteri(id, GL_TEXTURE_WRAP_T, details.sampler.wrapT);
     glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, details.sampler.minFilter);
-    glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, details.sampler.magFilter);   
+    glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, details.sampler.magFilter);
 
     if (details.anisotropicFiltering > 0.0f)
         glTextureParameterf(id, GL_TEXTURE_MAX_ANISOTROPY, details.anisotropicFiltering);
