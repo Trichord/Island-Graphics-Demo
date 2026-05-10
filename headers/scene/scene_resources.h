@@ -22,27 +22,25 @@ class SceneResources
   public:
     SceneResources(TextureManager &textureManager);
 
-    Model &loadModel(const std::filesystem::path &modelPath);
-    Model &loadModel(const Handle borrowHandle, const std::filesystem::path &modelPath);
+    Model &loadModel(const std::filesystem::path &modelPath, const std::optional<Handle> borrowHandle = {});
 
     InstancedModel &loadInstancedModel(const std::filesystem::path &modelPath,
-                                       const std::filesystem::path &positionsPath, float minSize = 1.0f,
-                                       float maxSize = 1.0f, unsigned int numPositions = 0);
-    InstancedModel &loadInstancedModel(const Handle borrowHandle, const std::filesystem::path &modelPath,
-                                       const std::filesystem::path &positionsPath, float minSize = 1.0f,
-                                       float maxSize = 1.0f, unsigned int numPositions = 0);
+                                       const std::filesystem::path &positionsPath,
+                                       const InstancedModel::Randomize randomize,
+                                       const std::optional<Handle> borrowHandle = {});
 
     CubeMappedModel &loadCubeMappedModel(const std::filesystem::path &modelPath,
-                                         const std::vector<std::filesystem::path> &imagePaths, bool mipmaps = true);
-    CubeMappedModel &loadCubeMappedModel(const Handle borrowHandle, const std::filesystem::path &modelPath);
-    Skybox &loadSkybox(const std::vector<std::filesystem::path> &imagePaths);
-    Skybox &loadSkybox(Handle borrowHandle);
+                                         const std::filesystem::path &imagePaths,
+                                         const std::optional<Handle> borrowHandle = {});
+
+    Skybox &loadSkybox(const std::filesystem::path &imagePaths);
+    Skybox &loadSkybox(const Handle borrowHandle);
 
   private:
     TextureManager &textureManager_;
 
     Skybox skybox_;
-    std::vector<Model> models_;  
-    std::vector<InstancedModel> instancedModels_;  
+    std::vector<Model> models_;
+    std::vector<InstancedModel> instancedModels_;
     std::vector<CubeMappedModel> cubeMappedModels_;
 };

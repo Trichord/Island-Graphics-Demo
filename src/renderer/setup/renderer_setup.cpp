@@ -23,18 +23,13 @@ void Renderer::initializeResources(Scene &scene)
 
     SceneTotals totals{getSceneTotals(scene)};
 
-    // 2D Textures
-    textureManager_.texturesReserved();
-    textureManager_.buildTextures();
-
     // Cubemaps. Reserve space up front for any load-time generated cubemaps
     int resolution{getReflectionResolution()};
     int numCubemaps{static_cast<int>(totals.dynamicCubemaps)};
     GLenum colorFormat{textureManager_.getReflectionColorFormat()};
-    SamplerArrayEntry reservedEntry{textureManager_.reserveCubemaps(numCubemaps, resolution, colorFormat)};
+    textureManager_.reserveCubemaps(numCubemaps, resolution, colorFormat);
 
-    textureManager_.cubemapsReserved();
-    textureManager_.buildCubemaps();
+    textureManager_.buildAllTextures();
 
     // Create DrawEntries for building the draw command buffer
     std::vector<DrawEntry> drawEntries{createDrawEntries(scene, totals)};
@@ -83,7 +78,7 @@ void Renderer::initializeResources(Scene &scene)
     borrowSkybox(drawEntries);
 
     // Dynamic cubemap generation. The scene must be ready to render, except water / ocean.
-    createCubemaps(scene, commands, drawEntries, reservedEntry);
+    createCubemaps(scene, commands, drawEntries);
 
     // Push the new cubemaps into metadata
     updateMetadataCubemaps(drawEntries, metadata);

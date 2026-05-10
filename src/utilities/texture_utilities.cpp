@@ -2,20 +2,18 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 #include <iostream>
 #include <vector>
 
 #include "glad/glad.h"
-#include "image_loader.h"
+#include "texture_loader.h"
 #include "textures.h"
 
-int textureUtilities::calculateMipmapLevels(int width, int height)
+namespace
 {
-    int maxDimension = std::max(width, height);
-    return static_cast<int>(std::floor(std::log2(maxDimension)) + 1);
-}
 
-Texture magentaTexture()
+GLuint magentaTexture()
 {
     GLuint magenta{0};
     unsigned char color[] = {255, 0, 255};
@@ -23,156 +21,187 @@ Texture magentaTexture()
     glTextureStorage2D(magenta, 1, GL_SRGB8, 1, 1);
     glTextureSubImage2D(magenta, 0, 0, 0, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, color);
 
-    return {.id = magenta, .width = 1, .height = 1, .internalFormat = GL_SRGB8};
+    glTextureParameteri(magenta, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTextureParameteri(magenta, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTextureParameteri(magenta, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTextureParameteri(magenta, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    return magenta;
+}
+} // namespace
+
+gli::gl::internal_format textureUtilities::toSRGB(gli::gl::internal_format format)
+{
+    using enum gli::gl::internal_format;
+
+    switch (format)
+    {
+    // Uncompressed
+    case INTERNAL_R8_UNORM:
+        return INTERNAL_SR8;
+    case INTERNAL_RG8_UNORM:
+        return INTERNAL_SRG8;
+    case INTERNAL_RGB8_UNORM:
+        return INTERNAL_SRGB8;
+    case INTERNAL_RGBA8_UNORM:
+        return INTERNAL_SRGB8_ALPHA8;
+
+    // DXT/BC
+    case INTERNAL_RGB_DXT1:
+        return INTERNAL_SRGB_DXT1;
+    case INTERNAL_RGBA_DXT1:
+        return INTERNAL_SRGB_ALPHA_DXT1;
+    case INTERNAL_RGBA_DXT3:
+        return INTERNAL_SRGB_ALPHA_DXT3;
+    case INTERNAL_RGBA_DXT5:
+        return INTERNAL_SRGB_ALPHA_DXT5;
+
+    // BPTC/BC7
+    case INTERNAL_RGB_BP_UNORM:
+        return INTERNAL_SRGB_BP_UNORM;
+
+    // PVRTC
+    case INTERNAL_RGB_PVRTC_2BPPV1:
+        return INTERNAL_SRGB_PVRTC_2BPPV1;
+    case INTERNAL_RGB_PVRTC_4BPPV1:
+        return INTERNAL_SRGB_PVRTC_4BPPV1;
+    case INTERNAL_RGBA_PVRTC_2BPPV1:
+        return INTERNAL_SRGB_ALPHA_PVRTC_2BPPV1;
+    case INTERNAL_RGBA_PVRTC_4BPPV1:
+        return INTERNAL_SRGB_ALPHA_PVRTC_4BPPV1;
+    case INTERNAL_RGBA_PVRTC_2BPPV2:
+        return INTERNAL_SRGB_ALPHA_PVRTC_2BPPV2;
+    case INTERNAL_RGBA_PVRTC_4BPPV2:
+        return INTERNAL_SRGB_ALPHA_PVRTC_4BPPV2;
+
+    // ETC
+    case INTERNAL_RGB_ETC2:
+        return INTERNAL_SRGB8_ETC2;
+    case INTERNAL_RGBA_PUNCHTHROUGH_ETC2:
+        return INTERNAL_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2;
+    case INTERNAL_RGBA_ETC2:
+        return INTERNAL_SRGB8_ALPHA8_ETC2_EAC;
+
+    // ASTC
+    case INTERNAL_RGBA_ASTC_4x4:
+        return INTERNAL_SRGB8_ALPHA8_ASTC_4x4;
+    case INTERNAL_RGBA_ASTC_5x4:
+        return INTERNAL_SRGB8_ALPHA8_ASTC_5x4;
+    case INTERNAL_RGBA_ASTC_5x5:
+        return INTERNAL_SRGB8_ALPHA8_ASTC_5x5;
+    case INTERNAL_RGBA_ASTC_6x5:
+        return INTERNAL_SRGB8_ALPHA8_ASTC_6x5;
+    case INTERNAL_RGBA_ASTC_6x6:
+        return INTERNAL_SRGB8_ALPHA8_ASTC_6x6;
+    case INTERNAL_RGBA_ASTC_8x5:
+        return INTERNAL_SRGB8_ALPHA8_ASTC_8x5;
+    case INTERNAL_RGBA_ASTC_8x6:
+        return INTERNAL_SRGB8_ALPHA8_ASTC_8x6;
+    case INTERNAL_RGBA_ASTC_8x8:
+        return INTERNAL_SRGB8_ALPHA8_ASTC_8x8;
+    case INTERNAL_RGBA_ASTC_10x5:
+        return INTERNAL_SRGB8_ALPHA8_ASTC_10x5;
+    case INTERNAL_RGBA_ASTC_10x6:
+        return INTERNAL_SRGB8_ALPHA8_ASTC_10x6;
+    case INTERNAL_RGBA_ASTC_10x8:
+        return INTERNAL_SRGB8_ALPHA8_ASTC_10x8;
+    case INTERNAL_RGBA_ASTC_10x10:
+        return INTERNAL_SRGB8_ALPHA8_ASTC_10x10;
+    case INTERNAL_RGBA_ASTC_12x10:
+        return INTERNAL_SRGB8_ALPHA8_ASTC_12x10;
+    case INTERNAL_RGBA_ASTC_12x12:
+        return INTERNAL_SRGB8_ALPHA8_ASTC_12x12;
+
+    // Already sRGB or no sRGB equivalent exists
+    default:
+        return format;
+    }
 }
 
-Texture textureUtilities::generateTexture(const LoadedImage &image, Sampler sampler, TextureDetails details)
+int textureUtilities::calculateMipmapLevels(int width, int height)
 {
-    // Early return with debug magenta
-    if (!image.data)
+    int maxDimension = std::max(width, height);
+    return static_cast<int>(std::floor(std::log2(maxDimension)) + 1);
+}
+
+void textureUtilities::insertIntoSamplerArray(GLuint arrayID, gli::texture &texture, int arrayLayer,
+                                              gli::gl::internal_format internalFormat)
+{
+    GLenum format{static_cast<GLenum>(internalFormat)};
+
+    for (std::size_t layer{0}; layer < texture.layers(); ++layer)
+        for (std::size_t face{0}; face < texture.faces(); ++face)
+            for (std::size_t level{0}; level < texture.levels(); ++level)
+            {
+                std::size_t zOffset{static_cast<std::size_t>(arrayLayer) + layer * texture.faces() + face};
+                glm::tvec3<GLsizei> extent{texture.extent(level)};
+
+                glCompressedTextureSubImage3D(arrayID, static_cast<GLint>(level), 0, 0, static_cast<GLint>(zOffset),
+                                              extent.x, extent.y, 1, format, static_cast<GLsizei>(texture.size(level)),
+                                              texture.data(layer, face, level));
+            }
+}
+
+GLuint textureUtilities::textureFromFile(std::filesystem::path path, TextureDetails details)
+{
+    gli::texture texture{gli::load(path.string().c_str())};
+
+    if (texture.empty())
+    {
+        std::cerr << "ERROR: Texture loading error for " << path << std::endl;
         return magentaTexture();
-
-    GLuint textureID{0};
-    GLenum imageFormat{GL_RGB};
-    GLenum internalFormat{GL_RGB};
-    int nrChannels{image.nrChannels};
-
-    // stb_image only ever returns a 1, 2, 3, or 4 for a valid image
-    if (nrChannels == 1)
-    {
-        imageFormat = GL_RED;
-        internalFormat = GL_R8;
-    }
-    else if (nrChannels == 2)
-    {
-        imageFormat = GL_RG;
-        internalFormat = GL_RG8;
-    }
-    else if (nrChannels == 3)
-    {
-        imageFormat = GL_RGB;
-        internalFormat = details.sRGB ? GL_SRGB8 : GL_RGB8;
-    }
-    else if (nrChannels == 4)
-    {
-        imageFormat = GL_RGBA;
-        internalFormat = details.sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
     }
 
-    int mipLevels = calculateMipmapLevels(image.width, image.height);
+    const gli::gl glTranslator{gli::gl::PROFILE_GL33};
+    const gli::gl::format glFormat{glTranslator.translate(texture.format(), texture.swizzles())};
+    const GLenum target{static_cast<GLenum>(glTranslator.translate(texture.target()))};
+    const gli::texture::target_type targetType{texture.target()};
 
-    // Create texture
-    glCreateTextures(GL_TEXTURE_2D, 1, &textureID);
-    glTextureStorage2D(textureID, mipLevels, internalFormat, image.width, image.height);
-    glTextureSubImage2D(textureID, 0, 0, 0, image.width, image.height, imageFormat, GL_UNSIGNED_BYTE, image.data);
-
-    glGenerateTextureMipmap(textureID);
-
-    // Texture sampler options
-    glTextureParameteri(textureID, GL_TEXTURE_WRAP_S, sampler.wrapS);
-    glTextureParameteri(textureID, GL_TEXTURE_WRAP_T, sampler.wrapT);
-    glTextureParameteri(textureID, GL_TEXTURE_MIN_FILTER, sampler.minFilter);
-    glTextureParameteri(textureID, GL_TEXTURE_MAG_FILTER, sampler.magFilter);
-
-    if (details.anisotropic > 0.0f)
-        glTextureParameterf(textureID, GL_TEXTURE_MAX_ANISOTROPY, details.anisotropic);
-
-    return {.id = textureID, .width = image.width, .height = image.height, .internalFormat = internalFormat};
-}
-
-Texture magentaCubemap()
-{
-    GLuint magenta{0};
-    unsigned char color[] = {255, 0, 255};
-    glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &magenta);
-    glTextureStorage2D(magenta, 1, GL_SRGB8, 1, 1);
-
-    for (GLuint i = 0; i < 6; ++i)
-        glTextureSubImage3D(magenta, 0, 0, 0, i, 1, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, color);
-
-    return {.id = magenta, .width = 1, .height = 1, .internalFormat = GL_SRGB8};
-}
-
-Texture textureUtilities::generateCubemapTexture(const std::vector<LoadedImage> &imageData, TextureDetails details)
-{
-    // Early return with debug magenta
-    if (!imageData[0].data || imageData[0].width != imageData[0].height)
-        return magentaCubemap();
-
-    int nrChannels{imageData[0].nrChannels};
-
-    for (size_t i = 0; i < imageData.size(); ++i)
+    if (targetType != gli::TARGET_1D_ARRAY && targetType != gli::TARGET_2D)
     {
-        if (imageData[i].nrChannels != nrChannels)
-        {
-            std::cerr << "ERROR: Mismatched number of cubemap channels" << std::endl;
-            return magentaCubemap();
-        }
+        std::cerr << "ERROR: Wrong texture type for 2D texture for " << path << std::endl;
+        return magentaTexture();
     }
 
-    GLuint cubemapTextureID{0};
-    GLenum imageFormat{GL_RGB};
-    GLenum internalFormat{GL_RGB};
+    GLuint id{0};
+    glCreateTextures(target, 1, &id);
 
-    glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &cubemapTextureID);
+    glm::tvec3<GLsizei> maxWidth{texture.extent()};
+    gli::gl::internal_format internalFormat{glFormat.Internal};
 
-    // stb_image only ever returns a 1, 2, 3, or 4 for a valid image
-    if (nrChannels == 1)
-    {
-        imageFormat = GL_RED;
-        internalFormat = GL_R8;
-    }
-    else if (nrChannels == 2)
-    {
-        imageFormat = GL_RG;
-        internalFormat = GL_RG8;
-    }
-    else if (nrChannels == 3)
-    {
-        imageFormat = GL_RGB;
-        internalFormat = details.sRGB ? GL_SRGB8 : GL_RGB8;
-    }
-    else if (nrChannels == 4)
-    {
-        imageFormat = GL_RGBA;
-        internalFormat = details.sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
-    }
+    if (details.sRGB)
+        internalFormat = toSRGB(internalFormat);
 
-    // Max mipmap, assuming first image is same resolution as the rest
-    int maxMipLevels{calculateMipmapLevels(imageData[0].width, imageData[0].height)};
-    int mipLevels{details.mipmaps ? maxMipLevels : 1};
+    glTextureStorage2D(id, static_cast<GLint>(texture.levels()), static_cast<GLenum>(internalFormat), maxWidth.x,
+                       maxWidth.y);
 
-    glTextureStorage2D(cubemapTextureID, mipLevels, internalFormat, imageData[0].width, imageData[0].height);
+    for (std::size_t layer{0}; layer < texture.layers(); ++layer)
+        for (std::size_t face{0}; face < texture.faces(); ++face)
+            for (std::size_t level{0}; level < texture.levels(); ++level)
+            {
+                const glm::tvec3<GLsizei> extent{texture.extent(level)};
 
-    for (GLuint i = 0; i < 6; ++i)
-    {
-        if (imageData[i].data)
-            glTextureSubImage3D(cubemapTextureID, 0, 0, 0, i, imageData[i].width, imageData[i].height, 1, imageFormat,
-                                GL_UNSIGNED_BYTE, imageData[i].data);
+                if (gli::is_compressed(texture.format()))
+                {
 
-        else
-        {
-            std::cerr << "Failed to load cubemap texture" << std::endl;
-            glDeleteTextures(1, &cubemapTextureID);
-            return magentaCubemap();
-        }
-    }
+                    glCompressedTextureSubImage2D(id, static_cast<GLint>(level), 0, 0, extent.x, extent.y,
+                                                  glFormat.Internal, static_cast<GLsizei>(texture.size(level)),
+                                                  texture.data(layer, face, level));
+                }
+                else
+                {
+                    glTextureSubImage2D(id, static_cast<GLint>(level), 0, 0, extent.x, extent.y, glFormat.External,
+                                        glFormat.Type, texture.data(layer, face, level));
+                }
+            }
 
-    if (details.mipmaps)
-    {
-        glGenerateTextureMipmap(cubemapTextureID);
-        glTextureParameteri(cubemapTextureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    }
-    else
-        glTextureParameteri(cubemapTextureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTextureParameteri(id, GL_TEXTURE_WRAP_S, details.sampler.wrapS);
+    glTextureParameteri(id, GL_TEXTURE_WRAP_T, details.sampler.wrapT);
+    glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, details.sampler.minFilter);
+    glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, details.sampler.magFilter);
 
-    glTextureParameteri(cubemapTextureID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTextureParameteri(cubemapTextureID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(cubemapTextureID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(cubemapTextureID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    if (details.anisotropicFiltering > 0.0f)
+        glTextureParameterf(id, GL_TEXTURE_MAX_ANISOTROPY, details.anisotropicFiltering);
 
-    return {.id = cubemapTextureID,
-            .width = imageData[0].width,
-            .height = imageData[0].height,
-            .internalFormat = internalFormat};
+    return id;
 }

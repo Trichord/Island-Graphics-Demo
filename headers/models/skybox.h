@@ -14,7 +14,7 @@ class Skybox : public Renderable
 {
   public:
     Skybox() = default;
-    Skybox(TextureManager &textureManager, const std::vector<std::filesystem::path> &imagePaths);
+    Skybox(TextureManager &textureManager, const std::filesystem::path &imagePath);
     Skybox(TextureManager &textureManager, const Handle borrowHandle);
 
     AABB &getAABB() override;

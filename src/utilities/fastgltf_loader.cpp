@@ -301,13 +301,17 @@ std::vector<std::filesystem::path> fastgltfLoader::getURIs(const fastgltf::Asset
 
             URIpaths.emplace_back(fullImagePath);
         }
+        else
+        {
+            std::cerr << "ERROR: Non-URI images not supported" << std::endl;
+            throw std::runtime_error("Unsupported GLTF image format");
+        }
     }
 
     return URIpaths;
 }
 
-std::pair<unsigned int, Sampler> fastgltfLoader::getTextureInfo(const fastgltf::Asset &asset,
-                                                                const fastgltf::TextureInfo &texInfo)
+TextureDescriptor fastgltfLoader::getTextureInfo(const fastgltf::Asset &asset, const fastgltf::TextureInfo &texInfo)
 {
     const auto &texture = asset.textures[texInfo.textureIndex];
 
@@ -333,5 +337,5 @@ std::pair<unsigned int, Sampler> fastgltfLoader::getTextureInfo(const fastgltf::
     Sampler sampler{static_cast<uint16_t>(magFilter), static_cast<uint16_t>(minFilter), static_cast<uint16_t>(wrapS),
                     static_cast<uint16_t>(wrapT)};
 
-    return {assetImageIndex, sampler};
+    return {sampler, assetImageIndex};
 }

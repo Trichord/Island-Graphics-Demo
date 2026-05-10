@@ -240,17 +240,29 @@ void Renderer::cullScene(const glm::mat4 &cullMatrix)
 
 const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
 {
+    auto normalizePlane = [](glm::vec4 &plane) {
+        float length{glm::length(glm::vec3{plane})};
+        plane /= length;
+    };
+
     const glm::vec4 row0{glm::row(matrix, 0)};
     const glm::vec4 row1{glm::row(matrix, 1)};
     const glm::vec4 row2{glm::row(matrix, 2)};
     const glm::vec4 row3{glm::row(matrix, 3)};
 
-    const glm::vec4 left{glm::normalize(row3 + row0)};
-    const glm::vec4 right{glm::normalize(row3 - row0)};
-    const glm::vec4 top{glm::normalize(row3 - row1)};
-    const glm::vec4 bottom{glm::normalize(row3 + row1)};
-    const glm::vec4 near{glm::normalize(row3 + row2)};
-    const glm::vec4 far{glm::normalize(row3 - row2)};
+    glm::vec4 left{glm::normalize(row3 + row0)};
+    glm::vec4 right{glm::normalize(row3 - row0)};
+    glm::vec4 top{glm::normalize(row3 - row1)};
+    glm::vec4 bottom{glm::normalize(row3 + row1)};
+    glm::vec4 near{glm::normalize(row3 + row2)};
+    glm::vec4 far{glm::normalize(row3 - row2)};
+
+    normalizePlane(left);
+    normalizePlane(right);
+    normalizePlane(top);
+    normalizePlane(bottom);
+    normalizePlane(near);
+    normalizePlane(far);
 
     return {left, right, top, bottom, near, far};
 }

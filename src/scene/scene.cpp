@@ -35,7 +35,7 @@ SceneEntry &Scene::getEntryByName(const std::string &key)
 
     if (iter == entriesByName_.end())
     {
-        std::cerr << "ERROR: Cannot find named scene entry" << std::endl;
+        std::cerr << "ERROR: Cannot find named scene entry " << key << std::endl;
         throw std::runtime_error("Invalid key");
     }
 
