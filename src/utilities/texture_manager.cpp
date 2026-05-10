@@ -143,11 +143,11 @@ void TextureManager::buildAllTextures()
 
     std::cout << "Loading 2D Textures... ";
     buildTextures(pending2dTextures_, false);
-    std::cout << "Done." << std::endl;
+    std::cout << "Done" << std::endl;
 
-    std::cout << "Loading cubemaps... ";
+    std::cout << "Loading Cubemaps... ";
     buildTextures(pendingCubemaps_, true);
-    std::cout << "Done." << std::endl;
+    std::cout << "Done" << std::endl;
 
     resolveBorrows();
 

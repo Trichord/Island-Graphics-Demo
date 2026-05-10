@@ -86,7 +86,7 @@ const Cascades &CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraVP, c
                                                     int shadowResolution, float farPlane)
 {
     // Pushes the radius for light projection near / far plane to avoid clipping geometry
-    constexpr float radiusMultiplier{2.75f};
+    constexpr float nearFarMultiplier{2.86766f};
 
     const glm::mat4 inverseVPMatrix{glm::inverse(cameraVP)};
     const std::array<glm::vec3, 8> fullFrustumCorners{getFrustumCornersWorldSpace(inverseVPMatrix)};
@@ -131,8 +131,8 @@ const Cascades &CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraVP, c
         glm::vec3 eye{frustumCenter - (lightDir * frustumSphere.radius * 2.0f)};
         glm::mat4 lightView{glm::lookAt(eye, frustumCenter, WorldVectors::worldUp)};
         glm::mat4 lightProjection{glm::ortho(-frustumSphere.radius, frustumSphere.radius, -frustumSphere.radius,
-                                             frustumSphere.radius, -frustumSphere.radius * radiusMultiplier,
-                                             frustumSphere.radius * radiusMultiplier)};
+                                             frustumSphere.radius, -frustumSphere.radius * nearFarMultiplier,
+                                             frustumSphere.radius * nearFarMultiplier)};
 
         cascade.viewProjection = lightProjection * lightView;
     }
