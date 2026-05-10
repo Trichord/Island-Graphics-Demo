@@ -121,7 +121,9 @@ gli::gl::internal_format textureUtilities::toSRGB(gli::gl::internal_format forma
 int textureUtilities::calculateMipmapLevels(int width, int height)
 {
     int maxDimension = std::max(width, height);
-    return static_cast<int>(std::floor(std::log2(maxDimension)) + 1);
+
+    // Only return down to a 4x4 for block compressed textures
+    return static_cast<int>(std::floor(std::log2(maxDimension / 4))) + 1;
 }
 
 void textureUtilities::insertIntoSamplerArray(GLuint arrayID, gli::texture &texture, int arrayLayer,
@@ -135,6 +137,9 @@ void textureUtilities::insertIntoSamplerArray(GLuint arrayID, gli::texture &text
             {
                 std::size_t zOffset{static_cast<std::size_t>(arrayLayer) + layer * texture.faces() + face};
                 glm::tvec3<GLsizei> extent{texture.extent(level)};
+
+                if (extent.x < 4 || extent.y < 4)
+                    break;
 
                 glCompressedTextureSubImage3D(arrayID, static_cast<GLint>(level), 0, 0, static_cast<GLint>(zOffset),
                                               extent.x, extent.y, 1, format, static_cast<GLsizei>(texture.size(level)),
@@ -198,7 +203,7 @@ GLuint textureUtilities::textureFromFile(std::filesystem::path path, TextureDeta
     glTextureParameteri(id, GL_TEXTURE_WRAP_S, details.sampler.wrapS);
     glTextureParameteri(id, GL_TEXTURE_WRAP_T, details.sampler.wrapT);
     glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, details.sampler.minFilter);
-    glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, details.sampler.magFilter);
+    glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, details.sampler.magFilter);   
 
     if (details.anisotropicFiltering > 0.0f)
         glTextureParameterf(id, GL_TEXTURE_MAX_ANISOTROPY, details.anisotropicFiltering);

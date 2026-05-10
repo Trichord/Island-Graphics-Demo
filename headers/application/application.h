@@ -74,7 +74,7 @@ class Application
      * @brief Registers OpenGL function pointers, creates an OpenGL viewport, and
      * optionally sets MSAA.
      */
-    void createOpenGLViewport(const GraphicsSettings &graphicsSettings);
+    bool createOpenGLViewport(const GraphicsSettings &graphicsSettings);
 
     /**
      * @brief Registers GLFW callbacks.  Mouse callback is seperate and should be

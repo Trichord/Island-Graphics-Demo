@@ -151,16 +151,6 @@ void TextureManager::buildAllTextures()
 
     resolveBorrows();
 
-    std::cout << "Generating mipmaps... ";
-    for (ArrayTexture &texture : arrayTextures_)
-        if (texture.id != 0)
-            glGenerateTextureMipmap(texture.id);
-
-    for (ArrayTexture &texture : cubemapArrayTextures_)
-        if (texture.id != 0)
-            glGenerateTextureMipmap(texture.id);
-    std::cout << "Done." << std::endl;
-
     texturesBuilt_ = true;
 }
 
