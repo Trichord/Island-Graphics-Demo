@@ -26,7 +26,7 @@ layout (std140) uniform uniformData
 };
 
 // Samplers
-layout(binding = 8) uniform samplerCubeArray cubemaps[3];
+layout(binding = 10) uniform samplerCubeArray cubemaps[3];
 
 // SSBOs
 layout(binding = 3, std430) restrict readonly buffer metadataSSBO

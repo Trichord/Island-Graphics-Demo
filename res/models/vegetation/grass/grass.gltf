@@ -57,9 +57,9 @@
 	],
 	"images":[
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"Image_0",
-			"uri":"textures/Image_0.png"
+			"uri":"textures/Image_0.dds"
 		}
 	],
 	"accessors":[

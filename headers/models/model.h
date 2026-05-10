@@ -13,8 +13,8 @@
 class Model : public Renderable
 {
   public:
-    Model(TextureManager &textureManager, const std::filesystem::path &path);
-    Model(TextureManager &textureManager, const Handle borrowHandle, const std::filesystem::path &path);
+    Model(TextureManager &textureManager, const std::filesystem::path &path,
+          const std::optional<Handle> borrowHandle = {});
 
     AABB &getAABB() override;
     Handle getHandle() const override;

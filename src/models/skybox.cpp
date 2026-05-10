@@ -13,15 +13,24 @@
 #include "primitive.h"
 #include "texture_manager.h"
 
+#include <iostream>
+
 constexpr float skyboxSize{1e18f};
 
 void setGeometry(std::vector<Primitive> &primitives, AABB &aabb);
 
-Skybox::Skybox(TextureManager &textureManager, const std::vector<std::filesystem::path> &imagePaths)
+Skybox::Skybox(TextureManager &textureManager, const std::filesystem::path &imagePath)
     : handle_{textureManager.assignHandle()}
 {
     setGeometry(primitives_, aabb_);
-    textureManager.loadCubemapTextures(handle_, imagePaths);
+
+    std::vector<int> materialIndices;
+    materialIndices.reserve(primitives_.size());
+
+    for (Primitive &primitive : primitives_)
+        materialIndices.push_back(primitive.materialIndex);
+
+    textureManager.loadCubemapTextures(handle_, imagePath, materialIndices);
 }
 
 Skybox::Skybox(TextureManager &textureManager, const Handle borrowHandle)

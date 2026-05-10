@@ -18,7 +18,7 @@ struct Metadata
 const float INVERSE_PI = 0.31830988618;
 
 // Samplers
-layout(binding = 0) uniform sampler2DArray textures[8];
+layout(binding = 0) uniform sampler2DArray textures[10];
 
 // UBOs
 layout (std140) uniform uniformData 

@@ -7,14 +7,14 @@
 #include "texture_manager.h"
 
 CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
-                                 const std::vector<std::filesystem::path> &imagePaths, bool mipmaps)
-    : Model{textureManager, modelPath}
+                                 const std::filesystem::path &imagePath, std::optional<Handle> borrowHandle)
+    : Model{textureManager, modelPath, borrowHandle}
 {
-    textureManager.loadCubemapTextures(handle_, imagePaths, "./", mipmaps);
-}
+    std::vector<int> materialIndices;
+    materialIndices.reserve(primitives_.size());
 
-CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const Handle borrowHandle,
-                                 const std::filesystem::path &modelPath)
-    : Model{textureManager, borrowHandle, modelPath}
-{
+    for (Primitive &primitive : primitives_)
+        materialIndices.push_back(primitive.materialIndex);
+
+    textureManager.loadCubemapTextures(handle_, imagePath, materialIndices);
 }

@@ -4,23 +4,28 @@
 
 #include "glad/glad.h"
 
-// OpenGL texture units are bound to this enum
+// OpenGL texture units are bound to this enum.
 enum class TextureUnit
 {
-    arrayRGB4k,
-    arraySRGB4k,
-    arrayRGB2k,
-    arraySRGB2k,
-    arraySRGBA2k,
-    arrayRGB1k,
-    arraySRGB1k,
-    arrayRGB512,
+    RG4k,
+    RGB4k,
+    SRGB4k,
+
+    RG2k,
+    RGB2k,
+    SRGB2k,
+
+    RG1k,
+    RGB1k,
+    SRGB1k,
+
+    arrayRG512,
 
     // Load time cubemaps may fall into the 4k bucket or 2k bucket, depending on user's resolution. The 3rd bucket is a
     // dynamic catch-all for the reflection size
     cubemapSRGB4k,
-    cubemapSRBG2k,
-    cubemapSRGBreflection,
+    cubemapSRGB2k,
+    cubemapSRGBdynamic,
     shadow
 };
 
@@ -43,15 +48,31 @@ struct Texture
     GLuint id{0};
     int width{0};
     int height{0};
-    GLenum internalFormat{GL_SRGB8};
+    GLenum internalFormat{GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM};
 
     SamplerArrayEntry arrayEntry;
 };
 
 struct Material
 {
-    SamplerArrayEntry albedo;
-    SamplerArrayEntry ARM;
-    SamplerArrayEntry normal;
-    SamplerArrayEntry cubemap;
+    enum Type
+    {
+        albedo,
+        ARM,
+        normal,
+        cubemap,
+        count
+    };
+
+    std::array<SamplerArrayEntry, Type::count> layers;
+
+    SamplerArrayEntry &operator[](Type t)
+    {
+        return layers[t];
+    }
+    
+    const SamplerArrayEntry &operator[](Type t) const
+    {
+        return layers[t];
+    }
 };

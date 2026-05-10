@@ -47,7 +47,7 @@ void Renderer::borrowSkybox(const std::vector<DrawEntry> &entries)
 }
 
 void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndirectCommand> &commandsSource,
-                              const std::vector<DrawEntry> &entries, SamplerArrayEntry reservedEntry)
+                              const std::vector<DrawEntry> &entries)
 {
     using enum ShaderType;
 
@@ -129,9 +129,15 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndire
 
         // Assign the texture
         auto &waterPlane = entry.renderableRef.get();
-        textureManager_.setCubemap(waterPlane.getHandle(), blitTarget, reservedEntry);
+        const std::span<Primitive> &primitives{waterPlane.getPrimitives()};
 
-        ++reservedEntry.layer;
+        std::vector<int> materialIndices;
+        materialIndices.reserve(primitives.size());
+
+        for (Primitive &primitive : primitives)
+            materialIndices.push_back(primitive.materialIndex);
+
+        textureManager_.setCubemap(waterPlane.getHandle(), materialIndices, blitTarget);
     }
 
     // Reset
