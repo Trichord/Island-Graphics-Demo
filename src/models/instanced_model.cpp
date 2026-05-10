@@ -14,18 +14,9 @@
 #include "world_vectors.h"
 
 InstancedModel::InstancedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
-                               const std::filesystem::path &positionsPath, float minSize, float maxSize,
-                               int numPositions)
-    : Model{textureManager, modelPath}, numInstances_(numPositions), minSize_(minSize), maxSize_(maxSize),
-      positionsPath_{positionsPath}
-{
-}
-
-InstancedModel::InstancedModel(TextureManager &textureManager, const Handle borrowHandle,
-                               const std::filesystem::path &modelPath, const std::filesystem::path &positionsPath,
-                               float minSize, float maxSize, int numPositions)
-    : Model{textureManager, borrowHandle, modelPath}, numInstances_(numPositions), minSize_(minSize),
-      maxSize_(maxSize), positionsPath_{positionsPath}
+                               const std::filesystem::path &positionsPath, Randomize randomize,
+                               const std::optional<Handle> borrowHandle)
+    : Model{textureManager, modelPath, borrowHandle}, positionsPath_{positionsPath}, randomize_{randomize}
 {
 }
 
@@ -44,7 +35,6 @@ std::vector<Transform> InstancedModel::loadInstancedTransforms()
 std::vector<glm::vec3> InstancedModel::loadPositions()
 {
     std::vector<glm::vec3> instances;
-    instances.reserve(numInstances_);
 
     float x{0.0f};
     float y{0.0f};
@@ -61,9 +51,6 @@ std::vector<glm::vec3> InstancedModel::loadPositions()
     while (positionsFile >> x >> y >> z)
         instances.emplace_back(glm::vec3{x, y, z});
 
-    if (instances.size() != numInstances_ && numInstances_ != 0)
-        std::cout << positionsPath_ << " expected " << numInstances_ << " allocated " << instances.size() << std::endl;
-
     return instances;
 }
 
@@ -77,7 +64,7 @@ std::vector<Transform> InstancedModel::randomizeRotationScale(std::vector<glm::v
 
     // Rotate the model somewhere in the 360 degree range
     std::uniform_real_distribution<float> randRotation{0.0f, 360.0f};
-    std::uniform_real_distribution<float> randScale{minSize_, maxSize_};
+    std::uniform_real_distribution<float> randScale{randomize_.minScale, randomize_.maxScale};
 
     for (auto &position : positions)
     {

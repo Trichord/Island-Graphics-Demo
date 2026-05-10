@@ -19,7 +19,7 @@ SceneResources::SceneResources(TextureManager &textureManager) : textureManager_
     cubeMappedModels_.reserve(cubeMappedModels);
 }
 
-Model &SceneResources::loadModel(const std::filesystem::path &modelPath)
+Model &SceneResources::loadModel(const std::filesystem::path &modelPath, const std::optional<Handle> borrowHandle)
 {
     using namespace sceneMaxObjects;
 
@@ -29,25 +29,13 @@ Model &SceneResources::loadModel(const std::filesystem::path &modelPath)
         throw std::runtime_error("Scene full");
     }
 
-    return models_.emplace_back(textureManager_, modelPath);
-}
-
-Model &SceneResources::loadModel(const Handle borrowHandle, const std::filesystem::path &modelPath)
-{
-    using namespace sceneMaxObjects;
-
-    if (models_.size() >= models)
-    {
-        std::cerr << "Max number of models reached!" << std::endl;
-        throw std::runtime_error("Scene full");
-    }
-
-    return models_.emplace_back(textureManager_, borrowHandle, modelPath);
+    return models_.emplace_back(textureManager_, modelPath, borrowHandle);
 }
 
 InstancedModel &SceneResources::loadInstancedModel(const std::filesystem::path &modelPath,
-                                                   const std::filesystem::path &positionsPath, float minSize,
-                                                   float maxSize, unsigned int numPositions)
+                                                   const std::filesystem::path &positionsPath,
+                                                   const InstancedModel::Randomize randomize,
+                                                   const std::optional<Handle> borrowHandle)
 {
     using namespace sceneMaxObjects;
 
@@ -57,27 +45,12 @@ InstancedModel &SceneResources::loadInstancedModel(const std::filesystem::path &
         throw std::runtime_error("Scene full");
     }
 
-    return instancedModels_.emplace_back(textureManager_, modelPath, positionsPath, minSize, maxSize, numPositions);
-}
-
-InstancedModel &SceneResources::loadInstancedModel(const Handle borrowHandle, const std::filesystem::path &modelPath,
-                                                   const std::filesystem::path &positionsPath, float minSize,
-                                                   float maxSize, unsigned int numPositions)
-{
-    using namespace sceneMaxObjects;
-
-    if (instancedModels_.size() >= instancedModels)
-    {
-        std::cerr << "Max number of instanced models reached!" << std::endl;
-        throw std::runtime_error("Scene full");
-    }
-
-    return instancedModels_.emplace_back(textureManager_, borrowHandle, modelPath, positionsPath, minSize, maxSize,
-                                         numPositions);
+    return instancedModels_.emplace_back(textureManager_, modelPath, positionsPath, randomize, borrowHandle);
 }
 
 CubeMappedModel &SceneResources::loadCubeMappedModel(const std::filesystem::path &modelPath,
-                                                     const std::vector<std::filesystem::path> &imagePaths, bool mipmaps)
+                                                     const std::filesystem::path &imagePath,
+                                                     const std::optional<Handle> borrowHandle)
 {
     using namespace sceneMaxObjects;
 
@@ -87,28 +60,15 @@ CubeMappedModel &SceneResources::loadCubeMappedModel(const std::filesystem::path
         throw std::runtime_error("Scene full");
     }
 
-    return cubeMappedModels_.emplace_back(textureManager_, modelPath, imagePaths, mipmaps);
+    return cubeMappedModels_.emplace_back(textureManager_, modelPath, imagePath, borrowHandle);
 }
 
-CubeMappedModel &SceneResources::loadCubeMappedModel(const Handle borrowHandle, const std::filesystem::path &modelPath)
-{
-    using namespace sceneMaxObjects;
-
-    if (cubeMappedModels_.size() >= cubeMappedModels)
-    {
-        std::cerr << "Max number of cube mapped models reached!" << std::endl;
-        throw std::runtime_error("Scene full");
-    }
-
-    return cubeMappedModels_.emplace_back(textureManager_, borrowHandle, modelPath);
-}
-
-Skybox &SceneResources::loadSkybox(const std::vector<std::filesystem::path> &imagePaths)
+Skybox &SceneResources::loadSkybox(const std::filesystem::path &imagePath)
 {
     if (skybox_.getHandle() != 0)
         std::cerr << "WARNING: Skybox not null - overwritten";
 
-    skybox_ = {textureManager_, imagePaths};
+    skybox_ = {textureManager_, imagePath};
 
     return skybox_;
 }

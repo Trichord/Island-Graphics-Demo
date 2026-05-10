@@ -57,9 +57,9 @@
 	],
 	"images":[
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"flower_atlas",
-			"uri":"textures/flower_atlas.png"
+			"uri":"textures/flower_atlas.dds"
 		}
 	],
 	"accessors":[

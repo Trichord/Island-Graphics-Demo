@@ -68,19 +68,19 @@
 	],
 	"images":[
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"rocks_texture_normal",
-			"uri":"textures/rocks_texture_normal.png"
+			"uri":"textures/rocks_texture_normal.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"rocks_texture_baseColor",
-			"uri":"textures/rocks_texture_baseColor.png"
+			"uri":"textures/rocks_texture_baseColor.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"rocks_texture_metallicRoughness",
-			"uri":"textures/rocks_texture_metallicRoughness.png"
+			"uri":"textures/rocks_texture_metallicRoughness.dds"
 		}
 	],
 	"accessors":[

@@ -830,64 +830,64 @@
 	],
 	"images":[
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"Poliigon_GrassPatchyGround_4585_Normal-Inverted",
-			"uri":"textures/Poliigon_GrassPatchyGround_4585_Normal-Inverted.png"
+			"uri":"textures/Poliigon_GrassPatchyGround_4585_Normal-Inverted.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"Poliigon_GrassPatchyGround_4585_BaseColor",
-			"uri":"textures/Poliigon_GrassPatchyGround_4585_BaseColor.png"
+			"uri":"textures/Poliigon_GrassPatchyGround_4585_BaseColor.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"Poliigon_GrassPatchyGround_4585_ORM",
-			"uri":"textures/Poliigon_GrassPatchyGround_4585_ORM.png"
+			"uri":"textures/Poliigon_GrassPatchyGround_4585_ORM.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"rock_face_03_nor_gl_2k",
-			"uri":"textures/rock_face_03_nor_gl_2k.png"
+			"uri":"textures/rock_face_03_nor_gl_2k.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"rock_face_03_diff_2k",
-			"uri":"textures/rock_face_03_diff_2k.png"
+			"uri":"textures/rock_face_03_diff_2k.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"rock_face_03_arm_2k",
-			"uri":"textures/rock_face_03_arm_2k.png"
+			"uri":"textures/rock_face_03_arm_2k.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"sandy_gravel_02_nor_gl_2k",
-			"uri":"textures/sandy_gravel_02_nor_gl_2k.png"
+			"uri":"textures/sandy_gravel_02_nor_gl_2k.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"sandy_gravel_02_diff_2k",
-			"uri":"textures/sandy_gravel_02_diff_2k.png"
+			"uri":"textures/sandy_gravel_02_diff_2k.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"sandy_gravel_02_arm_2k",
-			"uri":"textures/sandy_gravel_02_arm_2k.png"
+			"uri":"textures/sandy_gravel_02_arm_2k.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"aerial_rocks_01_nor_gl_2k",
-			"uri":"textures/aerial_rocks_01_nor_gl_2k.png"
+			"uri":"textures/aerial_rocks_01_nor_gl_2k.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"aerial_rocks_01_diff_2k",
-			"uri":"textures/aerial_rocks_01_diff_2k.png"
+			"uri":"textures/aerial_rocks_01_diff_2k.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"aerial_rocks_01_arm_2k",
-			"uri":"textures/aerial_rocks_01_arm_2k.png"
+			"uri":"textures/aerial_rocks_01_arm_2k.dds"
 		}
 	],
 	"accessors":[

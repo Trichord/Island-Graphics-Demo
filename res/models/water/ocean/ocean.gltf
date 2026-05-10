@@ -68,14 +68,14 @@
 	],
 	"images":[
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"water-normal",
-			"uri":"textures/water-normal.png"
+			"uri":"textures/water-normal.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"water-dudv",
-			"uri":"textures/water-dudv.png"
+			"uri":"textures/water-dudv.dds"
 		}
 	],
 	"accessors":[

@@ -75,19 +75,19 @@
 	],
 	"images":[
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"material_0_normal",
-			"uri":"textures/material_0_normal.png"
+			"uri":"textures/material_0_normal.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"material_0_baseColor",
-			"uri":"textures/material_0_baseColor.png"
+			"uri":"textures/material_0_baseColor.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"material_0_metallicRoughness",
-			"uri":"textures/material_0_metallicRoughness.png"
+			"uri":"textures/material_0_metallicRoughness.dds"
 		}
 	],
 	"accessors":[

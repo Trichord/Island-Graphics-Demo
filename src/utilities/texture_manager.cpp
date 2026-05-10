@@ -11,32 +11,42 @@
 #include "fastgltf/types.hpp"
 #include "fastgltf_loader.h"
 #include "glad/glad.h"
+#include "gli/gli.hpp"
 #include "graphics_settings.h"
-#include "image_loader.h"
 #include "render_target.h"
+#include "texture_loader.h"
 #include "texture_utilities.h"
 #include "textures.h"
 #include "thread_pool.h"
 
+namespace
+{
+
+std::pair<int, gli::gl::internal_format> gliToGL(const gli::gl &translator, gli::texture &texture)
+{
+    const gli::gl::format format = translator.translate(texture.format(), texture.swizzles());
+
+    const glm::tvec3<GLsizei> extent{texture.extent()};
+    const int size{static_cast<int>(extent.x)};
+
+    return {size, format.Internal};
+}
+
+void assignFallbackTexture(Material &material, Material::Type type)
+{
+    SamplerArrayEntry fallback{.array = 0, .layer = 0};
+    material.layers[type] = fallback;
+}
+
+} // namespace
+
 TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings, int reflectionResolution)
     : threadPool_{threadPool}, globalAnisotropicDegree_{static_cast<float>(settings.anisotropicFiltering)}
 {
-    bool bucketFound{false};
-
-    for (ArrayTexture &texture : cubemapArrayTextures_)
-    {
-        if (texture.width == reflectionResolution && texture.internalFormat == dynamicCubemapInternalFormat_)
-        {
-            bucketFound = true;
-            break;
-        }
-    }
-
-    if (!bucketFound)
-        cubemapArrayTextures_.back() = {
-            .width = reflectionResolution,
-            .internalFormat = dynamicCubemapInternalFormat_,
-        };
+    cubemapArrayTextures_.back() = {
+        .size = reflectionResolution,
+        .internalFormat = dynamicCubemapInternalFormat_,
+    };
 }
 
 TextureManager::~TextureManager()
@@ -51,27 +61,59 @@ TextureManager::~TextureManager()
 }
 
 void TextureManager::loadModelTextures(const Handle handle, fastgltf::Asset &&asset,
-                                       const std::filesystem::path &parentPath)
+                                       const std::filesystem::path &parentPath,
+                                       const std::optional<Handle> borrowHandle)
 {
+    auto &materials = findMaterials(handle);
+    materials.resize(asset.materials.size());
+
+    if (borrowHandle.has_value())
+    {
+        pendingBorrows_.emplace_back(std::pair{handle, borrowHandle.value()});
+        return;
+    }
+
     texturesFromAsset(asset, handle, parentPath);
 }
 
-void TextureManager::loadCubemapTextures(const Handle handle, std::vector<std::filesystem::path> imagePaths,
-                                         const std::filesystem::path &parentPath, bool mipmaps)
+void TextureManager::loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath,
+                                         std::vector<int> &materialIndices)
 {
-    cubemapFromPaths(handle, std::move(imagePaths), mipmaps);
+    //This needs a borrowHandle constructor too
+
+    if (cubePath.empty() || !std::filesystem::exists(cubePath))
+        return;
+
+    auto &materials = findMaterials(handle);
+
+    // Compensate for models that want a cubemap but have no materials
+    if (materials.empty())
+        materials.resize(1);
+
+    pendingCubemaps_.emplace_back(PendingTexture{
+        .handle = handle,
+        .path = cubePath,
+        .type = Material::cubemap,
+        .textureRepeat = false,
+        .materialIndices = materialIndices,
+    });
 }
 
-const std::vector<Material> &TextureManager::getMaterials(Handle handle) const
+std::vector<Material> &TextureManager::findMaterials(Handle handle)
 {
     auto iter = materialLookup_.find(handle);
 
     if (iter == materialLookup_.end())
     {
-        std::cerr << "ERROR: missing handle. Could not get materials" << std::endl;
+        std::cerr << "ERROR: missing handle for " << handle << " .Could not get materials " << std::endl;
         throw std::runtime_error("Missing handle");
     }
     return iter->second;
+}
+
+const std::vector<Material> &TextureManager::getMaterials(Handle handle) const
+{
+    return const_cast<TextureManager *>(this)->findMaterials(handle);
 }
 
 // Returns the internal color format used for dynamic cubemaps
@@ -91,58 +133,79 @@ Handle TextureManager::assignHandle()
     return handle;
 }
 
-void TextureManager::texturesFromAsset(fastgltf::Asset &asset, Handle handle, std::filesystem::path parentPath)
+void TextureManager::buildAllTextures()
 {
-    auto materialIter = materialLookup_.find(handle);
-
-    if (materialIter == materialLookup_.end())
+    if (texturesBuilt_)
     {
-        std::cerr << "ERROR: missing handle from " << parentPath.string() << std::endl;
-        throw std::runtime_error("Missing handle");
+        std::cerr << "ERROR: TextureManager::buildAllTextures() already called" << std::endl;
+        throw std::logic_error("Duplicate function call");
     }
 
-    // Get raw image data
-    auto paths = fastgltfLoader::getURIs(asset, parentPath);
-    ImageLoader imageLoader{threadPool_, paths};
-    std::vector<LoadedImage> rawImageData = imageLoader.getImageData();
+    std::cout << "Loading 2D Textures... ";
+    buildTextures(pending2dTextures_, false);
+    std::cout << "Done." << std::endl;
 
+    std::cout << "Loading cubemaps... ";
+    buildTextures(pendingCubemaps_, true);
+    std::cout << "Done." << std::endl;
+
+    resolveBorrows();
+
+    std::cout << "Generating mipmaps... ";
+    for (ArrayTexture &texture : arrayTextures_)
+        if (texture.id != 0)
+            glGenerateTextureMipmap(texture.id);
+
+    for (ArrayTexture &texture : cubemapArrayTextures_)
+        if (texture.id != 0)
+            glGenerateTextureMipmap(texture.id);
+    std::cout << "Done." << std::endl;
+
+    texturesBuilt_ = true;
+}
+
+// Queues up pending textures for an asset, to be inserted into the texture array later
+void TextureManager::texturesFromAsset(fastgltf::Asset &asset, Handle handle, std::filesystem::path parentPath)
+{
     // Resize to match fastgltf materials array
-    std::vector<Material> &materials{materialIter->second};
+    auto &materials = findMaterials(handle);
     materials.resize(asset.materials.size());
 
-    // Map image index to texture id for deduplication
-    std::unordered_map<unsigned int, Texture> imageIndices;
+    // Get image paths image data
+    const std::vector<std::filesystem::path> paths = fastgltfLoader::getURIs(asset, parentPath);
 
-    // Helper function. If the map contains the OpenGL texture ID already, return that. Otherwise, create a new texture
-    auto getOrCreateTextureID = [&](const fastgltf::TextureInfo &textureInfo, bool sRGB, bool anisotropic) {
-        auto [imageIndex, sampler] = fastgltfLoader::getTextureInfo(asset, textureInfo);
-        auto [index, inserted] = imageIndices.try_emplace(imageIndex, 0);
+    // Map image index to pending texture index for deduplication
+    std::unordered_map<std::size_t, std::size_t> imageIndices;
+
+    // If the image index already exists, add the material index
+    auto getOrCreateTextureID = [&](const fastgltf::TextureInfo &textureInfo, Material::Type type,
+                                    std::size_t materialIndex) {
+        TextureDescriptor descriptor{fastgltfLoader::getTextureInfo(asset, textureInfo)};
+        auto [pendingTextureIndex, inserted] = imageIndices.try_emplace(descriptor.imageIndex, 0);
+
+        if (descriptor.sampler.wrapS != descriptor.sampler.wrapT)
+        {
+            std::cerr << "Sampler wrap mismatch";
+            throw std::runtime_error("Texture property error");
+        }
 
         if (inserted)
         {
-            // Let mipmaps get built by the array textures
-            TextureDetails request{
-                .sRGB = sRGB,
-                .mipmaps = false,
-                .anisotropic = anisotropic ? globalAnisotropicDegree_ : 0.0f,
-            };
+            pendingTextureIndex->second = pending2dTextures_.size();
+            const bool repeat{descriptor.sampler.wrapS == static_cast<uint16_t>(fastgltf::Wrap::Repeat)};
 
-            Texture texture{textureUtilities::generateTexture(rawImageData[imageIndex], sampler, request)};
-
-            if (texture.width != texture.height)
-            {
-                std::cerr << "ERROR: Non square texture from " << parentPath << std::endl;
-                throw std::runtime_error("Non square texture");
-            }
-
-            // Determine which sampler2dArray to use, and get the array depth
-            texture.arrayEntry = assignToTextureArray(texture);
-
-            // Insert the new texture at the image index
-            index->second = texture;
+            pending2dTextures_.emplace_back(PendingTexture{
+                .handle = handle,
+                .path = {paths[descriptor.imageIndex]},
+                .type = type,
+                .textureRepeat = repeat,
+                .materialIndices = {static_cast<int>(materialIndex)},
+            });
         }
-
-        return index->second;
+        else
+        {
+            pending2dTextures_[pendingTextureIndex->second].materialIndices.push_back(static_cast<int>(materialIndex));
+        }
     };
 
     for (size_t i{0}; i < asset.materials.size(); ++i)
@@ -152,205 +215,240 @@ void TextureManager::texturesFromAsset(fastgltf::Asset &asset, Handle handle, st
 
         if (assetMaterial.pbrData.baseColorTexture.has_value())
         {
-            // Albedo textures always get sRGB. Try to force aniso and let the global setting resolve whether it gets
-            // applied
             const fastgltf::TextureInfo &albedoInfo{assetMaterial.pbrData.baseColorTexture.value()};
-
-            // Deduplicate texture
-            Texture albedo{getOrCreateTextureID(albedoInfo, true, true)};
-
-            // Callers only know of a depth and which sampler2Darray to choose
-            material.albedo = albedo.arrayEntry;
+            getOrCreateTextureID(albedoInfo, Material::albedo, i);
         }
 
         if (assetMaterial.pbrData.metallicRoughnessTexture.has_value())
         {
             // ARM map never gets sRGB or anisotropic filtering
             const fastgltf::TextureInfo &armInfo = assetMaterial.pbrData.metallicRoughnessTexture.value();
-            Texture ARM{getOrCreateTextureID(armInfo, false, false)};
-
-            material.ARM = ARM.arrayEntry;
+            getOrCreateTextureID(armInfo, Material::ARM, i);
         }
 
         if (assetMaterial.normalTexture.has_value())
         {
             // Normal maps get no sRGB or aniso
             const fastgltf::TextureInfo &normalInfo = assetMaterial.normalTexture.value();
-            Texture normal{getOrCreateTextureID(normalInfo, false, false)};
-
-            material.normal = normal.arrayEntry;
+            getOrCreateTextureID(normalInfo, Material::normal, i);
         }
-
-        materials[i] = material;
     }
 }
 
-void TextureManager::cubemapFromPaths(Handle handle, const std::vector<std::filesystem::path> &imagePaths, bool mipmaps)
+void TextureManager::resolveBorrows()
 {
-    if (imagePaths.empty())
-        return;
-
-    auto materialIter = materialLookup_.find(handle);
-
-    if (materialIter == materialLookup_.end())
+    for (auto [self, other] : pendingBorrows_)
     {
-        std::cerr << "ERROR: missing handle from " << imagePaths[0].string() << std::endl;
-        throw std::runtime_error("Missing handle");
+        auto &selfMaterials{findMaterials(self)};
+        auto &otherMaterials{findMaterials(other)};
+
+        if (selfMaterials.size() != otherMaterials.size())
+            std::cerr << "WARNING: " << self << " borrowing " << selfMaterials.size() << " from " << other << " with "
+                      << otherMaterials.size() << " - different material count" << std::endl;
+
+        selfMaterials = otherMaterials;
     }
-
-    // Assume cubemaps are always skyboxes or reflections - no aniso and always sRGB
-    TextureDetails textureDetails{true, mipmaps, 0.0f};
-
-    // Resize materials to 1
-    std::vector<Material> &materials{materialIter->second};
-    materials.resize(1);
-
-    // Raw data
-    ImageLoader imageLoader{threadPool_, imagePaths};
-    std::vector<LoadedImage> loadedImages{imageLoader.getImageData()};
-
-    // Create and assign
-    Texture cubemapTexture{textureUtilities::generateCubemapTexture(loadedImages, textureDetails)};
-    cubemapTexture.arrayEntry = assignToCubeArray(cubemapTexture);
-
-    materials.front().cubemap = cubemapTexture.arrayEntry;
 }
 
-// Borrow another model's materials. Callers should verify that "self" has not loaded any textures, as they will be
-// orphaned
-void TextureManager::borrowMaterials(Handle self, Handle other)
+void TextureManager::reserveCubemaps(int numCubemaps, int resolution, GLenum internalFormat)
 {
-    auto selfIter = materialLookup_.find(self);
-    auto otherIter = materialLookup_.find(other);
+    // if buildCubemaps() already called, throw
 
-    if (selfIter == materialLookup_.end() || otherIter == materialLookup_.end())
+    for (std::size_t i{0}; i < cubemapArrayTextures_.size(); ++i)
     {
-        std::cerr << "ERROR: missing handle. Borrowing failed" << std::endl;
-        throw std::runtime_error("Missing handle");
+        if (cubemapArrayTextures_[i].size == resolution && cubemapArrayTextures_[i].internalFormat == internalFormat)
+        {
+            cubemapArrayTextures_[i].count += numCubemaps;
+            return;
+        }
     }
 
-    std::vector<Material> &selfEntry{selfIter->second};
-    std::vector<Material> &otherEntry{otherIter->second};
-
-    selfEntry = otherEntry;
-
-    if (selfEntry.size() != otherEntry.size())
-        std::cerr << "WARNING: models borrowing with different material count" << std::endl;
+    std::cerr << "ERROR: Cubemap reservation failure. No matching cubemap array for " << resolution << ", format "
+              << std::to_string(internalFormat) << std::endl;
+    throw std::runtime_error("ArrayTexture bucket not found");
 }
 
 // Overwrites any existing cubemaps for this model
-void TextureManager::setCubemap(Handle handle, RenderTarget &renderTarget, SamplerArrayEntry arrayEntry)
+void TextureManager::setCubemap(Handle handle, std::vector<int> overrideIndices, RenderTarget &renderTarget)
 {
-    auto materialIter = materialLookup_.find(handle);
+    const int size{renderTarget.getWidth()};
 
-    if (materialIter == materialLookup_.end())
-    {
-        std::cerr << "ERROR: missing handle" << std::endl;
-        throw std::runtime_error("Missing handle");
-    }
-
-    ArrayTexture &arrayTexture{cubemapArrayTextures_[arrayEntry.array]};
+    SamplerArrayEntry reservedEntry{assignToCubeArray(size, dynamicCubemapInternalFormat_)};
+    ArrayTexture &arrayTexture{cubemapArrayTextures_[reservedEntry.array]};
 
     if (arrayTexture.id == 0)
         return;
 
-    int width{arrayTexture.width};
     GLuint sourceTextureID{renderTarget.getColorTextureID()};
 
     glCopyImageSubData(sourceTextureID, GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, arrayTexture.id, GL_TEXTURE_CUBE_MAP_ARRAY, 0,
-                       0, 0, static_cast<GLint>(arrayEntry.layer * 6), width, width, 6);
+                       0, 0, static_cast<GLint>(reservedEntry.layer * 6), size, size, 6);
 
     glGenerateTextureMipmap(arrayTexture.id);
 
-    for (Material &material : materialIter->second)
+
+    auto& materials = findMaterials(handle);
+
+    for (int materialIndex : overrideIndices)
     {
-        if (material.cubemap.array != -1 || material.cubemap.layer != -1)
+        if (materialIndex >= static_cast<int>(materials.size()))
+            continue;
+
+        Material &material{materials[materialIndex]};
+        SamplerArrayEntry &entry{material.layers[Material::cubemap]};
+
+        if (entry.array != -1 || entry.layer != -1)
             std::cerr << "Warning: Orphaning own cubemaps for handle " << handle << std::endl;
 
-        material.cubemap = arrayEntry;
+        entry = reservedEntry;
     }
-}
-
-// Inserts a texture into a sampler2DArray and returns an array identifier and depth
-SamplerArrayEntry TextureManager::assignToTextureArray(Texture &texture)
-{
-    for (std::size_t i{0}; i < arrayTextures_.size(); ++i)
-    {
-        if (texture.width == arrayTextures_[i].width && texture.internalFormat == arrayTextures_[i].internalFormat)
-        {
-            pending2dTextures_.emplace_back(PendingTexture{
-                .id = texture.id,
-                .arrayEntry =
-                    {
-                        .array = static_cast<int>(i),
-                        .layer = arrayTextures_[i].count,
-                    },
-            });
-
-            return {static_cast<int>(i), arrayTextures_[i].count++};
-        }
-    }
-
-    std::cerr << "No matching 2d array for " + std::to_string(texture.width) << " format "
-              << std::to_string(texture.internalFormat) << std::endl;
-    throw std::runtime_error("ArrayTexture bucket not found");
-}
-
-SamplerArrayEntry TextureManager::assignToCubeArray(Texture &texture)
-{
-    for (std::size_t i{0}; i < cubemapArrayTextures_.size(); ++i)
-    {
-        if (texture.width == cubemapArrayTextures_[i].width &&
-            texture.internalFormat == cubemapArrayTextures_[i].internalFormat)
-        {
-
-            pendingCubemaps_.emplace_back(PendingTexture{
-                .id = texture.id,
-                .arrayEntry =
-                    {
-                        .array = static_cast<int>(i),
-                        .layer = cubemapArrayTextures_[i].count,
-                    },
-            });
-
-            return {static_cast<int>(i), cubemapArrayTextures_[i].count++};
-        }
-    }
-
-    std::cerr << "No matching cubemap array for " + std::to_string(texture.width) << " format "
-              << std::to_string(texture.internalFormat) << std::endl;
-    throw std::runtime_error("ArrayTexture bucket not found");
 }
 
 void TextureManager::borrowCubemaps(Handle self, Handle other)
 {
-    auto selfIter = materialLookup_.find(self);
-    auto otherIter = materialLookup_.find(other);
+    // if cubemaps not loaded, throw logic error
 
-    if (selfIter == materialLookup_.end() || otherIter == materialLookup_.end())
+    auto &selfMaterials{findMaterials(self)};
+    auto &otherMaterials{findMaterials(other)};
+
+    if (selfMaterials.size() != otherMaterials.size())
+        std::cerr << "WARNING: " << self << " borrowing mismatched material size from " << other << std::endl;
+
+    for (std::size_t i{0}; i < selfMaterials.size() && i < otherMaterials.size(); ++i)
     {
-        std::cerr << "ERROR: missing handle" << std::endl;
-        throw std::runtime_error("Missing handle");
-    }
+        SamplerArrayEntry &selfArray{selfMaterials[i].layers[Material::cubemap]};
+        SamplerArrayEntry &otherArray{otherMaterials[i].layers[Material::cubemap]};
 
-    std::vector<Material> &selfEntry{selfIter->second};
-    std::vector<Material> &otherEntry{otherIter->second};
-
-    for (std::size_t i{0}; i < selfEntry.size() && i < otherEntry.size(); ++i)
-    {
-        if (selfEntry[i].cubemap.array != -1 || selfEntry[i].cubemap.layer != -1)
+        if (selfArray.array != -1 || selfArray.layer != -1)
             std::cerr << "Warning: Orphaning cubemap for handle " << self << ", borrowing from " << other << std::endl;
 
-        selfEntry[i].cubemap = otherEntry[i].cubemap;
+        selfArray = otherArray;
     }
 }
 
-void TextureManager::texturesReserved()
+std::vector<gli::texture> TextureManager::loadTexturesFromPool(const std::vector<PendingTexture> &textures)
 {
-    if (textures2dAllocated_)
+    std::vector<std::filesystem::path> paths;
+
+    paths.reserve(textures.size());
+
+    for (const PendingTexture &texture : textures)
+        paths.emplace_back(texture.path);
+
+    TextureLoader loader{threadPool_, paths};
+
+    return loader.getTextures();
+}
+
+void TextureManager::buildTextures(std::vector<PendingTexture> &pendingTextures, bool cubemaps)
+{
+    if (pendingTextures.empty())
+        return;
+
+    std::vector<gli::texture> textures{loadTexturesFromPool(pendingTextures)};
+
+    if (cubemaps)
+        allocateCubemaps(pendingTextures, textures);
+    else
+        allocateTextures(pendingTextures, textures);
+
+    const gli::gl glTranslator(gli::gl::PROFILE_GL33);
+
+    for (std::size_t i{0}; i < pendingTextures.size(); ++i)
     {
-        std::cerr << "ERROR: 2D textures already allocated" << std::endl;
-        throw std::runtime_error("Texture allocation error");
+        PendingTexture &pendingTexture{pendingTextures[i]};
+        gli::texture &texture{textures[i]};
+
+        const Handle handle{pendingTexture.handle};
+        std::vector<Material> &materials{materialLookup_.at(handle)};
+
+        if (texture.empty())
+        {
+            std::cerr << "ERROR: Missing texture for " << pendingTexture.path << std::endl;
+
+            // Because of gLTF deduplicaion, multiple materials might point to the same texture
+            for (auto index : pendingTexture.materialIndices)
+                assignFallbackTexture(materials[index], pendingTexture.type);
+
+            continue;
+        }
+
+        const glm::tvec3<GLsizei> extent{texture.extent()};
+
+        if (extent.x != extent.y)
+        {
+            std::cerr << "ERROR: non-square texture for " << pendingTexture.path << std::endl;
+
+            for (auto index : pendingTexture.materialIndices)
+                assignFallbackTexture(materials[index], pendingTexture.type);
+
+            continue;
+        }
+
+        if (!gli::is_compressed(texture.format()))
+        {
+            std::cerr << "ERROR: uncompressed texture for " << pendingTexture.path << std::endl;
+
+            for (auto index : pendingTexture.materialIndices)
+                assignFallbackTexture(materials[index], pendingTexture.type);
+
+            continue;
+        }
+
+        auto [size, format] = gliToGL(glTranslator, texture);
+
+        // This is really annoying. Nvidia Texture Tools doesn't export anything as SRGB, so it has to be promoted
+        const bool sRGB{pendingTexture.type == Material::Type::albedo ||
+                        pendingTexture.type == Material::Type::cubemap};
+        if (sRGB)
+            format = textureUtilities::toSRGB(format);
+
+        SamplerArrayEntry assignedArray{cubemaps ? assignToCubeArray(size, static_cast<GLenum>(format))
+                                                 : assignToTextureArray(size, static_cast<GLenum>(format))};
+
+        for (auto index : pendingTexture.materialIndices)
+            materials[index].layers[pendingTexture.type] = assignedArray;
+
+        ArrayTexture &arrayTexture{cubemaps ? cubemapArrayTextures_[assignedArray.array]
+                                            : arrayTextures_[assignedArray.array]};
+
+        if (arrayTexture.id == 0)
+        {
+            std::cerr << "ERROR: Uninitialized array texture size " << arrayTexture.size << " format "
+                      << arrayTexture.internalFormat << std::endl;
+
+            throw std::runtime_error("Uninitialized array texture");
+        }
+
+        textureUtilities::insertIntoSamplerArray(arrayTexture.id, texture, assignedArray.layer, format);
+    }
+}
+
+void TextureManager::allocateTextures(const std::vector<PendingTexture> &pendingTextures,
+                                      std::vector<gli::texture> &textures)
+{
+    auto addToBucket = [&](int size, GLenum format) {
+        for (std::size_t i{0}; i < arrayTextures_.size(); ++i)
+            if (size == arrayTextures_[i].size && format == arrayTextures_[i].internalFormat)
+                ++arrayTextures_[i].count;
+    };
+
+    // 4.6 unavailable, texture enums are the same between 3.3 and 4.6
+    const gli::gl glTranslator(gli::gl::PROFILE_GL33);
+
+    for (std::size_t i{0}; i < textures.size(); ++i)
+    {
+        if (textures[i].empty())
+            continue;
+
+        auto [size, format] = gliToGL(glTranslator, textures[i]);
+
+        const bool sRGB{pendingTextures[i].type == Material::Type::albedo ||
+                        pendingTextures[i].type == Material::Type::cubemap};
+        if (sRGB)
+            format = textureUtilities::toSRGB(format);
+
+        addToBucket(size, static_cast<GLenum>(format));
     }
 
     for (std::size_t i{0}; i < arrayTextures_.size(); ++i)
@@ -362,11 +460,11 @@ void TextureManager::texturesReserved()
         GLuint &arrayTexID{arrayTexture.id};
         GLsizei numTextures{static_cast<GLsizei>(arrayTexture.count)};
 
-        int width{arrayTexture.width};
-        int mipLevels{textureUtilities::calculateMipmapLevels(width, width)};
+        int size{arrayTexture.size};
+        int mipLevels{textureUtilities::calculateMipmapLevels(size, size)};
 
         glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &arrayTexID);
-        glTextureStorage3D(arrayTexID, mipLevels, arrayTexture.internalFormat, width, width, numTextures);
+        glTextureStorage3D(arrayTexID, mipLevels, arrayTexture.internalFormat, size, size, numTextures);
 
         glTextureParameteri(arrayTexID, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTextureParameteri(arrayTexID, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -378,105 +476,32 @@ void TextureManager::texturesReserved()
 
         glBindTextureUnit(static_cast<GLuint>(i), arrayTexID);
     }
-
-    textures2dAllocated_ = true;
 }
 
-void TextureManager::buildTextures()
+void TextureManager::allocateCubemaps(const std::vector<PendingTexture> &pendingTextures,
+                                      std::vector<gli::texture> &textures)
 {
-    if (pending2dTextures_.empty())
-        return;
+    auto addToBucket = [&](int size, GLenum format) {
+        for (std::size_t i{0}; i < cubemapArrayTextures_.size(); ++i)
+            if (size == cubemapArrayTextures_[i].size && format == cubemapArrayTextures_[i].internalFormat)
+                ++cubemapArrayTextures_[i].count;
+    };
 
-    int texturesCopied{0};
+    const gli::gl glTranslator(gli::gl::PROFILE_GL33);
 
-    for (PendingTexture &pendingTexture : pending2dTextures_)
+    for (std::size_t i{0}; i < textures.size(); ++i)
     {
-        ArrayTexture &arrayTexture{arrayTextures_[pendingTexture.arrayEntry.array]};
-
-        if (arrayTexture.id == 0 || pendingTexture.id == 0)
+        if (textures[i].empty())
             continue;
 
-        int width{arrayTexture.width};
+        auto [size, format] = gliToGL(glTranslator, textures[i]);
 
-        glCopyImageSubData(pendingTexture.id, GL_TEXTURE_2D, 0, 0, 0, 0, arrayTexture.id, GL_TEXTURE_2D_ARRAY, 0, 0, 0,
-                           static_cast<GLint>(pendingTexture.arrayEntry.layer), width, width, 1);
+        const bool sRGB{pendingTextures[i].type == Material::Type::albedo ||
+                        pendingTextures[i].type == Material::Type::cubemap};
+        if (sRGB)
+            format = textureUtilities::toSRGB(format);
 
-        ++texturesCopied;
-        glDeleteTextures(1, &pendingTexture.id);
-        pendingTexture.id = 0;
-
-        // Flush any old textures from memory to keep VRAM down
-        if (texturesCopied % 4 == 0)
-            glFinish();
-    }
-
-    for (ArrayTexture &texture : arrayTextures_)
-        if (texture.id != 0)
-            glGenerateTextureMipmap(texture.id);
-
-    // Force cleanup of any textures flagged for deletion
-    glFinish();
-}
-
-void TextureManager::buildCubemaps()
-{
-    if (pendingCubemaps_.empty())
-        return;
-
-    for (PendingTexture &pendingTexture : pendingCubemaps_)
-    {
-        ArrayTexture &arrayTexture{cubemapArrayTextures_[pendingTexture.arrayEntry.array]};
-
-        if (arrayTexture.id == 0)
-            continue;
-
-        if (pendingTexture.id == 0)
-            continue;
-
-        int width{arrayTexture.width};
-
-        glCopyImageSubData(pendingTexture.id, GL_TEXTURE_CUBE_MAP, 0, 0, 0, 0, arrayTexture.id,
-                           GL_TEXTURE_CUBE_MAP_ARRAY, 0, 0, 0, static_cast<GLint>(pendingTexture.arrayEntry.layer * 6),
-                           width, width, 6);
-
-        glDeleteTextures(1, &pendingTexture.id);
-        pendingTexture.id = 0;
-    }
-
-    for (ArrayTexture &texture : cubemapArrayTextures_)
-        if (texture.id != 0)
-            glGenerateTextureMipmap(texture.id);
-
-    glFinish();
-}
-
-SamplerArrayEntry TextureManager::reserveCubemaps(int numCubemaps, int resolution, GLenum internalFormat)
-{
-    for (std::size_t i{0}; i < cubemapArrayTextures_.size(); ++i)
-    {
-        if (cubemapArrayTextures_[i].width == resolution && cubemapArrayTextures_[i].internalFormat == internalFormat)
-        {
-            int startingLayer{cubemapArrayTextures_[i].count};
-            cubemapArrayTextures_[i].count += numCubemaps;
-
-            return {
-                .array = static_cast<int>(i),
-                .layer = startingLayer,
-            };
-        }
-    }
-
-    std::cerr << "No matching cubemap array for " << resolution << ", format " << std::to_string(internalFormat)
-              << std::endl;
-    throw std::runtime_error("ArrayTexture bucket not found");
-}
-
-void TextureManager::cubemapsReserved()
-{
-    if (texturesCubemapAllocated_)
-    {
-        std::cerr << "ERROR: Cubemaps textures already allocated" << std::endl;
-        throw std::runtime_error("Texture allocation error");
+        addToBucket(size, static_cast<GLenum>(format));
     }
 
     for (std::size_t i{0}; i < cubemapArrayTextures_.size(); ++i)
@@ -488,7 +513,7 @@ void TextureManager::cubemapsReserved()
         GLuint &arrayTexID{arrayTexture.id};
         GLsizei numTextures{static_cast<GLsizei>(arrayTexture.count)};
 
-        int width{arrayTexture.width};
+        int width{arrayTexture.size};
         int mipLevels{textureUtilities::calculateMipmapLevels(width, width)};
 
         glCreateTextures(GL_TEXTURE_CUBE_MAP_ARRAY, 1, &arrayTexID);
@@ -503,9 +528,43 @@ void TextureManager::cubemapsReserved()
         if (globalAnisotropicDegree_ > 0.0f)
             glTextureParameterf(arrayTexID, GL_TEXTURE_MAX_ANISOTROPY, globalAnisotropicDegree_);
 
-        constexpr GLuint cubemapUnitOffset{static_cast<GLuint>(TextureUnit::cubemapSRGB4k)};
+        constexpr GLuint cubemapUnitOffset{static_cast<GLuint>(TextureUnit::cubemapSRGB4k)}; // This is brittle
         glBindTextureUnit(static_cast<GLuint>(cubemapUnitOffset + i), arrayTexID);
     }
+}
 
-    texturesCubemapAllocated_ = true;
+// Fills a texture array back to front, using the existing ArrayTexture's count as a tracker of how many slots are left
+SamplerArrayEntry TextureManager::assignToTextureArray(int size, GLenum internalFormat)
+{
+    for (std::size_t i{0}; i < arrayTextures_.size(); ++i)
+        if (size == arrayTextures_[i].size && internalFormat == arrayTextures_[i].internalFormat)
+        {
+            if (arrayTextures_[i].count < 0)
+            {
+                std::cerr << "ERROR: Array texture " << size << " overflow" << std::endl;
+                throw std::runtime_error("Array texture overflow");
+            }
+
+            return {static_cast<int>(i), --arrayTextures_[i].count};
+        }
+
+    std::cerr << "No matching 2d array for " << size << " format " << internalFormat << std::endl;
+    throw std::runtime_error("ArrayTexture bucket not found");
+}
+
+// Fills cubemap texture array back to front, using the existing ArrayTexture's count as a tracker of how many slots are
+// left
+SamplerArrayEntry TextureManager::assignToCubeArray(int size, GLenum internalFormat)
+{
+    for (std::size_t i{0}; i < cubemapArrayTextures_.size(); ++i)
+    {
+        if (size == cubemapArrayTextures_[i].size && internalFormat == cubemapArrayTextures_[i].internalFormat)
+        {
+
+            return {static_cast<int>(i), --cubemapArrayTextures_[i].count};
+        }
+    }
+
+    std::cerr << "No matching cubemap array for " << size << " format " << internalFormat << std::endl;
+    throw std::runtime_error("ArrayTexture bucket not found");
 }

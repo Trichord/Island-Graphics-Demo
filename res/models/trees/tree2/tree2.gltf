@@ -126,24 +126,24 @@
 	],
 	"images":[
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"Image_2",
-			"uri":"textures/Image_2.png"
+			"uri":"textures/Image_2.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"Image_3",
-			"uri":"textures/Image_3.png"
+			"uri":"textures/Image_3.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"branch_atlas",
-			"uri":"textures/branch_atlas.png"
+			"uri":"textures/branch_atlas.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"branch_atlas_ARM",
-			"uri":"textures/branch_atlas_ARM.png"
+			"uri":"textures/branch_atlas_ARM.dds"
 		}
 	],
 	"accessors":[

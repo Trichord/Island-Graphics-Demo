@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "glad/glad.h"
+#include "gli/texture.hpp"
 #include "graphics_settings.h"
 #include "render_target.h"
 #include "textures.h"
@@ -26,76 +27,92 @@ class TextureManager
     Handle assignHandle();
 
     // Static loaded textures
-    void loadCubemapTextures(const Handle handle, std::vector<std::filesystem::path> images,
-                             const std::filesystem::path &parentPath = "./", bool mipmaps = true);
-    void loadModelTextures(const Handle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath);
+    void loadModelTextures(const Handle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath,
+                           const std::optional<Handle> borrowHandle);
+    void loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath,
+                             std::vector<int> &materialIndices);
 
-    // Dynamic texture borrowing
-    void borrowCubemaps(Handle self, Handle other);
-    void borrowMaterials(Handle self, Handle other);
-
-    // Accessors and mutators
     GLenum getReflectionColorFormat() const;
     const std::vector<Material> &getMaterials(Handle modelHandle) const;
-    void setCubemap(Handle handle, RenderTarget &renderTarget, SamplerArrayEntry arrayEntry);
 
-    // Bindless array texture setup
-    void buildTextures();
-    void buildCubemaps();
-    SamplerArrayEntry reserveCubemaps(int numCubemaps, int resolution, GLenum internalFormat);
+    // Dynamic cubemap borrowing
+    void borrowCubemaps(Handle self, Handle other);
+    void setCubemap(Handle handle, std::vector<int> overrideIndices, RenderTarget &renderTarget);
 
-    // Lock in GPU resources
-    void texturesReserved();
-    void cubemapsReserved();
+    void buildAllTextures();
+    void reserveCubemaps(int numCubemaps, int resolution, GLenum internalFormat);
 
   private:
     struct ArrayTexture
     {
         GLuint id{0};
-        int width{0};
+        int size{0};
         int count{0};
-        GLenum internalFormat{GL_SRGB8};
+        GLenum internalFormat{GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM};
     };
 
     struct PendingTexture
     {
-        GLuint id{0};
-        SamplerArrayEntry arrayEntry;
+        Handle handle{0};
+        std::filesystem::path path;
+
+        Material::Type type;
+        SamplerArrayEntry entry;
+
+        bool textureRepeat{true};
+        std::vector<int> materialIndices;
     };
 
-    std::array<ArrayTexture, 8> arrayTextures_{{{.width = 4096, .internalFormat = GL_RGB8},
-                                                {.width = 4096, .internalFormat = GL_SRGB8},
-                                                {.width = 2048, .internalFormat = GL_RGB8},
-                                                {.width = 2048, .internalFormat = GL_SRGB8},
-                                                {.width = 2048, .internalFormat = GL_SRGB8_ALPHA8},
-                                                {.width = 1024, .internalFormat = GL_RGB8},
-                                                {.width = 1024, .internalFormat = GL_SRGB8},
-                                                {.width = 512, .internalFormat = GL_RGB8}}};
+    std::array<ArrayTexture, 10> arrayTextures_{{{.size = 4096, .internalFormat = GL_COMPRESSED_RG_RGTC2},
+                                                 {.size = 4096, .internalFormat = GL_COMPRESSED_RGBA_BPTC_UNORM},
+                                                 {.size = 4096, .internalFormat = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM},
 
-    // Third slot empty to handle run-time selection of reflection cubemaps
+                                                 {.size = 2048, .internalFormat = GL_COMPRESSED_RG_RGTC2},
+                                                 {.size = 2048, .internalFormat = GL_COMPRESSED_RGBA_BPTC_UNORM},
+                                                 {.size = 2048, .internalFormat = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM},
+
+                                                 {.size = 1024, .internalFormat = GL_COMPRESSED_RG_RGTC2},
+                                                 {.size = 1024, .internalFormat = GL_COMPRESSED_RGBA_BPTC_UNORM},
+                                                 {.size = 1024, .internalFormat = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM},
+
+                                                 {.size = 512, .internalFormat = GL_COMPRESSED_RG_RGTC2}}};
+
+    // Third slot (determined at runtime) handles dynamically generated reflection cubemaps
     std::array<ArrayTexture, 3> cubemapArrayTextures_{{
-        {.width = 4096, .internalFormat = GL_SRGB8},
-        {.width = 2048, .internalFormat = GL_SRGB8},
+        {.size = 4096, .internalFormat = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM},
+        {.size = 2048, .internalFormat = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM},
     }};
 
+    bool texturesBuilt_{false};
+    float globalAnisotropicDegree_{0.0f};
     GLenum dynamicCubemapInternalFormat_{GL_SRGB8};
+
+    ThreadPool &threadPool_;
+    std::unordered_map<Handle, std::vector<Material>> materialLookup_;
 
     // Textures to be uploaded
     std::vector<PendingTexture> pendingCubemaps_;
     std::vector<PendingTexture> pending2dTextures_;
 
-    ThreadPool &threadPool_;
-    float globalAnisotropicDegree_{0.0f};
-    std::unordered_map<Handle, std::vector<Material>> materialLookup_;
-
-    bool textures2dAllocated_{false};
-    bool texturesCubemapAllocated_{false};
+    // Borrows to be resolved after textures are done
+    std::vector<std::pair<Handle, Handle>> pendingBorrows_;
 
     // Textures from loaded models
+    std::vector<gli::texture> loadTexturesFromPool(const std::vector<PendingTexture> &textures);
     void texturesFromAsset(fastgltf::Asset &asset, Handle handle, std::filesystem::path parentPath);
-    void cubemapFromPaths(Handle handle, const std::vector<std::filesystem::path> &images, bool mipmaps);
+    void resolveBorrows();
 
     // Helpers for assigning to texture buckets
-    SamplerArrayEntry assignToTextureArray(Texture &texture);
-    SamplerArrayEntry assignToCubeArray(Texture &texture);
+    SamplerArrayEntry assignToTextureArray(int size, GLenum internalFormat);
+    SamplerArrayEntry assignToCubeArray(int size, GLenum internalFormat);
+
+    // Lock in GPU resources
+    void allocateTextures(const std::vector<PendingTexture> &pendingTextures, std::vector<gli::texture> &textures);
+    void allocateCubemaps(const std::vector<PendingTexture> &pendingTextures, std::vector<gli::texture> &textures);
+
+    // Fill arays
+    void buildTextures(std::vector<PendingTexture> &pendingTextures, bool cubemaps);
+
+    // Private helper for material lookups. Mirros the public API, except its not const
+    std::vector<Material> &findMaterials(Handle handle);
 };

@@ -5,10 +5,10 @@
 
 #include "gl_context.h"
 #include "graphics_settings.h"
-#include "image_loader.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "texture_loader.h"
 #include "texture_utilities.h"
 #include "textures.h"
 
@@ -80,6 +80,12 @@ bool SettingsWindow::createWindow()
     // Make current context
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        return false;
+    }
 
     // Refocus
     glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
@@ -350,20 +356,15 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
 
 void SettingsWindow::loadConfigWindowImage()
 {
-    ImageLoader imageLoader{"./res/textures/wireframe_sphere.png"};
-    std::vector<LoadedImage> imageData{imageLoader.getImageData()};
+    TextureDetails details{
+        .sampler = {.magFilter = GL_LINEAR,
+                    .minFilter = GL_LINEAR,
+                    .wrapS = GL_CLAMP_TO_EDGE,
+                    .wrapT = GL_CLAMP_TO_EDGE},
+        .anisotropicFiltering = false,
+    };
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        std::cout << "Failed to initialize GLAD" << std::endl;
-        return;
-    }
-
-    if (!imageData.size())
-        return;
-
-    Texture texture{textureUtilities::generateTexture(imageData[0], Sampler{}, TextureDetails{})};
-    textureID_ = texture.id;
+    textureID_ = textureUtilities::textureFromFile("./res/textures/wireframe_sphere.dds", details);
 }
 
 void SettingsWindow::updateResolution(GraphicsSettings &settings, int index)

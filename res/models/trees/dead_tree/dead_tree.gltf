@@ -87,19 +87,19 @@
 	],
 	"images":[
 		{
-			"mimeType":"image/jpeg",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"tree_bark_68_normal",
-			"uri":"textures/tree_bark_68_normal.png"
+			"uri":"textures/tree_bark_68_normal.dds"
 		},
 		{
-			"mimeType":"image/jpeg",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"tree_bark_68_color",
-			"uri":"textures/tree_bark_68_color.png"
+			"uri":"textures/tree_bark_68_color.dds"
 		},
 		{
-			"mimeType":"image/png",
+			"mimeType":"image/vnd.ms-dds",
 			"name":"tree_bark_68_roughness",
-			"uri":"textures/tree_bark_68_roughness.png"
+			"uri":"textures/tree_bark_68_roughness.dds"
 		}
 	],
 	"accessors":[

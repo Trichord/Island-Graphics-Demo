@@ -242,12 +242,14 @@ void Renderer::updateMetadataCubemaps(const std::vector<DrawEntry> &entries, std
             const DrawEntry &drawEntry{entries[i]};
             PrimitiveMetadata &metaEntry{metadata[i]};
 
-            const int matIndex{drawEntry.primitive->materialIndex};
             const std::vector<Material> &materials{textureManager_.getMaterials(drawEntry.handle)};
+            const int matIndex{drawEntry.primitive->materialIndex};
             const Material &material{materials[matIndex]};
 
-            metaEntry.cubemapArray = material.cubemap.array;
-            metaEntry.cubemapLayer = material.cubemap.layer;
+            const SamplerArrayEntry &cubemap{material.layers[Material::cubemap]};
+
+            metaEntry.cubemapArray = cubemap.array;
+            metaEntry.cubemapLayer = cubemap.layer;
 
             glNamedBufferSubData(metadataBuffer_, static_cast<GLintptr>(i * sizeof(PrimitiveMetadata)),
                                  static_cast<GLsizeiptr>(sizeof(PrimitiveMetadata)), &metaEntry);
