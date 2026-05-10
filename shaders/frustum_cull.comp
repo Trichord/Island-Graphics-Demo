@@ -3,11 +3,11 @@
 // Types
 struct DrawElementsIndirectCommand
 {
-    unsigned int count;
-    unsigned int instanceCount;
-    unsigned int firstIndex;
+    uint count;
+    uint instanceCount;
+    uint firstIndex;
     int baseVertex;
-    unsigned int baseInstance;
+    uint baseInstance;
 };
 
 struct BufferMap
