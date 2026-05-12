@@ -191,10 +191,10 @@ void setMetadataMaterials(TextureManager &manager, const std::vector<DrawEntry> 
             throw std::runtime_error("Material index out of bounds");
         }
 
-        const SamplerArrayEntry &albdeo{material.layers[Material::albedo]};
-        const SamplerArrayEntry &ARM{material.layers[Material::ARM]};
-        const SamplerArrayEntry &normal{material.layers[Material::normal]};
-        const SamplerArrayEntry &cubemap{material.layers[Material::cubemap]};
+        const SamplerArrayIndex &albdeo{material.layers[Material::albedo]};
+        const SamplerArrayIndex &ARM{material.layers[Material::ARM]};
+        const SamplerArrayIndex &normal{material.layers[Material::normal]};
+        const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
 
         metaEntry.albedoArray = albdeo.array;
         metaEntry.albedoLayer = albdeo.layer;

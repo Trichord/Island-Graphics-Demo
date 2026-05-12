@@ -1,33 +1,9 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 
 #include "glad/glad.h"
-
-// OpenGL texture units are bound to this enum.
-enum class TextureUnit
-{
-    RG4k,
-    RGB4k,
-    SRGB4k,
-
-    RG2k,
-    RGB2k,
-    SRGB2k,
-
-    RG1k,
-    RGB1k,
-    SRGB1k,
-
-    arrayRG512,
-
-    // Load time cubemaps may fall into the 4k bucket or 2k bucket, depending on user's resolution. The 3rd bucket is a
-    // dynamic catch-all for the reflection size
-    cubemapSRGB4k,
-    cubemapSRGB2k,
-    cubemapSRGBdynamic,
-    shadow
-};
 
 struct Sampler
 {
@@ -37,7 +13,7 @@ struct Sampler
     std::uint16_t wrapT{GL_REPEAT};
 };
 
-struct SamplerArrayEntry
+struct SamplerArrayIndex
 {
     int array{-1};
     int layer{-1};
@@ -50,7 +26,7 @@ struct Texture
     int height{0};
     GLenum internalFormat{GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM};
 
-    SamplerArrayEntry arrayEntry;
+    SamplerArrayIndex arrayIndex;
 };
 
 struct Material
@@ -64,14 +40,14 @@ struct Material
         count
     };
 
-    std::array<SamplerArrayEntry, Type::count> layers;
+    std::array<SamplerArrayIndex, Type::count> layers;
 
-    SamplerArrayEntry &operator[](Type t)
+    SamplerArrayIndex &operator[](Type t)
     {
         return layers[t];
     }
-    
-    const SamplerArrayEntry &operator[](Type t) const
+
+    const SamplerArrayIndex &operator[](Type t) const
     {
         return layers[t];
     }

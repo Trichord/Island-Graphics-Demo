@@ -246,7 +246,7 @@ void Renderer::updateMetadataCubemaps(const std::vector<DrawEntry> &entries, std
             const int matIndex{drawEntry.primitive->materialIndex};
             const Material &material{materials[matIndex]};
 
-            const SamplerArrayEntry &cubemap{material.layers[Material::cubemap]};
+            const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
 
             metaEntry.cubemapArray = cubemap.array;
             metaEntry.cubemapLayer = cubemap.layer;
