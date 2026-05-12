@@ -11,11 +11,15 @@ struct TextureDetails
     float anisotropicFiltering{0.0f};
 };
 
-namespace textureUtilities
+namespace TextureUtilities
 {
+// Conversions
 GLenum toSRGB(GLenum format);
 GLenum gliToGL(const gli::texture &texture);
+
+// Math
 int calculateMipmapLevels(int width, int height);
+
+// Texture creation
 GLuint textureFromFile(std::filesystem::path path, TextureDetails details);
-void insertIntoSamplerArray(const gli::texture &texture, GLuint arrayID, int arrayLayer, GLenum internalFormat);
-} // namespace textureUtilities
+} // namespace TextureUtilities
