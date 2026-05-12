@@ -13,7 +13,7 @@
 
 #include "aabb.h"
 #include "fastgltf/types.hpp"
-#include "fastgltf_loader.h"
+#include "asset_loader.h"
 #include "glm/glm.hpp"
 #include "primitive.h"
 
@@ -22,8 +22,8 @@
 Model::Model(TextureManager &textureManager, const std::filesystem::path &path, std::optional<Handle> borrowHandle)
     : handle_{textureManager.assignHandle()}, filePath_{path}
 {
-    fastgltf::Asset asset = fastgltfLoader::loadAsset(path);
-    primitives_ = fastgltfLoader::loadMeshes(asset);
+    fastgltf::Asset asset = AssetLoader::loadAsset(path);
+    primitives_ = AssetLoader::loadMeshes(asset);
     calculateAABB();
 
     textureManager.loadModelTextures(handle_, std::move(asset), path.parent_path(), borrowHandle);
@@ -73,8 +73,8 @@ std::optional<std::vector<Primitive>> Model::loadCollisionMesh() const
 
     if (std::filesystem::exists(fullPath, error))
     {
-        fastgltf::Asset asset = fastgltfLoader::loadAsset(fullPath);
-        return fastgltfLoader::loadMeshes(asset);
+        fastgltf::Asset asset = AssetLoader::loadAsset(fullPath);
+        return AssetLoader::loadMeshes(asset);
     }
     else if (error)
     {

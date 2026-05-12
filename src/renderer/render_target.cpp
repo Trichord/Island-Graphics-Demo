@@ -6,7 +6,7 @@
 #include "texture_utilities.h"
 
 RenderTarget::RenderTarget(int width, int height, Settings settings)
-    : width_{width}, height_{height}, internalFormat_{settings.internalFormat}
+    : layers_{settings.textureArrayDepth}, width_{width}, height_{height}, internalFormat_{settings.internalFormat}
 {
     if (settings.depthType == DepthType::RBO && settings.textureArray == true)
     {
@@ -41,7 +41,7 @@ void RenderTarget::createRenderTarget(int width, int height, const Settings &set
         textureImageFormat = GL_TEXTURE_2D_ARRAY;
 
     if (settings.generateMipmaps)
-        mipLevels = textureUtilities::calculateMipmapLevels(width, height);
+        mipLevels = TextureUtilities::calculateMipmapLevels(width, height);
 
     glCreateTextures(textureImageFormat, 1, &colorTextureID_);
 
@@ -121,8 +121,9 @@ void RenderTarget::createMSAARenderTarget(int width, int height, const Settings 
 }
 
 RenderTarget::RenderTarget(RenderTarget &&other) noexcept
-    : width_{other.width_}, height_{other.height_}, FBO_{other.FBO_}, depthRBO_{other.depthRBO_},
-      colorTextureID_{other.colorTextureID_}, depthMapTextureID_{other.depthMapTextureID_}
+    : layers_{other.layers_}, width_{other.width_}, height_{other.height_}, FBO_{other.FBO_},
+      depthRBO_{other.depthRBO_}, colorTextureID_{other.colorTextureID_}, depthMapTextureID_{other.depthMapTextureID_},
+      internalFormat_{other.internalFormat_}
 {
     other.FBO_ = 0;
     other.depthRBO_ = 0;
@@ -134,19 +135,14 @@ RenderTarget &RenderTarget::operator=(RenderTarget &&other) noexcept
 {
     if (this != &other)
     {
-        deleteResources();
-
-        width_ = other.width_;
-        height_ = other.height_;
-        FBO_ = other.FBO_;
-        depthRBO_ = other.depthRBO_;
-        colorTextureID_ = other.colorTextureID_;
-        depthMapTextureID_ = other.depthMapTextureID_;
-
-        other.FBO_ = 0;
-        other.depthRBO_ = 0;
-        other.colorTextureID_ = 0;
-        other.depthMapTextureID_ = 0;
+        std::swap(layers_, other.layers_);
+        std::swap(width_, other.width_);
+        std::swap(height_, other.height_);
+        std::swap(FBO_, other.FBO_);
+        std::swap(depthRBO_, other.depthRBO_);
+        std::swap(colorTextureID_, other.colorTextureID_);
+        std::swap(depthMapTextureID_, other.depthMapTextureID_);
+        std::swap(internalFormat_, other.internalFormat_);
     }
 
     return *this;
@@ -154,7 +150,14 @@ RenderTarget &RenderTarget::operator=(RenderTarget &&other) noexcept
 
 RenderTarget::~RenderTarget()
 {
-    deleteResources();
+    glDeleteTextures(1, &colorTextureID_);
+
+    if (depthMapTextureID_)
+        glDeleteTextures(1, &depthMapTextureID_);
+    if (depthRBO_)
+        glDeleteRenderbuffers(1, &depthRBO_);
+
+    glDeleteFramebuffers(1, &FBO_);
 }
 
 void RenderTarget::bind()
@@ -192,6 +195,11 @@ int RenderTarget::getHeight() const
     return height_;
 }
 
+int RenderTarget::getNumLayers() const
+{
+    return layers_;
+}
+
 GLenum RenderTarget::getInternalFormat() const
 {
     return internalFormat_;
@@ -205,18 +213,6 @@ void RenderTarget::clear(bool color, bool depth)
         glClearNamedFramebufferfv(FBO_, GL_DEPTH, 0, &depthColor);
 }
 
-void RenderTarget::deleteResources()
-{
-    glDeleteTextures(1, &colorTextureID_);
-
-    if (depthMapTextureID_)
-        glDeleteTextures(1, &depthMapTextureID_);
-    if (depthRBO_)
-        glDeleteRenderbuffers(1, &depthRBO_);
-
-    glDeleteFramebuffers(1, &FBO_);
-}
-
 void RenderTarget::blitTo(const RenderTarget &target)
 {
     glBlitNamedFramebuffer(FBO_, target.FBO_, 0, 0, width_, height_, 0, 0, target.width_, target.height_,
@@ -225,6 +221,12 @@ void RenderTarget::blitTo(const RenderTarget &target)
 
 void RenderTarget::setTextureLayer(int layer)
 {
+    if (layer >= layers_)
+    {
+        std::cerr << "ERROR: RenderTarget " << layer << " out of bounds for size " << layers_ << std::endl;
+        throw std::runtime_error("RenderTarget layer out of bounds");
+    }
+
     glNamedFramebufferTextureLayer(FBO_, GL_COLOR_ATTACHMENT0, colorTextureID_, 0, static_cast<GLuint>(layer));
 
     if (depthMapTextureID_ != 0)

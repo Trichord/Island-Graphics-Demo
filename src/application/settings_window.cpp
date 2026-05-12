@@ -364,7 +364,7 @@ void SettingsWindow::loadConfigWindowImage()
         .anisotropicFiltering = false,
     };
 
-    textureID_ = textureUtilities::textureFromFile("./res/textures/wireframe_sphere.dds", details);
+    textureID_ = TextureUtilities::textureFromFile("./res/textures/wireframe_sphere.dds", details);
 }
 
 void SettingsWindow::updateResolution(GraphicsSettings &settings, int index)

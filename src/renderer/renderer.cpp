@@ -112,8 +112,6 @@ void Renderer::loadShaders()
 
 void Renderer::setupShader(GraphicsShader &shader)
 {
-    using enum TextureUnit;
-
     // Constants
     shader.setFloat("mipScale", mipScale);
     shader.setFloat("alphaCutoff", alphaCutoff);
