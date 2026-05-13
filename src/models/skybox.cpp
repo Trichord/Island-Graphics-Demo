@@ -18,26 +18,15 @@
 constexpr float skyboxSize{1e18f};
 
 void setGeometry(std::vector<Primitive> &primitives, AABB &aabb);
+std::vector<int> getMaterialIndices(const std::vector<Primitive> &primitives);
 
 Skybox::Skybox(TextureManager &textureManager, const std::filesystem::path &imagePath)
     : handle_{textureManager.assignHandle()}
 {
     setGeometry(primitives_, aabb_);
-
-    std::vector<int> materialIndices;
-    materialIndices.reserve(primitives_.size());
-
-    for (Primitive &primitive : primitives_)
-        materialIndices.push_back(primitive.materialIndex);
+    auto materialIndices = getMaterialIndices(primitives_);
 
     textureManager.loadCubemapTextures(handle_, imagePath, materialIndices);
-}
-
-Skybox::Skybox(TextureManager &textureManager, const Handle borrowHandle)
-    : handle_{textureManager.assignHandle()}, borrowedHandle_{borrowHandle}
-{
-    setGeometry(primitives_, aabb_);
-    textureManager.borrowCubemaps(handle_, borrowHandle);
 }
 
 AABB &Skybox::getAABB()
@@ -53,11 +42,6 @@ Handle Skybox::getHandle() const
 std::span<Primitive> Skybox::getPrimitives()
 {
     return primitives_;
-}
-
-std::optional<Handle> Skybox::getBorrowedHandle() const
-{
-    return borrowedHandle_;
 }
 
 std::optional<std::vector<Primitive>> Skybox::loadCollisionMesh() const
@@ -81,4 +65,15 @@ void setGeometry(std::vector<Primitive> &primitives, AABB &aabb)
                             .aabb = aabb,
                             .materialIndex = 0,
                             .alphaMode = fastgltf::AlphaMode::Opaque}};
+}
+
+std::vector<int> getMaterialIndices(const std::vector<Primitive> &primitives)
+{
+    std::vector<int> materialIndices;
+    materialIndices.reserve(primitives.size());
+
+    for (const Primitive &primitive : primitives)
+        materialIndices.push_back(primitive.materialIndex);
+
+    return materialIndices;
 }

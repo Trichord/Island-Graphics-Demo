@@ -42,10 +42,11 @@ std::vector<gli::texture> TextureLoader::getTextures()
 
 void TextureLoader::loadFromFile(const std::filesystem::path &path, std::size_t index)
 {
-    gli::texture texture{gli::load(path.string().c_str())};
+    // Default construct an empty texture to ensure the 1:1 mapping of filepaths coming in and textures going out
+    gli::texture texture;
 
-    if (texture.empty())
-        std::cerr << "ERROR: Texture failed to load from " << path.string() << std::endl;
+    if (std::filesystem::exists(path) && !path.empty())
+        texture = gli::load(path.string().c_str());
 
     // Lock and insert. Empty texture will be handled by the texture manager
     {

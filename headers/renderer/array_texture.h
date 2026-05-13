@@ -17,6 +17,8 @@ class ArrayTexture
 
     int getWidth() const;
     int getHeight() const;
+    int getCapacity() const;
+    int getCurrentSize() const;
     GLenum getInternalFormat() const;
 
     // Copy image from render target. Returns layer index

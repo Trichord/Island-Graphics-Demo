@@ -131,7 +131,7 @@ fastgltf::Asset AssetLoader::loadAsset(const std::filesystem::path &path)
     {
         std::cerr << "FastGLTF error loading from " << path << std::endl
                   << fastgltfErrorToString(data.error()) << std::endl;
-        return fastgltf::Asset{};
+        throw std::runtime_error("Failed to load asset");
     }
 
     auto assetResult =

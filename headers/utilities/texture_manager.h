@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -32,27 +33,33 @@ class TextureManager
 
     Handle assignHandle();
 
-    // Static loaded textures
-    void loadModelTextures(const Handle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath,
-                           const std::optional<Handle> borrowHandle);
+    // Add a gLTF model
+    void loadModelTextures(const Handle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath);
     void loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath,
                              std::vector<int> &materialIndices);
 
     GLenum getReflectionColorFormat() const;
-    const std::vector<Material> &getMaterials(Handle handle) const;
+    std::span<const Material> getMaterials(Handle handle) const;
 
-    // Dynamic cubemap borrowing
+    void reserveCubemaps(int numCubemaps, int resolution, GLenum internalFormat);
+
+    // Borrow a cubemap after the scene has been built
     void borrowCubemaps(Handle self, Handle other);
     void setCubemap(Handle handle, std::vector<int> overrideIndices, RenderTarget &renderTarget);
 
     void buildAllTextures();
-    void reserveCubemaps(int numCubemaps, int resolution, GLenum internalFormat);
 
   private:
     struct ArrayReference
     {
         ArrayTexture &array;
         int index{0};
+    };
+
+    struct MaterialRange
+    {
+        std::size_t begin{0};
+        std::size_t end{0};
     };
 
     std::vector<ArrayTexture> arrayTextures_;
@@ -63,13 +70,14 @@ class TextureManager
     GLenum dynamicCubemapInternalFormat_{GL_SRGB8};
 
     ThreadPool &threadPool_;
-    std::unordered_map<Handle, std::vector<Material>> materialLookup_;
+    std::vector<Material> materials_;
+    std::unordered_map<Handle, MaterialRange> materialLookup_;
+
+    // Cached filenames for sharing atlases. Paths are ignored - image filenames must be unique across the project
+    std::unordered_map<std::filesystem::path, SamplerArrayIndex> filepathCache_;
 
     // Textures to be uploaded
     std::vector<AssetLoader::DeferredTexture> deferredTextures_;
-
-    // Borrows to be resolved after textures are done
-    std::vector<std::pair<Handle, Handle>> pendingBorrows_;
 
     // Textures from disk
     std::vector<gli::texture> loadTexturesFromPool(const std::vector<AssetLoader::DeferredTexture> &textures);
@@ -82,8 +90,9 @@ class TextureManager
     void insertTexture(const AssetLoader::DeferredTexture &deferred, const gli::texture &texture);
 
     // Private helper for material lookups. Mirrors the public API, except its not const
-    std::vector<Material> &findMaterials(Handle handle);
+    std::span<Material> findMaterials(Handle handle);
+    void addMaterials(Handle handle, std::size_t size);
 
-    void resolveBorrows();
     void validateState();
+    void assignFallbacks();
 };

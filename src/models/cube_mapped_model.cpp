@@ -7,8 +7,8 @@
 #include "texture_manager.h"
 
 CubeMappedModel::CubeMappedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
-                                 const std::filesystem::path &imagePath, std::optional<Handle> borrowHandle)
-    : Model{textureManager, modelPath, borrowHandle}
+                                 const std::filesystem::path &imagePath)
+    : Model{textureManager, modelPath}
 {
     std::vector<int> materialIndices;
     materialIndices.reserve(primitives_.size());

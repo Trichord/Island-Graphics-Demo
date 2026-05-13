@@ -12,21 +12,21 @@
 #include <vector>
 
 #include "aabb.h"
-#include "fastgltf/types.hpp"
 #include "asset_loader.h"
+#include "fastgltf/types.hpp"
 #include "glm/glm.hpp"
 #include "primitive.h"
 
 #include "texture_manager.h"
 
-Model::Model(TextureManager &textureManager, const std::filesystem::path &path, std::optional<Handle> borrowHandle)
+Model::Model(TextureManager &textureManager, const std::filesystem::path &path)
     : handle_{textureManager.assignHandle()}, filePath_{path}
 {
     fastgltf::Asset asset = AssetLoader::loadAsset(path);
     primitives_ = AssetLoader::loadMeshes(asset);
     calculateAABB();
 
-    textureManager.loadModelTextures(handle_, std::move(asset), path.parent_path(), borrowHandle);
+    textureManager.loadModelTextures(handle_, std::move(asset), path.parent_path());
 }
 
 AABB &Model::getAABB()
@@ -37,11 +37,6 @@ AABB &Model::getAABB()
 std::span<Primitive> Model::getPrimitives()
 {
     return primitives_;
-}
-
-std::optional<Handle> Model::getBorrowedHandle() const
-{
-    return borrowedHandle_;
 }
 
 Handle Model::getHandle() const
