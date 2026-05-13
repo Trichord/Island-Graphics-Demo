@@ -26,13 +26,12 @@ SceneTotals getSceneTotals(Scene &scene)
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {
         Renderable &renderable{entry.renderableRef.get()};
-        std::optional<Handle> borrowed{renderable.getBorrowedHandle()};
         std::span<Primitive> primitives{renderable.getPrimitives()};
 
         std::size_t numTransforms{entry.transforms.size()};
         std::size_t numPrimitives{primitives.size()};
 
-        if (entry.shaderType == ShaderType::water && !borrowed.has_value())
+        if (entry.shaderType == ShaderType::water)
             ++totals.dynamicCubemaps;
 
         totals.matrices += numTransforms;
@@ -182,7 +181,7 @@ void setMetadataMaterials(TextureManager &manager, const std::vector<DrawEntry> 
         PrimitiveMetadata &metaEntry{metadata[i]};
 
         const int matIndex{entry.primitive->materialIndex};
-        const std::vector<Material> &materials{manager.getMaterials(entry.handle)};
+        std::span<const Material> materials{manager.getMaterials(entry.handle)};
         const Material &material{materials[matIndex]};
 
         if (matIndex < 0 || matIndex >= static_cast<int>(materials.size()))

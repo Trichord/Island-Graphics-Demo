@@ -20,6 +20,8 @@
 #include "transform.h"
 #include "world_vectors.h"
 
+#include <iostream>
+
 void Renderer::borrowSkybox(const std::vector<DrawEntry> &entries)
 {
     using enum ShaderType;
@@ -114,19 +116,12 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndire
             continue;
 
         const Renderable &renderable{entry.renderableRef.get()};
-
-        if (std::optional<Handle> borrowed = renderable.getBorrowedHandle(); borrowed.has_value())
-        {
-            textureManager_.borrowCubemaps(renderable.getHandle(), borrowed.value());
-            continue;
-        }
-
         Transform &transform{entry.transforms.front()};
 
         // Set the camera in the center of the water plane
         camera.setPosition(transform.getPosition());
         renderCubeFaces(scene, cubeFaces, blitTarget);
-
+        
         // Assign the texture
         auto &waterPlane = entry.renderableRef.get();
         const std::span<Primitive> &primitives{waterPlane.getPrimitives()};

@@ -14,9 +14,8 @@
 #include "world_vectors.h"
 
 InstancedModel::InstancedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
-                               const std::filesystem::path &positionsPath, Randomize randomize,
-                               const std::optional<Handle> borrowHandle)
-    : Model{textureManager, modelPath, borrowHandle}, positionsPath_{positionsPath}, randomize_{randomize}
+                               const std::filesystem::path &positionsPath, Randomize randomize)
+    : Model{textureManager, modelPath}, positionsPath_{positionsPath}, randomize_{randomize}
 {
 }
 
