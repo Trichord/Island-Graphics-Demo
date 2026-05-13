@@ -56,6 +56,16 @@ int ArrayTexture::getHeight() const
     return height_;
 }
 
+int ArrayTexture::getCapacity() const
+{
+    return capacity_;
+}
+
+int ArrayTexture::getCurrentSize() const
+{
+    return current_;
+}
+
 GLenum ArrayTexture::getInternalFormat() const
 {
     return internalFormat_;
@@ -63,10 +73,19 @@ GLenum ArrayTexture::getInternalFormat() const
 
 void ArrayTexture::addCapacity(int capacity)
 {
+    constexpr int maxArrayTextureLayers{2048};
+
     if (allocated_)
     {
         std::cerr << "ERROR: ArrayTexture::addCapacity called after ArrayTexture::allocate()" << std::endl;
         throw std::logic_error("ArrayTexture::addCapacity called after ArrayTexture::allocate()");
+    }
+
+    if (capacity_ + capacity > maxArrayTextureLayers)
+    {
+        std::cerr << "ERROR: ArrayTexture " << width_ << "x" << height_ << ", format " << internalFormat_
+                  << " cannot allocate more than " << maxArrayTextureLayers << " layers" << std::endl;
+        throw std::runtime_error("ArrayTexture over allocated");
     }
 
     capacity_ += capacity;
@@ -136,6 +155,12 @@ void ArrayTexture::allocate(bool cubemap, bool textureRepeat, bool mipmaps, floa
 
 int ArrayTexture::insert(RenderTarget &renderTarget)
 {
+    if (!allocated_)
+    {
+        std::cerr << "ERROR: ArrayTexture::insert called before ArrayTexture::allocate" << std::endl;
+        throw std::logic_error("ArrayTexture::insert called before ArrayTexture::allocate");
+    }
+
     const GLuint sourceID{renderTarget.getColorTextureID()};
     const GLuint layers{static_cast<GLuint>(renderTarget.getNumLayers())};
     const GLsizei sourceWidth{static_cast<GLsizei>(renderTarget.getWidth())};

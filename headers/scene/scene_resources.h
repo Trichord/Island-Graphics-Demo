@@ -22,19 +22,16 @@ class SceneResources
   public:
     SceneResources(TextureManager &textureManager);
 
-    Model &loadModel(const std::filesystem::path &modelPath, const std::optional<Handle> borrowHandle = {});
+    Model &loadModel(const std::filesystem::path &modelPath);
 
     InstancedModel &loadInstancedModel(const std::filesystem::path &modelPath,
                                        const std::filesystem::path &positionsPath,
-                                       const InstancedModel::Randomize randomize,
-                                       const std::optional<Handle> borrowHandle = {});
+                                       const InstancedModel::Randomize randomize);
 
     CubeMappedModel &loadCubeMappedModel(const std::filesystem::path &modelPath,
-                                         const std::filesystem::path &imagePaths,
-                                         const std::optional<Handle> borrowHandle = {});
+                                         const std::filesystem::path &imagePaths);
 
     Skybox &loadSkybox(const std::filesystem::path &imagePaths);
-    Skybox &loadSkybox(const Handle borrowHandle);
 
   private:
     TextureManager &textureManager_;

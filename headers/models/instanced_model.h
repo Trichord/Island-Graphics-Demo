@@ -18,8 +18,7 @@ class InstancedModel : public Model
     };
 
     InstancedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
-                   const std::filesystem::path &positionsPath, Randomize randomize,
-                   const std::optional<Handle> borrowHandle);
+                   const std::filesystem::path &positionsPath, Randomize randomize);
 
     // Load positions from storage and generate matrices
     std::vector<Transform> loadInstancedTransforms();

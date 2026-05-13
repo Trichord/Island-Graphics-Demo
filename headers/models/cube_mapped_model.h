@@ -13,5 +13,5 @@ class CubeMappedModel : public Model
 {
   public:
     CubeMappedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
-                    const std::filesystem::path &imagePath, std::optional<Handle> borrowHandle = {});
+                    const std::filesystem::path &imagePath);
 };

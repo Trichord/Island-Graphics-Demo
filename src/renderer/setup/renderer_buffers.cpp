@@ -242,7 +242,7 @@ void Renderer::updateMetadataCubemaps(const std::vector<DrawEntry> &entries, std
             const DrawEntry &drawEntry{entries[i]};
             PrimitiveMetadata &metaEntry{metadata[i]};
 
-            const std::vector<Material> &materials{textureManager_.getMaterials(drawEntry.handle)};
+            std::span<const Material> materials{textureManager_.getMaterials(drawEntry.handle)};
             const int matIndex{drawEntry.primitive->materialIndex};
             const Material &material{materials[matIndex]};
 
