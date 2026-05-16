@@ -22,7 +22,6 @@
 #include "glm/glm.hpp"
 #include "handle.h"
 #include "primitive.h"
-#include "renderable.h"
 #include "textures.h"
 
 namespace

@@ -1,7 +1,6 @@
 #include <cstdint>
 #include <iostream>
 #include <limits>
-#include <optional>
 #include <span>
 #include <stdexcept>
 #include <vector>
@@ -10,6 +9,7 @@
 #include "fastgltf/types.hpp"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
+#include "handle.h"
 #include "primitive.h"
 #include "renderable.h"
 #include "renderer_types.h"

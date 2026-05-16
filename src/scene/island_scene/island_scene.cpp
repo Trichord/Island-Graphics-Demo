@@ -112,27 +112,27 @@ void IslandScene::addAllModelsToScene()
     addInstancedObjectToScene(whiteFlowers, grass);
 
     // Blue flowers
-    auto &blueFlowers = resources_.loadInstancedModel("./res/models/vegetation/blueflower/blueflower.gltf",
-                                                      "./res/positions/blueflower.txt",
-                                                      {.minScale = 0.9f, .maxScale = 1.1f});
+    auto &blueFlowers =
+        resources_.loadInstancedModel("./res/models/vegetation/blueflower/blueflower.gltf",
+                                      "./res/positions/blueflower.txt", {.minScale = 0.9f, .maxScale = 1.1f});
     addInstancedObjectToScene(blueFlowers, grass);
 
     // Purple flowers
-    auto &purpleFlowers = resources_.loadInstancedModel("./res/models/vegetation/purpleflower/purpleflower.gltf",
-                                                        "./res/positions/purpleflower.txt",
-                                                        {.minScale = 0.9f, .maxScale = 1.1f});
+    auto &purpleFlowers =
+        resources_.loadInstancedModel("./res/models/vegetation/purpleflower/purpleflower.gltf",
+                                      "./res/positions/purpleflower.txt", {.minScale = 0.9f, .maxScale = 1.1f});
     addInstancedObjectToScene(purpleFlowers, grass);
 
     // Dandelions
-    auto &dandelions = resources_.loadInstancedModel("./res/models/vegetation/dandelion/dandelion.gltf",
-                                                     "./res/positions/dandelion.txt",
-                                                     {.minScale = 1.0f, .maxScale = 1.5f});
+    auto &dandelions =
+        resources_.loadInstancedModel("./res/models/vegetation/dandelion/dandelion.gltf",
+                                      "./res/positions/dandelion.txt", {.minScale = 1.0f, .maxScale = 1.5f});
     addInstancedObjectToScene(dandelions, grass);
 
     // Strawberry flowers
-    auto &strawberries = resources_.loadInstancedModel("./res/models/vegetation/strawberry/strawberry.gltf",
-                                                       "./res/positions/strawberry.txt",
-                                                       {.minScale = 0.8f, .maxScale = 1.2f});
+    auto &strawberries =
+        resources_.loadInstancedModel("./res/models/vegetation/strawberry/strawberry.gltf",
+                                      "./res/positions/strawberry.txt", {.minScale = 0.8f, .maxScale = 1.2f});
     addInstancedObjectToScene(strawberries, grass);
 
     /*********
@@ -194,7 +194,7 @@ void IslandScene::addAllModelsToScene()
      *        *
      **********/
 
-    std::filesystem::path skyBoxPath{"./res/textures/skybox/skybox.dds"};
+    std::filesystem::path skyBoxPath{"./res/textures/skybox/skybox.ktx2"};
     auto &skyboxModel = resources_.loadSkybox(skyBoxPath);
     addSkyboxToScene(skyboxModel);
 
@@ -205,7 +205,7 @@ void IslandScene::addAllModelsToScene()
      ***************/
 
     // Fancy spinning space model
-    std::filesystem::path spaceBoxPath{"./res/textures/nebula/nebula.dds"};
+    std::filesystem::path spaceBoxPath{"./res/textures/nebula/nebula.ktx2"};
 
     auto &spaceModel =
         resources_.loadCubeMappedModel("./res/models/set_pieces/space_model/space_model.gltf", spaceBoxPath);

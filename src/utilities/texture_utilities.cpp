@@ -1,13 +1,13 @@
 #include "texture_utilities.h"
 
+#include "ktx_texture.h"
+
 #include <algorithm>
-#include <cmath>
 #include <filesystem>
 #include <iostream>
 
+#include "KHR/vkformat_enum.h"
 #include "glad/glad.h"
-#include "gli/gli.hpp"
-#include "glm/glm.hpp"
 #include "textures.h"
 
 namespace
@@ -30,102 +30,124 @@ GLuint magentaTexture()
 }
 } // namespace
 
-GLenum TextureUtilities::gliToGL(const gli::texture &texture)
+GLenum TextureUtilities::vkFormatToGL(const ktx_uint32_t vkFormat)
 {
-    static const gli::gl glTranslator(gli::gl::PROFILE_GL33);
-
-    const gli::gl::format format = glTranslator.translate(texture.format(), texture.swizzles());
-    const glm::tvec3<GLsizei> extent{texture.extent()};
-    const int size{static_cast<int>(extent.x)};
-
-    return static_cast<GLenum>(format.Internal);
-}
-
-GLenum TextureUtilities::toSRGB(GLenum format)
-{
-    switch (format)
+    switch (vkFormat)
     {
-    case GL_RGB8:
-        return GL_SRGB8;
-    case GL_RGBA8:
-        return GL_SRGB8_ALPHA8;
+    case VK_FORMAT_BC4_UNORM_BLOCK:
+        return GL_COMPRESSED_RED_RGTC1;
+    case VK_FORMAT_BC4_SNORM_BLOCK:
+        return GL_COMPRESSED_SIGNED_RED_RGTC1;
 
-    case GL_COMPRESSED_RGBA_BPTC_UNORM:
+    case VK_FORMAT_BC5_UNORM_BLOCK:
+        return GL_COMPRESSED_RG_RGTC2;
+    case VK_FORMAT_BC5_SNORM_BLOCK:
+        return GL_COMPRESSED_SIGNED_RG_RGTC2;
+
+    case VK_FORMAT_BC7_UNORM_BLOCK:
+        return GL_COMPRESSED_RGBA_BPTC_UNORM;
+    case VK_FORMAT_BC7_SRGB_BLOCK:
         return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
 
-    case GL_COMPRESSED_RGB8_ETC2:
-        return GL_COMPRESSED_SRGB8_ETC2;
-    case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-        return GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2;
-    case GL_COMPRESSED_RGBA8_ETC2_EAC:
-        return GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC;
-
     default:
-        return format;
+        std::cerr << "WARNING: Unsupported vkFormat " << vkFormat << std::endl;
+        return 0;
     }
 }
 
-// Returns the smallest mip level for 4x4 block compressed textures. For uncompressed textures, 4x4 is an acceptable
-// smallest mip level
-int TextureUtilities::calculateMipmapLevels(int width, int height)
+int TextureUtilities::calculateMipmapLevels(int width, int height, bool compressed)
 {
-    int maxDimension = std::max(width, height);
+    int mipCount{1};
+    int minDimension{std::min(width, height)};
+    int maxDepth{compressed ? 4 : 1};
 
-    return static_cast<int>(std::floor(std::log2(maxDimension / 4))) + 1;
+    while ((minDimension >> mipCount) >= maxDepth)
+        ++mipCount;
+
+    return mipCount;
 }
 
+bool TextureUtilities::transcodeKTX(KTXTexture &texture)
+{
+    if (!texture)
+    {
+        std::cerr << "ERROR: empty texture" << std::endl;
+        return false;
+    }
+
+    if (!ktxTexture2_NeedsTranscoding(texture.get()))
+        return true;
+
+    const ktx_uint32_t numComponents{ktxTexture2_GetNumComponents(texture.get())};
+    ktx_transcode_fmt_e format;
+
+    switch (numComponents)
+    {
+    case 1:
+        format = KTX_TTF_BC4_R;
+        break;
+    case 2:
+        format = KTX_TTF_BC5_RG;
+        break;
+    default:
+        format = KTX_TTF_BC7_RGBA;
+        break;
+    }
+
+    KTX_error_code result{ktxTexture2_TranscodeBasis(texture.get(), format, 0)};
+
+    if (result != KTX_SUCCESS)
+    {
+        std::cerr << ktxErrorString(result) << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+// Loads single 2D images from disk into Intended for User Interface, Logos, etc.
 GLuint TextureUtilities::textureFromFile(std::filesystem::path path, TextureDetails details)
 {
-    gli::texture texture{gli::load(path.string().c_str())};
-
-    if (texture.empty())
+    if (path.empty() || !std::filesystem::exists(path))
     {
-        std::cerr << "ERROR: Texture loading error for " << path << std::endl;
+        std::cerr << "ERROR: Bad filepath for texture " << path << std::endl;
         return magentaTexture();
     }
 
-    const gli::gl glTranslator{gli::gl::PROFILE_GL33};
-    const gli::gl::format glFormat{glTranslator.translate(texture.format(), texture.swizzles())};
-    const GLenum target{static_cast<GLenum>(glTranslator.translate(texture.target()))};
-    const gli::texture::target_type targetType{texture.target()};
+    KTXTexture texture{path.string().c_str()};
 
-    if (targetType != gli::TARGET_1D_ARRAY && targetType != gli::TARGET_2D)
+    if (!transcodeKTX(texture))
     {
-        std::cerr << "ERROR: Wrong texture type for 2D texture for " << path << std::endl;
+        std::cerr << "Failed to transcode " << path << std::endl;
         return magentaTexture();
     }
 
     GLuint id{0};
-    glCreateTextures(target, 1, &id);
+    GLenum target{GL_TEXTURE_2D};
+    GLenum error{GL_NONE};
 
-    glm::tvec3<GLsizei> maxWidth{texture.extent()};
-    GLenum internalFormat{static_cast<GLenum>(glFormat.Internal)};
+    ktx_error_code_e result{ktxTexture_GLUpload(ktxTexture(texture.get()), &id, &target, &error)};
 
-    if (details.sRGB)
-        internalFormat = toSRGB(internalFormat);
+    if (result != KTX_SUCCESS)
+    {
+        std::cerr << "ERROR: Wrong texture type for 2D texture for " << path << std::endl;
+        glDeleteTextures(1, &id);
+        return magentaTexture();
+    }
 
-    glTextureStorage2D(id, static_cast<GLint>(texture.levels()), static_cast<GLenum>(internalFormat), maxWidth.x,
-                       maxWidth.y);
+    if (error != GL_NONE)
+    {
+        std::cerr << "ERROR: OpenGL error " << error << " creating texture from " << path << std::endl;
+        glDeleteTextures(1, &id);
+        return magentaTexture();
+    }
 
-    for (std::size_t layer{0}; layer < texture.layers(); ++layer)
-        for (std::size_t face{0}; face < texture.faces(); ++face)
-            for (std::size_t level{0}; level < texture.levels(); ++level)
-            {
-                const glm::tvec3<GLsizei> extent{texture.extent(level)};
-
-                if (gli::is_compressed(texture.format()))
-                {
-
-                    glCompressedTextureSubImage2D(id, static_cast<GLint>(level), 0, 0, extent.x, extent.y,
-                                                  glFormat.Internal, static_cast<GLsizei>(texture.size(level)),
-                                                  texture.data(layer, face, level));
-                }
-                else
-                {
-                    glTextureSubImage2D(id, static_cast<GLint>(level), 0, 0, extent.x, extent.y, glFormat.External,
-                                        glFormat.Type, texture.data(layer, face, level));
-                }
-            }
+    if (target != GL_TEXTURE_2D && target != GL_IMAGE_1D_ARRAY)
+    {
+        std::cerr << "ERROR: Wrong texture type for 2D texture for " << path << std::endl;
+        glDeleteTextures(1, &id);
+        return magentaTexture();
+    }
 
     glTextureParameteri(id, GL_TEXTURE_WRAP_S, details.sampler.wrapS);
     glTextureParameteri(id, GL_TEXTURE_WRAP_T, details.sampler.wrapT);

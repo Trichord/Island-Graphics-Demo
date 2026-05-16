@@ -1,13 +1,14 @@
 #pragma once
 
+#include "thread_pool.h"
+
 #include <atomic>
 #include <condition_variable>
 #include <filesystem>
 #include <mutex>
 #include <vector>
 
-#include "gli/gli.hpp"
-#include "thread_pool.h"
+#include "ktx_texture.h"
 
 /*
 ImageLoader takes in a vector of image filepaths, and returns a vector of
@@ -19,7 +20,7 @@ class TextureLoader
   public:
     TextureLoader(ThreadPool &threadPool, const std::vector<std::filesystem::path> &filepaths);
 
-    [[nodiscard]] std::vector<gli::texture> getTextures();
+    [[nodiscard]] std::vector<KTXTexture> getTextures();
 
   private:
     bool texturesReleased_{false};
@@ -29,7 +30,7 @@ class TextureLoader
 
     std::size_t numImages_{0};
     std::atomic<std::size_t> numImagesLoaded_{0};
-    std::vector<gli::texture> loadedTextures_;
+    std::vector<KTXTexture> loadedTextures_;
 
     void loadFromFile(const std::filesystem::path &path, std::size_t index);
 };

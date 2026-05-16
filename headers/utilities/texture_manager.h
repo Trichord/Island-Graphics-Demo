@@ -1,19 +1,17 @@
 #pragma once
 
-#include "handle.h"
 #include <fastgltf/types.hpp>
 #include <filesystem>
-#include <optional>
+#include <span>
 #include <unordered_map>
-#include <unordered_set>
-#include <utility>
 #include <vector>
 
 #include "array_texture.h"
 #include "asset_loader.h"
 #include "glad/glad.h"
-#include "gli/texture.hpp"
 #include "graphics_settings.h"
+#include "handle.h"
+#include "ktx_texture.h"
 #include "render_target.h"
 #include "textures.h"
 #include "thread_pool.h"
@@ -80,19 +78,18 @@ class TextureManager
     std::vector<AssetLoader::DeferredTexture> deferredTextures_;
 
     // Textures from disk
-    std::vector<gli::texture> loadTexturesFromPool(const std::vector<AssetLoader::DeferredTexture> &textures);
+    std::vector<KTXTexture> loadTexturesFromPool(const std::vector<AssetLoader::DeferredTexture> &textures);
 
     // Helpers for assigning to texture buckets
     ArrayReference findCubemapArray(int size, GLenum internalFormat);
-    ArrayReference findArray(const AssetLoader::DeferredTexture &deferred, const gli::texture &texture);
+    ArrayReference findArray(const AssetLoader::DeferredTexture &deferred, const KTXTexture &texture);
 
-    void countTexture(const AssetLoader::DeferredTexture &deferred, const gli::texture &texture);
-    void insertTexture(const AssetLoader::DeferredTexture &deferred, const gli::texture &texture);
+    void countTexture(const AssetLoader::DeferredTexture &deferred, const KTXTexture &texture);
+    void insertTexture(const AssetLoader::DeferredTexture &deferred, const KTXTexture &texture);
 
     // Private helper for material lookups. Mirrors the public API, except its not const
     std::span<Material> findMaterials(Handle handle);
     void addMaterials(Handle handle, std::size_t size);
 
     void validateState();
-    void assignFallbacks();
 };

@@ -13,6 +13,7 @@
 #include "directional_light.h"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
+#include "handle.h"
 #include "instanced_model.h"
 #include "scene_resources.h"
 #include "skybox.h"

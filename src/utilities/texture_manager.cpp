@@ -2,7 +2,7 @@
 
 #include <filesystem>
 #include <iostream>
-#include <optional>
+#include <span>
 #include <stdexcept>
 #include <unordered_map>
 #include <utility>
@@ -12,9 +12,9 @@
 #include "asset_loader.h"
 #include "fastgltf/types.hpp"
 #include "glad/glad.h"
-#include "gli/texture.hpp"
 #include "graphics_settings.h"
 #include "handle.h"
+#include "ktx_texture.h"
 #include "render_target.h"
 #include "texture_loader.h"
 #include "texture_utilities.h"
@@ -208,9 +208,13 @@ void TextureManager::buildAllTextures()
     // Enforce strict order. This function should get called once and only once
     texturesBuilt_ = true;
 
+    std::cout << "Loading Textures... ";
+
     // If models share an atlas and have deleted the file, correct array indexes will be assigned later from the cached
     // file names, but the texture itself will be empty.
-    std::vector<gli::texture> textures{loadTexturesFromPool(deferredTextures_)};
+    std::vector<KTXTexture> textures{loadTexturesFromPool(deferredTextures_)};
+
+    std::cout << "Done" << std::endl;
 
     // Count all the buckets and pre-size the ArrrayTextures since they're immutable afterwards
     for (std::size_t i{0}; i < deferredTextures_.size(); ++i)
@@ -234,13 +238,11 @@ void TextureManager::buildAllTextures()
     for (int i{0}; i < static_cast<int>(arrayCubemaps_.size()); ++i)
         arrayCubemaps_[i].bindTextureUnit(TextureUnit::arrayCubemapBase + i);
 
-    assignFallbacks();
     filepathCache_.clear();
     deferredTextures_.clear();
 }
 
-std::vector<gli::texture> TextureManager::loadTexturesFromPool(
-    const std::vector<AssetLoader::DeferredTexture> &textures)
+std::vector<KTXTexture> TextureManager::loadTexturesFromPool(const std::vector<AssetLoader::DeferredTexture> &textures)
 {
     std::vector<std::filesystem::path> paths;
 
@@ -254,9 +256,9 @@ std::vector<gli::texture> TextureManager::loadTexturesFromPool(
     return loader.getTextures();
 }
 
-void TextureManager::countTexture(const AssetLoader::DeferredTexture &deferred, const gli::texture &texture)
+void TextureManager::countTexture(const AssetLoader::DeferredTexture &deferred, const KTXTexture &texture)
 {
-    if (texture.empty())
+    if (!texture)
         return;
 
     ArrayReference arrayRef{findArray(deferred, texture)};
@@ -264,7 +266,7 @@ void TextureManager::countTexture(const AssetLoader::DeferredTexture &deferred, 
 }
 
 // Insert into a ArrayTexture. Texture atlases can be shared across models
-void TextureManager::insertTexture(const AssetLoader::DeferredTexture &deferred, const gli::texture &texture)
+void TextureManager::insertTexture(const AssetLoader::DeferredTexture &deferred, const KTXTexture &texture)
 {
     std::span<Material> materials{findMaterials(deferred.handle)};
     auto fileCacheIter = filepathCache_.find(deferred.path.filename());
@@ -282,7 +284,7 @@ void TextureManager::insertTexture(const AssetLoader::DeferredTexture &deferred,
         return;
     }
 
-    if (texture.empty())
+    if (!texture)
     {
         std::cerr << "WARNING: Empty texture " << deferred.path << std::endl;
         return;
@@ -303,20 +305,14 @@ void TextureManager::insertTexture(const AssetLoader::DeferredTexture &deferred,
 }
 
 TextureManager::ArrayReference TextureManager::findArray(const AssetLoader::DeferredTexture &deferred,
-                                                         const gli::texture &texture)
+                                                         const KTXTexture &texture)
 {
     const bool isCubemap{deferred.type == Material::cubemap};
     std::vector<ArrayTexture> &arrayTextures{isCubemap ? arrayCubemaps_ : arrayTextures_};
 
-    glm::tvec3<GLsizei> extent{texture.extent()};
-    int width{static_cast<int>(extent.x)};
-    int height{static_cast<int>(extent.y)};
-
-    GLenum internalFormat{TextureUtilities::gliToGL(texture)};
-
-    // Slightly annoying. Nvidia Texture Tools does not tag anything as sRGB
-    if (isCubemap || deferred.type == Material::albedo)
-        internalFormat = TextureUtilities::toSRGB(internalFormat);
+    GLenum internalFormat{TextureUtilities::vkFormatToGL(texture->vkFormat)};
+    int width{static_cast<int>(texture->baseWidth)};
+    int height{static_cast<int>(texture->baseHeight)};
 
     for (int i{0}; i < static_cast<int>(arrayTextures.size()); ++i)
     {
@@ -388,70 +384,4 @@ std::span<Material> TextureManager::findMaterials(Handle handle)
     MaterialRange range{iter->second};
 
     return std::span<Material>{materials_}.subspan(range.begin, range.end - range.begin);
-}
-
-// Should not ever get here with a real texture, but an array / layer index of -1 on the GPU would be implementation-dependent.
-void TextureManager::assignFallbacks()
-{
-    if (materials_.empty())
-        return;
-
-    SamplerArrayIndex fallbackTexture;
-
-    for (int i{0}; i < static_cast<int>(arrayTextures_.size()); ++i)
-    {
-        if (arrayTextures_[i].getCurrentSize())
-        {
-            fallbackTexture.array = i;
-            fallbackTexture.layer = 0;
-            break;
-        }
-    }
-
-    SamplerArrayIndex fallbackCubemap;
-
-    for (int i{0}; i < static_cast<int>(arrayCubemaps_.size()); ++i)
-    {
-        if (arrayCubemaps_[i].getCurrentSize())
-        {
-            fallbackCubemap.array = i;
-            fallbackCubemap.layer = 0;
-            break;
-        }
-    }
-
-    bool needCubemap{false};
-    bool needTextures{false};
-
-    std::vector<Material::Type> pbr = {Material::albedo, Material::ARM, Material::normal};
-
-    for (Material &material : materials_)
-    {
-        for (Material::Type t : pbr)
-        {
-            if (material[t].array == -1 || material[t].layer == -1)
-            {
-                material[t] = fallbackTexture;
-                needTextures = true;
-            }
-        }
-
-        if (material[Material::cubemap].array == -1 || material[Material::cubemap].layer == -1)
-        {
-            material[Material::cubemap] = fallbackCubemap;
-            needCubemap = true;
-        }
-    }
-
-    if (needTextures && fallbackTexture.array == -1)
-    {
-        std::cerr << "ERROR: Fallback texture needed - no ArrayTexture with valid textures" << std::endl;
-        throw std::runtime_error("No fallback texture");
-    }
-
-    if (needCubemap && fallbackCubemap.array == -1)
-    {
-        std::cerr << "ERROR: Fallback cubemap needed - no ArrayTexture with valid cubemap" << std::endl;
-        throw std::runtime_error("No fallback cubemap");
-    }
 }
