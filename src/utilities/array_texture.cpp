@@ -10,15 +10,32 @@
 #include "render_target.h"
 #include "texture_utilities.h"
 
-ArrayTexture::ArrayTexture(int width, int height, GLenum internalFormat, int capacity)
-    : width_{width}, height_{height}, capacity_{capacity}, internalFormat_{internalFormat}
+namespace
 {
+void capacityError(int width, int height, GLenum format, int attempted, int max)
+{
+    std::cerr << "ERROR: ArrayTexture " << width << "x" << height << ", format " << format << " cannot allocate "
+              << attempted << ", max " << max << " layers" << std::endl;
+    throw std::runtime_error("ArrayTexture over allocated");
+}
+} // namespace
+
+ArrayTexture::ArrayTexture(int width, int height, GLenum internalFormat, bool fallback, int capacity)
+    : width_{width}, height_{height}, capacity_{capacity}, internalFormat_{internalFormat}, fallback_{fallback}
+{
+    if (capacity > maxArrayTextureLayers_)
+        capacityError(width, height, internalFormat, capacity, maxArrayTextureLayers_);
+
+    if (fallback_ && capacity_ > maxArrayTextureLayers_ - 1)
+        capacityError(width_, height_, internalFormat_, current_, maxArrayTextureLayers_);
+    else if (fallback_)
+        ++capacity_;
 }
 
 ArrayTexture::ArrayTexture(ArrayTexture &&other) noexcept
     : id_{other.id_}, width_{other.width_}, height_{other.height_}, current_{other.current_},
       capacity_{other.capacity_}, internalFormat_{other.internalFormat_}, cubemaps_{other.cubemaps_},
-      allocated_{other.allocated_}
+      allocated_{other.allocated_}, fallback_{other.fallback_}
 {
     other.id_ = 0;
 }
@@ -35,6 +52,7 @@ ArrayTexture &ArrayTexture::operator=(ArrayTexture &&other) noexcept
         std::swap(internalFormat_, other.internalFormat_);
         std::swap(cubemaps_, other.cubemaps_);
         std::swap(allocated_, other.allocated_);
+        std::swap(fallback_, other.fallback_);
     }
 
     return *this;
@@ -71,22 +89,24 @@ GLenum ArrayTexture::getInternalFormat() const
     return internalFormat_;
 }
 
+std::optional<int> ArrayTexture::getFallbackLayer() const
+{
+    if (fallback_)
+        return 0;
+    else
+        return {};
+}
+
 void ArrayTexture::addCapacity(int capacity)
 {
-    constexpr int maxArrayTextureLayers{2048};
-
     if (allocated_)
     {
         std::cerr << "ERROR: ArrayTexture::addCapacity called after ArrayTexture::allocate()" << std::endl;
         throw std::logic_error("ArrayTexture::addCapacity called after ArrayTexture::allocate()");
     }
 
-    if (capacity_ + capacity > maxArrayTextureLayers)
-    {
-        std::cerr << "ERROR: ArrayTexture " << width_ << "x" << height_ << ", format " << internalFormat_
-                  << " cannot allocate more than " << maxArrayTextureLayers << " layers" << std::endl;
-        throw std::runtime_error("ArrayTexture over allocated");
-    }
+    if (capacity_ + capacity > maxArrayTextureLayers_)
+        capacityError(width_, height_, internalFormat_, capacity, maxArrayTextureLayers_);
 
     capacity_ += capacity;
 }
@@ -151,6 +171,12 @@ void ArrayTexture::allocate(bool cubemap, bool textureRepeat, bool mipmaps, floa
 
     if (anisotropy > 0.0f)
         glTextureParameterf(id_, GL_TEXTURE_MAX_ANISOTROPY, anisotropy);
+
+    if (fallback_)
+    {
+        createFallbackLayer();
+        ++current_;
+    }
 }
 
 int ArrayTexture::insert(RenderTarget &renderTarget)
@@ -174,13 +200,8 @@ int ArrayTexture::insert(RenderTarget &renderTarget)
         throw std::runtime_error("Source texture too big for ArrayTexture");
     }
 
-    if (current_ >= capacity_)
-    {
-        std::cerr << "ERROR: Array texture " << width_ << "x" << height_ << ", format " << internalFormat_
-                  << " capacity reached" << std::endl;
-
-        throw std::runtime_error("ArrayTexture overflow");
-    }
+    if (current_ > capacity_)
+        capacityError(width_, height_, internalFormat_, current_, maxArrayTextureLayers_);
 
     const GLenum target{static_cast<GLenum>(cubemaps_ ? GL_TEXTURE_CUBE_MAP_ARRAY : GL_TEXTURE_2D_ARRAY)};
     const GLenum sourceTarget{static_cast<GLenum>(layers > 1 ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D)};
@@ -208,13 +229,8 @@ int ArrayTexture::insert(const KTXTexture &texture)
         throw std::runtime_error("Uninitialized array texture");
     }
 
-    if (current_ >= capacity_)
-    {
-        std::cerr << "ERROR: Array texture " << width_ << "x" << height_ << ", format " << internalFormat_
-                  << " capacity reached" << std::endl;
-
-        throw std::runtime_error("ArrayTexture overflow");
-    }
+    if (current_ > capacity_)
+        capacityError(width_, height_, internalFormat_, current_, maxArrayTextureLayers_);
 
     validate(texture);
     insertIntoArray(texture, current_);
@@ -280,5 +296,65 @@ void ArrayTexture::validate(const KTXTexture &texture)
     {
         std::cerr << " ArrayTexture " << width_ << "x" << height_ << ", format " << internalFormat_ << std::endl;
         throw std::runtime_error("Texture validation error");
+    }
+}
+
+void ArrayTexture::createFallbackLayer()
+{
+    if (internalFormat_ == GL_SRGB8)
+        createSRGBFallback();
+    else if (internalFormat_ == GL_COMPRESSED_RG_RGTC2)
+        createRGRGTC2Fallback();
+    else
+    {
+        std::cerr << "ERROR: Cannot create fallback texture for ArrayTexture " << width_ << "x" << height_
+                  << ", format " << internalFormat_ << std::endl;
+        throw std::runtime_error("Invalid fallback texture format");
+    }
+}
+
+void ArrayTexture::createSRGBFallback()
+{
+    std::vector<std::uint8_t> pixels(width_ * height_ * 3, 0);
+    for (std::size_t i{0}; i < pixels.size(); i += 3)
+        pixels[i] = 255;
+
+    int numFaces{cubemaps_ ? 6 : 1};
+
+    for (int face{0}; face < numFaces; ++face)
+    {
+        glTextureSubImage3D(id_, 0, 0, 0, face, static_cast<GLsizei>(width_), static_cast<GLsizei>(height_), 1, GL_RGB,
+                            GL_UNSIGNED_BYTE, pixels.data());
+    }
+
+    generateMipmaps();
+}
+
+void ArrayTexture::createRGRGTC2Fallback()
+{
+    // Solid red RGTC2
+    constexpr std::uint8_t block[16] = {255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+    int numFaces{cubemaps_ ? 6 : 1};
+    int levels{TextureUtilities::calculateMipmapLevels(width_, height_, true)};
+
+    for (int level{0}; level < levels; ++level)
+    {
+        int width{width_ >> level};
+        int height{height_ >> level};
+
+        std::vector<std::uint8_t> blocks(width / 4 * height / 4 * 16);
+
+        for (std::size_t i{0}; i < blocks.size(); i += 16)
+            std::memcpy(&blocks[i], block, 16);
+
+        for (int face{0}; face < numFaces; ++face)
+        {
+            int zOffset{cubemaps_ ? face : 0};
+
+            glCompressedTextureSubImage3D(id_, static_cast<GLint>(level), 0, 0, static_cast<GLint>(zOffset),
+                                          static_cast<GLsizei>(width), static_cast<GLsizei>(height), 1,
+                                          GL_COMPRESSED_RG_RGTC2, static_cast<GLsizei>(blocks.size()), blocks.data());
+        }
     }
 }
