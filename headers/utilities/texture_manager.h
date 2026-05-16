@@ -92,4 +92,5 @@ class TextureManager
     void addMaterials(Handle handle, std::size_t size);
 
     void validateState();
+    void assignFallbacks();
 };
