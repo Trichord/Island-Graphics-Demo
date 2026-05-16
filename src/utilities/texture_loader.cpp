@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "thread_pool.h"
+#include "ktx_texture.h"
 
 TextureLoader::TextureLoader(ThreadPool &threadPool, const std::vector<std::filesystem::path> &filepaths)
     : numImages_{filepaths.size()}, numImagesLoaded_{0}
@@ -28,7 +29,7 @@ TextureLoader::TextureLoader(ThreadPool &threadPool, const std::vector<std::file
     }
 }
 
-std::vector<gli::texture> TextureLoader::getTextures()
+std::vector<KTXTexture> TextureLoader::getTextures()
 {
     if (texturesReleased_)
     {
@@ -43,15 +44,15 @@ std::vector<gli::texture> TextureLoader::getTextures()
 void TextureLoader::loadFromFile(const std::filesystem::path &path, std::size_t index)
 {
     // Default construct an empty texture to ensure the 1:1 mapping of filepaths coming in and textures going out
-    gli::texture texture;
+    KTXTexture texture;
 
-    if (std::filesystem::exists(path) && !path.empty())
-        texture = gli::load(path.string().c_str());
+    if (!path.empty() && std::filesystem::exists(path))
+        texture = KTXTexture(path.string().c_str());
 
     // Lock and insert. Empty texture will be handled by the texture manager
     {
         std::unique_lock<std::mutex> lock{imagesMutex_};
-        loadedTextures_[index] = texture;
+        loadedTextures_[index] = std::move(texture);
 
         ++numImagesLoaded_;
 

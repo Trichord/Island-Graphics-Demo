@@ -70,7 +70,7 @@ void Renderer::renderScene(Scene &scene)
     updateSceneTransforms(scene);
     updateShaderUniforms(scene, lightChanged);
 
-    if (framesRendered_ % 2u && graphicsSettings_.shadowResolution > 1)
+    if (framesRendered_ % 2u && graphicsSettings_.shadowResolution > 1 || lightChanged)
         renderShadowMaps(scene, lightChanged);
 
     if (cameraUpdated)
@@ -248,12 +248,12 @@ const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
     const glm::vec4 row2{glm::row(matrix, 2)};
     const glm::vec4 row3{glm::row(matrix, 3)};
 
-    glm::vec4 left{glm::normalize(row3 + row0)};
-    glm::vec4 right{glm::normalize(row3 - row0)};
-    glm::vec4 top{glm::normalize(row3 - row1)};
-    glm::vec4 bottom{glm::normalize(row3 + row1)};
-    glm::vec4 near{glm::normalize(row3 + row2)};
-    glm::vec4 far{glm::normalize(row3 - row2)};
+    glm::vec4 left{row3 + row0};
+    glm::vec4 right{row3 - row0};
+    glm::vec4 top{row3 - row1};
+    glm::vec4 bottom{row3 + row1};
+    glm::vec4 near{row3 + row2};
+    glm::vec4 far{row3 - row2};
 
     normalizePlane(left);
     normalizePlane(right);

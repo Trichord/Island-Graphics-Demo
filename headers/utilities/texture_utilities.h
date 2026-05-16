@@ -3,6 +3,7 @@
 #include "glad/glad.h"
 #include "texture_loader.h"
 #include "textures.h"
+#include "ktx_texture.h"
 
 struct TextureDetails
 {
@@ -13,13 +14,8 @@ struct TextureDetails
 
 namespace TextureUtilities
 {
-// Conversions
-GLenum toSRGB(GLenum format);
-GLenum gliToGL(const gli::texture &texture);
-
-// Math
-int calculateMipmapLevels(int width, int height);
-
-// Texture creation
+bool transcodeKTX(KTXTexture &texture);
+int calculateMipmapLevels(int width, int height, bool compressed);
+GLenum vkFormatToGL(const ktx_uint32_t vkFormat);
 GLuint textureFromFile(std::filesystem::path path, TextureDetails details);
 } // namespace TextureUtilities
