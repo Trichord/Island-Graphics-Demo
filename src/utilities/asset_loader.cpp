@@ -1,12 +1,14 @@
-#include "fastgltf_loader.h"
+#include "asset_loader.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -18,8 +20,12 @@
 #include "fastgltf/tools.hpp"
 #include "fastgltf/types.hpp"
 #include "glm/glm.hpp"
+#include "handle.h"
 #include "primitive.h"
 #include "textures.h"
+
+namespace
+{
 
 std::string fastgltfErrorToString(fastgltf::Error error)
 {
@@ -58,28 +64,6 @@ std::string fastgltfErrorToString(fastgltf::Error error)
     default:
         return "Unknown FastGLTF error.";
     }
-}
-
-fastgltf::Asset fastgltfLoader::loadAsset(const std::filesystem::path &path)
-{
-    static fastgltf::Parser parser;
-    auto data = fastgltf::GltfDataBuffer::FromPath(path);
-
-    if (data.error() != fastgltf::Error::None)
-    {
-        std::cerr << "FastGLTF error loading from " << path << std::endl
-                  << fastgltfErrorToString(data.error()) << std::endl;
-        return fastgltf::Asset{};
-    }
-
-    auto assetResult =
-        parser.loadGltfJson(data.get(), path.parent_path(),
-                            fastgltf::Options::GenerateMeshIndices | fastgltf::Options::LoadExternalBuffers);
-
-    if (auto error = assetResult.error(); error != fastgltf::Error::None)
-        std::cerr << "fastgltf error while loading: " << path << std::endl;
-
-    return std::move(assetResult.get());
 }
 
 void calculateAABB(std::vector<Primitive> &primitives)
@@ -135,7 +119,31 @@ void applyNodeTransforms(const fastgltf::Asset &asset, std::vector<Primitive> &p
     }
 }
 
-std::vector<Primitive> fastgltfLoader::loadMeshes(const fastgltf::Asset &asset)
+} // namespace
+
+fastgltf::Asset AssetLoader::loadAsset(const std::filesystem::path &path)
+{
+    static fastgltf::Parser parser;
+    auto data = fastgltf::GltfDataBuffer::FromPath(path);
+
+    if (data.error() != fastgltf::Error::None)
+    {
+        std::cerr << "FastGLTF error loading from " << path << std::endl
+                  << fastgltfErrorToString(data.error()) << std::endl;
+        throw std::runtime_error("Failed to load asset");
+    }
+
+    auto assetResult =
+        parser.loadGltfJson(data.get(), path.parent_path(),
+                            fastgltf::Options::GenerateMeshIndices | fastgltf::Options::LoadExternalBuffers);
+
+    if (auto error = assetResult.error(); error != fastgltf::Error::None)
+        std::cerr << "fastgltf error while loading: " << path << std::endl;
+
+    return std::move(assetResult.get());
+}
+
+std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
 {
     std::vector<Primitive> primitives;
     std::size_t numPrimitives{0};
@@ -280,8 +288,8 @@ std::vector<Primitive> fastgltfLoader::loadMeshes(const fastgltf::Asset &asset)
     return primitives;
 }
 
-std::vector<std::filesystem::path> fastgltfLoader::getURIs(const fastgltf::Asset &asset,
-                                                           const std::filesystem::path &parentPath)
+std::vector<std::filesystem::path> AssetLoader::getURIs(const fastgltf::Asset &asset,
+                                                        const std::filesystem::path &parentPath)
 {
     std::vector<std::filesystem::path> URIpaths;
     URIpaths.reserve(asset.images.size());
@@ -301,13 +309,18 @@ std::vector<std::filesystem::path> fastgltfLoader::getURIs(const fastgltf::Asset
 
             URIpaths.emplace_back(fullImagePath);
         }
+        else
+        {
+            std::cerr << "ERROR: Non-URI images not supported" << std::endl;
+            throw std::runtime_error("Unsupported GLTF image format");
+        }
     }
 
     return URIpaths;
 }
 
-std::pair<unsigned int, Sampler> fastgltfLoader::getTextureInfo(const fastgltf::Asset &asset,
-                                                                const fastgltf::TextureInfo &texInfo)
+AssetLoader::TextureDescriptor AssetLoader::getTextureInfo(const fastgltf::Asset &asset,
+                                                           const fastgltf::TextureInfo &texInfo)
 {
     const auto &texture = asset.textures[texInfo.textureIndex];
 
@@ -333,5 +346,90 @@ std::pair<unsigned int, Sampler> fastgltfLoader::getTextureInfo(const fastgltf::
     Sampler sampler{static_cast<uint16_t>(magFilter), static_cast<uint16_t>(minFilter), static_cast<uint16_t>(wrapS),
                     static_cast<uint16_t>(wrapT)};
 
-    return {assetImageIndex, sampler};
+    return {sampler, assetImageIndex};
+}
+
+// Queues up pending textures for an asset, to be inserted into the texture array later
+std::vector<AssetLoader::DeferredTexture> AssetLoader::texturesFromAsset(fastgltf::Asset &asset,
+                                                                         const std::filesystem::path &parentPath,
+                                                                         Handle handle)
+{
+    using namespace AssetLoader;
+
+    std::vector<DeferredTexture> deferredTextures;
+    deferredTextures.reserve(asset.images.size());
+
+    // Resize to match fastgltf materials array
+    std::vector<Material> materials;
+    materials.resize(asset.materials.size());
+
+    // Get image paths image data
+    const std::vector<std::filesystem::path> paths{getURIs(asset, parentPath)};
+
+    // Map image index to pending texture index for deduplication
+    std::unordered_map<std::size_t, std::size_t> imageIndices;
+
+    // If the image index already exists, add the material index
+    auto getOrCreateTextureID = [&](const fastgltf::TextureInfo &textureInfo, Material::Type type,
+                                    std::size_t materialIndex) {
+        TextureDescriptor descriptor{getTextureInfo(asset, textureInfo)};
+        auto [pendingTextureIndex, inserted] = imageIndices.try_emplace(descriptor.imageIndex, 0);
+
+        if (descriptor.sampler.wrapS != descriptor.sampler.wrapT)
+        {
+            std::cerr << "Sampler wrap mismatch";
+            throw std::runtime_error("Texture property error");
+        }
+
+        if (inserted)
+        {
+            pendingTextureIndex->second = deferredTextures.size();
+            const bool repeat{descriptor.sampler.wrapS == static_cast<uint16_t>(fastgltf::Wrap::Repeat)};
+
+            deferredTextures.emplace_back(DeferredTexture{
+                .handle = handle,
+                .path = {paths[descriptor.imageIndex]},
+                .textureRepeat = repeat,
+                .materialIndices = {static_cast<int>(materialIndex)},
+                .type = type,
+            });
+        }
+        else
+        {
+            DeferredTexture &deferred{deferredTextures[pendingTextureIndex->second]};
+
+            deferred.materialIndices.push_back(static_cast<int>(materialIndex));
+
+            if (type != deferred.type)
+                std::cerr << "WARNING: gLTF file contains multiple PBR types pointing to the same image" << std::endl;
+        }
+    };
+
+    for (size_t i{0}; i < asset.materials.size(); ++i)
+    {
+        const fastgltf::Material &assetMaterial = asset.materials[i];
+        Material material;
+
+        if (assetMaterial.pbrData.baseColorTexture.has_value())
+        {
+            const fastgltf::TextureInfo &albedoInfo{assetMaterial.pbrData.baseColorTexture.value()};
+            getOrCreateTextureID(albedoInfo, Material::albedo, i);
+        }
+
+        if (assetMaterial.pbrData.metallicRoughnessTexture.has_value())
+        {
+            // ARM map never gets sRGB or anisotropic filtering
+            const fastgltf::TextureInfo &armInfo = assetMaterial.pbrData.metallicRoughnessTexture.value();
+            getOrCreateTextureID(armInfo, Material::ARM, i);
+        }
+
+        if (assetMaterial.normalTexture.has_value())
+        {
+            // Normal maps get no sRGB or aniso
+            const fastgltf::TextureInfo &normalInfo = assetMaterial.normalTexture.value();
+            getOrCreateTextureID(normalInfo, Material::normal, i);
+        }
+    }
+
+    return deferredTextures;
 }

@@ -14,19 +14,16 @@ class Skybox : public Renderable
 {
   public:
     Skybox() = default;
-    Skybox(TextureManager &textureManager, const std::vector<std::filesystem::path> &imagePaths);
-    Skybox(TextureManager &textureManager, const Handle borrowHandle);
+    Skybox(TextureManager &textureManager, const std::filesystem::path &imagePath);
 
     AABB &getAABB() override;
     Handle getHandle() const override;
     std::span<Primitive> getPrimitives() override;
-    std::optional<Handle> getBorrowedHandle() const override;
     std::optional<std::vector<Primitive>> loadCollisionMesh() const override;
 
   protected:
     AABB aabb_;
     Handle handle_{0};
-    std::optional<Handle> borrowedHandle_{};
 
     std::vector<Primitive> primitives_;
 };

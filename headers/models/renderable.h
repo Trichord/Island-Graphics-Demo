@@ -14,7 +14,6 @@ class Renderable
     virtual AABB &getAABB() = 0;
     virtual Handle getHandle() const = 0;
     virtual std::span<Primitive> getPrimitives() = 0;
-    virtual std::optional<Handle> getBorrowedHandle() const = 0;
     virtual std::optional<std::vector<Primitive>> loadCollisionMesh() const = 0;
     
     virtual ~Renderable() = default;

@@ -13,6 +13,7 @@
 #include "directional_light.h"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
+#include "handle.h"
 #include "instanced_model.h"
 #include "scene_resources.h"
 #include "skybox.h"
@@ -35,7 +36,7 @@ SceneEntry &Scene::getEntryByName(const std::string &key)
 
     if (iter == entriesByName_.end())
     {
-        std::cerr << "ERROR: Cannot find named scene entry" << std::endl;
+        std::cerr << "ERROR: Cannot find named scene entry " << key << std::endl;
         throw std::runtime_error("Invalid key");
     }
 

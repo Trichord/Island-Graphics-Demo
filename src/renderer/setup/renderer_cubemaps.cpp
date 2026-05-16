@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include <array>
-#include <optional>
+#include <span>
 #include <unordered_set>
 #include <vector>
 
@@ -10,13 +10,14 @@
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
+#include "handle.h"
+#include "primitive.h"
 #include "render_target.h"
 #include "renderable.h"
 #include "renderer_types.h"
 #include "scene.h"
 #include "setup_functions.h"
 #include "texture_manager.h"
-#include "textures.h"
 #include "transform.h"
 #include "world_vectors.h"
 
@@ -47,7 +48,7 @@ void Renderer::borrowSkybox(const std::vector<DrawEntry> &entries)
 }
 
 void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndirectCommand> &commandsSource,
-                              const std::vector<DrawEntry> &entries, SamplerArrayEntry reservedEntry)
+                              const std::vector<DrawEntry> &entries)
 {
     using enum ShaderType;
 
@@ -114,13 +115,6 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndire
             continue;
 
         const Renderable &renderable{entry.renderableRef.get()};
-
-        if (std::optional<Handle> borrowed = renderable.getBorrowedHandle(); borrowed.has_value())
-        {
-            textureManager_.borrowCubemaps(renderable.getHandle(), borrowed.value());
-            continue;
-        }
-
         Transform &transform{entry.transforms.front()};
 
         // Set the camera in the center of the water plane
@@ -129,9 +123,15 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndire
 
         // Assign the texture
         auto &waterPlane = entry.renderableRef.get();
-        textureManager_.setCubemap(waterPlane.getHandle(), blitTarget, reservedEntry);
+        const std::span<Primitive> &primitives{waterPlane.getPrimitives()};
 
-        ++reservedEntry.layer;
+        std::vector<int> materialIndices;
+        materialIndices.reserve(primitives.size());
+
+        for (Primitive &primitive : primitives)
+            materialIndices.push_back(primitive.materialIndex);
+
+        textureManager_.setCubemap(waterPlane.getHandle(), materialIndices, blitTarget);
     }
 
     // Reset

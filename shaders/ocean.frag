@@ -26,8 +26,8 @@ const vec3 sceneCenter = vec3(0.0);
 const vec3 waterColor = vec3(0.0, 0.08, 0.18);
 
 // Samplers
-layout(binding = 0) uniform sampler2DArray textures[8];
-layout(binding = 8) uniform samplerCubeArray cubemaps[3];
+layout(binding = 0) uniform sampler2DArray textures[10];
+layout(binding = 10) uniform samplerCubeArray cubemaps[3];
 
 // UBOs
 layout (std140) uniform uniformData 
@@ -83,10 +83,12 @@ void main()
 	
 	// Total distortion from dudv
 	vec2 totalDistortion = distortion1 + distortion2;
+	vec2 normalCoords = vec2(fsIn.texCoords * tileFactor + totalDistortion);
 
 	// Normal, biased towards the sky for less choppy water. Swizzled because the plane is horizontal
-	vec2 normalCoords = vec2(fsIn.texCoords * tileFactor + totalDistortion);
-	vec3 N = texture(textures[meta.normalArray], vec3(normalCoords, meta.normalLayer)).xyz * 2.0 - 1.0;
+	vec3 N;
+	N.xy = texture(textures[meta.normalArray], vec3(normalCoords, meta.normalLayer)).rg * 2.0 - 1.0;
+	N.z = sqrt(max(1.0 - dot(N.xy, N.xy), 0.0));
 	N = normalize(vec3(N.x, N.z, -N.y));
 
 	// Fresnel
