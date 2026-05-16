@@ -21,8 +21,8 @@ const int cascadeCount = 3;
 const float lightBleedReduction = 0.2;
 
 // Samplers
-layout(binding = 0) uniform sampler2DArray textures[8];
-layout(binding = 11) uniform sampler2DArray shadowMap;
+layout(binding = 0) uniform sampler2DArray textures[10];
+layout(binding = 13) uniform sampler2DArray shadowMap;
 
 // UBOs
 layout (std140, binding = 1) uniform cascadeShadow
@@ -171,11 +171,14 @@ void main()
 
 	// Material properties, remap normal from [0, 1] to [-1, 1]
 	vec4 albedo = texture(textures[meta.albedoArray], vec3(fsIn.texCoords, meta.albedoLayer));
-	vec3 normal = texture(textures[meta.normalArray], vec3(fsIn.texCoords, meta.normalLayer)).rgb * 2.0 - 1.0;
 	vec3 ARM = texture(textures[meta.armArray], vec3(fsIn.texCoords, meta.armLayer)).rgb;
 
+	vec3 N;
+	N.xy = texture(textures[meta.normalArray], vec3(fsIn.texCoords, meta.normalLayer)).rg * 2.0 - 1.0;
+	N.z = sqrt(max(1.0 - dot(N.xy, N.xy), 0.0));
+
 	// Vectors
-	vec3 N = normalize(normal);
+	N = normalize(N);
 	vec3 V = normalize(fsIn.cameraPos -fsIn.tangentFragPos);
 	vec3 L = normalize(-fsIn.lightDir);
 	vec3 H = normalize(L + V);

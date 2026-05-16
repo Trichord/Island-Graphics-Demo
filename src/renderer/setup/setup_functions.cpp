@@ -1,7 +1,6 @@
 #include <cstdint>
 #include <iostream>
 #include <limits>
-#include <optional>
 #include <span>
 #include <stdexcept>
 #include <vector>
@@ -10,6 +9,7 @@
 #include "fastgltf/types.hpp"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
+#include "handle.h"
 #include "primitive.h"
 #include "renderable.h"
 #include "renderer_types.h"
@@ -26,13 +26,12 @@ SceneTotals getSceneTotals(Scene &scene)
     for (SceneEntry &entry : scene.getAllSceneEntries())
     {
         Renderable &renderable{entry.renderableRef.get()};
-        std::optional<Handle> borrowed{renderable.getBorrowedHandle()};
         std::span<Primitive> primitives{renderable.getPrimitives()};
 
         std::size_t numTransforms{entry.transforms.size()};
         std::size_t numPrimitives{primitives.size()};
 
-        if (entry.shaderType == ShaderType::water && !borrowed.has_value())
+        if (entry.shaderType == ShaderType::water)
             ++totals.dynamicCubemaps;
 
         totals.matrices += numTransforms;
@@ -182,7 +181,7 @@ void setMetadataMaterials(TextureManager &manager, const std::vector<DrawEntry> 
         PrimitiveMetadata &metaEntry{metadata[i]};
 
         const int matIndex{entry.primitive->materialIndex};
-        const std::vector<Material> &materials{manager.getMaterials(entry.handle)};
+        std::span<const Material> materials{manager.getMaterials(entry.handle)};
         const Material &material{materials[matIndex]};
 
         if (matIndex < 0 || matIndex >= static_cast<int>(materials.size()))
@@ -191,17 +190,22 @@ void setMetadataMaterials(TextureManager &manager, const std::vector<DrawEntry> 
             throw std::runtime_error("Material index out of bounds");
         }
 
-        metaEntry.albedoArray = material.albedo.array;
-        metaEntry.albedoLayer = material.albedo.layer;
+        const SamplerArrayIndex &albdeo{material.layers[Material::albedo]};
+        const SamplerArrayIndex &ARM{material.layers[Material::ARM]};
+        const SamplerArrayIndex &normal{material.layers[Material::normal]};
+        const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
 
-        metaEntry.armArray = material.ARM.array;
-        metaEntry.armLayer = material.ARM.layer;
+        metaEntry.albedoArray = albdeo.array;
+        metaEntry.albedoLayer = albdeo.layer;
 
-        metaEntry.normalArray = material.normal.array;
-        metaEntry.normalLayer = material.normal.layer;
+        metaEntry.armArray = ARM.array;
+        metaEntry.armLayer = ARM.layer;
 
-        metaEntry.cubemapArray = material.cubemap.array;
-        metaEntry.cubemapLayer = material.cubemap.layer;
+        metaEntry.normalArray = normal.array;
+        metaEntry.normalLayer = normal.layer;
+
+        metaEntry.cubemapArray = cubemap.array;
+        metaEntry.cubemapLayer = cubemap.layer;
     }
 }
 

@@ -20,7 +20,7 @@ const int cascadeCount = 3;
 const float lightBleedReduction = 0.2;
 
 // Samplers
-layout(binding = 0) uniform sampler2DArray textures[8];
+layout(binding = 0) uniform sampler2DArray textures[10];
 
 // UBOs
 layout (std140, binding = 1) uniform shadowCascadeData

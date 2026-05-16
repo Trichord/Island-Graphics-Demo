@@ -37,6 +37,7 @@ class RenderTarget
 
     int getWidth() const;
     int getHeight() const;
+    int getNumLayers() const;
     GLenum getInternalFormat() const;
     GLuint getColorTextureID() const;
     GLuint getDepthMapTextureID() const;
@@ -51,16 +52,16 @@ class RenderTarget
     static constexpr float depthColor{1.0f};
     static constexpr std::array<float, 4> clearColor{0.0f, 0.0f, 0.0f, 1.0f};
 
+    int layers_{1};
     int width_{1920};
     int height_{1080};
-
+    
     GLuint FBO_{0};
     GLuint depthRBO_{0};
     GLuint colorTextureID_{0};
     GLuint depthMapTextureID_{0};
     GLenum internalFormat_{GL_SRGB8};
 
-    void deleteResources();
     void createRenderTarget(int width, int height, const Settings &settings);
     void createMSAARenderTarget(int width, int height, const Settings &settings);
 };

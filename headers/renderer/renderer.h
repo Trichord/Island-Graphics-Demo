@@ -125,9 +125,9 @@ class Renderer
     // Cubemap Generation
     void borrowSkybox(const std::vector<DrawEntry> &entries);
     void renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget);
-    void createCubemaps(Scene &scene, const std::vector<DrawElementsIndirectCommand> &commandsSource,
-                        const std::vector<DrawEntry> &entries, SamplerArrayEntry reservedEntry);
     void updateMetadataCubemaps(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata);
+    void createCubemaps(Scene &scene, const std::vector<DrawElementsIndirectCommand> &commandsSource,
+                        const std::vector<DrawEntry> &entries);
 
     // GPU buffers
     void createVAO(const std::vector<DrawEntry> &entries, const SceneTotals &totals);

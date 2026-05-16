@@ -12,8 +12,8 @@
 #include <vector>
 
 #include "aabb.h"
+#include "asset_loader.h"
 #include "fastgltf/types.hpp"
-#include "fastgltf_loader.h"
 #include "glm/glm.hpp"
 #include "primitive.h"
 
@@ -22,16 +22,11 @@
 Model::Model(TextureManager &textureManager, const std::filesystem::path &path)
     : handle_{textureManager.assignHandle()}, filePath_{path}
 {
-    loadModel(textureManager, path, false);
+    fastgltf::Asset asset = AssetLoader::loadAsset(path);
+    primitives_ = AssetLoader::loadMeshes(asset);
     calculateAABB();
-}
 
-Model::Model(TextureManager &textureManager, const Handle borrowHandle, const std::filesystem::path &path)
-    : handle_{textureManager.assignHandle()}, borrowedHandle_{borrowHandle}, filePath_{path}
-{
-    textureManager.borrowMaterials(handle_, borrowHandle);
-    loadModel(textureManager, path, true);
-    calculateAABB();
+    textureManager.loadModelTextures(handle_, std::move(asset), path.parent_path());
 }
 
 AABB &Model::getAABB()
@@ -42,21 +37,6 @@ AABB &Model::getAABB()
 std::span<Primitive> Model::getPrimitives()
 {
     return primitives_;
-}
-
-std::optional<Handle> Model::getBorrowedHandle() const
-{
-    return borrowedHandle_;
-}
-
-void Model::loadModel(TextureManager &manager, const std::filesystem::path &path, bool borrowed)
-{
-    fastgltf::Asset asset = fastgltfLoader::loadAsset(path);
-
-    primitives_ = fastgltfLoader::loadMeshes(asset);
-
-    if (!borrowed)
-        manager.loadModelTextures(handle_, std::move(asset), path.parent_path());
 }
 
 Handle Model::getHandle() const
@@ -88,8 +68,8 @@ std::optional<std::vector<Primitive>> Model::loadCollisionMesh() const
 
     if (std::filesystem::exists(fullPath, error))
     {
-        fastgltf::Asset asset = fastgltfLoader::loadAsset(fullPath);
-        return fastgltfLoader::loadMeshes(asset);
+        fastgltf::Asset asset = AssetLoader::loadAsset(fullPath);
+        return AssetLoader::loadMeshes(asset);
     }
     else if (error)
     {

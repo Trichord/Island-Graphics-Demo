@@ -1,21 +1,19 @@
 #include "texture_utilities.h"
 
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-#include <vector>
+#include "ktx_texture.h"
 
+#include <algorithm>
+#include <filesystem>
+#include <iostream>
+
+#include "KHR/vkformat_enum.h"
 #include "glad/glad.h"
-#include "image_loader.h"
 #include "textures.h"
 
-int textureUtilities::calculateMipmapLevels(int width, int height)
+namespace
 {
-    int maxDimension = std::max(width, height);
-    return static_cast<int>(std::floor(std::log2(maxDimension)) + 1);
-}
 
-Texture magentaTexture()
+GLuint magentaTexture()
 {
     GLuint magenta{0};
     unsigned char color[] = {255, 0, 255};
@@ -23,156 +21,141 @@ Texture magentaTexture()
     glTextureStorage2D(magenta, 1, GL_SRGB8, 1, 1);
     glTextureSubImage2D(magenta, 0, 0, 0, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, color);
 
-    return {.id = magenta, .width = 1, .height = 1, .internalFormat = GL_SRGB8};
+    glTextureParameteri(magenta, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTextureParameteri(magenta, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTextureParameteri(magenta, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTextureParameteri(magenta, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    return magenta;
+}
+} // namespace
+
+GLenum TextureUtilities::vkFormatToGL(const ktx_uint32_t vkFormat)
+{
+    switch (vkFormat)
+    {
+    case VK_FORMAT_BC4_UNORM_BLOCK:
+        return GL_COMPRESSED_RED_RGTC1;
+    case VK_FORMAT_BC4_SNORM_BLOCK:
+        return GL_COMPRESSED_SIGNED_RED_RGTC1;
+
+    case VK_FORMAT_BC5_UNORM_BLOCK:
+        return GL_COMPRESSED_RG_RGTC2;
+    case VK_FORMAT_BC5_SNORM_BLOCK:
+        return GL_COMPRESSED_SIGNED_RG_RGTC2;
+
+    case VK_FORMAT_BC7_UNORM_BLOCK:
+        return GL_COMPRESSED_RGBA_BPTC_UNORM;
+    case VK_FORMAT_BC7_SRGB_BLOCK:
+        return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
+
+    default:
+        std::cerr << "WARNING: Unsupported vkFormat " << vkFormat << std::endl;
+        return 0;
+    }
 }
 
-Texture textureUtilities::generateTexture(const LoadedImage &image, Sampler sampler, TextureDetails details)
+int TextureUtilities::calculateMipmapLevels(int width, int height, bool compressed)
 {
-    // Early return with debug magenta
-    if (!image.data)
+    int mipCount{1};
+    int minDimension{std::min(width, height)};
+    int maxDepth{compressed ? 4 : 1};
+
+    while ((minDimension >> mipCount) >= maxDepth)
+        ++mipCount;
+
+    return mipCount;
+}
+
+bool TextureUtilities::transcodeKTX(KTXTexture &texture)
+{
+    if (!texture)
+    {
+        std::cerr << "ERROR: empty texture" << std::endl;
+        return false;
+    }
+
+    if (!ktxTexture2_NeedsTranscoding(texture.get()))
+        return true;
+
+    const ktx_uint32_t numComponents{ktxTexture2_GetNumComponents(texture.get())};
+    ktx_transcode_fmt_e format;
+
+    switch (numComponents)
+    {
+    case 1:
+        format = KTX_TTF_BC4_R;
+        break;
+    case 2:
+        format = KTX_TTF_BC5_RG;
+        break;
+    default:
+        format = KTX_TTF_BC7_RGBA;
+        break;
+    }
+
+    KTX_error_code result{ktxTexture2_TranscodeBasis(texture.get(), format, 0)};
+
+    if (result != KTX_SUCCESS)
+    {
+        std::cerr << ktxErrorString(result) << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+// Loads single 2D images from disk into Intended for User Interface, Logos, etc.
+GLuint TextureUtilities::textureFromFile(std::filesystem::path path, TextureDetails details)
+{
+    if (path.empty() || !std::filesystem::exists(path))
+    {
+        std::cerr << "ERROR: Bad filepath for texture " << path << std::endl;
         return magentaTexture();
-
-    GLuint textureID{0};
-    GLenum imageFormat{GL_RGB};
-    GLenum internalFormat{GL_RGB};
-    int nrChannels{image.nrChannels};
-
-    // stb_image only ever returns a 1, 2, 3, or 4 for a valid image
-    if (nrChannels == 1)
-    {
-        imageFormat = GL_RED;
-        internalFormat = GL_R8;
-    }
-    else if (nrChannels == 2)
-    {
-        imageFormat = GL_RG;
-        internalFormat = GL_RG8;
-    }
-    else if (nrChannels == 3)
-    {
-        imageFormat = GL_RGB;
-        internalFormat = details.sRGB ? GL_SRGB8 : GL_RGB8;
-    }
-    else if (nrChannels == 4)
-    {
-        imageFormat = GL_RGBA;
-        internalFormat = details.sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
     }
 
-    int mipLevels = calculateMipmapLevels(image.width, image.height);
+    KTXTexture texture{path.string().c_str()};
 
-    // Create texture
-    glCreateTextures(GL_TEXTURE_2D, 1, &textureID);
-    glTextureStorage2D(textureID, mipLevels, internalFormat, image.width, image.height);
-    glTextureSubImage2D(textureID, 0, 0, 0, image.width, image.height, imageFormat, GL_UNSIGNED_BYTE, image.data);
-
-    glGenerateTextureMipmap(textureID);
-
-    // Texture sampler options
-    glTextureParameteri(textureID, GL_TEXTURE_WRAP_S, sampler.wrapS);
-    glTextureParameteri(textureID, GL_TEXTURE_WRAP_T, sampler.wrapT);
-    glTextureParameteri(textureID, GL_TEXTURE_MIN_FILTER, sampler.minFilter);
-    glTextureParameteri(textureID, GL_TEXTURE_MAG_FILTER, sampler.magFilter);
-
-    if (details.anisotropic > 0.0f)
-        glTextureParameterf(textureID, GL_TEXTURE_MAX_ANISOTROPY, details.anisotropic);
-
-    return {.id = textureID, .width = image.width, .height = image.height, .internalFormat = internalFormat};
-}
-
-Texture magentaCubemap()
-{
-    GLuint magenta{0};
-    unsigned char color[] = {255, 0, 255};
-    glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &magenta);
-    glTextureStorage2D(magenta, 1, GL_SRGB8, 1, 1);
-
-    for (GLuint i = 0; i < 6; ++i)
-        glTextureSubImage3D(magenta, 0, 0, 0, i, 1, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, color);
-
-    return {.id = magenta, .width = 1, .height = 1, .internalFormat = GL_SRGB8};
-}
-
-Texture textureUtilities::generateCubemapTexture(const std::vector<LoadedImage> &imageData, TextureDetails details)
-{
-    // Early return with debug magenta
-    if (!imageData[0].data || imageData[0].width != imageData[0].height)
-        return magentaCubemap();
-
-    int nrChannels{imageData[0].nrChannels};
-
-    for (size_t i = 0; i < imageData.size(); ++i)
+    if (!transcodeKTX(texture))
     {
-        if (imageData[i].nrChannels != nrChannels)
-        {
-            std::cerr << "ERROR: Mismatched number of cubemap channels" << std::endl;
-            return magentaCubemap();
-        }
+        std::cerr << "Failed to transcode " << path << std::endl;
+        return magentaTexture();
     }
 
-    GLuint cubemapTextureID{0};
-    GLenum imageFormat{GL_RGB};
-    GLenum internalFormat{GL_RGB};
+    GLuint id{0};
+    GLenum target{GL_TEXTURE_2D};
+    GLenum error{GL_NONE};
 
-    glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &cubemapTextureID);
+    ktx_error_code_e result{ktxTexture_GLUpload(ktxTexture(texture.get()), &id, &target, &error)};
 
-    // stb_image only ever returns a 1, 2, 3, or 4 for a valid image
-    if (nrChannels == 1)
+    if (result != KTX_SUCCESS)
     {
-        imageFormat = GL_RED;
-        internalFormat = GL_R8;
-    }
-    else if (nrChannels == 2)
-    {
-        imageFormat = GL_RG;
-        internalFormat = GL_RG8;
-    }
-    else if (nrChannels == 3)
-    {
-        imageFormat = GL_RGB;
-        internalFormat = details.sRGB ? GL_SRGB8 : GL_RGB8;
-    }
-    else if (nrChannels == 4)
-    {
-        imageFormat = GL_RGBA;
-        internalFormat = details.sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8;
+        std::cerr << "ERROR: Wrong texture type for 2D texture for " << path << std::endl;
+        glDeleteTextures(1, &id);
+        return magentaTexture();
     }
 
-    // Max mipmap, assuming first image is same resolution as the rest
-    int maxMipLevels{calculateMipmapLevels(imageData[0].width, imageData[0].height)};
-    int mipLevels{details.mipmaps ? maxMipLevels : 1};
-
-    glTextureStorage2D(cubemapTextureID, mipLevels, internalFormat, imageData[0].width, imageData[0].height);
-
-    for (GLuint i = 0; i < 6; ++i)
+    if (error != GL_NONE)
     {
-        if (imageData[i].data)
-            glTextureSubImage3D(cubemapTextureID, 0, 0, 0, i, imageData[i].width, imageData[i].height, 1, imageFormat,
-                                GL_UNSIGNED_BYTE, imageData[i].data);
-
-        else
-        {
-            std::cerr << "Failed to load cubemap texture" << std::endl;
-            glDeleteTextures(1, &cubemapTextureID);
-            return magentaCubemap();
-        }
+        std::cerr << "ERROR: OpenGL error " << error << " creating texture from " << path << std::endl;
+        glDeleteTextures(1, &id);
+        return magentaTexture();
     }
 
-    if (details.mipmaps)
+    if (target != GL_TEXTURE_2D && target != GL_IMAGE_1D_ARRAY)
     {
-        glGenerateTextureMipmap(cubemapTextureID);
-        glTextureParameteri(cubemapTextureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        std::cerr << "ERROR: Wrong texture type for 2D texture for " << path << std::endl;
+        glDeleteTextures(1, &id);
+        return magentaTexture();
     }
-    else
-        glTextureParameteri(cubemapTextureID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-    glTextureParameteri(cubemapTextureID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTextureParameteri(cubemapTextureID, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(cubemapTextureID, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(cubemapTextureID, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(id, GL_TEXTURE_WRAP_S, details.sampler.wrapS);
+    glTextureParameteri(id, GL_TEXTURE_WRAP_T, details.sampler.wrapT);
+    glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, details.sampler.minFilter);
+    glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, details.sampler.magFilter);
 
-    return {.id = cubemapTextureID,
-            .width = imageData[0].width,
-            .height = imageData[0].height,
-            .internalFormat = internalFormat};
+    if (details.anisotropicFiltering > 0.0f)
+        glTextureParameterf(id, GL_TEXTURE_MAX_ANISOTROPY, details.anisotropicFiltering);
+
+    return id;
 }
