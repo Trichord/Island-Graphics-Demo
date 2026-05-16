@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "aabb.h"
-#include "cascade_shadow.h"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
@@ -242,12 +241,14 @@ void Renderer::updateMetadataCubemaps(const std::vector<DrawEntry> &entries, std
             const DrawEntry &drawEntry{entries[i]};
             PrimitiveMetadata &metaEntry{metadata[i]};
 
+            std::span<const Material> materials{textureManager_.getMaterials(drawEntry.handle)};
             const int matIndex{drawEntry.primitive->materialIndex};
-            const std::vector<Material> &materials{textureManager_.getMaterials(drawEntry.handle)};
             const Material &material{materials[matIndex]};
 
-            metaEntry.cubemapArray = material.cubemap.array;
-            metaEntry.cubemapLayer = material.cubemap.layer;
+            const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
+
+            metaEntry.cubemapArray = cubemap.array;
+            metaEntry.cubemapLayer = cubemap.layer;
 
             glNamedBufferSubData(metadataBuffer_, static_cast<GLintptr>(i * sizeof(PrimitiveMetadata)),
                                  static_cast<GLsizeiptr>(sizeof(PrimitiveMetadata)), &metaEntry);

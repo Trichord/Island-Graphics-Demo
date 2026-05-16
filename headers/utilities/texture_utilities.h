@@ -1,21 +1,21 @@
 #pragma once
 
-#include <vector>
-
-#include "image_loader.h"
+#include "glad/glad.h"
+#include "texture_loader.h"
 #include "textures.h"
+#include "ktx_texture.h"
 
-// Request sRGB, request mipmaps, degree of anisotropy
 struct TextureDetails
 {
+    Sampler sampler;
     bool sRGB{false};
-    bool mipmaps{false};
-    float anisotropic{0.0f};
+    float anisotropicFiltering{0.0f};
 };
 
-namespace textureUtilities
+namespace TextureUtilities
 {
-int calculateMipmapLevels(int width, int height);
-Texture generateTexture(const LoadedImage &image, Sampler sampler, TextureDetails details);
-Texture generateCubemapTexture(const std::vector<LoadedImage> &imageData, TextureDetails details);
-} // namespace textureUtilities
+bool transcodeKTX(KTXTexture &texture);
+int calculateMipmapLevels(int width, int height, bool compressed);
+GLenum vkFormatToGL(const ktx_uint32_t vkFormat);
+GLuint textureFromFile(std::filesystem::path path, TextureDetails details);
+} // namespace TextureUtilities

@@ -57,7 +57,7 @@ void Renderer::renderScene()
                                          static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.maxCount, 0);
     }
 
-    // Assume skybox was last
+    // If skybox is last, the shader / state change never triggers and depth function gets left on GL_LEQUAL
     glState_.setDepthFunction(GL_LESS);
 }
 

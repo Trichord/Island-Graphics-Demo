@@ -46,10 +46,12 @@ void Application::run()
     if (!window_)
         return;
 
-    createOpenGLViewport(graphicsSettings);
+    if (!createOpenGLViewport(graphicsSettings))
+        return;
+
     registerCallbacks();
 
-    // Jolt Phyysics
+    // Jolt Physics
     registerJolt();
     JPH::PhysicsSystem physicsSystem;
     JPH::TempAllocatorImpl tempAllocator{joltStackSize};
@@ -149,13 +151,13 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
         glfwSwapInterval(0);
 }
 
-void Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
+bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
 {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
         glfwTerminate();
-        return;
+        return false;
     }
 
     GLsizei width{static_cast<GLsizei>(graphicsSettings.screenWidth)};
@@ -171,12 +173,27 @@ void Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    // If MDI Count not supported
+    if (!glMultiDrawElementsIndirectCount)
+        glMultiDrawElementsIndirectCount =
+            (PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTPROC)glfwGetProcAddress("glMultiDrawElementsIndirectCountARB");
+
+    // If ARB version fails too, just exit
+    if (!glMultiDrawElementsIndirectCount)
+    {
+        std::cerr << "GPU does not support required OpenGL features: MultiDrawElementsIndirectCount" << std::endl;
+        glfwTerminate();
+        return false;
+    }
+
 #ifdef DEBUG
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageCallback(glDebugOutput, nullptr);
     glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 #endif // DEBUG
+
+    return true;
 }
 
 void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)

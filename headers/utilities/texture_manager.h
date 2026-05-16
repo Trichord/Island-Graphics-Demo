@@ -1,101 +1,96 @@
 #pragma once
 
-#include <array>
 #include <fastgltf/types.hpp>
 #include <filesystem>
+#include <span>
 #include <unordered_map>
 #include <vector>
 
+#include "array_texture.h"
+#include "asset_loader.h"
 #include "glad/glad.h"
 #include "graphics_settings.h"
+#include "handle.h"
+#include "ktx_texture.h"
 #include "render_target.h"
 #include "textures.h"
 #include "thread_pool.h"
 
-// To do: Verify process for generating mipmaps. Texture utilities may not need to take in anything other than sRGB and
-// aniso. Allow or deny setting of dynamic cubemap internal format (through constructor).
-
-using Handle = int;
+// Texture units. Easier to keep it here with the arrays
+namespace TextureUnit
+{
+static constexpr int array2DBase{0};
+static constexpr int arrayCubemapBase{10};
+static constexpr int shadow{13};
+} // namespace TextureUnit
 
 class TextureManager
 {
   public:
     TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings, int reflectionResolution);
-    ~TextureManager();
 
     Handle assignHandle();
 
-    // Static loaded textures
-    void loadCubemapTextures(const Handle handle, std::vector<std::filesystem::path> images,
-                             const std::filesystem::path &parentPath = "./", bool mipmaps = true);
+    // Add a gLTF model
     void loadModelTextures(const Handle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath);
+    void loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath,
+                             std::vector<int> &materialIndices);
 
-    // Dynamic texture borrowing
-    void borrowCubemaps(Handle self, Handle other);
-    void borrowMaterials(Handle self, Handle other);
-
-    // Accessors and mutators
     GLenum getReflectionColorFormat() const;
-    const std::vector<Material> &getMaterials(Handle modelHandle) const;
-    void setCubemap(Handle handle, RenderTarget &renderTarget, SamplerArrayEntry arrayEntry);
+    std::span<const Material> getMaterials(Handle handle) const;
 
-    // Bindless array texture setup
-    void buildTextures();
-    void buildCubemaps();
-    SamplerArrayEntry reserveCubemaps(int numCubemaps, int resolution, GLenum internalFormat);
+    void reserveCubemaps(int numCubemaps, int resolution, GLenum internalFormat);
 
-    // Lock in GPU resources
-    void texturesReserved();
-    void cubemapsReserved();
+    // Borrow a cubemap after the scene has been built
+    void borrowCubemaps(Handle self, Handle other);
+    void setCubemap(Handle handle, std::vector<int> overrideIndices, RenderTarget &renderTarget);
+
+    void buildAllTextures();
 
   private:
-    struct ArrayTexture
+    struct ArrayReference
     {
-        GLuint id{0};
-        int width{0};
-        int count{0};
-        GLenum internalFormat{GL_SRGB8};
+        ArrayTexture &array;
+        int index{0};
     };
 
-    struct PendingTexture
+    struct MaterialRange
     {
-        GLuint id{0};
-        SamplerArrayEntry arrayEntry;
+        std::size_t begin{0};
+        std::size_t end{0};
     };
 
-    std::array<ArrayTexture, 8> arrayTextures_{{{.width = 4096, .internalFormat = GL_RGB8},
-                                                {.width = 4096, .internalFormat = GL_SRGB8},
-                                                {.width = 2048, .internalFormat = GL_RGB8},
-                                                {.width = 2048, .internalFormat = GL_SRGB8},
-                                                {.width = 2048, .internalFormat = GL_SRGB8_ALPHA8},
-                                                {.width = 1024, .internalFormat = GL_RGB8},
-                                                {.width = 1024, .internalFormat = GL_SRGB8},
-                                                {.width = 512, .internalFormat = GL_RGB8}}};
+    std::vector<ArrayTexture> arrayTextures_;
+    std::vector<ArrayTexture> arrayCubemaps_;
 
-    // Third slot empty to handle run-time selection of reflection cubemaps
-    std::array<ArrayTexture, 3> cubemapArrayTextures_{{
-        {.width = 4096, .internalFormat = GL_SRGB8},
-        {.width = 2048, .internalFormat = GL_SRGB8},
-    }};
-
+    bool texturesBuilt_{false};
+    float globalAnisotropicDegree_{0.0f};
     GLenum dynamicCubemapInternalFormat_{GL_SRGB8};
 
-    // Textures to be uploaded
-    std::vector<PendingTexture> pendingCubemaps_;
-    std::vector<PendingTexture> pending2dTextures_;
-
     ThreadPool &threadPool_;
-    float globalAnisotropicDegree_{0.0f};
-    std::unordered_map<Handle, std::vector<Material>> materialLookup_;
+    std::vector<Material> materials_;
+    std::unordered_map<Handle, MaterialRange> materialLookup_;
 
-    bool textures2dAllocated_{false};
-    bool texturesCubemapAllocated_{false};
+    // Cached filenames for sharing atlases. Paths are ignored - image filenames must be unique across the project
+    std::unordered_map<std::filesystem::path, SamplerArrayIndex> filepathCache_;
 
-    // Textures from loaded models
-    void texturesFromAsset(fastgltf::Asset &asset, Handle handle, std::filesystem::path parentPath);
-    void cubemapFromPaths(Handle handle, const std::vector<std::filesystem::path> &images, bool mipmaps);
+    // Textures to be uploaded
+    std::vector<AssetLoader::DeferredTexture> deferredTextures_;
+
+    // Textures from disk
+    std::vector<KTXTexture> loadTexturesFromPool(const std::vector<AssetLoader::DeferredTexture> &textures);
 
     // Helpers for assigning to texture buckets
-    SamplerArrayEntry assignToTextureArray(Texture &texture);
-    SamplerArrayEntry assignToCubeArray(Texture &texture);
+    ArrayReference findCubemapArray(int size, GLenum internalFormat);
+    ArrayReference findArray(const AssetLoader::DeferredTexture &deferred, const KTXTexture &texture);
+
+    void countTexture(const AssetLoader::DeferredTexture &deferred, const KTXTexture &texture);
+    void insertTexture(const AssetLoader::DeferredTexture &deferred, const KTXTexture &texture);
+
+    // Private helper for material lookups. Mirrors the public API, except its not const
+    std::span<Material> findMaterials(Handle handle);
+    void addMaterials(Handle handle, std::size_t size);
+
+    void validateState();
+    void assignFallbacks();
 };
