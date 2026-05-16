@@ -28,18 +28,15 @@ void missingHandleError(Handle handle)
     std::cerr << "ERROR: missing handle for " << handle << " .Could not get materials " << std::endl;
     throw std::runtime_error("Missing handle");
 }
-
-void missingFilepathError(Handle handle)
-{
-    std::cerr << "ERROR: missing filepath for " << handle << " " << std::endl;
-    throw std::runtime_error("Missing filepath");
-}
-
 } // namespace
 
 TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings, int reflectionResolution)
     : threadPool_{threadPool}, globalAnisotropicDegree_{static_cast<float>(settings.anisotropicFiltering)}
 {
+    /*
+     * Fallback textures only for the smallest and easiest format in both sets. All regular textures get a 512x512 and all
+     * cubemaps get an SRGB cubemap. ArrayTexture fallback support for different internal formats is minimal.
+     */
 
     arrayTextures_.reserve(10);
 
@@ -55,14 +52,14 @@ TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &s
     arrayTextures_.emplace_back(ArrayTexture{1024, 1024, GL_COMPRESSED_RGBA_BPTC_UNORM});
     arrayTextures_.emplace_back(ArrayTexture{1024, 1024, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM});
 
-    arrayTextures_.emplace_back(ArrayTexture{512, 512, GL_COMPRESSED_RG_RGTC2});
+    arrayTextures_.emplace_back(ArrayTexture{512, 512, GL_COMPRESSED_RG_RGTC2, true});
 
     arrayCubemaps_.reserve(3);
 
     arrayCubemaps_.emplace_back(ArrayTexture{4096, 4096, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM});
     arrayCubemaps_.emplace_back(ArrayTexture{2048, 2048, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM});
     arrayCubemaps_.emplace_back(
-        ArrayTexture{reflectionResolution, reflectionResolution, dynamicCubemapInternalFormat_});
+        ArrayTexture{reflectionResolution, reflectionResolution, dynamicCubemapInternalFormat_, true});
 }
 
 Handle TextureManager::assignHandle()
@@ -79,9 +76,6 @@ Handle TextureManager::assignHandle()
 void TextureManager::loadModelTextures(const Handle handle, fastgltf::Asset &&asset,
                                        const std::filesystem::path &parentPath)
 {
-    if (parentPath.empty() || !std::filesystem::exists(parentPath))
-        missingFilepathError(handle);
-
     addMaterials(handle, asset.materials.size());
 
     const std::vector<AssetLoader::DeferredTexture> loaded{AssetLoader::texturesFromAsset(asset, parentPath, handle)};
@@ -93,9 +87,6 @@ void TextureManager::loadModelTextures(const Handle handle, fastgltf::Asset &&as
 void TextureManager::loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath,
                                          std::vector<int> &materialIndices)
 {
-    if (cubePath.empty() || !std::filesystem::exists(cubePath))
-        missingFilepathError(handle);
-
     // Handle edge case where we specifically loaded a cubemap but the model has no materials.
     auto materials = findMaterials(handle);
     if (materials.empty())
@@ -238,6 +229,7 @@ void TextureManager::buildAllTextures()
     for (int i{0}; i < static_cast<int>(arrayCubemaps_.size()); ++i)
         arrayCubemaps_[i].bindTextureUnit(TextureUnit::arrayCubemapBase + i);
 
+    assignFallbacks();
     filepathCache_.clear();
     deferredTextures_.clear();
 }
@@ -384,4 +376,69 @@ std::span<Material> TextureManager::findMaterials(Handle handle)
     MaterialRange range{iter->second};
 
     return std::span<Material>{materials_}.subspan(range.begin, range.end - range.begin);
+}
+
+void TextureManager::assignFallbacks()
+{
+    if (materials_.empty())
+        return;
+
+    SamplerArrayIndex fallbackTexture;
+
+    for (int i{0}; i < static_cast<int>(arrayTextures_.size()); ++i)
+    {
+        if (arrayTextures_[i].getFallbackLayer().has_value())
+        {
+            fallbackTexture.array = i;
+            fallbackTexture.layer = arrayTextures_[i].getFallbackLayer().value();
+            break;
+        }
+    }
+
+    SamplerArrayIndex fallbackCubemap;
+
+    for (int i{0}; i < static_cast<int>(arrayCubemaps_.size()); ++i)
+    {
+        if (arrayCubemaps_[i].getFallbackLayer().has_value())
+        {
+            fallbackCubemap.array = i;
+            fallbackCubemap.layer = arrayCubemaps_[i].getFallbackLayer().value();
+            break;
+        }
+    }
+
+    bool needCubemap{false};
+    bool needTextures{false};
+
+    std::vector<Material::Type> pbr = {Material::albedo, Material::ARM, Material::normal};
+
+    for (Material &material : materials_)
+    {
+        for (Material::Type t : pbr)
+        {
+            if (material[t].array == -1 || material[t].layer == -1)
+            {
+                material[t] = fallbackTexture;
+                needTextures = true;
+            }
+        }
+
+        if (material[Material::cubemap].array == -1 || material[Material::cubemap].layer == -1)
+        {
+            material[Material::cubemap] = fallbackCubemap;
+            needCubemap = true;
+        }
+    }
+
+    if (needTextures && fallbackTexture.array == -1)
+    {
+        std::cerr << "ERROR: Fallback texture not found" << std::endl;
+        throw std::runtime_error("Fallback cubemap not found");
+    }
+
+    if (needCubemap && fallbackCubemap.array == -1)
+    {
+        std::cerr << "ERROR: Fallback cubemap not found" << std::endl;
+        throw std::runtime_error("Fallback cubemap not found");
+    }
 }
