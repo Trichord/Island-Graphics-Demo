@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include <array>
-#include <optional>
+#include <span>
 #include <unordered_set>
 #include <vector>
 
@@ -10,17 +10,16 @@
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
+#include "handle.h"
+#include "primitive.h"
 #include "render_target.h"
 #include "renderable.h"
 #include "renderer_types.h"
 #include "scene.h"
 #include "setup_functions.h"
 #include "texture_manager.h"
-#include "textures.h"
 #include "transform.h"
 #include "world_vectors.h"
-
-#include <iostream>
 
 void Renderer::borrowSkybox(const std::vector<DrawEntry> &entries)
 {
@@ -121,7 +120,7 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndire
         // Set the camera in the center of the water plane
         camera.setPosition(transform.getPosition());
         renderCubeFaces(scene, cubeFaces, blitTarget);
-        
+
         // Assign the texture
         auto &waterPlane = entry.renderableRef.get();
         const std::span<Primitive> &primitives{waterPlane.getPrimitives()};

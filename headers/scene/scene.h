@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <concepts>
 #include <functional>
 #include <optional>
@@ -7,6 +8,7 @@
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "camera.h"
@@ -14,8 +16,8 @@
 #include "glm/glm.hpp"
 #include "graphics_settings.h"
 #include "graphics_shader.h"
+#include "handle.h"
 #include "instanced_model.h"
-#include "model.h"
 #include "renderable.h"
 #include "scene_resources.h"
 #include "skybox.h"

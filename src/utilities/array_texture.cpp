@@ -5,8 +5,8 @@
 #include <utility>
 
 #include "glad/glad.h"
-#include "gli/texture.hpp"
 #include "glm/glm.hpp"
+#include "ktx_texture.h"
 #include "render_target.h"
 #include "texture_utilities.h"
 
@@ -128,7 +128,7 @@ void ArrayTexture::allocate(bool cubemap, bool textureRepeat, bool mipmaps, floa
     GLsizei depth{static_cast<GLsizei>(cubemap ? capacity_ * 6 : capacity_)};
     GLenum repeat{static_cast<GLenum>(textureRepeat ? GL_REPEAT : GL_CLAMP_TO_EDGE)};
 
-    int mipLevels{mipmaps ? TextureUtilities::calculateMipmapLevels(width_, height_) : 1};
+    int mipLevels{mipmaps ? TextureUtilities::calculateMipmapLevels(width_, height_, true) : 1};
 
     glCreateTextures(target, 1, &id_);
     glTextureStorage3D(id_, static_cast<GLsizei>(mipLevels), internalFormat_, static_cast<GLsizei>(width_),
@@ -192,7 +192,7 @@ int ArrayTexture::insert(RenderTarget &renderTarget)
     return current_++;
 }
 
-int ArrayTexture::insert(const gli::texture &texture)
+int ArrayTexture::insert(const KTXTexture &texture)
 {
     if (!allocated_)
     {
@@ -216,77 +216,69 @@ int ArrayTexture::insert(const gli::texture &texture)
         throw std::runtime_error("ArrayTexture overflow");
     }
 
-    if (texture.faces() > 1 && !cubemaps_)
-    {
-        glm::tvec3<GLsizei> extent{texture.extent()};
-
-        std::cerr << "ERROR: cubemap " << extent.x << "x" << extent.y << " passed to 2D ArrayTexture " << width_ << "x"
-                  << height_ << ", format " << internalFormat_ << std::endl;
-        throw std::runtime_error("Cubemap in 2D ArrayTexture");
-    }
-
     validate(texture);
     insertIntoArray(texture, current_);
     return current_++;
 }
 
-void ArrayTexture::insertIntoArray(const gli::texture &texture, int offset)
+void ArrayTexture::insertIntoArray(const KTXTexture &texture, int offset)
 {
-    for (std::size_t layer{0}; layer < texture.layers(); ++layer)
-        for (std::size_t face{0}; face < texture.faces(); ++face)
-            for (std::size_t level{0}; level < texture.levels(); ++level)
+    for (ktx_uint32_t layer{0}; layer < texture->numLayers; ++layer)
+        for (ktx_uint32_t face{0}; face < texture->numFaces; ++face)
+            for (ktx_uint32_t level{0}; level < texture.maxLevels(); ++level)
             {
-                std::size_t zOffset{(static_cast<std::size_t>(offset) + layer) * texture.faces() + face};
-                glm::tvec3<GLsizei> extent{texture.extent(level)};
+                KTXTexture::MipData mip{texture.getMipData(level, layer, face)};
+                std::size_t zOffset{(static_cast<std::size_t>(offset) + layer) * texture->numFaces + face};
 
-                if (extent.x < 4 || extent.y < 4)
-                    break;
-
-                glCompressedTextureSubImage3D(
-                    id_, static_cast<GLint>(level), 0, 0, static_cast<GLint>(zOffset), extent.x, extent.y, 1,
-                    internalFormat_, static_cast<GLsizei>(texture.size(level)), texture.data(layer, face, level));
+                glCompressedTextureSubImage3D(id_, static_cast<GLint>(level), 0, 0, static_cast<GLint>(zOffset),
+                                              mip.width, mip.height, 1, internalFormat_, static_cast<GLsizei>(mip.size),
+                                              mip.data);
             }
 }
 
-void ArrayTexture::validate(const gli::texture &texture)
+void ArrayTexture::validate(const KTXTexture &texture)
 {
     bool valid{true};
 
-    glm::tvec3<GLsizei> extent{texture.extent()};
-    int width{static_cast<int>(extent.x)};
-    int height{static_cast<int>(extent.y)};
-
-    GLenum format{TextureUtilities::gliToGL(texture)};
-
-    if (texture.empty())
+    if (!texture)
     {
-        std::cerr << "ERROR: Empty texture";
-        valid = false;
+        std::cerr << "ERROR: Empty texture for ArrayTexture " << width_ << "x" << height_ << ", format "
+                  << internalFormat_ << std::endl;
+        throw std::runtime_error("Texture validation error");
     }
 
-    else if (width != width_ || height != height_)
+    int width{static_cast<int>(texture->baseWidth)};
+    int height{static_cast<int>(texture->baseHeight)};
+
+    if (width != width_ || height != height_)
     {
         std::cerr << "ERROR: Size mismatch: " << width << "x" << height;
         valid = false;
     }
 
-    /*
-    * annoying, GLI internal format will not be promoted to sRGB
-    else if (format != internalFormat_)
+    if (texture->isCubemap && !cubemaps_)
     {
-        std::cerr << "ERROR: Format " << format << " mismatch";
+        std::cerr << "ERROR: cubemap " << width << "x" << height;
         valid = false;
     }
-    */
-    else if (!gli::is_compressed(texture.format()))
+
+    else if (!texture->isCubemap && cubemaps_)
     {
-        std::cerr << "ERROR: Uncompressed texture";
+        std::cerr << "ERROR: 2D Texture " << width << "x" << height << " passed to cubemap";
+        valid = false;
+    }
+
+    GLenum format{TextureUtilities::vkFormatToGL(texture->vkFormat)};
+
+    if (format != internalFormat_)
+    {
+        std::cerr << "ERROR: Format " << format << " mismatch";
         valid = false;
     }
 
     if (!valid)
     {
-        std::cerr << " for ArrayTexture " << width_ << "x" << height_ << ", format " << internalFormat_ << std::endl;
+        std::cerr << " ArrayTexture " << width_ << "x" << height_ << ", format " << internalFormat_ << std::endl;
         throw std::runtime_error("Texture validation error");
     }
 }

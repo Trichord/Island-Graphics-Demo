@@ -1,7 +1,7 @@
 #pragma once
 
 #include "glad/glad.h"
-#include "gli/texture.hpp"
+#include "ktx_texture.h"
 #include "render_target.h"
 
 class ArrayTexture
@@ -25,7 +25,7 @@ class ArrayTexture
     int insert(RenderTarget &renderTarget);
 
     // Insert a texture into the array. Returns layer index
-    int insert(const gli::texture &texture);
+    int insert(const KTXTexture &texture);
 
     void addCapacity(int capacity);
     void allocate(bool cubemap, bool textureRepeat, bool mipmaps, float anisotropy);
@@ -45,6 +45,6 @@ class ArrayTexture
     bool cubemaps_{false};
     bool allocated_{false};
 
-    void validate(const gli::texture &texture);
-    void insertIntoArray(const gli::texture &texture, int offset);
+    void validate(const KTXTexture &texture);
+    void insertIntoArray(const KTXTexture &texture, int offset);
 };

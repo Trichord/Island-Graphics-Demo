@@ -51,7 +51,7 @@ void Application::run()
 
     registerCallbacks();
 
-    // Jolt Phyysics
+    // Jolt Physics
     registerJolt();
     JPH::PhysicsSystem physicsSystem;
     JPH::TempAllocatorImpl tempAllocator{joltStackSize};

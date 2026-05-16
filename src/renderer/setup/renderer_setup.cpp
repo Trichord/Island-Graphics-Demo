@@ -14,7 +14,6 @@
 #include "scene.h"
 #include "setup_functions.h"
 #include "texture_manager.h"
-#include "textures.h"
 
 void Renderer::initializeResources(Scene &scene)
 {
