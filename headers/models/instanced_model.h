@@ -5,7 +5,6 @@
 
 #include "glm/glm.hpp"
 #include "model.h"
-#include "texture_manager.h"
 #include "transform.h"
 
 class InstancedModel : public Model

@@ -9,7 +9,6 @@
 #include "fastgltf/types.hpp"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
-#include "handle.h"
 #include "primitive.h"
 #include "renderer_types.h"
 #include "scene.h"

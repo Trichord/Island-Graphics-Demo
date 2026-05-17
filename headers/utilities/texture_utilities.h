@@ -1,9 +1,11 @@
 #pragma once
 
+#include <filesystem>
+
 #include "glad/glad.h"
+#include "ktx_texture.h"
 #include "texture_loader.h"
 #include "textures.h"
-#include "ktx_texture.h"
 
 struct TextureDetails
 {

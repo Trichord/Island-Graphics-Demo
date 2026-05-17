@@ -4,11 +4,13 @@
 #include <filesystem>
 #include <iostream>
 #include <mutex>
+#include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include "thread_pool.h"
 #include "ktx_texture.h"
+#include "thread_pool.h"
 
 TextureLoader::TextureLoader(ThreadPool &threadPool, const std::vector<std::filesystem::path> &filepaths)
     : numImages_{filepaths.size()}, numImagesLoaded_{0}

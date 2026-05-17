@@ -1,7 +1,9 @@
 #include "application.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
+#include <thread>
 
 #include "camera.h"
 #include "gl_context.h"
@@ -20,6 +22,8 @@
 #include "renderer.h"
 #include "scene.h"
 #include "settings_window.h"
+#include "texture_manager.h"
+#include "thread_pool.h"
 
 Application::~Application()
 {
