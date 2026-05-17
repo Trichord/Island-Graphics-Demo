@@ -30,12 +30,12 @@ void missingHandleError(Handle handle)
 }
 } // namespace
 
-TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings, int reflectionResolution)
+TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings)
     : threadPool_{threadPool}, globalAnisotropicDegree_{static_cast<float>(settings.anisotropicFiltering)}
 {
     /*
-     * Fallback textures only for the smallest and easiest format in both sets. All regular textures get a 512x512 and all
-     * cubemaps get an SRGB cubemap. ArrayTexture fallback support for different internal formats is minimal.
+     * Fallback textures only for the smallest and easiest format in both sets. All regular textures get a 512x512 and
+     * all cubemaps get an SRGB cubemap. ArrayTexture fallback support for different internal formats is minimal.
      */
 
     arrayTextures_.reserve(10);
@@ -58,8 +58,8 @@ TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &s
 
     arrayCubemaps_.emplace_back(ArrayTexture{4096, 4096, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM});
     arrayCubemaps_.emplace_back(ArrayTexture{2048, 2048, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM});
-    arrayCubemaps_.emplace_back(
-        ArrayTexture{reflectionResolution, reflectionResolution, dynamicCubemapInternalFormat_, true});
+    arrayCubemaps_.emplace_back(ArrayTexture{settings.reflectionResolution, settings.reflectionResolution,
+                                             dynamicCubemapInternalFormat_, true});
 }
 
 Handle TextureManager::assignHandle()
@@ -73,7 +73,7 @@ Handle TextureManager::assignHandle()
     return handle;
 }
 
-void TextureManager::loadModelTextures(const Handle handle, fastgltf::Asset &&asset,
+void TextureManager::loadModelTextures(const Handle handle, const fastgltf::Asset &asset,
                                        const std::filesystem::path &parentPath)
 {
     addMaterials(handle, asset.materials.size());
@@ -82,15 +82,23 @@ void TextureManager::loadModelTextures(const Handle handle, fastgltf::Asset &&as
     deferredTextures_.insert(deferredTextures_.end(), loaded.begin(), loaded.end());
 }
 
-// Add a cubemap. gLTF primitive material indices must be passed in to be sure the cubemap ends up on the right
-// primitives
-void TextureManager::loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath,
-                                         std::vector<int> &materialIndices)
+void TextureManager::loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath)
 {
-    // Handle edge case where we specifically loaded a cubemap but the model has no materials.
     auto materials = findMaterials(handle);
+    std::vector<int> materialIndices;
+
     if (materials.empty())
-        addMaterials(handle, materialIndices.size());
+    {
+        // Handle edge case where we specifically loaded a cubemap but the model has no materials.
+        materialIndices = {0};
+        addMaterials(handle, 1);
+    }
+    else
+    {
+        // Every model gets one cubemap
+        materialIndices.resize(materials.size());
+        std::iota(materialIndices.begin(), materialIndices.end(), 0);
+    }
 
     deferredTextures_.emplace_back(AssetLoader::DeferredTexture{
         .handle = handle,

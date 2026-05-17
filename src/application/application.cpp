@@ -60,8 +60,11 @@ void Application::run()
                        objectVsBroadPhaseLayerFilter_, objectLayerPairFilter_);
 
     // Create resources
+    ThreadPool threadPool{std::max(2u, std::thread::hardware_concurrency() / 2u)};
+    TextureManager textureManager{threadPool, graphicsSettings};
+
     std::cout << "Compiling Shaders... ";
-    Renderer renderer(graphicsSettings);
+    Renderer renderer(threadPool, textureManager, graphicsSettings);
     std::cout << "Done" << std::endl;
 
     std::cout << "Loading Models... ";
@@ -75,6 +78,7 @@ void Application::run()
     PlayerPhysics physicsHandler(islandScene, physicsSystem, tempAllocator);
     std::cout << "Done" << std::endl;
 
+    threadPool.stopAllThreads();
     addGlfwUserParam(islandScene);
 
     // Average FPS

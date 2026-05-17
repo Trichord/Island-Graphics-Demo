@@ -12,6 +12,7 @@ struct GraphicsSettings
     bool fullscreen{true};
     bool vsync{true};
     float gamma{1.0f};
+    int reflectionResolution{1024};
 };
 
 inline void to_json(nlohmann::json &j, const GraphicsSettings &s)
@@ -25,8 +26,9 @@ inline void to_json(nlohmann::json &j, const GraphicsSettings &s)
              {"shadowResolution", s.shadowResolution},
              {"fullscreen", s.fullscreen},
              {"vsync", s.vsync},
-             {"gamma", s.gamma}};
-}
+             {"gamma", s.gamma},
+             {"reflectionResolution", s.reflectionResolution}};
+    }
 
 inline void from_json(const nlohmann::json &j, GraphicsSettings &s)
 {
@@ -38,4 +40,5 @@ inline void from_json(const nlohmann::json &j, GraphicsSettings &s)
     s.fullscreen = j.value("fullscreen", true);
     s.vsync = j.value("vsync", true);
     s.gamma = j.value("gamma", 1.0f);
+    s.reflectionResolution = j.value("reflectionResolution", 1024);
 }

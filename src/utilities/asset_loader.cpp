@@ -350,7 +350,7 @@ AssetLoader::TextureDescriptor AssetLoader::getTextureInfo(const fastgltf::Asset
 }
 
 // Queues up pending textures for an asset, to be inserted into the texture array later
-std::vector<AssetLoader::DeferredTexture> AssetLoader::texturesFromAsset(fastgltf::Asset &asset,
+std::vector<AssetLoader::DeferredTexture> AssetLoader::texturesFromAsset(const fastgltf::Asset &asset,
                                                                          const std::filesystem::path &parentPath,
                                                                          Handle handle)
 {
