@@ -1,13 +1,10 @@
 #pragma once
 
 #include <filesystem>
-#include <optional>
-#include <span>
 #include <vector>
 
 #include "aabb.h"
 #include "primitive.h"
-#include "texture_manager.h"
 
 class Skybox
 {

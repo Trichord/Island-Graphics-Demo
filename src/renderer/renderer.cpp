@@ -1,26 +1,26 @@
 #include "renderer.h"
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <thread>
 #include <unordered_set>
 #include <vector>
 
 #include "camera.h"
 #include "cascade_shadow.h"
+#include "compute_shader.h"
 #include "directional_light.h"
 #include "gl_context.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_access.hpp"
 #include "graphics_settings.h"
 #include "graphics_shader.h"
+#include "handle.h"
 #include "render_target.h"
 #include "renderer_types.h"
 #include "scene.h"
 #include "texture_manager.h"
-#include "textures.h"
+#include "thread_pool.h"
 #include "transform.h"
 
 // Scale mipmaps and alpha cutoff for foliage

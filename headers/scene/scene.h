@@ -2,15 +2,14 @@
 
 #include <algorithm>
 #include <concepts>
-#include <functional>
+#include <filesystem>
 #include <optional>
 #include <string>
-#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
 #include <vector>
 
+#include "aabb.h"
 #include "camera.h"
 #include "directional_light.h"
 #include "glm/glm.hpp"
@@ -18,17 +17,11 @@
 #include "graphics_shader.h"
 #include "handle.h"
 #include "instanced_model.h"
+#include "model.h"
+#include "primitive.h"
 #include "skybox.h"
 #include "texture_manager.h"
 #include "transform.h"
-
-/*
- * Any storage container (Models, lights, etc.) must guarantee that their
- * addresses remain valid for the lifetime of the scene
- *
- * Scene is for fast access of static objects - dynamic model loading requires
- * safer ownership model.
- */
 
 struct SceneEntry
 {

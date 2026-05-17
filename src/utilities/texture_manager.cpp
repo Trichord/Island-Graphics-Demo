@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <numeric>
 #include <span>
 #include <stdexcept>
 #include <unordered_map>

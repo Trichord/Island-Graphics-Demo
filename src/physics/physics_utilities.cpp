@@ -2,9 +2,16 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <filesystem>
 #include <iostream>
 #include <span>
+#include <stdexcept>
+#include <string>
+#include <system_error>
+#include <vector>
 
+#include "asset_loader.h"
+#include "fastgltf/types.hpp"
 #include "glm/glm.hpp"
 #include "jolt_impl.h"
 #include "primitive.h"

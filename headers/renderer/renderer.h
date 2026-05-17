@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "aabb.h"
 #include "cascade_shadow.h"
 #include "compute_shader.h"
 #include "gl_state.h"
@@ -12,12 +13,12 @@
 #include "glm/glm.hpp"
 #include "graphics_settings.h"
 #include "graphics_shader.h"
+#include "handle.h"
 #include "render_target.h"
 #include "renderer_types.h"
 #include "scene.h"
 #include "setup_functions.h"
 #include "texture_manager.h"
-#include "textures.h"
 #include "thread_pool.h"
 
 class Renderer
