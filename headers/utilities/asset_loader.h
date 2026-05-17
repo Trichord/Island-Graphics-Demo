@@ -32,6 +32,6 @@ fastgltf::Asset loadAsset(const std::filesystem::path &path);
 std::vector<Primitive> loadMeshes(const fastgltf::Asset &asset);
 std::vector<std::filesystem::path> getURIs(const fastgltf::Asset &asset, const std::filesystem::path &parentPath);
 TextureDescriptor getTextureInfo(const fastgltf::Asset &asset, const fastgltf::TextureInfo &texInfo);
-std::vector<DeferredTexture> texturesFromAsset(fastgltf::Asset &asset, const std::filesystem::path &parentPath,
+std::vector<DeferredTexture> texturesFromAsset(const fastgltf::Asset &asset, const std::filesystem::path &parentPath,
                                                Handle handle);
 } // namespace AssetLoader

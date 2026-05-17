@@ -11,7 +11,6 @@
 #include "graphics_settings.h"
 #include "graphics_shader.h"
 #include "object_positions.h"
-#include "renderable.h"
 #include "scene.h"
 #include "texture_manager.h"
 #include "transform.h"
@@ -39,14 +38,18 @@ void IslandScene::addAllModelsToScene()
      *               *
      *****************/
 
-    // Main island
-    auto &island = resources_.loadModel("./res/models/island/island.gltf");
-    addObjectToScene(island, directionalPBR);
+    Model island{"./res/models/island/island.gltf"};
+    addModel(island, {}, directionalPBR);
 
-    // Statue
-    auto &statue = resources_.loadModel("./res/models/set_pieces/statue/statue.gltf");
+    Model statue{"./res/models/set_pieces/statue/statue.gltf"};
     Transform statueTransform{STATUE_POSITION, glm::vec3{1.0f}, -65.0f, glm::vec3{0.0f, 1.0f, 0.0f}};
-    addObjectToScene(statue, directionalPBR, std::move(statueTransform));
+    addModel(statue, std::move(statueTransform), directionalPBR);
+
+    // Fancy spinning space model
+    std::filesystem::path spaceSkybox{"./res/textures/nebula/nebula.ktx2"};
+    Model spaceModel{"./res/models/set_pieces/space_model/space_model.gltf"};
+    Transform spaceDodecaTransform{SPACE_DODECA_POS};
+    addCubemappedModel(spaceModel, spaceSkybox, std::move(spaceDodecaTransform), reflective, "spaceModel");
 
     /*********
      *       *
@@ -54,45 +57,37 @@ void IslandScene::addAllModelsToScene()
      *       *
      *********/
 
-    // Rock 1
-    auto &rock1 = resources_.loadInstancedModel("./res/models/rocks/rock1/rock1.gltf", "./res/positions/rock1.txt",
-                                                {.minScale = 0.9f, .maxScale = 2.0f});
-    addInstancedObjectToScene(rock1, directionalPBR);
+    InstancedModel rock1{
+        "./res/models/rocks/rock1/rock1.gltf", "./res/positions/rock1.txt", {.minScale = 0.9f, .maxScale = 2.0f}};
+    addInstancedModel(rock1, directionalPBR);
 
-    // Rock 2
-    auto &rock2 = resources_.loadInstancedModel("./res/models/rocks/rock2/rock2.gltf", "./res/positions/rock2.txt",
-                                                {.minScale = 1.45f, .maxScale = 2.2f});
-    addInstancedObjectToScene(rock2, directionalPBR);
+    InstancedModel rock2{
+        "./res/models/rocks/rock2/rock2.gltf", "./res/positions/rock2.txt", {.minScale = 1.45f, .maxScale = 2.2f}};
+    addInstancedModel(rock2, directionalPBR);
 
-    // Rock 3
-    auto &rock3 = resources_.loadInstancedModel("./res/models/rocks/rock3/rock3.gltf", "./res/positions/rock3.txt",
-                                                {.minScale = 0.75f, .maxScale = 1.0f});
-    addInstancedObjectToScene(rock3, directionalPBR);
+    InstancedModel rock3{
+        "./res/models/rocks/rock3/rock3.gltf", "./res/positions/rock3.txt", {.minScale = 0.75f, .maxScale = 1.0f}};
+    addInstancedModel(rock3, directionalPBR);
 
-    // Rock 4
-    auto &rock4 = resources_.loadInstancedModel("./res/models/rocks/rock4/rock4.gltf", "./res/positions/rock4.txt",
-                                                {.minScale = 0.8f, .maxScale = 1.3f});
-    addInstancedObjectToScene(rock4, directionalPBR);
+    InstancedModel rock4{
+        "./res/models/rocks/rock4/rock4.gltf", "./res/positions/rock4.txt", {.minScale = 0.8f, .maxScale = 1.3f}};
+    addInstancedModel(rock4, directionalPBR);
 
-    // Rock 5
-    auto &rock5 = resources_.loadInstancedModel("./res/models/rocks/rock5/rock5.gltf", "./res/positions/rock5.txt",
-                                                {.minScale = 0.875f, .maxScale = 1.1f});
-    addInstancedObjectToScene(rock5, directionalPBR);
+    InstancedModel rock5{
+        "./res/models/rocks/rock5/rock5.gltf", "./res/positions/rock5.txt", {.minScale = 0.875f, .maxScale = 1.1f}};
+    addInstancedModel(rock5, directionalPBR);
 
-    // Rock 6
-    auto &rock6 = resources_.loadInstancedModel("./res/models/rocks/rock6/rock6.gltf", "./res/positions/rock6.txt",
-                                                {.minScale = 1.2f, .maxScale = 1.4f});
-    addInstancedObjectToScene(rock6, directionalPBR);
+    InstancedModel rock6{
+        "./res/models/rocks/rock6/rock6.gltf", "./res/positions/rock6.txt", {.minScale = 1.2f, .maxScale = 1.4f}};
+    addInstancedModel(rock6, directionalPBR);
 
-    // Rock 7
-    auto &rock7 = resources_.loadInstancedModel("./res/models/rocks/rock7/rock7.gltf", "./res/positions/rock7.txt",
-                                                {.minScale = 0.9f, .maxScale = 1.125f});
-    addInstancedObjectToScene(rock7, directionalPBR);
+    InstancedModel rock7{
+        "./res/models/rocks/rock7/rock7.gltf", "./res/positions/rock7.txt", {.minScale = 0.9f, .maxScale = 1.125f}};
+    addInstancedModel(rock7, directionalPBR);
 
-    // Rock 8
-    auto &rock8 = resources_.loadInstancedModel("./res/models/rocks/rock8/rock8.gltf", "./res/positions/rock8.txt",
-                                                {.minScale = 1.0f, .maxScale = 1.25f});
-    addInstancedObjectToScene(rock8, directionalPBR);
+    InstancedModel rock8{
+        "./res/models/rocks/rock8/rock8.gltf", "./res/positions/rock8.txt", {.minScale = 1.0f, .maxScale = 1.25f}};
+    addInstancedModel(rock8, directionalPBR);
 
     /**************
      *            *
@@ -100,40 +95,34 @@ void IslandScene::addAllModelsToScene()
      *            *
      **************/
 
-    // Grass
-    auto &grassModel = resources_.loadInstancedModel("./res/models/vegetation/grass/grass.gltf",
-                                                     "./res/positions/grass.txt", {.minScale = 0.3f, .maxScale = 0.5f});
-    addInstancedObjectToScene(grassModel, grass);
+    InstancedModel grassModel{
+        "./res/models/vegetation/grass/grass.gltf", "./res/positions/grass.txt", {.minScale = 0.3f, .maxScale = 0.5f}};
+    addInstancedModel(grassModel, grass);
 
-    // White flowers
-    auto &whiteFlowers =
-        resources_.loadInstancedModel("./res/models/vegetation/whiteflower/whiteflower.gltf",
-                                      "./res/positions/whiteflower.txt", {.minScale = 0.9f, .maxScale = 1.1f});
-    addInstancedObjectToScene(whiteFlowers, grass);
+    InstancedModel whiteFlowers{"./res/models/vegetation/whiteflower/whiteflower.gltf",
+                                "./res/positions/whiteflower.txt",
+                                {.minScale = 0.9f, .maxScale = 1.1f}};
+    addInstancedModel(whiteFlowers, grass);
 
-    // Blue flowers
-    auto &blueFlowers =
-        resources_.loadInstancedModel("./res/models/vegetation/blueflower/blueflower.gltf",
-                                      "./res/positions/blueflower.txt", {.minScale = 0.9f, .maxScale = 1.1f});
-    addInstancedObjectToScene(blueFlowers, grass);
+    InstancedModel blueFlowers{"./res/models/vegetation/blueflower/blueflower.gltf",
+                               "./res/positions/blueflower.txt",
+                               {.minScale = 0.9f, .maxScale = 1.1f}};
+    addInstancedModel(blueFlowers, grass);
 
-    // Purple flowers
-    auto &purpleFlowers =
-        resources_.loadInstancedModel("./res/models/vegetation/purpleflower/purpleflower.gltf",
-                                      "./res/positions/purpleflower.txt", {.minScale = 0.9f, .maxScale = 1.1f});
-    addInstancedObjectToScene(purpleFlowers, grass);
+    InstancedModel purpleFlowers{"./res/models/vegetation/purpleflower/purpleflower.gltf",
+                                 "./res/positions/purpleflower.txt",
+                                 {.minScale = 0.9f, .maxScale = 1.1f}};
+    addInstancedModel(purpleFlowers, grass);
 
-    // Dandelions
-    auto &dandelions =
-        resources_.loadInstancedModel("./res/models/vegetation/dandelion/dandelion.gltf",
-                                      "./res/positions/dandelion.txt", {.minScale = 1.0f, .maxScale = 1.5f});
-    addInstancedObjectToScene(dandelions, grass);
+    InstancedModel dandelions{"./res/models/vegetation/dandelion/dandelion.gltf",
+                              "./res/positions/dandelion.txt",
+                              {.minScale = 1.0f, .maxScale = 1.5f}};
+    addInstancedModel(dandelions, grass);
 
-    // Strawberry flowers
-    auto &strawberries =
-        resources_.loadInstancedModel("./res/models/vegetation/strawberry/strawberry.gltf",
-                                      "./res/positions/strawberry.txt", {.minScale = 0.8f, .maxScale = 1.2f});
-    addInstancedObjectToScene(strawberries, grass);
+    InstancedModel strawberries{"./res/models/vegetation/strawberry/strawberry.gltf",
+                                "./res/positions/strawberry.txt",
+                                {.minScale = 0.8f, .maxScale = 1.2f}};
+    addInstancedModel(strawberries, grass);
 
     /*********
      *       *
@@ -141,30 +130,25 @@ void IslandScene::addAllModelsToScene()
      *       *
      *********/
 
-    // Tree 1
-    auto &tree1 = resources_.loadInstancedModel("./res/models/trees/tree1/tree1.gltf", "./res/positions/tree1.txt",
-                                                {.minScale = 0.8f, .maxScale = 1.2f});
-    addInstancedObjectToScene(tree1, trees);
+    InstancedModel tree1{
+        "./res/models/trees/tree1/tree1.gltf", "./res/positions/tree1.txt", {.minScale = 0.8f, .maxScale = 1.2f}};
+    addInstancedModel(tree1, trees);
 
-    // Tree 2
-    auto &tree2 = resources_.loadInstancedModel("./res/models/trees/tree2/tree2.gltf", "./res/positions/tree2.txt",
-                                                {.minScale = 0.8f, .maxScale = 1.125f});
-    addInstancedObjectToScene(tree2, trees);
+    InstancedModel tree2{
+        "./res/models/trees/tree2/tree2.gltf", "./res/positions/tree2.txt", {.minScale = 0.8f, .maxScale = 1.125f}};
+    addInstancedModel(tree2, trees);
 
-    // Tree 3
-    auto &tree3 = resources_.loadInstancedModel("./res/models/trees/tree3/tree3.gltf", "./res/positions/tree3.txt",
-                                                {.minScale = 0.85f, .maxScale = 1.3f});
-    addInstancedObjectToScene(tree3, trees);
+    InstancedModel tree3{
+        "./res/models/trees/tree3/tree3.gltf", "./res/positions/tree3.txt", {.minScale = 0.85f, .maxScale = 1.3f}};
+    addInstancedModel(tree3, trees);
 
-    // Tree 4
-    auto &tree4 = resources_.loadInstancedModel("./res/models/trees/tree4/tree4.gltf", "./res/positions/tree4.txt",
-                                                {.minScale = 0.9f, .maxScale = 1.3f});
-    addInstancedObjectToScene(tree4, trees);
+    InstancedModel tree4{
+        "./res/models/trees/tree4/tree4.gltf", "./res/positions/tree4.txt", {.minScale = 0.9f, .maxScale = 1.3f}};
+    addInstancedModel(tree4, trees);
 
-    // Dead tree
-    auto &deadTree = resources_.loadModel("./res/models/trees/dead_tree/dead_tree.gltf");
+    Model deadTree{"./res/models/trees/dead_tree/dead_tree.gltf"};
     Transform deadTreeTransform{DEAD_TREE_POS, glm::vec3{1.0f}, 45.0f};
-    addObjectToScene(deadTree, directionalPBR, std::move(deadTreeTransform));
+    addModel(deadTree, std::move(deadTreeTransform), directionalPBR);
 
     /*********
      *       *
@@ -173,20 +157,19 @@ void IslandScene::addAllModelsToScene()
      *********/
 
     // Main pond
-    auto &pond = resources_.loadModel("./res/models/water/pond/pond.gltf");
-
+    Model pond{"./res/models/water/pond/pond.gltf"};
     Transform pondTransform{POND_WATER_POS, POND_WATER_SCALE};
-    addObjectToScene(pond, water, std::move(pondTransform));
+    addModel(pond, std::move(pondTransform), water);
 
     // Small starting area puddle
-    auto &puddle = resources_.loadModel("./res/models/water/puddle/puddle.gltf");
+    Model puddle{"./res/models/water/puddle/puddle.gltf"};
     Transform puddleTransform{PUDDLE_POS, PUDDLE_SCALE};
-    addObjectToScene(puddle, water, std::move(puddleTransform));
+    addModel(puddle, std::move(puddleTransform), water);
 
     // Ocean
-    auto &oceanModel = resources_.loadModel("./res/models/water/ocean/ocean.gltf");
+    Model oceanModel{"./res/models/water/ocean/ocean.gltf"};
     Transform oceanTransform{OCEAN_POS, OCEAN_SCALE};
-    addObjectToScene(oceanModel, ocean, std::move(oceanTransform));
+    addModel(oceanModel, std::move(oceanTransform), ocean);
 
     /**********
      *        *
@@ -195,23 +178,8 @@ void IslandScene::addAllModelsToScene()
      **********/
 
     std::filesystem::path skyBoxPath{"./res/textures/skybox/skybox.ktx2"};
-    auto &skyboxModel = resources_.loadSkybox(skyBoxPath);
-    addSkyboxToScene(skyboxModel);
-
-    /***************
-     *             *
-     * Space Model *
-     *             *
-     ***************/
-
-    // Fancy spinning space model
-    std::filesystem::path spaceBoxPath{"./res/textures/nebula/nebula.ktx2"};
-
-    auto &spaceModel =
-        resources_.loadCubeMappedModel("./res/models/set_pieces/space_model/space_model.gltf", spaceBoxPath);
-    Transform spaceDodecaTransform{SPACE_DODECA_POS};
-
-    addObjectToScene(spaceModel, reflective, std::move(spaceDodecaTransform), "spaceModel");
+    Skybox skyboxModel{skyBoxPath};
+    addSkybox(skyboxModel);
 }
 
 void IslandScene::setupEnvironment()
@@ -250,12 +218,10 @@ void IslandScene::setupCamera(const GraphicsSettings &graphicsSettings)
 void IslandScene::onUpdate(float deltaTime)
 {
     // Rotate the fancy space model
-    auto &spaceModelEntry = getEntryByName("spaceModel");
-    Renderable &spaceModel{spaceModelEntry.renderableRef.get()};
-    AABB &spaceAABB{spaceModel.getAABB()};
+    SceneEntry &spaceModel{getEntryByName("spaceModel")};
 
-    for (std::size_t i{0}; i < spaceModelEntry.transforms.size(); ++i)
-        spaceModelEntry.transforms[i].rotateAroundAxis(deltaTime, glm::vec3{0.34f, 0.935f, 0.6f});
+    for (std::size_t i{0}; i < spaceModel.transforms.size(); ++i)
+        spaceModel.transforms[i].rotateAroundAxis(deltaTime, glm::vec3{0.34f, 0.935f, 0.6f});
 
-    updatedModels_.insert(spaceModel.getHandle());
+    updatedModels_.insert(spaceModel.handle);
 }

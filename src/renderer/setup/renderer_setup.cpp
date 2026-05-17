@@ -23,10 +23,9 @@ void Renderer::initializeResources(Scene &scene)
     SceneTotals totals{getSceneTotals(scene)};
 
     // Cubemaps. Reserve space up front for any load-time generated cubemaps
-    int resolution{getReflectionResolution()};
     int numCubemaps{static_cast<int>(totals.dynamicCubemaps)};
     GLenum colorFormat{textureManager_.getReflectionColorFormat()};
-    textureManager_.reserveCubemaps(numCubemaps, resolution, colorFormat);
+    textureManager_.reserveCubemaps(numCubemaps, graphicsSettings_.reflectionResolution, colorFormat);
 
     textureManager_.buildAllTextures();
 
@@ -84,7 +83,6 @@ void Renderer::initializeResources(Scene &scene)
 
     // Get ready for first frame
     updateCameraUBO(scene);
-    threadPool_.stopAllThreads();
 }
 
 void Renderer::setSceneShaderUniforms(Scene &scene)

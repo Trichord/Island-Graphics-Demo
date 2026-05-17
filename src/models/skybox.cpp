@@ -20,39 +20,29 @@ constexpr float skyboxSize{1e18f};
 void setGeometry(std::vector<Primitive> &primitives, AABB &aabb);
 std::vector<int> getMaterialIndices(const std::vector<Primitive> &primitives);
 
-Skybox::Skybox(TextureManager &textureManager, const std::filesystem::path &imagePath)
-    : handle_{textureManager.assignHandle()}
+Skybox::Skybox(const std::filesystem::path &imagePath)
+    : aabb_{glm::vec3{-skyboxSize}, glm::vec3{skyboxSize}}, image_{imagePath}
 {
     setGeometry(primitives_, aabb_);
-    auto materialIndices = getMaterialIndices(primitives_);
-
-    textureManager.loadCubemapTextures(handle_, imagePath, materialIndices);
 }
 
-AABB &Skybox::getAABB()
+const AABB &Skybox::getAABB() const
 {
     return aabb_;
 }
 
-Handle Skybox::getHandle() const
-{
-    return handle_;
-}
-
-std::span<Primitive> Skybox::getPrimitives()
+const std::vector<Primitive> &Skybox::getPrimitives() const
 {
     return primitives_;
 }
 
-std::optional<std::vector<Primitive>> Skybox::loadCollisionMesh() const
+const std::filesystem::path &Skybox::getPath() const
 {
-    return {};
+    return image_;
 }
 
 void setGeometry(std::vector<Primitive> &primitives, AABB &aabb)
 {
-    aabb = AABB(glm::vec3{-skyboxSize}, glm::vec3{skyboxSize});
-
     std::vector<Primitive::Vertex> vertices{
         {.position = glm::vec3{0.0f, 2.0f, 1.0f}},
         {.position = glm::vec3{3.0f, -1.0f, 1.0f}},
