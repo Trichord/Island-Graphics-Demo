@@ -18,8 +18,6 @@
 #include "graphics_shader.h"
 #include "handle.h"
 #include "instanced_model.h"
-#include "renderable.h"
-#include "scene_resources.h"
 #include "skybox.h"
 #include "texture_manager.h"
 #include "transform.h"
@@ -34,9 +32,13 @@
 
 struct SceneEntry
 {
-    std::reference_wrapper<Renderable> renderableRef;
+    Handle handle{0};
+    AABB aabb;
+
+    std::vector<Primitive> primitives;
     std::vector<Transform> transforms;
 
+    std::optional<std::filesystem::path> filePath;
     ShaderType shaderType{ShaderType::directionalPBR};
 };
 
@@ -69,9 +71,7 @@ class Scene
 
   protected:
     Camera camera_;
-
-    // Permanent storage
-    SceneResources resources_;
+    TextureManager &textureManager_;
 
     // Associated data
     std::vector<SceneEntry> entries_;
@@ -86,8 +86,7 @@ class Scene
 
     // Access points
     std::unordered_set<Handle> updatedModels_;
-    std::unordered_map<std::string, std::reference_wrapper<SceneEntry>> entriesByName_;
-    std::unordered_map<Handle, std::reference_wrapper<SceneEntry>> entriesByHandle_;
+    std::unordered_map<std::string, std::size_t> entriesByName_;
 
     // For updating existing transforms. Do not add or remove them.
     virtual void onUpdate(float deltaTime) = 0;
@@ -98,28 +97,13 @@ class Scene
     virtual void setupCamera(const GraphicsSettings &graphicsSettings) = 0;
     virtual void initializeScene(const GraphicsSettings &graphicsSettings) = 0;
 
-    void addSkyboxToScene(Skybox &skybox);
+    Handle loadGLTFTextures(const Model &model);
 
-    // Instanced models load positions and generate transforms from disk
-    void addInstancedObjectToScene(InstancedModel &renderableRef, ShaderType shaderType,
-                                   const std::optional<std::string> name = std::nullopt);
-
-    /**
-     * @brief Adds an object to the scene.  Optional: give the object a name to access
-     * it in a scene's onUpdate() method.
-     */
-    template <typename T>
-        requires std::derived_from<T, Renderable> && (!std::same_as<T, InstancedModel> && !std::same_as<T, Skybox>)
-    void addObjectToScene(T &renderableRef, ShaderType shaderType, Transform &&transform = {},
-                          const std::optional<std::string> name = std::nullopt)
-    {
-        SceneEntry entry{
-            .renderableRef = renderableRef, .transforms = {std::move(transform)}, .shaderType = shaderType};
-
-        entries_.emplace_back(entry);
-
-        // Add a lookup to get a reference to a model's instances by a user-defined name
-        if (name.has_value())
-            entriesByName_.emplace(name.value(), std::ref(entries_.back()));
-    }
+    void addSkybox(const Skybox &skybox);
+    void addModel(const Model &model, Transform &&transform, ShaderType shaderType,
+                  const std::optional<std::string> name = std::nullopt);
+    void addInstancedModel(const InstancedModel &model, ShaderType shaderType,
+                           const std::optional<std::string> name = std::nullopt);
+    void addCubemappedModel(const Model &model, const std::filesystem::path &imagePath, Transform &&transform,
+                            ShaderType shaderType, const std::optional<std::string> name = std::nullopt);
 };

@@ -196,17 +196,16 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
         if (IsItemHovered(ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_NoSharedDelay))
             SetTooltip("Ctrl + Click to edit", GetStyle().HoverDelayShort);
 
-        Spacing();
-
-        Dummy(dummySpacing);
         Dummy(dummySpacing);
 
         Checkbox("Fullscreen", &settings.fullscreen);
 
-        SameLine(GetContentRegionAvail().x / 4.0f);
+        SameLine(GetContentRegionAvail().x / (numColumns * 2.0f));
 
         Checkbox("VSync", &settings.vsync);
 
+        // Spacing to separate Advanced Options
+        Dummy(dummySpacing);
         Dummy(dummySpacing);
         Dummy(dummySpacing);
         Spacing();
@@ -218,13 +217,13 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
         Text("Anisotropic Filtering");
         if (BeginCombo("##anisoCombo", anisoPreviewValue_))
         {
-            for (int i{0}; i < anisoLevel.size(); ++i)
+            for (int i{0}; i < anisoLevel_.size(); ++i)
             {
                 const bool isAnisoSelected{anisoSelectedIndex_ == i};
-                if (Selectable(anisoLevel[i], isAnisoSelected))
+                if (Selectable(anisoLevel_[i], isAnisoSelected))
                 {
                     anisoSelectedIndex_ = i;
-                    anisoPreviewValue_ = anisoLevel[anisoSelectedIndex_];
+                    anisoPreviewValue_ = anisoLevel_[anisoSelectedIndex_];
                     updateAniso(settings, i);
                 }
                 if (isAnisoSelected)
@@ -255,22 +254,59 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
 
         Dummy(dummySpacing);
 
-        Text("Shadow Quality");
-        if (BeginCombo("##shadowCombo", shadowPreviewValue_))
+        float tableWidth{GetContentRegionAvail().x / numColumns};
+        float yCursorPos{GetCursorPosY()};
+
+        if (BeginTable("##qualityTable", 2, ImGuiTableFlags_None, ImVec2{tableWidth, 0.0f}))
         {
-            for (int i{0}; i < shadowLevel.size(); ++i)
+            TableSetupColumn("##shadow", ImGuiTableColumnFlags_WidthStretch);
+            TableSetupColumn("##reflection", ImGuiTableColumnFlags_WidthStretch);
+
+            TableNextColumn();
+            PushItemWidth(tableWidth / 2.0f - GetStyle().ItemSpacing.x);
+            AlignTextToFramePadding();
+            Text("Shadow Quality");
+            if (BeginCombo("##shadowCombo", shadowPreviewValue_))
             {
-                const bool isShadowSelected{shadowSelectedIndex_ == i};
-                if (Selectable(shadowLevel[i], isShadowSelected))
+                for (int i{0}; i < shadowQuality_.size(); ++i)
                 {
-                    shadowSelectedIndex_ = i;
-                    shadowPreviewValue_ = shadowLevel[shadowSelectedIndex_];
-                    updateShadowQuality(settings, i);
+                    const bool isShadowSelected{shadowSelectedIndex_ == i};
+                    if (Selectable(shadowQuality_[i], isShadowSelected))
+                    {
+                        shadowSelectedIndex_ = i;
+                        shadowPreviewValue_ = shadowQuality_[shadowSelectedIndex_];
+                        updateShadowQuality(settings, i);
+                    }
+                    if (isShadowSelected)
+                        SetItemDefaultFocus();
                 }
-                if (isShadowSelected)
-                    SetItemDefaultFocus();
+                EndCombo();
             }
-            EndCombo();
+            PopItemWidth();
+
+            TableNextColumn();
+            PushItemWidth(tableWidth / 2.0f - GetStyle().ItemSpacing.x);
+            AlignTextToFramePadding();
+            Text("Reflection Quality");
+            if (BeginCombo("##reflectionCombo", reflectionPreviewValue_))
+            {
+                for (int i{0}; i < reflectionQuality_.size(); ++i)
+                {
+                    const bool isReflectionSelected{reflectionSelectedIndex_ == i};
+                    if (Selectable(reflectionQuality_[i], isReflectionSelected))
+                    {
+                        reflectionSelectedIndex_ = i;
+                        reflectionPreviewValue_ = reflectionQuality_[reflectionSelectedIndex_];
+                        updateReflectionQuality(settings, i);
+                    }
+                    if (isReflectionSelected)
+                        SetItemDefaultFocus();
+                }
+                EndCombo();
+            }
+
+            PopItemWidth();
+            EndTable();
         }
 
         PopItemWidth();
@@ -393,6 +429,12 @@ void SettingsWindow::updateShadowQuality(GraphicsSettings &settings, int index)
         settings.shadowResolution = shadowTable_[index];
 }
 
+void SettingsWindow::updateReflectionQuality(GraphicsSettings &settings, int index)
+{
+    if (index < reflectionTable_.size())
+        settings.reflectionResolution = reflectionTable_[index];
+}
+
 void SettingsWindow::matchSettingsToGUI(const GraphicsSettings &settings)
 {
     for (int i{0}; i < static_cast<int>(resolutionTable_.size()); ++i)
@@ -427,9 +469,9 @@ void SettingsWindow::matchSettingsToGUI(const GraphicsSettings &settings)
     if (msaaSelectedIndex_ < msaaLevel_.size())
         msaaPreviewValue_ = msaaLevel_[msaaSelectedIndex_];
 
-    if (anisoSelectedIndex_ < anisoLevel.size())
-        anisoPreviewValue_ = anisoLevel[anisoSelectedIndex_];
+    if (anisoSelectedIndex_ < anisoLevel_.size())
+        anisoPreviewValue_ = anisoLevel_[anisoSelectedIndex_];
 
-    if (shadowSelectedIndex_ < shadowLevel.size())
-        shadowPreviewValue_ = shadowLevel[shadowSelectedIndex_];
+    if (shadowSelectedIndex_ < shadowQuality_.size())
+        shadowPreviewValue_ = shadowQuality_[shadowSelectedIndex_];
 }

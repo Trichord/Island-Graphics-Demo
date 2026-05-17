@@ -27,14 +27,13 @@ static constexpr int shadow{13};
 class TextureManager
 {
   public:
-    TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings, int reflectionResolution);
+    TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings);
 
     Handle assignHandle();
 
     // Add a gLTF model
-    void loadModelTextures(const Handle handle, fastgltf::Asset &&asset, const std::filesystem::path &parentPath);
-    void loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath,
-                             std::vector<int> &materialIndices);
+    void loadModelTextures(const Handle handle, const fastgltf::Asset &asset, const std::filesystem::path &parentPath);
+    void loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath);
 
     GLenum getReflectionColorFormat() const;
     std::span<const Material> getMaterials(Handle handle) const;

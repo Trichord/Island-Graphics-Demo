@@ -13,13 +13,13 @@
 #include "transform.h"
 #include "world_vectors.h"
 
-InstancedModel::InstancedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
+InstancedModel::InstancedModel(const std::filesystem::path &modelPath,
                                const std::filesystem::path &positionsPath, Randomize randomize)
-    : Model{textureManager, modelPath}, positionsPath_{positionsPath}, randomize_{randomize}
+    : Model{modelPath}, positionsPath_{positionsPath}, randomize_{randomize}
 {
 }
 
-std::vector<Transform> InstancedModel::loadInstancedTransforms()
+std::vector<Transform> InstancedModel::loadInstancedTransforms() const
 {
     std::vector<glm::vec3> positions{loadPositions()};
 
@@ -31,7 +31,7 @@ std::vector<Transform> InstancedModel::loadInstancedTransforms()
     return transforms;
 }
 
-std::vector<glm::vec3> InstancedModel::loadPositions()
+std::vector<glm::vec3> InstancedModel::loadPositions() const
 {
     std::vector<glm::vec3> instances;
 
@@ -53,7 +53,7 @@ std::vector<glm::vec3> InstancedModel::loadPositions()
     return instances;
 }
 
-std::vector<Transform> InstancedModel::randomizeRotationScale(std::vector<glm::vec3> &positions)
+std::vector<Transform> InstancedModel::randomizeRotationScale(std::vector<glm::vec3> &positions) const
 {
     std::random_device rd;
     std::mt19937 mt(rd());
