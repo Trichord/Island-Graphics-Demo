@@ -1,6 +1,6 @@
 #include "scene.h"
 
-#include <functional>
+#include <filesystem>
 #include <iostream>
 #include <optional>
 #include <stdexcept>
@@ -15,6 +15,7 @@
 #include "graphics_shader.h"
 #include "handle.h"
 #include "instanced_model.h"
+#include "model.h"
 #include "skybox.h"
 #include "texture_manager.h"
 #include "transform.h"

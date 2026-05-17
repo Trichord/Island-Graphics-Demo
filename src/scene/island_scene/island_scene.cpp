@@ -4,14 +4,16 @@
 #include <utility>
 #include <vector>
 
-#include "aabb.h"
 #include "camera.h"
 #include "directional_light.h"
 #include "glm/glm.hpp"
 #include "graphics_settings.h"
 #include "graphics_shader.h"
+#include "instanced_model.h"
+#include "model.h"
 #include "object_positions.h"
 #include "scene.h"
+#include "skybox.h"
 #include "texture_manager.h"
 #include "transform.h"
 

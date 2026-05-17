@@ -1,6 +1,8 @@
 #include "render_target.h"
 
 #include <iostream>
+#include <stdexcept>
+#include <utility>
 
 #include "glad/glad.h"
 #include "texture_utilities.h"
