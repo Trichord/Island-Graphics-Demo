@@ -1,7 +1,5 @@
 #pragma once
 
-#include <algorithm>
-#include <concepts>
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -23,22 +21,23 @@
 #include "texture_manager.h"
 #include "transform.h"
 
-struct SceneEntry
-{
-    Handle handle{0};
-    AABB aabb;
-
-    std::vector<Primitive> primitives;
-    std::vector<Transform> transforms;
-
-    std::optional<std::filesystem::path> filePath;
-    ShaderType shaderType{ShaderType::directionalPBR};
-};
-
 class Scene
 {
   public:
-    Scene(TextureManager &textureManager);
+    struct Entry
+    {
+        Handle handle{0};
+        AABB aabb;
+
+        std::vector<Primitive> primitives;
+        std::vector<Transform> transforms;
+
+        std::optional<std::filesystem::path> filePath;
+        ShaderType shaderType{ShaderType::directionalPBR};
+    };
+
+    Scene(TextureManager &_textureManager, const GraphicsSettings &graphicsSettings,
+          const std::filesystem::path &jsonFile);
     Scene(const Scene &) = delete;
     Scene &operator=(const Scene &) = delete;
     Scene(Scene &&other) noexcept = default;
@@ -53,8 +52,8 @@ class Scene
 
     // Accessors
     Camera &getCamera();
-    std::vector<SceneEntry> &getAllSceneEntries();
-    SceneEntry &getEntryByName(const std::string &key);
+    std::vector<Entry> &getAllSceneEntries();
+    Entry &getEntryByName(const std::string &key);
 
     // Per-frame Update
     std::unordered_set<Handle> &getUpdatedModels();
@@ -67,7 +66,7 @@ class Scene
     TextureManager &textureManager_;
 
     // Associated data
-    std::vector<SceneEntry> entries_;
+    std::vector<Entry> entries_;
 
     // Wind
     float windStrength_{0.0f};
@@ -81,22 +80,16 @@ class Scene
     std::unordered_set<Handle> updatedModels_;
     std::unordered_map<std::string, std::size_t> entriesByName_;
 
+    void setupScene(const std::filesystem::path &jsonFile, const GraphicsSettings &graphicsSettings);
+
     // For updating existing transforms. Do not add or remove them.
     virtual void onUpdate(float deltaTime) = 0;
-
-    virtual void addAllModelsToScene() = 0;
-    virtual void setupEnvironment() = 0;
-
-    virtual void setupCamera(const GraphicsSettings &graphicsSettings) = 0;
-    virtual void initializeScene(const GraphicsSettings &graphicsSettings) = 0;
 
     Handle loadGLTFTextures(const Model &model);
 
     void addSkybox(const Skybox &skybox);
-    void addModel(const Model &model, Transform &&transform, ShaderType shaderType,
-                  const std::optional<std::string> name = std::nullopt);
-    void addInstancedModel(const InstancedModel &model, ShaderType shaderType,
-                           const std::optional<std::string> name = std::nullopt);
-    void addCubemappedModel(const Model &model, const std::filesystem::path &imagePath, Transform &&transform,
-                            ShaderType shaderType, const std::optional<std::string> name = std::nullopt);
+    void addModel(const Model &model, const Transform &transform, ShaderType shaderType, const std::string &name = "");
+    void addInstancedModel(const InstancedModel &model, ShaderType shaderType, const std::string &name = "");
+    void addCubemappedModel(const Model &model, const std::filesystem::path &imagePath, const Transform &transform,
+                            ShaderType shaderType, const std::string &name = "");
 };

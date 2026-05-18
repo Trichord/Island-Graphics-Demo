@@ -39,7 +39,7 @@ std::vector<glm::vec3> InstancedModel::loadPositions() const
     float y{0.0f};
     float z{0.0f};
 
-    std::fstream positionsFile{positionsPath_};
+    std::ifstream positionsFile{positionsPath_};
 
     if (!positionsFile.is_open())
     {

@@ -107,7 +107,7 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndire
 
     // Water should not be instanced, limit one cubemap per model. By walking the scene instead of draw entries,
     // we ensure each model gets one cubemap
-    for (SceneEntry &entry : scene.getAllSceneEntries())
+    for (Scene::Entry &entry : scene.getAllSceneEntries())
     {
         if (entry.shaderType != water)
             continue;

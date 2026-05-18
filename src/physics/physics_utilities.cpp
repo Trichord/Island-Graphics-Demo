@@ -47,7 +47,7 @@ physicsUtilities::CollisionMesh physicsUtilities::buildCollisionMesh(Scene &scen
 {
     physicsUtilities::CollisionMesh collisionMesh;
 
-    for (SceneEntry &entry : scene.getAllSceneEntries())
+    for (Scene::Entry &entry : scene.getAllSceneEntries())
     {
         if (!entry.filePath.has_value())
             continue;
