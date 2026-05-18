@@ -38,21 +38,26 @@ class SettingsWindow
     inline static const std::array<const char *, 3> msaaLevel_{"2x", "4x", "8x"};
     static constexpr std::array<int, 3> msaaTable_{2, 4, 8};
 
-    inline static const std::array<const char *, 5> anisoLevel{"Off", "2x", "4x", "8x", "16x"};
+    inline static const std::array<const char *, 5> anisoLevel_{"Off", "2x", "4x", "8x", "16x"};
     static constexpr std::array<int, 5> anisoTable_{0, 2, 4, 8, 16};
 
-    inline static const std::array<const char *, 4> shadowLevel{"Off", "Low", "Medium", "High"};
+    inline static const std::array<const char *, 4> shadowQuality_{"Off", "Low", "Medium", "High"};
     static constexpr std::array<int, 4> shadowTable_{1, 512, 1024, 2048};
 
-    int resolutionSelectedIndex_{2};
+    inline static const std::array<const char *, 3> reflectionQuality_{"Low", "Medium", "High"};
+    static constexpr std::array<int, 3> reflectionTable_{512, 1024, 2048};
+  
     int msaaSelectedIndex_{1};
     int anisoSelectedIndex_{2};
     int shadowSelectedIndex_{2};
+    int resolutionSelectedIndex_{2};
+    int reflectionSelectedIndex_{1};
 
     const char *msaaPreviewValue_{msaaLevel_[msaaSelectedIndex_]};
-    const char *anisoPreviewValue_{anisoLevel[anisoSelectedIndex_]};
-    const char *shadowPreviewValue_{shadowLevel[shadowSelectedIndex_]};
+    const char *anisoPreviewValue_{anisoLevel_[anisoSelectedIndex_]};
+    const char *shadowPreviewValue_{shadowQuality_[shadowSelectedIndex_]};
     const char *resolutionPreviewValue_{resolutions_[resolutionSelectedIndex_]};
+    const char *reflectionPreviewValue_{reflectionQuality_[reflectionSelectedIndex_]};
 
     GLuint textureID_{0};
 
@@ -105,6 +110,8 @@ class SettingsWindow
      * @param The requested index from the drop-down menu.
      */
     void updateShadowQuality(GraphicsSettings &settings, int index);
+
+    void updateReflectionQuality(GraphicsSettings &settings, int index);
 
     void matchSettingsToGUI(const GraphicsSettings &settings);
 };

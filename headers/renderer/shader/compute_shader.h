@@ -2,6 +2,7 @@
 
 #include "shader_base.h"
 
+#include <cstdint>
 #include <filesystem>
 
 class ComputeShader : public Shader

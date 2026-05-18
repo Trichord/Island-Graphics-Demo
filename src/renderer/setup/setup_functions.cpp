@@ -9,9 +9,7 @@
 #include "fastgltf/types.hpp"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
-#include "handle.h"
 #include "primitive.h"
-#include "renderable.h"
 #include "renderer_types.h"
 #include "scene.h"
 #include "setup_functions.h"
@@ -23,13 +21,10 @@ SceneTotals getSceneTotals(Scene &scene)
 {
     SceneTotals totals;
 
-    for (SceneEntry &entry : scene.getAllSceneEntries())
+    for (Scene::Entry &entry : scene.getAllSceneEntries())
     {
-        Renderable &renderable{entry.renderableRef.get()};
-        std::span<Primitive> primitives{renderable.getPrimitives()};
-
         std::size_t numTransforms{entry.transforms.size()};
-        std::size_t numPrimitives{primitives.size()};
+        std::size_t numPrimitives{entry.primitives.size()};
 
         if (entry.shaderType == ShaderType::water)
             ++totals.dynamicCubemaps;
@@ -38,7 +33,7 @@ SceneTotals getSceneTotals(Scene &scene)
         totals.primitives += numPrimitives;
         totals.visibleInstances += numTransforms * numPrimitives;
 
-        for (Primitive &primitive : primitives)
+        for (Primitive &primitive : entry.primitives)
         {
             totals.indices += primitive.indices.size();
             totals.vertices += primitive.vertices.size();
@@ -54,19 +49,15 @@ std::vector<DrawEntry> createDrawEntries(Scene &scene, const SceneTotals &totals
     std::vector<DrawEntry> drawEntries;
     drawEntries.reserve(totals.primitives);
 
-    for (SceneEntry &entry : scene.getAllSceneEntries())
+    for (Scene::Entry &entry : scene.getAllSceneEntries())
     {
-        Renderable &renderable{entry.renderableRef.get()};
-        Handle handle{renderable.getHandle()};
-
-        std::span<Primitive> primitives{renderable.getPrimitives()};
         std::uint32_t numTransforms{static_cast<std::uint32_t>(entry.transforms.size())};
 
-        for (Primitive &primitive : primitives)
+        for (Primitive &primitive : entry.primitives)
         {
             using enum fastgltf::AlphaMode;
 
-            drawEntries.emplace_back(DrawEntry{.handle = handle,
+            drawEntries.emplace_back(DrawEntry{.handle = entry.handle,
                                                .primitive = &primitive,
                                                .transforms = &entry.transforms,
                                                .shaderType = entry.shaderType,
@@ -214,19 +205,16 @@ AABB getSceneBounds(Scene &scene)
     glm::vec3 min{std::numeric_limits<float>::infinity()};
     glm::vec3 max{-std::numeric_limits<float>::infinity()};
 
-    for (SceneEntry &entry : scene.getAllSceneEntries())
+    for (Scene::Entry &entry : scene.getAllSceneEntries())
     {
         using enum ShaderType;
 
         if (entry.shaderType == ocean || entry.shaderType == skybox)
             continue;
 
-        Renderable &renderable{entry.renderableRef.get()};
-        const AABB &aabb{renderable.getAABB()};
-
         for (Transform &transform : entry.transforms)
         {
-            const AABB worldAABB{aabb.transform(transform.getModelMatrix())};
+            const AABB worldAABB{entry.aabb.transform(transform.getModelMatrix())};
 
             const glm::vec3 aabbMin{worldAABB.getMin()};
             const glm::vec3 aabbMax{worldAABB.getMax()};

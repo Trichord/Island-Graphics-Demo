@@ -1,7 +1,9 @@
 #include "application.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
+#include <thread>
 
 #include "camera.h"
 #include "gl_context.h"
@@ -20,6 +22,8 @@
 #include "renderer.h"
 #include "scene.h"
 #include "settings_window.h"
+#include "texture_manager.h"
+#include "thread_pool.h"
 
 Application::~Application()
 {
@@ -60,12 +64,15 @@ void Application::run()
                        objectVsBroadPhaseLayerFilter_, objectLayerPairFilter_);
 
     // Create resources
+    ThreadPool threadPool{std::max(2u, std::thread::hardware_concurrency() / 2u)};
+    TextureManager textureManager{threadPool, graphicsSettings};
+
     std::cout << "Compiling Shaders... ";
-    Renderer renderer(graphicsSettings);
+    Renderer renderer(threadPool, textureManager, graphicsSettings);
     std::cout << "Done" << std::endl;
 
     std::cout << "Loading Models... ";
-    IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
+    IslandScene islandScene(renderer.getTextureManager(), graphicsSettings, "./res/scenes/island_scene.json");
     std::cout << "Done" << std::endl;
 
     // Initialize scene dependent resources
@@ -75,6 +82,7 @@ void Application::run()
     PlayerPhysics physicsHandler(islandScene, physicsSystem, tempAllocator);
     std::cout << "Done" << std::endl;
 
+    threadPool.stopAllThreads();
     addGlfwUserParam(islandScene);
 
     // Average FPS
@@ -86,22 +94,17 @@ void Application::run()
         currentFrame_ = (float)glfwGetTime();
         deltaTime_ = currentFrame_ - lastFrame_;
         lastFrame_ = currentFrame_;
-
-        // Final FPS count
         totalTime += deltaTime_;
 
-        // Update scene objects
+        // Update
         islandScene.onUpdate(deltaTime_);
-
-        // Physics
         processKeyboard(islandScene, physicsHandler);
 
         // Draw
         renderer.renderScene(islandScene);
-
         glfwSwapBuffers(window_);
 
-        // User input
+        // Check for window close
         glfwPollEvents();
     }
 

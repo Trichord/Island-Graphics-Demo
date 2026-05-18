@@ -5,7 +5,6 @@
 
 #include "glm/glm.hpp"
 #include "model.h"
-#include "texture_manager.h"
 #include "transform.h"
 
 class InstancedModel : public Model
@@ -17,16 +16,16 @@ class InstancedModel : public Model
         float maxScale{1.0f};
     };
 
-    InstancedModel(TextureManager &textureManager, const std::filesystem::path &modelPath,
+    InstancedModel(const std::filesystem::path &modelPath,
                    const std::filesystem::path &positionsPath, Randomize randomize);
 
     // Load positions from storage and generate matrices
-    std::vector<Transform> loadInstancedTransforms();
+    std::vector<Transform> loadInstancedTransforms() const;
 
   private:
     std::filesystem::path positionsPath_;
     Randomize randomize_;
 
-    std::vector<glm::vec3> loadPositions();
-    std::vector<Transform> randomizeRotationScale(std::vector<glm::vec3> &positions);
+    std::vector<glm::vec3> loadPositions() const;
+    std::vector<Transform> randomizeRotationScale(std::vector<glm::vec3> &positions) const;
 };

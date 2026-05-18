@@ -2,11 +2,18 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <filesystem>
+#include <iostream>
 #include <span>
+#include <stdexcept>
+#include <string>
+#include <system_error>
+#include <vector>
 
+#include "asset_loader.h"
+#include "fastgltf/types.hpp"
 #include "glm/glm.hpp"
 #include "jolt_impl.h"
-#include "renderable.h"
 #include "primitive.h"
 #include "scene.h"
 #include "transform.h"
@@ -40,17 +47,34 @@ physicsUtilities::CollisionMesh physicsUtilities::buildCollisionMesh(Scene &scen
 {
     physicsUtilities::CollisionMesh collisionMesh;
 
-    for (SceneEntry &entry : scene.getAllSceneEntries())
+    for (Scene::Entry &entry : scene.getAllSceneEntries())
     {
-        Renderable &model{entry.renderableRef.get()};
+        if (!entry.filePath.has_value())
+            continue;
 
-        auto objectCollisionMesh = model.loadCollisionMesh();
+        std::filesystem::path filePath{entry.filePath.value()};
+        std::filesystem::path collisionMeshPath{filePath.parent_path() / "collision"};
+        std::string gltf{filePath.stem().string() + "_collision.gltf"};
+        std::filesystem::path fullPath{collisionMeshPath / gltf};
 
-        if (!objectCollisionMesh.has_value())
+        std::vector<Primitive> collisionPrimitives;
+
+        std::error_code error;
+        if (std::filesystem::exists(fullPath, error))
+        {
+            fastgltf::Asset asset = AssetLoader::loadAsset(fullPath);
+            collisionPrimitives = AssetLoader::loadMeshes(asset);
+        }
+        else if (error)
+        {
+            std::cerr << error.message() << std::endl;
+            throw std::runtime_error("ERROR: Unable to load collision mesh.");
+        }
+        else
             continue;
 
         for (Transform &transform : entry.transforms)
-            iterateVertices(collisionMesh, objectCollisionMesh.value(), transform.getModelMatrix());
+            iterateVertices(collisionMesh, collisionPrimitives, transform.getModelMatrix());
     }
 
     return collisionMesh;

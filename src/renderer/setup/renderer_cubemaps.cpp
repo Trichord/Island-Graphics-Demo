@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <span>
 #include <unordered_set>
 #include <vector>
 
@@ -13,7 +12,6 @@
 #include "handle.h"
 #include "primitive.h"
 #include "render_target.h"
-#include "renderable.h"
 #include "renderer_types.h"
 #include "scene.h"
 #include "setup_functions.h"
@@ -85,7 +83,7 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndire
     camera.setFOV(90.0f);
     camera.setAspectRatio(1.0f);
 
-    int faceSize{getReflectionResolution()};
+    int faceSize{graphicsSettings_.reflectionResolution};
     glViewport(0, 0, faceSize, faceSize);
 
     GLenum colorFormat{textureManager_.getReflectionColorFormat()};
@@ -109,12 +107,11 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndire
 
     // Water should not be instanced, limit one cubemap per model. By walking the scene instead of draw entries,
     // we ensure each model gets one cubemap
-    for (SceneEntry &entry : scene.getAllSceneEntries())
+    for (Scene::Entry &entry : scene.getAllSceneEntries())
     {
         if (entry.shaderType != water)
             continue;
 
-        const Renderable &renderable{entry.renderableRef.get()};
         Transform &transform{entry.transforms.front()};
 
         // Set the camera in the center of the water plane
@@ -122,16 +119,13 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndire
         renderCubeFaces(scene, cubeFaces, blitTarget);
 
         // Assign the texture
-        auto &waterPlane = entry.renderableRef.get();
-        const std::span<Primitive> &primitives{waterPlane.getPrimitives()};
-
         std::vector<int> materialIndices;
-        materialIndices.reserve(primitives.size());
+        materialIndices.reserve(entry.primitives.size());
 
-        for (Primitive &primitive : primitives)
+        for (Primitive &primitive : entry.primitives)
             materialIndices.push_back(primitive.materialIndex);
 
-        textureManager_.setCubemap(waterPlane.getHandle(), materialIndices, blitTarget);
+        textureManager_.setCubemap(entry.handle, materialIndices, blitTarget);
     }
 
     // Reset
