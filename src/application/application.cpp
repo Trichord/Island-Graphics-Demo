@@ -72,7 +72,7 @@ void Application::run()
     std::cout << "Done" << std::endl;
 
     std::cout << "Loading Models... ";
-    IslandScene islandScene(renderer.getTextureManager(), graphicsSettings);
+    IslandScene islandScene(renderer.getTextureManager(), graphicsSettings, "./res/scenes/island_scene.json");
     std::cout << "Done" << std::endl;
 
     // Initialize scene dependent resources
@@ -94,22 +94,17 @@ void Application::run()
         currentFrame_ = (float)glfwGetTime();
         deltaTime_ = currentFrame_ - lastFrame_;
         lastFrame_ = currentFrame_;
-
-        // Final FPS count
         totalTime += deltaTime_;
 
-        // Update scene objects
+        // Update
         islandScene.onUpdate(deltaTime_);
-
-        // Physics
         processKeyboard(islandScene, physicsHandler);
 
         // Draw
         renderer.renderScene(islandScene);
-
         glfwSwapBuffers(window_);
 
-        // User input
+        // Check for window close
         glfwPollEvents();
     }
 

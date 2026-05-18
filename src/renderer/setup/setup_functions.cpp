@@ -21,7 +21,7 @@ SceneTotals getSceneTotals(Scene &scene)
 {
     SceneTotals totals;
 
-    for (SceneEntry &entry : scene.getAllSceneEntries())
+    for (Scene::Entry &entry : scene.getAllSceneEntries())
     {
         std::size_t numTransforms{entry.transforms.size()};
         std::size_t numPrimitives{entry.primitives.size()};
@@ -49,7 +49,7 @@ std::vector<DrawEntry> createDrawEntries(Scene &scene, const SceneTotals &totals
     std::vector<DrawEntry> drawEntries;
     drawEntries.reserve(totals.primitives);
 
-    for (SceneEntry &entry : scene.getAllSceneEntries())
+    for (Scene::Entry &entry : scene.getAllSceneEntries())
     {
         std::uint32_t numTransforms{static_cast<std::uint32_t>(entry.transforms.size())};
 
@@ -205,7 +205,7 @@ AABB getSceneBounds(Scene &scene)
     glm::vec3 min{std::numeric_limits<float>::infinity()};
     glm::vec3 max{-std::numeric_limits<float>::infinity()};
 
-    for (SceneEntry &entry : scene.getAllSceneEntries())
+    for (Scene::Entry &entry : scene.getAllSceneEntries())
     {
         using enum ShaderType;
 

@@ -76,9 +76,9 @@ const glm::mat4 &Camera::getViewProjectionMatrix()
     return viewProjectionMatrix_;
 }
 
-void Camera::setYaw(float newYaw)
+void Camera::setYaw(float yaw)
 {
-    yaw_ = std::fmod(newYaw, 360.0f);
+    yaw_ = std::fmod(yaw, 360.0f);
     hasChanged_ = true;
     dirtyMatrices_ = true;
 }
@@ -90,16 +90,16 @@ void Camera::setFOV(float fov)
     dirtyMatrices_ = true;
 }
 
-void Camera::setPitch(float newPitch)
+void Camera::setPitch(float pitch)
 {
-    pitch_ = std::clamp(newPitch, minPitch, maxPitch);
+    pitch_ = std::clamp(pitch, minPitch, maxPitch);
     hasChanged_ = true;
     dirtyMatrices_ = true;
 }
 
-void Camera::setPosition(const glm::vec3 &newPosition)
+void Camera::setPosition(const glm::vec3 &position)
 {
-    position_ = newPosition;
+    position_ = position;
     hasChanged_ = true;
     dirtyMatrices_ = true;
 }

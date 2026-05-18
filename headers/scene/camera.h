@@ -25,12 +25,12 @@ class Camera
     glm::mat4 getResizedViewProjectionMatrix(float ratio);
 
     void setFOV(float fov);
-    void setYaw(float newYaw);
-    void setPitch(float newPitch);
+    void setYaw(float yaw);
+    void setPitch(float pitch);
     void setFarPlane(float farPlane);
     void setNearPlane(float nearPlane);
     void setAspectRatio(float aspectRatio);
-    void setPosition(const glm::vec3 &newPosition);
+    void setPosition(const glm::vec3 &position);
     void setWorldOrientation(WorldOrientation orientation);
 
     void processMouseMovement(float xOffset, float yOffset);
@@ -54,7 +54,7 @@ class Camera
     // Frustum
     float fov_{45.0f};
     float nearPlane_{0.1f};
-    float farPlane_{2000.0f};
+    float farPlane_{1000.0f};
     float aspectRatio_{16.0f / 9.0f};
     
     void updateMatrices();
