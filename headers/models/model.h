@@ -1,31 +1,28 @@
 #pragma once
 
 #include <filesystem>
-#include <optional>
-#include <span>
 #include <vector>
 
 #include "aabb.h"
+#include "fastgltf/types.hpp"
 #include "primitive.h"
-#include "renderable.h"
 #include "texture_manager.h"
 
-class Model : public Renderable
+class Model
 {
   public:
-    Model(TextureManager &textureManager, const std::filesystem::path &path);
+    Model(const std::filesystem::path &path);
 
-    AABB &getAABB() override;
-    Handle getHandle() const override;
-    std::span<Primitive> getPrimitives() override;
-    std::optional<std::vector<Primitive>> loadCollisionMesh() const override;
+    const AABB &getAABB() const;
+    const std::filesystem::path &getPath() const;
+    const fastgltf::Asset &getAsset() const;
+    const std::vector<Primitive> &getPrimitives() const;
 
   protected:
-    AABB aabb_;
-    Handle handle_{0};
-
+    fastgltf::Asset asset_;
     std::filesystem::path filePath_;
     std::vector<Primitive> primitives_;
+    AABB aabb_;
 
-    void calculateAABB();
+    AABB calculateAABB() const;
 };

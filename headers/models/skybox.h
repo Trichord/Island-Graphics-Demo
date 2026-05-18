@@ -1,29 +1,23 @@
 #pragma once
 
 #include <filesystem>
-#include <optional>
-#include <span>
 #include <vector>
 
 #include "aabb.h"
 #include "primitive.h"
-#include "renderable.h"
-#include "texture_manager.h"
 
-class Skybox : public Renderable
+class Skybox
 {
   public:
     Skybox() = default;
-    Skybox(TextureManager &textureManager, const std::filesystem::path &imagePath);
+    Skybox(const std::filesystem::path &imagePath);
 
-    AABB &getAABB() override;
-    Handle getHandle() const override;
-    std::span<Primitive> getPrimitives() override;
-    std::optional<std::vector<Primitive>> loadCollisionMesh() const override;
+    const AABB &getAABB() const;
+    const std::filesystem::path &getPath() const;
+    const std::vector<Primitive> &getPrimitives() const;
 
-  protected:
+  private:
     AABB aabb_;
-    Handle handle_{0};
-
+    std::filesystem::path image_;
     std::vector<Primitive> primitives_;
 };

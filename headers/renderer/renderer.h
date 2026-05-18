@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "aabb.h"
 #include "cascade_shadow.h"
 #include "compute_shader.h"
 #include "gl_state.h"
@@ -12,19 +13,19 @@
 #include "glm/glm.hpp"
 #include "graphics_settings.h"
 #include "graphics_shader.h"
+#include "handle.h"
 #include "render_target.h"
 #include "renderer_types.h"
 #include "scene.h"
 #include "setup_functions.h"
 #include "texture_manager.h"
-#include "textures.h"
 #include "thread_pool.h"
 
 class Renderer
 {
   public:
     Renderer() = delete;
-    explicit Renderer(const GraphicsSettings &graphicsSettings);
+    Renderer(ThreadPool &threadPool, TextureManager &textureManager, const GraphicsSettings &settings);
     Renderer(const Renderer &) = delete;
     Renderer &operator=(const Renderer &) = delete;
     Renderer(Renderer &&other) = delete;
@@ -33,7 +34,6 @@ class Renderer
 
     void renderScene(Scene &scene);
     void initializeResources(Scene &scene);
-    int getReflectionResolution() const;
 
     std::uint32_t getFrameCount() const;
     TextureManager &getTextureManager();
@@ -44,9 +44,9 @@ class Renderer
     static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
 
     // Critical members
+    ThreadPool &threadPool_;
+    TextureManager &textureManager_;
     const GraphicsSettings graphicsSettings_;
-    ThreadPool threadPool_;
-    TextureManager textureManager_;
 
     // Owned objects
     GLState glState_;

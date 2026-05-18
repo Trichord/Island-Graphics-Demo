@@ -19,32 +19,33 @@
 
 #include "texture_manager.h"
 
-Model::Model(TextureManager &textureManager, const std::filesystem::path &path)
-    : handle_{textureManager.assignHandle()}, filePath_{path}
+Model::Model(const std::filesystem::path &path)
+    : asset_{AssetLoader::loadAsset(path)}, filePath_{path}, primitives_{AssetLoader::loadMeshes(asset_)},
+      aabb_{calculateAABB()}
 {
-    fastgltf::Asset asset = AssetLoader::loadAsset(path);
-    primitives_ = AssetLoader::loadMeshes(asset);
-    calculateAABB();
-
-    textureManager.loadModelTextures(handle_, std::move(asset), path.parent_path());
 }
 
-AABB &Model::getAABB()
+const AABB &Model::getAABB() const
 {
     return aabb_;
 }
 
-std::span<Primitive> Model::getPrimitives()
+const std::vector<Primitive> &Model::getPrimitives() const
 {
     return primitives_;
 }
 
-Handle Model::getHandle() const
+const fastgltf::Asset &Model::getAsset() const
 {
-    return handle_;
+    return asset_;
 }
 
-void Model::calculateAABB()
+const std::filesystem::path &Model::getPath() const
+{
+    return filePath_;
+}
+
+AABB Model::calculateAABB() const
 {
     glm::vec3 min{std::numeric_limits<float>::infinity()};
     glm::vec3 max{-std::numeric_limits<float>::infinity()};
@@ -55,27 +56,5 @@ void Model::calculateAABB()
         max = glm::max(max, primitive.aabb.getMax());
     }
 
-    aabb_ = AABB{min, max};
-}
-
-std::optional<std::vector<Primitive>> Model::loadCollisionMesh() const
-{
-    std::filesystem::path collisionMeshPath{filePath_.parent_path() / "collision"};
-    std::string gltf{filePath_.stem().string() + "_collision.gltf"};
-    std::filesystem::path fullPath{collisionMeshPath / gltf};
-
-    std::error_code error;
-
-    if (std::filesystem::exists(fullPath, error))
-    {
-        fastgltf::Asset asset = AssetLoader::loadAsset(fullPath);
-        return AssetLoader::loadMeshes(asset);
-    }
-    else if (error)
-    {
-        std::cerr << error.message() << std::endl;
-        throw std::runtime_error("ERROR: Unable to load collision mesh.");
-    }
-    else
-        return {};
+    return {min, max};
 }
