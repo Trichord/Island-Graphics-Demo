@@ -463,6 +463,12 @@ void SettingsWindow::matchSettingsToGUI(const GraphicsSettings &settings)
             shadowSelectedIndex_ = i;
     }
 
+    for (int i{0}; i < static_cast<int>(reflectionTable_.size()); ++i)
+    {
+        if (reflectionTable_[i] == settings.reflectionResolution)
+            reflectionSelectedIndex_ = i;
+    }
+
     if (resolutionSelectedIndex_ < resolutions_.size())
         resolutionPreviewValue_ = resolutions_[resolutionSelectedIndex_];
 
@@ -474,4 +480,7 @@ void SettingsWindow::matchSettingsToGUI(const GraphicsSettings &settings)
 
     if (shadowSelectedIndex_ < shadowQuality_.size())
         shadowPreviewValue_ = shadowQuality_[shadowSelectedIndex_];
+
+    if (reflectionSelectedIndex_ < reflectionQuality_.size())
+        reflectionPreviewValue_ = reflectionQuality_[reflectionSelectedIndex_];
 }
