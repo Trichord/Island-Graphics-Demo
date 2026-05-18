@@ -13,7 +13,7 @@
 #include "textures.h"
 
 constexpr int GUIWidth{1024};
-constexpr int GUIHeight{650};
+constexpr int GUIHeight{655};
 constexpr int numColumns{2};
 constexpr float baseFontSize = 22.0f;
 
@@ -259,30 +259,8 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
 
         if (BeginTable("##qualityTable", 2, ImGuiTableFlags_None, ImVec2{tableWidth, 0.0f}))
         {
-            TableSetupColumn("##shadow", ImGuiTableColumnFlags_WidthStretch);
             TableSetupColumn("##reflection", ImGuiTableColumnFlags_WidthStretch);
-
-            TableNextColumn();
-            PushItemWidth(tableWidth / 2.0f - GetStyle().ItemSpacing.x);
-            AlignTextToFramePadding();
-            Text("Shadow Quality");
-            if (BeginCombo("##shadowCombo", shadowPreviewValue_))
-            {
-                for (int i{0}; i < shadowQuality_.size(); ++i)
-                {
-                    const bool isShadowSelected{shadowSelectedIndex_ == i};
-                    if (Selectable(shadowQuality_[i], isShadowSelected))
-                    {
-                        shadowSelectedIndex_ = i;
-                        shadowPreviewValue_ = shadowQuality_[shadowSelectedIndex_];
-                        updateShadowQuality(settings, i);
-                    }
-                    if (isShadowSelected)
-                        SetItemDefaultFocus();
-                }
-                EndCombo();
-            }
-            PopItemWidth();
+            TableSetupColumn("##shadow", ImGuiTableColumnFlags_WidthStretch);
 
             TableNextColumn();
             PushItemWidth(tableWidth / 2.0f - GetStyle().ItemSpacing.x);
@@ -305,6 +283,28 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
                 EndCombo();
             }
 
+            PopItemWidth();
+
+            TableNextColumn();
+            PushItemWidth(tableWidth / 2.0f - GetStyle().ItemSpacing.x);
+            AlignTextToFramePadding();
+            Text("Shadow Quality");
+            if (BeginCombo("##shadowCombo", shadowPreviewValue_))
+            {
+                for (int i{0}; i < shadowQuality_.size(); ++i)
+                {
+                    const bool isShadowSelected{shadowSelectedIndex_ == i};
+                    if (Selectable(shadowQuality_[i], isShadowSelected))
+                    {
+                        shadowSelectedIndex_ = i;
+                        shadowPreviewValue_ = shadowQuality_[shadowSelectedIndex_];
+                        updateShadowQuality(settings, i);
+                    }
+                    if (isShadowSelected)
+                        SetItemDefaultFocus();
+                }
+                EndCombo();
+            }
             PopItemWidth();
             EndTable();
         }

@@ -188,10 +188,10 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
         throw std::runtime_error("Failed to open file");
     }
     SceneDescription scene;
-    
+
     try
     {
-    scene = json::parse(file).get<SceneDescription>();
+        scene = json::parse(file).get<SceneDescription>();
     }
     catch (const json::exception &e)
     {
