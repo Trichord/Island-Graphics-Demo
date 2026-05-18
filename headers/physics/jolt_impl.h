@@ -6,7 +6,6 @@
 
 #include "glm/glm.hpp"
 #include "jolt/Core/Core.h"
-#include "jolt/Core/IssueReporting.h"
 #include "jolt/Math/Float3.h"
 #include "jolt/Math/Vec3.h"
 #include "jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h"

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #include "graphics_settings.h"
 #include "scene.h"
 #include "texture_manager.h"
@@ -9,11 +11,8 @@
 class IslandScene : public Scene
 {
   public:
-    IslandScene(TextureManager &_textureManager, const GraphicsSettings &graphicsSettings);
+    IslandScene(TextureManager &textureManager, const GraphicsSettings &graphicsSettings,
+                const std::filesystem::path &jsonFile);
 
-    void addAllModelsToScene() override;
-    void setupEnvironment() override;
     void onUpdate(float deltaTime) override;
-    void setupCamera(const GraphicsSettings &graphicsSettings) override;
-    void initializeScene(const GraphicsSettings &graphicsSettings) override;
 };

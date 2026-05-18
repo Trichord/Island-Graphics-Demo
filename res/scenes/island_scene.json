@@ -1,0 +1,229 @@
+{
+  "environment": {
+    "lightColor": [1.0, 0.95, 0.9],
+    "ambientLight": [0.168754, 0.168754, 0.168754],
+    "sunDirection": [-0.36669, -0.731219, -0.575202]
+  },
+  "wind": {
+    "strength": 0.7,
+    "direction": [0.858185, -0.289923, 0.423631]
+  },
+  "camera": {
+    "position": [134.6624, 0.5, -62.8179],
+    "yaw": -100.0,
+    "nearPlane": 0.1,
+    "farPlane": 2000.0,
+    "FOV": 45.0
+  },
+  "entries": [
+    {
+      "type": "model",
+      "modelPath": "./res/models/island/island.gltf",
+      "shader": "directionalPBR"
+    },
+    {
+      "type": "model",
+      "transform": {
+        "position": [-220.61097, -6.58, -140.05396],
+        "rotationDegrees": -65.0
+      },
+      "modelPath": "./res/models/set_pieces/statue/statue.gltf",
+      "shader": "directionalPBR"
+    },
+    {
+      "type": "cubemapped",
+      "name": "spaceModel",
+      "transform": {
+        "position": [-21.0, 13.4615, -48.0],
+        "scale": [1.0, 1.0, 1.0]
+      },
+      "modelPath": "./res/models/set_pieces/space_model/space_model.gltf",
+      "cubemapPath": "./res/textures/nebula/nebula.ktx2",
+      "shader": "reflective"
+    },
+    {
+      "type": "instanced",
+      "minScale": 0.9,
+      "maxScale": 2.0,
+      "modelPath": "./res/models/rocks/rock1/rock1.gltf",
+      "positionsPath": "./res/positions/rock1.txt",
+      "shader": "directionalPBR"
+    },
+    {
+      "type": "instanced",
+      "minScale": 1.45,
+      "maxScale": 2.2,
+      "modelPath": "./res/models/rocks/rock2/rock2.gltf",
+      "positionsPath": "./res/positions/rock2.txt",
+      "shader": "directionalPBR"
+    },
+    {
+      "type": "instanced",
+      "minScale": 0.75,
+      "maxScale": 1.0,
+      "modelPath": "./res/models/rocks/rock3/rock3.gltf",
+      "positionsPath": "./res/positions/rock3.txt",
+      "shader": "directionalPBR"
+    },
+    {
+      "type": "instanced",
+      "minScale": 0.8,
+      "maxScale": 1.3,
+      "modelPath": "./res/models/rocks/rock4/rock4.gltf",
+      "positionsPath": "./res/positions/rock4.txt",
+      "shader": "directionalPBR"
+    },
+    {
+      "type": "instanced",
+      "minScale": 0.875,
+      "maxScale": 1.1,
+      "modelPath": "./res/models/rocks/rock5/rock5.gltf",
+      "positionsPath": "./res/positions/rock5.txt",
+      "shader": "directionalPBR"
+    },
+    {
+      "type": "instanced",
+      "minScale": 1.2,
+      "maxScale": 1.4,
+      "modelPath": "./res/models/rocks/rock6/rock6.gltf",
+      "positionsPath": "./res/positions/rock6.txt",
+      "shader": "directionalPBR"
+    },
+    {
+      "type": "instanced",
+      "minScale": 0.9,
+      "maxScale": 1.125,
+      "modelPath": "./res/models/rocks/rock7/rock7.gltf",
+      "positionsPath": "./res/positions/rock7.txt",
+      "shader": "directionalPBR"
+    },
+    {
+      "type": "instanced",
+      "minScale": 1.0,
+      "maxScale": 1.25,
+      "modelPath": "./res/models/rocks/rock8/rock8.gltf",
+      "positionsPath": "./res/positions/rock8.txt",
+      "shader": "directionalPBR"
+    },
+    {
+      "type": "instanced",
+      "minScale": 0.3,
+      "maxScale": 0.5,
+      "modelPath": "./res/models/vegetation/grass/grass.gltf",
+      "positionsPath": "./res/positions/grass.txt",
+      "shader": "grass"
+    },
+    {
+      "type": "instanced",
+      "minScale": 0.9,
+      "maxScale": 1.1,
+      "modelPath": "./res/models/vegetation/whiteflower/whiteflower.gltf",
+      "positionsPath": "./res/positions/whiteflower.txt",
+      "shader": "grass"
+    },
+    {
+      "type": "instanced",
+      "minScale": 0.9,
+      "maxScale": 1.1,
+      "modelPath": "./res/models/vegetation/blueflower/blueflower.gltf",
+      "positionsPath": "./res/positions/blueflower.txt",
+      "shader": "grass"
+    },
+    {
+      "type": "instanced",
+      "minScale": 0.9,
+      "maxScale": 1.1,
+      "modelPath": "./res/models/vegetation/purpleflower/purpleflower.gltf",
+      "positionsPath": "./res/positions/purpleflower.txt",
+      "shader": "grass"
+    },
+    {
+      "type": "instanced",
+      "minScale": 1.0,
+      "maxScale": 1.5,
+      "modelPath": "./res/models/vegetation/dandelion/dandelion.gltf",
+      "positionsPath": "./res/positions/dandelion.txt",
+      "shader": "grass"
+    },
+    {
+      "type": "instanced",
+      "minScale": 0.8,
+      "maxScale": 1.2,
+      "modelPath": "./res/models/vegetation/strawberry/strawberry.gltf",
+      "positionsPath": "./res/positions/strawberry.txt",
+      "shader": "grass"
+    },
+    {
+      "type": "instanced",
+      "minScale": 0.8,
+      "maxScale": 1.2,
+      "modelPath": "./res/models/trees/tree1/tree1.gltf",
+      "positionsPath": "./res/positions/tree1.txt",
+      "shader": "trees"
+    },
+    {
+      "type": "instanced",
+      "minScale": 0.8,
+      "maxScale": 1.125,
+      "modelPath": "./res/models/trees/tree2/tree2.gltf",
+      "positionsPath": "./res/positions/tree2.txt",
+      "shader": "trees"
+    },
+    {
+      "type": "instanced",
+      "minScale": 0.85,
+      "maxScale": 1.3,
+      "modelPath": "./res/models/trees/tree3/tree3.gltf",
+      "positionsPath": "./res/positions/tree3.txt",
+      "shader": "trees"
+    },
+    {
+      "type": "instanced",
+      "minScale": 0.9,
+      "maxScale": 1.3,
+      "modelPath": "./res/models/trees/tree4/tree4.gltf",
+      "positionsPath": "./res/positions/tree4.txt",
+      "shader": "trees"
+    },
+    {
+      "type": "model",
+      "transform": {
+        "position": [196.18584, -0.93, 154.62890],
+        "rotationDegrees": 45.0
+      },
+      "modelPath": "./res/models/trees/dead_tree/dead_tree.gltf",
+      "shader": "directionalPBR"
+    },
+    {
+      "type": "model",
+      "transform": {
+        "position": [121.80589, -6.22636, 145.36897],
+        "scale": [45.0, 1.0, 45.0]
+      },
+      "modelPath": "./res/models/water/pond/pond.gltf",
+      "shader": "water"
+    },
+    {
+      "type": "model",
+      "transform": {
+        "position": [102.09975, -0.92979, -67.76979],
+        "scale": [5.0, 5.0, 5.0]
+      },
+      "modelPath": "./res/models/water/puddle/puddle.gltf",
+      "shader": "water"
+    },
+    {
+      "type": "model",
+      "transform": {
+        "position": [0.0, -10.39, 0.0],
+        "scale": [7.5, 7.5, 7.5]
+      },
+      "modelPath": "./res/models/water/ocean/ocean.gltf",
+      "shader": "ocean"
+    },
+    {
+      "type": "skybox",
+      "skyboxPath": "./res/textures/skybox/skybox.ktx2"
+    }
+  ]
+}

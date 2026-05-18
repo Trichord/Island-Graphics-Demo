@@ -1,26 +1,26 @@
 #include "renderer.h"
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <thread>
 #include <unordered_set>
 #include <vector>
 
 #include "camera.h"
 #include "cascade_shadow.h"
+#include "compute_shader.h"
 #include "directional_light.h"
 #include "gl_context.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_access.hpp"
 #include "graphics_settings.h"
 #include "graphics_shader.h"
+#include "handle.h"
 #include "render_target.h"
 #include "renderer_types.h"
 #include "scene.h"
 #include "texture_manager.h"
-#include "textures.h"
+#include "thread_pool.h"
 #include "transform.h"
 
 // Scale mipmaps and alpha cutoff for foliage
@@ -30,9 +30,8 @@ constexpr int shadowMapMSAA{2};
 
 const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix);
 
-Renderer::Renderer(const GraphicsSettings &settings)
-    : graphicsSettings_{settings}, threadPool_{std::max(2u, std::thread::hardware_concurrency() / 2u)},
-      textureManager_{threadPool_, settings, getReflectionResolution()},
+Renderer::Renderer(ThreadPool &threadPool, TextureManager &textureManager, const GraphicsSettings &settings)
+    : graphicsSettings_{settings}, threadPool_{threadPool}, textureManager_{textureManager},
       msaaShadowTarget_{settings.shadowResolution,
                         settings.shadowResolution,
                         {.msaa = shadowMapMSAA,
@@ -186,16 +185,16 @@ void Renderer::updateSceneTransforms(Scene &scene)
 
     for (Handle handle : updatedTransformHandles)
     {
-        BufferTransforms &transforms{transformsByHandle_.at(handle)};
-        std::size_t numMatrices{transforms.transforms->size()};
+        BufferTransforms &bufferTransforms{transformsByHandle_.at(handle)};
+        std::size_t numMatrices{bufferTransforms.transforms->size()};
 
         updatedMatrices_.clear();
         updatedMatrices_.reserve(numMatrices);
 
-        for (Transform &transform : *transforms.transforms)
+        for (Transform &transform : *bufferTransforms.transforms)
             updatedMatrices_.emplace_back(transform.getModelMatrix());
 
-        glNamedBufferSubData(matricesBuffer_, transforms.matricesBufferBaseIndex * sizeof(glm::mat4),
+        glNamedBufferSubData(matricesBuffer_, bufferTransforms.matricesBufferBaseIndex * sizeof(glm::mat4),
                              numMatrices * sizeof(glm::mat4), updatedMatrices_.data());
     }
 
@@ -205,13 +204,6 @@ void Renderer::updateSceneTransforms(Scene &scene)
 std::uint32_t Renderer::getFrameCount() const
 {
     return framesRendered_;
-}
-
-int Renderer::getReflectionResolution() const
-{
-    constexpr int resolutionReduction{2};
-
-    return std::max(graphicsSettings_.screenWidth, graphicsSettings_.screenHeight) / resolutionReduction;
 }
 
 TextureManager &Renderer::getTextureManager()
