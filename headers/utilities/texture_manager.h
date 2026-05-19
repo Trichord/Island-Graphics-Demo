@@ -38,7 +38,7 @@ class TextureManager
     GLenum getReflectionColorFormat() const;
     std::span<const Material> getMaterials(Handle handle) const;
 
-    void reserveCubemaps(int numCubemaps, int resolution, GLenum internalFormat);
+    void reserveCubemaps(std::size_t numCubemaps, int resolution, GLenum internalFormat);
 
     // Borrow a cubemap after the scene has been built
     void borrowCubemaps(Handle self, Handle other);

@@ -2,8 +2,6 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <optional>
-#include <span>
 #include <utility>
 #include <vector>
 
@@ -11,14 +9,10 @@
 #include "fastgltf/types.hpp"
 #include "glm/glm.hpp"
 #include "primitive.h"
-#include "texture_manager.h"
-
-#include <iostream>
 
 constexpr float skyboxSize{1e18f};
 
 void setGeometry(std::vector<Primitive> &primitives, AABB &aabb);
-std::vector<int> getMaterialIndices(const std::vector<Primitive> &primitives);
 
 Skybox::Skybox(const std::filesystem::path &imagePath)
     : aabb_{glm::vec3{-skyboxSize}, glm::vec3{skyboxSize}}, image_{imagePath}
@@ -55,15 +49,4 @@ void setGeometry(std::vector<Primitive> &primitives, AABB &aabb)
                             .aabb = aabb,
                             .materialIndex = 0,
                             .alphaMode = fastgltf::AlphaMode::Opaque}};
-}
-
-std::vector<int> getMaterialIndices(const std::vector<Primitive> &primitives)
-{
-    std::vector<int> materialIndices;
-    materialIndices.reserve(primitives.size());
-
-    for (const Primitive &primitive : primitives)
-        materialIndices.push_back(primitive.materialIndex);
-
-    return materialIndices;
 }

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "aabb.h"
+#include "buffers.h"
 #include "cascade_shadow.h"
 #include "compute_shader.h"
 #include "gl_state.h"
@@ -17,7 +18,7 @@
 #include "render_target.h"
 #include "renderer_types.h"
 #include "scene.h"
-#include "setup_functions.h"
+#include "scene_processor.h"
 #include "texture_manager.h"
 #include "thread_pool.h"
 
@@ -30,7 +31,7 @@ class Renderer
     Renderer &operator=(const Renderer &) = delete;
     Renderer(Renderer &&other) = delete;
     Renderer &operator=(Renderer &&other) = delete;
-    ~Renderer();
+    //Can probably add the move assignment / move constructor
 
     void renderScene(Scene &scene);
     void initializeResources(Scene &scene);
@@ -51,57 +52,13 @@ class Renderer
     // Owned objects
     GLState glState_;
     std::vector<glm::mat4> updatedMatrices_;
-    std::unordered_map<Handle, BufferTransforms> transformsByHandle_;
+    std::unordered_map<Handle, std::uint32_t> matricesBaseIndex_;
     std::array<GraphicsShader, static_cast<int>(ShaderType::count)> shaders_;
 
-    /* Buffers
-     *
-     * Overall strategy: maintain set regions for each primitive so that a base index is always known. From there, any
-     * instancing is always base + instance.
-     *
-     * Map: Per (primitive × instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
-     *      - matricesIndex: index into Matrices buffer
-     *      - sharedBaseIndex: index into AABBs/Metadata/DrawCommands (the primitive)
-     *      - drawBucket: which draw bucket this primitive belongs to
-     *      - drawBucketBaseIndex: start of that bucket in DrawCommands
-     *      - visibleInstancesBaseIndex: start of the (primitive x instance) in the visibility buffer
-     *
-     * AABB: Per primitive. Local-space bounding boxes
-     * Matrices: Per model. World-space transforms (multiple primitives share one range)
-     * Metadata: Per primitive. Material textures, visibility buffer base index
-     * DrawCounts: Per draw bucket. Number of surviving draw commands after compaction
-     * CullResults: Per primitive. Number of surviving instances after frustum test
-     * DrawCommands: Per primitive. Compacted each frame from DrawCommandsSource
-     * VisibleInstances: Per (primitive × instance) pair. Indices into Matrices for
-     *                   instances that passed the frustum test. Each primitive owns a
-     *                   contiguous section sized to its instance count.
-     * DrawCommandsSource: Per primitive. Immutable source of truth, set once at load
-     *
-     * 1:1 indexed buffers: AABB[i], Metadata[i], DrawCommands[i], DrawCommandsSource[i]
-     * Flattened buffers: Map[j], VisibleInstances[j] where j spans all (primitive × instance) pairs
-     *
-     */
-
-    // Buffers
-    GLuint mapBuffer_{0};
-    GLuint aabbBuffer_{0};
-    GLuint matricesBuffer_{0};
-    GLuint metadataBuffer_{0};
-    GLuint drawCountsBuffer_{0};
-    GLuint cullResultsBuffer_{0};
-    GLuint drawCommandsBuffer_{0};
-    GLuint visibleInstancesBuffer_{0};
-    GLuint drawCommandsSourceBuffer_{0};
-
-    // Global VAO
-    GLuint globalVAO_{0};
-    GLuint globalVBO_{0};
-    GLuint globalEBO_{0};
-
-    // UBO
-    GLuint frustumPlanesUBO_{0};
-    GLuint shaderUniformsUBO_{0};
-    GLuint shadowCascadesUBO_{0};
+    // GPU Buffers
+    SSBOs SSBOs_;
+    GlobalVAO VAO_;
+    UBOs UBOs_;
 
     // Textures
     CascadeShadow cascadeShadow_;
@@ -122,29 +79,18 @@ class Renderer
     void setupShader(GraphicsShader &shader);
     void setSceneShaderUniforms(Scene &scene);
 
-    // Cubemap Generation
-    void borrowSkybox(const std::vector<DrawEntry> &entries);
-    void renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget);
-    void updateMetadataCubemaps(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata);
-    void createCubemaps(Scene &scene, const std::vector<DrawElementsIndirectCommand> &commandsSource,
-                        const std::vector<DrawEntry> &entries);
-
-    // GPU buffers
-    void createVAO(const std::vector<DrawEntry> &entries, const SceneTotals &totals);
-    void createBuffers(const std::vector<DrawElementsIndirectCommand> &commands, const std::vector<AABB> &aabbs,
-                       const SceneTotals &totals);
-    void populateMatricesSSBO(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata,
-                              const SceneTotals &totals);
-
-    // Renderer internal setup
-    void createBufferMap(const std::vector<DrawEntry> &entries, const std::vector<PrimitiveMetadata> &metadata,
-                         const SceneTotals &totals);
+    void createUBOs();
 
     // Drawing
     void renderScene();
     void cullScene(const glm::mat4 &cullMatrix);
     void renderShadowMaps(Scene &scene, bool lightChanged);
     void shadowPass(GraphicsShader &shader, int cascade, bool alphaTested);
+
+    // Cubemap Generation
+    void borrowSkybox(const SceneProcessor &processor);
+    void createCubemaps(Scene &scene, const SceneProcessor &processor);
+    void renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget);
 
     // Updates
     void updateCameraUBO(Scene &scene);

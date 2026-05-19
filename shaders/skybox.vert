@@ -11,14 +11,14 @@ struct Metadata
 	int normalLayer;
 	int cubemapArray;
 	int cubemapLayer;
-	uint visibleInstancesBufferBaseIndex;
+	uint visibleInstancesBaseIndex;
 };
 
 // Attributes
 layout (location = 0) in vec3 aPos;
 
 // UBOs
-layout (std140) uniform uniformData 
+layout (std140, binding = 0) uniform cameraData 
 {
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionMatrix;

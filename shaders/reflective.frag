@@ -11,14 +11,14 @@ struct Metadata
 	int normalLayer;
 	int cubemapArray;
 	int cubemapLayer;
-	uint visibleInstancesBufferBaseIndex;
+	uint visibleInstancesBaseIndex;
 };
 
 // Samplers
 layout(binding = 10) uniform samplerCubeArray cubemaps[3];
 
 // UBOs
-layout (std140) uniform uniformData 
+layout (std140, binding = 0) uniform cameraData 
 {
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionMatrix;
