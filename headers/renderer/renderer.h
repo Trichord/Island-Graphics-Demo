@@ -25,13 +25,11 @@
 class Renderer
 {
   public:
-    Renderer() = delete;
     Renderer(ThreadPool &threadPool, TextureManager &textureManager, const GraphicsSettings &settings);
     Renderer(const Renderer &) = delete;
     Renderer &operator=(const Renderer &) = delete;
     Renderer(Renderer &&other) = delete;
     Renderer &operator=(Renderer &&other) = delete;
-    //Can probably add the move assignment / move constructor
 
     void renderScene(Scene &scene);
     void initializeResources(Scene &scene);
@@ -56,10 +54,10 @@ class Renderer
     std::array<GraphicsShader, static_cast<int>(ShaderType::count)> shaders_;
 
     // GPU Buffers
+    UBOs UBOs_;
     SSBOs SSBOs_;
     GlobalVAO VAO_;
-    UBOs UBOs_;
-
+    
     // Textures
     CascadeShadow cascadeShadow_;
     RenderTarget msaaShadowTarget_;
@@ -79,18 +77,20 @@ class Renderer
     void setupShader(GraphicsShader &shader);
     void setSceneShaderUniforms(Scene &scene);
 
-    void createUBOs();
+    // Setup
+    void takeBuffers(SceneProcessor::ProcessedScene &processed);
+
+    // Cubemap Generation
+    void borrowSkybox(const SceneProcessor &processor);
+    void createCubemaps(Scene &scene, const SceneProcessor &processor,
+                        std::vector<DrawElementsIndirectCommand> &commands);
+    void renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget);
 
     // Drawing
     void renderScene();
     void cullScene(const glm::mat4 &cullMatrix);
     void renderShadowMaps(Scene &scene, bool lightChanged);
     void shadowPass(GraphicsShader &shader, int cascade, bool alphaTested);
-
-    // Cubemap Generation
-    void borrowSkybox(const SceneProcessor &processor);
-    void createCubemaps(Scene &scene, const SceneProcessor &processor);
-    void renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget);
 
     // Updates
     void updateCameraUBO(Scene &scene);

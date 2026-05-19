@@ -45,6 +45,7 @@ class TextureManager
     void setCubemap(Handle handle, std::vector<int> overrideIndices, RenderTarget &renderTarget);
 
     void buildAllTextures();
+    bool allTexturesBuilt() const;
 
   private:
     struct ArrayReference
