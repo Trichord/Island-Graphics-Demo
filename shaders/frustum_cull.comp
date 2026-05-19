@@ -15,7 +15,7 @@ struct BufferMap
     uint matricesIndex;
     uint sharedBaseIndex;
     uint drawBucket;
-    uint drawBucketBaseIndex;
+    uint drawCommandsBaseIndex;
     uint visibleInstancesBaseIndex;
 };
 
@@ -29,7 +29,7 @@ struct AABB
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 // UBOs
-layout(binding = 2, std140) uniform frustumPlanes
+layout(binding = 1, std140) uniform frustumPlanes
 {
     vec4 planes[6];
 };

@@ -324,8 +324,6 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
         // Image
         Image((ImTextureID)(intptr_t)textureID_, ImVec2(GetContentRegionAvail().x, GetContentRegionAvail().x));
 
-        Dummy(dummySpacing);
-
         // Reset button
         float resetButtonWidth{CalcTextSize("Reset").x + GetStyle().FramePadding.x * 2.0f};
         SetCursorPosX(GetCursorPosX() + GetContentRegionAvail().x - resetButtonWidth);

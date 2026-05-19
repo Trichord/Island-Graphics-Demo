@@ -129,7 +129,7 @@ std::span<const Material> TextureManager::getMaterials(Handle handle) const
 }
 
 // Reserve space in the ArrayTextures
-void TextureManager::reserveCubemaps(int numCubemaps, int resolution, GLenum internalFormat)
+void TextureManager::reserveCubemaps(std::size_t numCubemaps, int resolution, GLenum internalFormat)
 {
     if (texturesBuilt_)
     {
