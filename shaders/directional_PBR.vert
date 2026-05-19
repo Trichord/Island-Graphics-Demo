@@ -62,7 +62,7 @@ out vsOut
 	vec2 texCoords;
 } vOut;
 
-void main () 
+void main() 
 {
 	Metadata meta = metadata[gl_BaseInstance];
 	uint matrixIndex = instances[meta.visibleInstancesBaseIndex + gl_InstanceID];
