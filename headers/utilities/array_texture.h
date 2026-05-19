@@ -25,10 +25,10 @@ class ArrayTexture
     std::optional<int> getFallbackLayer() const;
 
     // Copy image from render target. Returns layer index
-    int insert(RenderTarget &renderTarget);
+    std::size_t insert(RenderTarget &renderTarget);
 
     // Insert a texture into the array. Returns layer index
-    int insert(const KTXTexture &texture);
+    std::size_t insert(const KTXTexture &texture);
 
     void addCapacity(std::size_t capacity);
     void allocate(bool cubemap, bool textureRepeat, bool mipmaps, float anisotropy);
@@ -52,7 +52,7 @@ class ArrayTexture
     bool fallback_{false};
 
     void validate(const KTXTexture &texture);
-    void insertIntoArray(const KTXTexture &texture, int offset);
+    void insertIntoArray(const KTXTexture &texture, std::size_t offset);
     void createFallbackLayer();
     void createSRGBFallback();
     void createRGRGTC2Fallback();
