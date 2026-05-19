@@ -11,7 +11,7 @@ struct Metadata
 	int normalLayer;
 	int cubemapArray;
 	int cubemapLayer;
-	uint visibleInstancesBufferBaseIndex;
+	uint visibleInstancesBaseIndex;
 };
 
 // Constants
@@ -27,7 +27,7 @@ layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
 
 // UBOs
-layout (std140) uniform uniformData 
+layout (std140, binding = 0) uniform cameraData 
 {
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionMatrix;
@@ -83,7 +83,7 @@ vec3 calcWindTranslation(mat4 transform, float timeStamp, vec3 windDir, float wi
 void main() 
 {
 	Metadata meta = metadata[gl_BaseInstance];
-	uint matrixIndex = instances[meta.visibleInstancesBufferBaseIndex + gl_InstanceID];
+	uint matrixIndex = instances[meta.visibleInstancesBaseIndex + gl_InstanceID];
 
 	mat4 modelMatrix = matrices[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);

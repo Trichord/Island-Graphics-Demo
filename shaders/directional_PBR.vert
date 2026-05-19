@@ -11,7 +11,7 @@ struct Metadata
 	int normalLayer;
 	int cubemapArray;
 	int cubemapLayer;
-	uint visibleInstancesBufferBaseIndex;
+	uint visibleInstancesBaseIndex;
 };
 
 // Attributes
@@ -21,13 +21,14 @@ layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
 
 // UBOs
-layout (std140) uniform cameraData 
+layout (std140, binding = 0) uniform cameraData 
 {
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionMatrix;
 	layout (offset = 128) mat4 projectionViewMatrix;
 	layout (offset = 192) mat4 inverseViewProjectMatrix;
 	layout (offset = 256) vec4 cameraPosition;
+	layout (offset = 272) float time;
 };
 
 // SSBOs
@@ -64,7 +65,7 @@ out vsOut
 void main () 
 {
 	Metadata meta = metadata[gl_BaseInstance];
-	uint matrixIndex = instances[meta.visibleInstancesBufferBaseIndex + gl_InstanceID];
+	uint matrixIndex = instances[meta.visibleInstancesBaseIndex + gl_InstanceID];
 
 	mat4 modelMatrix = matrices[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);

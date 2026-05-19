@@ -11,7 +11,7 @@
 #include "ktx_texture.h"
 
 /*
-ImageLoader takes in a vector of image filepaths, and returns a vector of
+TextureLoader takes in a vector of image filepaths, and returns a vector of
 textures loaded from disk in the same order. Not intended for loading single textures.
 */
 

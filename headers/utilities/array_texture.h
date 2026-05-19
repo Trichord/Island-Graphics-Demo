@@ -10,7 +10,7 @@ class ArrayTexture
 {
   public:
     ArrayTexture() = default;
-    ArrayTexture(int width, int height, GLenum internalFormat, bool fallback = false, int capacity = 0);
+    ArrayTexture(int width, int height, GLenum internalFormat, bool fallback = false, std::size_t capacity = 0);
     ArrayTexture(const ArrayTexture &other) = delete;
     ArrayTexture &operator=(const ArrayTexture &other) = delete;
     ArrayTexture(ArrayTexture &&other) noexcept;
@@ -19,8 +19,8 @@ class ArrayTexture
 
     int getWidth() const;
     int getHeight() const;
-    int getCapacity() const;
-    int getCurrentSize() const;
+    std::size_t getCapacity() const;
+    std::size_t getCurrentSize() const;
     GLenum getInternalFormat() const;
     std::optional<int> getFallbackLayer() const;
 
@@ -30,7 +30,7 @@ class ArrayTexture
     // Insert a texture into the array. Returns layer index
     int insert(const KTXTexture &texture);
 
-    void addCapacity(int capacity);
+    void addCapacity(std::size_t capacity);
     void allocate(bool cubemap, bool textureRepeat, bool mipmaps, float anisotropy);
 
     void bindTextureUnit(int unit);
@@ -43,8 +43,8 @@ class ArrayTexture
     GLuint id_{0};
     int width_{0};
     int height_{0};
-    int current_{0};
-    int capacity_{0};
+    std::size_t current_{0};
+    std::size_t capacity_{0};
     GLenum internalFormat_{GL_COMPRESSED_RGBA_BPTC_UNORM};
 
     bool cubemaps_{false};
