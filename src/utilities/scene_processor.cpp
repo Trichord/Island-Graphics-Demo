@@ -58,20 +58,54 @@ AABB getSceneBounds(Scene &scene)
     return {min, max};
 }
 
+void processSceneError()
+{
+    std::cerr << "ERROR: SceneProcessor::processScene() has not been called" << std::endl;
+    throw std::logic_error("SceneProcessor::processScene() has not been called");
+}
+
+void drawEntriesError()
+{
+    std::cerr << "ERROR: Draw entries empty on a non-empty scene" << std::endl;
+    throw std::logic_error("Draw entries empty");
+}
+
+void metadataError()
+{
+    std::cerr << "ERROR: metadata empty on a non-empty scene" << std::endl;
+    throw std::logic_error("metadata empty");
+}
+
+void drawCommandsError()
+{
+    std::cerr << "ERROR: Draw commands or buckets not built" << std::endl;
+    throw std::logic_error("Draw commands or buckets empty");
+}
+
 } // namespace
 
 SceneProcessor::SceneProcessor(Scene &scene, TextureManager &textureManager) : textureManager_{textureManager}
 {
     if (scene.getAllSceneEntries().empty())
-        return;
+    {
+        std::cerr << "ERROR: SceneProcessor called with empty scene" << std::endl;
+        throw std::logic_error("SceneProcessor called with empty scene");
+    }
 
     sceneAABB_ = getSceneBounds(scene);
     sceneTotals_ = getSceneTotals(scene);
     createDrawEntries(scene);
 }
 
-void SceneProcessor::processScene()
+SceneProcessor::ProcessedScene SceneProcessor::processScene()
 {
+    if (!textureManager_.allTexturesBuilt())
+    {
+        std::cerr << "ERROR: SceneProcessor::processScene() called before TextureManager::buildAllTextures()"
+                  << std::endl;
+        throw std::logic_error("SceneProcessor::processScene() called before TextureManager::buildAllTextures()");
+    }
+
     // Must be in order of draw entries (built from scene) -> commands -> buckets
     createDrawCommands();
     createDrawBuckets();
@@ -85,44 +119,35 @@ void SceneProcessor::processScene()
 
     // Metadata and buffer uploads. Must be after all SSBO handles are created
     createAndUploadMatrices();
-    createandUploadMetadata();
+    createAndUploadMetadata();
     createAndUploadBufferMap();
     createVAO();
+
+    sceneProcessed_ = true;
+
+    return {
+        .ssbos = std::move(SSBOs_),
+        .vao = std::move(vao_),
+        .buckets = std::move(drawBuckets_),
+        .commands = std::move(drawCommands_),
+        .matricesBaseIndexMap = std::move(matricesBaseIndex_),
+        .worldAABB = std::move(sceneAABB_),
+        .numInstances = sceneTotals_.instances,
+        .numPrimitives = sceneTotals_.primitives,
+    };
 }
 
 void SceneProcessor::calculateBufferSizes()
 {
+    if (drawCommands_.empty() || drawBuckets_.empty())
+        drawCommandsError();
+
     bufferSizes_.metadata = drawCommands_.size() * sizeof(PrimitiveMetadata);
     bufferSizes_.matrices = sceneTotals_.matrices * sizeof(glm::mat4);
     bufferSizes_.bufferMap = sceneTotals_.instances * sizeof(BufferMap);
     bufferSizes_.drawCounts = drawBuckets_.size() * sizeof(std::uint32_t);
     bufferSizes_.cullResults = drawCommands_.size() * sizeof(std::uint32_t);
     bufferSizes_.visibleInstances = sceneTotals_.instances * sizeof(std::uint32_t);
-}
-
-SSBOs SceneProcessor::takeSSBOs()
-{
-    return std::move(SSBOs_);
-}
-
-GlobalVAO SceneProcessor::takeVAO()
-{
-    return std::move(vao_);
-}
-
-const AABB &SceneProcessor::getWorldAABB() const
-{
-    return sceneAABB_;
-};
-
-std::size_t SceneProcessor::getNumInstances() const
-{
-    return sceneTotals_.instances;
-}
-
-std::size_t SceneProcessor::getNumPrimitives() const
-{
-    return sceneTotals_.primitives;
 }
 
 std::size_t SceneProcessor::getNumDynamicCubemaps() const
@@ -140,17 +165,20 @@ std::optional<Handle> SceneProcessor::getSkyboxHandle() const
         return skyboxIter->handle;
 }
 
-std::optional<SceneProcessor::ShaderBucketInfo> SceneProcessor::getWaterInfo() const
+std::optional<SceneProcessor::ShaderBucketInfo> SceneProcessor::getShaderBucketInfo(ShaderType shader) const
 {
+    if (!sceneProcessed_)
+        processSceneError();
+
     ShaderBucketInfo info;
 
     for (std::size_t i{0}; i < drawEntries_.size(); ++i)
     {
-        if (drawEntries_[i].shaderType == ShaderType::water)
+        if (drawEntries_[i].shaderType == shader)
         {
             info.drawCommandsStartIndex = i;
 
-            while (i < drawEntries_.size() && drawEntries_[i].shaderType == ShaderType::water)
+            while (i < drawEntries_.size() && drawEntries_[i].shaderType == shader)
             {
                 info.handles.push_back(drawEntries_[i++].handle);
                 ++info.size;
@@ -161,44 +189,6 @@ std::optional<SceneProcessor::ShaderBucketInfo> SceneProcessor::getWaterInfo() c
     }
 
     return {};
-}
-
-std::optional<SceneProcessor::ShaderBucketInfo> SceneProcessor::getOceanInfo() const
-{
-    ShaderBucketInfo info;
-
-    for (std::size_t i{0}; i < drawEntries_.size(); ++i)
-    {
-        if (drawEntries_[i].shaderType == ShaderType::ocean)
-        {
-            info.drawCommandsStartIndex = i;
-
-            while (i < drawEntries_.size() && drawEntries_[i].shaderType == ShaderType::ocean)
-            {
-                info.handles.push_back(drawEntries_[i++].handle);
-                ++info.size;
-            }
-
-            return info;
-        }
-    }
-
-    return {};
-}
-
-const std::vector<MultiDrawBucket> &SceneProcessor::getDrawBuckets() const
-{
-    return drawBuckets_;
-}
-
-const std::vector<DrawElementsIndirectCommand> &SceneProcessor::getDrawCommands() const
-{
-    return drawCommands_;
-}
-
-const std::unordered_map<Handle, std::uint32_t> &SceneProcessor::getMatricesBaseIndexMap() const
-{
-    return matricesBaseIndex_;
 }
 
 SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene)
@@ -255,6 +245,9 @@ void SceneProcessor::createDrawEntries(Scene &scene)
 
 void SceneProcessor::createDrawCommands()
 {
+    if (drawEntries_.empty())
+        drawEntriesError();
+
     drawCommands_.reserve(sceneTotals_.primitives);
 
     std::size_t vaoIndex{0};
@@ -294,6 +287,9 @@ void SceneProcessor::createDrawBuckets()
     using enum ShaderType;
     using enum fastgltf::AlphaMode;
 
+    if (drawEntries_.empty())
+        drawEntriesError();
+
     ShaderType currentShaderType{drawEntries_.front().shaderType};
     fastgltf::AlphaMode currentAlphaMode{drawEntries_.front().alphaMode};
 
@@ -328,6 +324,15 @@ void SceneProcessor::createDrawBuckets()
 
 void SceneProcessor::createAndUploadMatrices()
 {
+    if (!buffersBuilt_ || !SSBOs_.matrices)
+    {
+        std::cerr << "ERROR: Matrices buffer not built" << std::endl;
+        throw std::logic_error("Matrices buffer not built");
+    }
+
+    if (drawEntries_.empty())
+        drawEntriesError();
+
     std::uint32_t matricesIndex{0};
     matrices_.reserve(sceneTotals_.matrices);
 
@@ -348,8 +353,14 @@ void SceneProcessor::createAndUploadMatrices()
                          matrices_.data());
 }
 
-void SceneProcessor::createandUploadMetadata()
+void SceneProcessor::createAndUploadMetadata()
 {
+    if (!buffersBuilt_ || !SSBOs_.metadata)
+    {
+        std::cerr << "ERROR: Metadata buffer not built" << std::endl;
+        throw std::logic_error("Metadata buffer not built");
+    }
+
     metadata_.resize(drawEntries_.size());
     setVisibleInstancesBaseIndex();
     setMetadataMaterials();
@@ -360,6 +371,9 @@ void SceneProcessor::createandUploadMetadata()
 
 void SceneProcessor::setVisibleInstancesBaseIndex()
 {
+    if (drawEntries_.empty())
+        drawEntriesError();
+
     std::uint32_t visibleIndex{0};
 
     for (std::size_t i{0}; i < drawEntries_.size(); ++i)
@@ -373,6 +387,9 @@ void SceneProcessor::setVisibleInstancesBaseIndex()
 
 void SceneProcessor::setMetadataMaterials()
 {
+    if (drawEntries_.empty())
+        drawEntriesError();
+
     for (std::size_t i{0}; i < drawEntries_.size(); ++i)
     {
         const DrawEntry &entry{drawEntries_[i]};
@@ -388,13 +405,13 @@ void SceneProcessor::setMetadataMaterials()
         }
 
         const Material &material{materials[matIndex]};
-        const SamplerArrayIndex &albdeo{material.layers[Material::albedo]};
+        const SamplerArrayIndex &albedo{material.layers[Material::albedo]};
         const SamplerArrayIndex &ARM{material.layers[Material::ARM]};
         const SamplerArrayIndex &normal{material.layers[Material::normal]};
         const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
 
-        metaEntry.albedoArray = albdeo.array;
-        metaEntry.albedoLayer = albdeo.layer;
+        metaEntry.albedoArray = albedo.array;
+        metaEntry.albedoLayer = albedo.layer;
 
         metaEntry.armArray = ARM.array;
         metaEntry.armLayer = ARM.layer;
@@ -409,6 +426,15 @@ void SceneProcessor::setMetadataMaterials()
 
 void SceneProcessor::createAndUploadBufferMap()
 {
+    if (drawEntries_.empty())
+        drawEntriesError();
+
+    if (metadata_.empty())
+        metadataError();
+
+    if (drawCommands_.empty() || drawBuckets_.empty())
+        drawCommandsError();
+
     bufferMap_.reserve(sceneTotals_.instances);
 
     for (std::size_t i{0}; i < drawBuckets_.size(); ++i)
@@ -444,6 +470,9 @@ void SceneProcessor::createAndUploadBufferMap()
 
 void SceneProcessor::createVAO()
 {
+    if (drawEntries_.empty())
+        drawEntriesError();
+
     std::vector<Primitive::Vertex> vertices;
     std::vector<std::uint32_t> indices;
 
@@ -462,12 +491,25 @@ void SceneProcessor::createVAO()
 
 void SceneProcessor::createSSBOHandles()
 {
+    if (drawCommands_.empty())
+        drawCommandsError();
+
+    if (AABBs_.empty())
+    {
+        std::cerr << "ERROR: AABBs not built" << std::endl;
+        throw std::logic_error("AABBs not built");
+    }
+
     BufferBuilder builder;
     SSBOs_ = builder.buildSSBOs(drawCommands_, AABBs_, bufferSizes_);
+    buffersBuilt_ = true;
 }
 
 void SceneProcessor::updateMetadataCubemaps(GLuint metadataBufferID)
 {
+    if (!sceneProcessed_)
+        processSceneError();
+
     for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(drawEntries_.size()); ++i)
     {
         using enum ShaderType;

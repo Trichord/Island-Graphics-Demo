@@ -29,6 +29,9 @@ class BufferBuilder
     [[nodiscard]] SSBOs buildSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
                                    const std::vector<AABB> &aabbs, Sizes sizes) const;
 
+    [[nodiscard]] UBOs buildUBOs();
+
   private:
-    void buildBuffer(GLuint *id, std::size_t size, BindingPointSSBO binding, bool dynamic, const void *data) const;
+    void buildUBO(GLuint *id, std::size_t size, BindingPointUBO binding) const;
+    void buildSSBO(GLuint *id, std::size_t size, BindingPointSSBO binding, bool dynamic, const void *data) const;
 };

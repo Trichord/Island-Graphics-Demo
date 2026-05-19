@@ -22,6 +22,19 @@
 class SceneProcessor
 {
   public:
+    struct ProcessedScene
+    {
+        SSBOs ssbos;
+        GlobalVAO vao;
+        std::vector<MultiDrawBucket> buckets;
+        std::vector<DrawElementsIndirectCommand> commands;
+        std::unordered_map<Handle, std::uint32_t> matricesBaseIndexMap;
+
+        AABB worldAABB;
+        std::size_t numInstances{0};
+        std::size_t numPrimitives{0};
+    };
+
     struct ShaderBucketInfo
     {
         std::size_t size{0};
@@ -31,24 +44,13 @@ class SceneProcessor
 
     SceneProcessor(Scene &scene, TextureManager &textureManager);
 
-    [[nodiscard]] SSBOs takeSSBOs();
-    [[nodiscard]] GlobalVAO takeVAO();
-
-    const AABB &getWorldAABB() const;
-    std::size_t getNumInstances() const;
-    std::size_t getNumPrimitives() const;
     std::size_t getNumDynamicCubemaps() const;
 
     std::optional<Handle> getSkyboxHandle() const;
-    std::optional<ShaderBucketInfo> getWaterInfo() const;
-    std::optional<ShaderBucketInfo> getOceanInfo() const;
-
-    const std::vector<MultiDrawBucket> &getDrawBuckets() const;
-    const std::vector<DrawElementsIndirectCommand> &getDrawCommands() const;
-    const std::unordered_map<Handle, std::uint32_t> &getMatricesBaseIndexMap() const;
+    std::optional<ShaderBucketInfo> getShaderBucketInfo(ShaderType shader) const;
 
     void updateMetadataCubemaps(GLuint metadataBufferID);
-    void processScene();
+    [[nodiscard]] ProcessedScene processScene();
 
   private:
     // For counting and reserving scene related sizes
@@ -120,6 +122,9 @@ class SceneProcessor
     // Buffer management - help find base index into matrices buffer for model updates
     std::unordered_map<Handle, std::uint32_t> matricesBaseIndex_;
 
+    bool sceneProcessed_{false};
+    bool buffersBuilt_{false};
+
     void createDrawEntries(Scene &scene);
 
     // Counting
@@ -138,7 +143,7 @@ class SceneProcessor
     void createSSBOHandles();
 
     // Metadata creation
-    void createandUploadMetadata();
+    void createAndUploadMetadata();
     void setMetadataMaterials();
     void setVisibleInstancesBaseIndex();
 };
