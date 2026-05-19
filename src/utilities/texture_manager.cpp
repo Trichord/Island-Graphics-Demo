@@ -83,6 +83,11 @@ void TextureManager::loadModelTextures(const Handle handle, const fastgltf::Asse
     deferredTextures_.insert(deferredTextures_.end(), loaded.begin(), loaded.end());
 }
 
+bool TextureManager::allTexturesBuilt() const
+{
+    return texturesBuilt_;
+}
+
 void TextureManager::loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath)
 {
     auto materials = findMaterials(handle);
@@ -129,7 +134,7 @@ std::span<const Material> TextureManager::getMaterials(Handle handle) const
 }
 
 // Reserve space in the ArrayTextures
-void TextureManager::reserveCubemaps(int numCubemaps, int resolution, GLenum internalFormat)
+void TextureManager::reserveCubemaps(std::size_t numCubemaps, int resolution, GLenum internalFormat)
 {
     if (texturesBuilt_)
     {

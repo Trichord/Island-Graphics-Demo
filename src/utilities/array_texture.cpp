@@ -16,7 +16,7 @@
 
 namespace
 {
-void capacityError(int width, int height, GLenum format, int attempted, int max)
+void capacityError(int width, int height, GLenum format, std::size_t attempted, std::size_t max)
 {
     std::cerr << "ERROR: ArrayTexture " << width << "x" << height << ", format " << format << " cannot allocate "
               << attempted << ", max " << max << " layers" << std::endl;
@@ -24,7 +24,7 @@ void capacityError(int width, int height, GLenum format, int attempted, int max)
 }
 } // namespace
 
-ArrayTexture::ArrayTexture(int width, int height, GLenum internalFormat, bool fallback, int capacity)
+ArrayTexture::ArrayTexture(int width, int height, GLenum internalFormat, bool fallback, std::size_t capacity)
     : width_{width}, height_{height}, capacity_{capacity}, internalFormat_{internalFormat}, fallback_{fallback}
 {
     if (capacity > maxArrayTextureLayers_)
@@ -78,12 +78,12 @@ int ArrayTexture::getHeight() const
     return height_;
 }
 
-int ArrayTexture::getCapacity() const
+std::size_t ArrayTexture::getCapacity() const
 {
     return capacity_;
 }
 
-int ArrayTexture::getCurrentSize() const
+std::size_t ArrayTexture::getCurrentSize() const
 {
     return current_;
 }
@@ -101,7 +101,7 @@ std::optional<int> ArrayTexture::getFallbackLayer() const
         return {};
 }
 
-void ArrayTexture::addCapacity(int capacity)
+void ArrayTexture::addCapacity(std::size_t capacity)
 {
     if (allocated_)
     {

@@ -11,7 +11,7 @@ struct Metadata
 	int normalLayer;
 	int cubemapArray;
 	int cubemapLayer;
-	uint visibleInstancesBufferBaseIndex;
+	uint visibleInstancesBaseIndex;
 };
 
 // Constants
@@ -25,7 +25,7 @@ layout(binding = 0) uniform sampler2DArray textures[10];
 layout(binding = 13) uniform sampler2DArray shadowMap;
 
 // UBOs
-layout (std140, binding = 1) uniform cascadeShadow
+layout (std140, binding = 2) uniform cascadeShadow
 {
     vec4 splits;
     mat4 lightMatrices[3];

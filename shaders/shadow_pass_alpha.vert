@@ -11,7 +11,7 @@ struct Metadata
 	int normalLayer;
 	int cubemapArray;
 	int cubemapLayer;
-	uint visibleInstancesBufferBaseIndex;
+	uint visibleInstancesBaseIndex;
 };
 
 // Attributes
@@ -19,7 +19,7 @@ layout (location = 0) in vec3 aPos;
 layout (location = 3) in vec2 aTexCoords;
 
 // UBOs
-layout (std140, binding = 1) uniform cascadeShadow
+layout (std140, binding = 2) uniform cascadeShadows
 {
     vec4 splits;
     mat4 lightMatrices[3];
@@ -52,7 +52,7 @@ flat out int metadataIndex;
 void main()
 {	
 	Metadata meta = metadata[gl_BaseInstance];
-	uint matrixIndex = instances[meta.visibleInstancesBufferBaseIndex + gl_InstanceID];
+	uint matrixIndex = instances[meta.visibleInstancesBaseIndex + gl_InstanceID];
 
 	mat4 modelMatrix = matrices[matrixIndex];
 

@@ -49,6 +49,19 @@ Scene::Entry &Scene::getEntryByName(const std::string &key)
     return entries_[iter->second];
 }
 
+Scene::Entry &Scene::getEntryByHandle(Handle handle)
+{
+    auto iter = entriesByHandle_.find(handle);
+
+    if (iter == entriesByHandle_.end() || iter->second >= entries_.size())
+    {
+        std::cerr << "ERROR: Cannot find scene entry with handle " << handle << std::endl;
+        throw std::runtime_error("Invalid key");
+    }
+
+    return entries_[iter->second];
+}
+
 DirectionalLight &Scene::getGlobalLight()
 {
     return globalLightSource_;
@@ -84,18 +97,14 @@ std::unordered_set<Handle> &Scene::getUpdatedModels()
     return updatedModels_;
 }
 
-Handle Scene::loadGLTFTextures(const Model &model)
+void Scene::loadGLTFTextures(Handle handle, const Model &model)
 {
-    const Handle handle{textureManager_.assignHandle()};
     const std::filesystem::path modelPath{model.getPath()};
     textureManager_.loadModelTextures(handle, model.getAsset(), modelPath.parent_path());
-
-    return handle;
 }
 
-void Scene::addSkybox(const Skybox &skybox)
+void Scene::addSkybox(Handle handle, const Skybox &skybox)
 {
-    const Handle handle{textureManager_.assignHandle()};
     const std::filesystem::path image{skybox.getPath()};
 
     textureManager_.loadCubemapTextures(handle, image);
@@ -109,12 +118,13 @@ void Scene::addSkybox(const Skybox &skybox)
     });
 }
 
-void Scene::addModel(const Model &model, const Transform &transform, ShaderType shaderType, const std::string &name)
+void Scene::addModel(Handle handle, const Model &model, const Transform &transform, ShaderType shaderType,
+                     const std::string &name)
 {
-    const Handle handle{loadGLTFTextures(model)};
-
     if (!name.empty())
         entriesByName_.emplace(name, entries_.size());
+
+    loadGLTFTextures(handle, model);
 
     entries_.emplace_back(Entry{
         .handle = handle,
@@ -126,15 +136,15 @@ void Scene::addModel(const Model &model, const Transform &transform, ShaderType 
     });
 }
 
-void Scene::addCubemappedModel(const Model &model, const std::filesystem::path &imagePath, const Transform &transform,
-                               ShaderType shaderType, const std::string &name)
+void Scene::addCubemappedModel(Handle handle, const Model &model, const std::filesystem::path &imagePath,
+                               const Transform &transform, ShaderType shaderType, const std::string &name)
 {
-    const Handle handle{loadGLTFTextures(model)};
+    if (!name.empty())
+        entriesByName_.emplace(name, entries_.size());
+
+    loadGLTFTextures(handle, model);
     textureManager_.loadCubemapTextures(handle, imagePath);
 
-    if (!name.empty())
-        entriesByName_.emplace(name, entries_.size());
-
     entries_.emplace_back(Entry{
         .handle = handle,
         .aabb = model.getAABB(),
@@ -145,12 +155,13 @@ void Scene::addCubemappedModel(const Model &model, const std::filesystem::path &
     });
 }
 
-void Scene::addInstancedModel(const InstancedModel &model, ShaderType shaderType, const std::string &name)
+void Scene::addInstancedModel(Handle handle, const InstancedModel &model, ShaderType shaderType,
+                              const std::string &name)
 {
-    const Handle handle{loadGLTFTextures(model)};
-
     if (!name.empty())
         entriesByName_.emplace(name, entries_.size());
+
+    loadGLTFTextures(handle, model);
 
     std::vector<Transform> transforms{model.loadInstancedTransforms()};
 
@@ -213,26 +224,33 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
 
     for (auto &sceneEntry : scene.entries)
     {
+        // Names are optional, entries by handle is not
+        std::size_t entryIndex{entries_.size()};
+        Handle handle{textureManager_.assignHandle()};
+
         std::visit(overloaded{
                        [&](const ModelEntry &entry) {
                            Model model{entry.modelPath};
-                           addModel(model, entry.transform, entry.shader, entry.name);
+                           addModel(handle, model, entry.transform, entry.shader, entry.name);
                        },
                        [&](const InstancedModelEntry &entry) {
                            InstancedModel model{
                                entry.modelPath, entry.positionsPath,
                                InstancedModel::Randomize{.minScale = entry.minScale, .maxScale = entry.maxScale}};
-                           addInstancedModel(model, entry.shader, entry.name);
+                           addInstancedModel(handle, model, entry.shader, entry.name);
                        },
                        [&](const CubeMappedModelEntry &entry) {
                            Model model{entry.modelPath};
-                           addCubemappedModel(model, entry.cubemapPath, entry.transform, entry.shader, entry.name);
+                           addCubemappedModel(handle, model, entry.cubemapPath, entry.transform, entry.shader,
+                                              entry.name);
                        },
                        [&](const SkyboxEntry &entry) {
                            Skybox skybox{entry.skyboxPath};
-                           addSkybox(skybox);
+                           addSkybox(handle, skybox);
                        },
                    },
                    sceneEntry);
+
+        entriesByHandle_[handle] = entryIndex;
     }
 }
