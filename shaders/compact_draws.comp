@@ -15,7 +15,7 @@ struct BufferMap
     uint matricesIndex;
     uint sharedBaseIndex;
     uint drawBucket;
-    uint drawBucketBaseIndex;
+    uint drawCommandsBaseIndex;
     uint visibleInstancesBaseIndex;
 };
 
@@ -29,7 +29,7 @@ struct Metadata
 	int normalLayer;
 	int cubemapArray;
 	int cubemapLayer;
-	uint visibleInstancesBufferBaseIndex;
+	uint visibleInstancesBaseIndex;
 };
 
 // Attributes
@@ -76,14 +76,14 @@ void main()
     if (cullResult == 0)
         return;
 
-    uint mapIndex = metadata[gl_GlobalInvocationID.x].visibleInstancesBufferBaseIndex;
+    uint mapIndex = metadata[gl_GlobalInvocationID.x].visibleInstancesBaseIndex;
     BufferMap map = maps[mapIndex];
 
     // Use the MDI drawcount as a write index. As we write draw commands, the final number for the draw call
     // increases, so we can take advantage of that as our new offset
     uint writeOffset = atomicAdd(drawCounts[map.drawBucket], 1);
-    uint writeIndex = map.drawBucketBaseIndex + writeOffset;
+    uint writeIndex = map.drawCommandsBaseIndex + writeOffset;
 
     commandsDestination[writeIndex] = commandsSource[gl_GlobalInvocationID.x];
-    commandsDestination[writeIndex].instanceCount = cullResults[gl_GlobalInvocationID.x];
+    commandsDestination[writeIndex].instanceCount = cullResult;
 }

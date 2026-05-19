@@ -11,7 +11,7 @@ struct Metadata
 	int normalLayer;
 	int cubemapArray;
 	int cubemapLayer;
-	uint visibleInstancesBufferBaseIndex;
+	uint visibleInstancesBaseIndex;
 };
 
 // Constants
@@ -21,7 +21,7 @@ const float INVERSE_PI = 0.31830988618;
 layout(binding = 0) uniform sampler2DArray textures[10];
 
 // UBOs
-layout (std140) uniform uniformData 
+layout (std140, binding = 0) uniform cameraData 
 {
 	layout (offset = 0) mat4 viewMatrix;
 	layout (offset = 64) mat4 projectionMatrix;
