@@ -57,7 +57,7 @@ out vsOut
 	vec4 clipSpace;
 } vOut;
 
-void main () 
+void main() 
 {
 	Metadata meta = metadata[gl_BaseInstance];
 	uint matrixIndex = instances[meta.visibleInstancesBaseIndex + gl_InstanceID];
