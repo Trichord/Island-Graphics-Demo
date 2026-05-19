@@ -182,8 +182,8 @@ void TextureManager::setCubemap(Handle handle, std::vector<int> overrideIndices,
     const int resolution{renderTarget.getWidth()};
     ArrayReference arrayRef{findCubemapArray(resolution, dynamicCubemapInternalFormat_)};
 
-    int layer{arrayRef.array.insert(renderTarget)};
-    SamplerArrayIndex arrayIndex{.array = arrayRef.index, .layer = layer};
+    std::size_t layer{arrayRef.array.insert(renderTarget)};
+    SamplerArrayIndex arrayIndex{.array = arrayRef.index, .layer = static_cast<int>(layer)};
 
     arrayRef.array.generateMipmaps();
 
@@ -298,8 +298,8 @@ void TextureManager::insertTexture(const AssetLoader::DeferredTexture &deferred,
 
     // New texture
     ArrayReference arrayRef{findArray(deferred, texture)};
-    int layer{arrayRef.array.insert(texture)};
-    SamplerArrayIndex arrayIndex{.array = arrayRef.index, .layer = layer};
+    std::size_t layer{arrayRef.array.insert(texture)};
+    SamplerArrayIndex arrayIndex{.array = arrayRef.index, .layer = static_cast<int>(layer)};
 
     for (int idx : deferred.materialIndices)
     {
