@@ -53,8 +53,8 @@ void Renderer::renderScene()
         }
 
         glMultiDrawElementsIndirectCount(GL_TRIANGLES, GL_UNSIGNED_INT,
-                                         (void *)(mdb.startIndex * sizeof(DrawElementsIndirectCommand)),
-                                         static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.maxCount, 0);
+                                         (void *)(mdb.drawCommandsBaseIndex * sizeof(DrawElementsIndirectCommand)),
+                                         static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.size, 0);
     }
 
     // If skybox is last, the shader / state change never triggers and depth function gets left on GL_LEQUAL
@@ -138,7 +138,7 @@ void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)
             continue;
 
         glMultiDrawElementsIndirectCount(GL_TRIANGLES, GL_UNSIGNED_INT,
-                                         (void *)(mdb.startIndex * sizeof(DrawElementsIndirectCommand)),
-                                         static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.maxCount, 0);
+                                         (void *)(mdb.drawCommandsBaseIndex * sizeof(DrawElementsIndirectCommand)),
+                                         static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.size, 0);
     }
 }

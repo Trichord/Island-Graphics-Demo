@@ -121,7 +121,7 @@ void Renderer::setupShader(GraphicsShader &shader)
 
 void Renderer::updateCameraUBO(Scene &scene)
 {
-    PackedShaderUniforms uniforms;
+    PackedCameraUniforms uniforms;
 
     Camera &camera{scene.getCamera()};
     uniforms.viewMatrix = camera.getViewMatrix();
@@ -131,13 +131,13 @@ void Renderer::updateCameraUBO(Scene &scene)
     uniforms.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
     uniforms.time = static_cast<float>(glfwGetTime());
 
-    glNamedBufferSubData(shaderUniformsUBO_, 0, sizeof(PackedShaderUniforms), &uniforms);
+    glNamedBufferSubData(UBOs_.camera, 0, sizeof(PackedCameraUniforms), &uniforms);
 }
 
 void Renderer::updateFrustumPlanesUBO(const glm::mat4 &cullMatrix)
 {
     const std::array<glm::vec4, 6> planes{getFrustumPlanes(cullMatrix)};
-    glNamedBufferSubData(frustumPlanesUBO_, 0, 6 * sizeof(glm::vec4), planes.data());
+    glNamedBufferSubData(UBOs_.frustumPlanes, 0, 6 * sizeof(glm::vec4), planes.data());
 }
 
 void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll)
@@ -165,7 +165,7 @@ void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChange
         bytes += sizeof(cascadeShadows.matrices[i]);
     }
 
-    glNamedBufferSubData(shadowCascadesUBO_, offset, bytes, data);
+    glNamedBufferSubData(UBOs_.cascadeShadows, offset, bytes, data);
 }
 
 void Renderer::updateShaderUniforms(Scene &scene, bool lightChanged)
@@ -185,17 +185,17 @@ void Renderer::updateSceneTransforms(Scene &scene)
 
     for (Handle handle : updatedTransformHandles)
     {
-        BufferTransforms &bufferTransforms{transformsByHandle_.at(handle)};
-        std::size_t numMatrices{bufferTransforms.transforms->size()};
+        std::uint32_t bufferBaseIndex{matricesBaseIndex_.at(handle)};
+        std::vector<Transform>& transforms{scene.getEntryByHandle(handle).transforms};
 
         updatedMatrices_.clear();
-        updatedMatrices_.reserve(numMatrices);
+        updatedMatrices_.reserve(transforms.size());
 
-        for (Transform &transform : *bufferTransforms.transforms)
+        for (Transform &transform : transforms)
             updatedMatrices_.emplace_back(transform.getModelMatrix());
 
-        glNamedBufferSubData(matricesBuffer_, bufferTransforms.matricesBufferBaseIndex * sizeof(glm::mat4),
-                             numMatrices * sizeof(glm::mat4), updatedMatrices_.data());
+        glNamedBufferSubData(SSBOs_.matrices, static_cast<GLintptr>(bufferBaseIndex * sizeof(glm::mat4)),
+                             static_cast<GLsizeiptr>(transforms.size() * sizeof(glm::mat4)), updatedMatrices_.data());
     }
 
     updatedTransformHandles.clear();
@@ -213,8 +213,8 @@ TextureManager &Renderer::getTextureManager()
 
 void Renderer::cullScene(const glm::mat4 &cullMatrix)
 {
-    glClearNamedBufferData(drawCountsBuffer_, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
-    glClearNamedBufferData(cullResultsBuffer_, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+    glClearNamedBufferData(SSBOs_.drawCounts, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+    glClearNamedBufferData(SSBOs_.cullResults, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
 
     updateFrustumPlanesUBO(cullMatrix);
 
@@ -255,25 +255,4 @@ const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
     normalizePlane(far);
 
     return {left, right, top, bottom, near, far};
-}
-
-Renderer::~Renderer()
-{
-    glDeleteBuffers(1, &mapBuffer_);
-    glDeleteBuffers(1, &aabbBuffer_);
-    glDeleteBuffers(1, &matricesBuffer_);
-    glDeleteBuffers(1, &metadataBuffer_);
-    glDeleteBuffers(1, &drawCountsBuffer_);
-    glDeleteBuffers(1, &cullResultsBuffer_);
-    glDeleteBuffers(1, &drawCommandsBuffer_);
-    glDeleteBuffers(1, &visibleInstancesBuffer_);
-    glDeleteBuffers(1, &drawCommandsSourceBuffer_);
-
-    glDeleteBuffers(1, &frustumPlanesUBO_);
-    glDeleteBuffers(1, &shaderUniformsUBO_);
-    glDeleteBuffers(1, &shadowCascadesUBO_);
-
-    glDeleteBuffers(1, &globalEBO_);
-    glDeleteBuffers(1, &globalVBO_);
-    glDeleteVertexArrays(1, &globalVAO_);
 }
