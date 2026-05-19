@@ -183,7 +183,7 @@ void ArrayTexture::allocate(bool cubemap, bool textureRepeat, bool mipmaps, floa
     }
 }
 
-int ArrayTexture::insert(RenderTarget &renderTarget)
+std::size_t ArrayTexture::insert(RenderTarget &renderTarget)
 {
     if (!allocated_)
     {
@@ -217,7 +217,7 @@ int ArrayTexture::insert(RenderTarget &renderTarget)
     return current_++;
 }
 
-int ArrayTexture::insert(const KTXTexture &texture)
+std::size_t ArrayTexture::insert(const KTXTexture &texture)
 {
     if (!allocated_)
     {
@@ -241,7 +241,7 @@ int ArrayTexture::insert(const KTXTexture &texture)
     return current_++;
 }
 
-void ArrayTexture::insertIntoArray(const KTXTexture &texture, int offset)
+void ArrayTexture::insertIntoArray(const KTXTexture &texture, std::size_t offset)
 {
     for (ktx_uint32_t layer{0}; layer < texture->numLayers; ++layer)
         for (ktx_uint32_t face{0}; face < texture->numFaces; ++face)
