@@ -45,26 +45,28 @@ SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &
     std::vector<SimpleAABB> simpleAABBs{simplifyAABBs(aabbs)};
     std::size_t drawCommandsSize{commands.size() * sizeof(DrawElementsIndirectCommand)};
 
-    buildBuffer(&buffers.map, sizes.bufferMap, map, true, nullptr);
-    buildBuffer(&buffers.aabb, simpleAABBs.size() * sizeof(SimpleAABB), aabb, false, simpleAABBs.data());
-    buildBuffer(&buffers.matrices, sizes.matrices, matrices, true, nullptr);
-    buildBuffer(&buffers.metadata, sizes.metadata, metadata, true, nullptr);
-    buildBuffer(&buffers.drawCounts, sizes.drawCounts, drawCounts, false, nullptr);
-    buildBuffer(&buffers.cullResults, sizes.cullResults, cullResults, false, nullptr);
-    buildBuffer(&buffers.drawCommands, drawCommandsSize, drawCommands, true, nullptr);
-    buildBuffer(&buffers.visibleInstances, sizes.visibleInstances, visibleInstances, false, nullptr);
-    buildBuffer(&buffers.drawCommandsSource, drawCommandsSize, drawCommandsSource, false, commands.data());
+    buildSSBO(&buffers.map, sizes.bufferMap, map, true, nullptr);
+    buildSSBO(&buffers.aabb, simpleAABBs.size() * sizeof(SimpleAABB), aabb, false, simpleAABBs.data());
+    buildSSBO(&buffers.matrices, sizes.matrices, matrices, true, nullptr);
+    buildSSBO(&buffers.metadata, sizes.metadata, metadata, true, nullptr);
+    buildSSBO(&buffers.drawCounts, sizes.drawCounts, drawCounts, false, nullptr);
+    buildSSBO(&buffers.cullResults, sizes.cullResults, cullResults, false, nullptr);
+    buildSSBO(&buffers.drawCommands, drawCommandsSize, drawCommands, true, nullptr);
+    buildSSBO(&buffers.visibleInstances, sizes.visibleInstances, visibleInstances, false, nullptr);
+    buildSSBO(&buffers.drawCommandsSource, drawCommandsSize, drawCommandsSource, false, commands.data());
 
     return buffers;
 }
 
-void BufferBuilder::buildBuffer(GLuint *id, std::size_t size, BindingPointSSBO binding, bool dynamic,
-                                const void *data) const
+UBOs BufferBuilder::buildUBOs()
 {
-    GLenum storageType{static_cast<GLenum>(dynamic ? GL_DYNAMIC_STORAGE_BIT : 0)};
-    glCreateBuffers(1, id);
-    glNamedBufferStorage(*id, static_cast<GLsizeiptr>(size), data, storageType);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(binding), *id);
+    UBOs ubos;
+
+    buildUBO(&ubos.camera, sizeof(PackedCameraUniforms), BindingPointUBO::camera);
+    buildUBO(&ubos.cascadeShadows, sizeof(PackedCascadeShadows), BindingPointUBO::cascadeShadows);
+    buildUBO(&ubos.frustumPlanes, 6 * sizeof(glm::vec4), BindingPointUBO::frustumPlanes);
+
+    return ubos;
 }
 
 GlobalVAO BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices,
@@ -101,4 +103,20 @@ GlobalVAO BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices
     glVertexArrayAttribBinding(vao.id, 3, 0);
 
     return vao;
+}
+
+void BufferBuilder::buildSSBO(GLuint *id, std::size_t size, BindingPointSSBO binding, bool dynamic,
+                              const void *data) const
+{
+    GLenum storageType{static_cast<GLenum>(dynamic ? GL_DYNAMIC_STORAGE_BIT : 0)};
+    glCreateBuffers(1, id);
+    glNamedBufferStorage(*id, static_cast<GLsizeiptr>(size), data, storageType);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(binding), *id);
+}
+
+void BufferBuilder::buildUBO(GLuint *id, std::size_t size, BindingPointUBO binding) const
+{
+    glCreateBuffers(1, id);
+    glNamedBufferStorage(*id, static_cast<GLsizeiptr>(size), nullptr, GL_DYNAMIC_STORAGE_BIT);
+    glBindBufferBase(GL_UNIFORM_BUFFER, static_cast<GLuint>(binding), *id);
 }

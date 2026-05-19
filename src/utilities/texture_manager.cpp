@@ -83,6 +83,11 @@ void TextureManager::loadModelTextures(const Handle handle, const fastgltf::Asse
     deferredTextures_.insert(deferredTextures_.end(), loaded.begin(), loaded.end());
 }
 
+bool TextureManager::allTexturesBuilt() const
+{
+    return texturesBuilt_;
+}
+
 void TextureManager::loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath)
 {
     auto materials = findMaterials(handle);

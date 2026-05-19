@@ -224,6 +224,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
 
     for (auto &sceneEntry : scene.entries)
     {
+        // Names are optional, entries by handle is not
         std::size_t entryIndex{entries_.size()};
         Handle handle{textureManager_.assignHandle()};
 
