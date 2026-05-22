@@ -120,6 +120,9 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
     // Metadata and buffer uploads. Must be after all SSBO handles are created
     createAndUploadMatrices();
     createAndUploadMetadata();
+
+    // Relies on metadata and matrices
+    createParticleInfo();
     createAndUploadBufferMap();
     createVAO();
 
@@ -129,6 +132,7 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
         .ssbos = std::move(SSBOs_),
         .vao = std::move(vao_),
         .buckets = std::move(drawBuckets_),
+        .particleInfo = std::move(particles_),
         .commands = std::move(drawCommands_),
         .matricesBaseIndexMap = std::move(matricesBaseIndex_),
         .worldAABB = std::move(sceneAABB_),
@@ -300,7 +304,7 @@ void SceneProcessor::createDrawBuckets()
     {
         if (currentShaderType != entry.shaderType || currentAlphaMode != entry.alphaMode)
         {
-            drawBuckets_.emplace_back(MultiDrawBucket{.size = end - start,
+            drawBuckets_.emplace_back(MultiDrawBucket{.maxDrawCalls = end - start,
                                                       .drawCommandsBaseIndex = start,
                                                       .shaderType = currentShaderType,
                                                       .alphaMode = currentAlphaMode});
@@ -315,7 +319,7 @@ void SceneProcessor::createDrawBuckets()
 
     if (end - start > 0)
         drawBuckets_.emplace_back(MultiDrawBucket{
-            .size = end - start,
+            .maxDrawCalls = end - start,
             .drawCommandsBaseIndex = start,
             .shaderType = currentShaderType,
             .alphaMode = currentAlphaMode,
@@ -441,7 +445,7 @@ void SceneProcessor::createAndUploadBufferMap()
     {
         MultiDrawBucket &bucket{drawBuckets_[i]};
 
-        for (std::uint32_t j{bucket.drawCommandsBaseIndex}; j < bucket.drawCommandsBaseIndex + bucket.size; ++j)
+        for (std::uint32_t j{bucket.drawCommandsBaseIndex}; j < bucket.drawCommandsBaseIndex + bucket.maxDrawCalls; ++j)
         {
             const Handle handle{drawEntries_[j].handle};
             const PrimitiveMetadata &metadata{metadata_[j]};
@@ -530,5 +534,23 @@ void SceneProcessor::updateMetadataCubemaps(GLuint metadataBufferID)
             glNamedBufferSubData(metadataBufferID, static_cast<GLintptr>(i * sizeof(PrimitiveMetadata)),
                                  static_cast<GLsizeiptr>(sizeof(PrimitiveMetadata)), &metaEntry);
         }
+    }
+}
+
+void SceneProcessor::createParticleInfo()
+{
+    for (std::size_t i{0}; i < drawEntries_.size(); ++i)
+    {
+        if (drawEntries_[i].shaderType != ShaderType::particles)
+            continue;
+
+        std::uint32_t mapIndex{metadata_[i].visibleInstancesBaseIndex};
+        std::uint32_t sharedBaseIndex{static_cast<std::uint32_t>(i)};
+
+        particles_.emplace_back(ParticleCompute{
+            .mapIndex = mapIndex,
+            .sharedBufferIndex = sharedBaseIndex,
+            .numParticles = drawEntries_[i].primitive->vertices.size(),
+        });
     }
 }

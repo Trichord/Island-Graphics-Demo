@@ -95,9 +95,9 @@ void main()
     mat4 modelMatrix = matrices[map.matricesIndex];
     uint visibilityBufferBaseIndex = map.visibleInstancesBaseIndex;
 
-    if (aabbIntersectsFrustum(aabb, modelMatrix))
-    {
-        uint counter = atomicAdd(cullResults[map.sharedBaseIndex], 1);
-        visibleInstances[visibilityBufferBaseIndex + counter] = map.matricesIndex;    
-    }
+    if (!aabbIntersectsFrustum(aabb, modelMatrix))
+        return;
+
+    uint counter = atomicAdd(cullResults[map.sharedBaseIndex], 1);
+    visibleInstances[visibilityBufferBaseIndex + counter] = map.matricesIndex;        
 }

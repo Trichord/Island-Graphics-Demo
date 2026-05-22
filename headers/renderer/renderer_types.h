@@ -45,8 +45,17 @@ struct PackedCascadeShadows
 // Buffer offset and primitive count for Multi Draw Indirect calls
 struct MultiDrawBucket
 {
-    std::uint32_t size{0};
+    std::uint32_t maxDrawCalls{0};
     std::uint32_t drawCommandsBaseIndex{0};
     ShaderType shaderType{ShaderType::directionalPBR};
     fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
+};
+
+// Allows uniforms to be set for particle compute shaders, since particles are vertices and don't map cleanly to the
+// SSBOs.
+struct ParticleCompute
+{
+    std::uint32_t mapIndex{0};
+    std::uint32_t sharedBufferIndex{0};
+    std::size_t numParticles{0};
 };
