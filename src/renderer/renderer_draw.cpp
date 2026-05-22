@@ -52,9 +52,11 @@ void Renderer::renderScene()
             currentAlphaMode = mdb.alphaMode;
         }
 
-        glMultiDrawElementsIndirectCount(GL_TRIANGLES, GL_UNSIGNED_INT,
+        GLenum mode{static_cast<GLenum>(mdb.shaderType == particles ? GL_POINTS : GL_TRIANGLES)};
+
+        glMultiDrawElementsIndirectCount(mode, GL_UNSIGNED_INT,
                                          (void *)(mdb.drawCommandsBaseIndex * sizeof(DrawElementsIndirectCommand)),
-                                         static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.size, 0);
+                                         static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.maxDrawCalls, 0);
     }
 
     // If skybox is last, the shader / state change never triggers and depth function gets left on GL_LEQUAL
@@ -129,7 +131,7 @@ void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)
         if (mdb.shaderType == ocean || mdb.shaderType == skybox)
             continue;
 
-        if (mdb.shaderType == grass && cascade != 0)
+        if ((mdb.shaderType == grass || mdb.shaderType == particles) && cascade != 0)
             continue;
 
         const bool a2c{mdb.alphaMode == Mask};
@@ -137,8 +139,10 @@ void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)
         if (a2c != alphaTested)
             continue;
 
-        glMultiDrawElementsIndirectCount(GL_TRIANGLES, GL_UNSIGNED_INT,
+        GLenum mode{static_cast<GLenum>(mdb.shaderType == particles ? GL_POINTS : GL_TRIANGLES)};
+
+        glMultiDrawElementsIndirectCount(mode, GL_UNSIGNED_INT,
                                          (void *)(mdb.drawCommandsBaseIndex * sizeof(DrawElementsIndirectCommand)),
-                                         static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.size, 0);
+                                         static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.maxDrawCalls, 0);
     }
 }

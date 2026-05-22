@@ -44,6 +44,7 @@ void Renderer::initializeResources(Scene &scene)
     takeBuffers(processedScene);
 
     drawBuckets_ = std::move(processedScene.buckets);
+    particleUniforms_ = std::move(processedScene.particleInfo);
     matricesBaseIndex_ = std::move(processedScene.matricesBaseIndexMap);
     cullWorkGroupSize_ = static_cast<std::uint32_t>(processedScene.numInstances);
     compactionWorkGroupSize_ = static_cast<std::uint32_t>(processedScene.numPrimitives);

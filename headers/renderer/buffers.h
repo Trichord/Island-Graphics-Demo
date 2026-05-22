@@ -5,7 +5,7 @@
 
 #include "glad/glad.h"
 
-/* Buffers
+/* Shader Storage Buffer Objects
  *
  * Overall strategy: maintain set regions for each primitive so that a base index is always known. From there, any
  * instancing is always base + instance.
@@ -14,7 +14,7 @@
  *      - matricesIndex: index into Matrices buffer
  *      - sharedBaseIndex: index into AABBs/Metadata/DrawCommands (the primitive)
  *      - drawBucket: which draw bucket this primitive belongs to
- *      - drawBucketBaseIndex: start of that bucket in DrawCommands
+ *      - drawCommandsBaseIndex: start of that bucket in DrawCommands
  *      - visibleInstancesBaseIndex: start of the (primitive x instance) in the visibility buffer
  *
  * AABB: Per primitive. Local-space bounding boxes
@@ -194,4 +194,5 @@ enum class BindingPointSSBO : unsigned int
     drawCommands,
     visibleInstances,
     drawCommandsSource,
+    vbo
 };

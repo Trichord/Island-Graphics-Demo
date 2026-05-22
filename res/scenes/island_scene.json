@@ -224,6 +224,14 @@
     {
       "type": "skybox",
       "skyboxPath": "./res/textures/skybox/skybox.ktx2"
+    },
+    {
+      "type": "particles",
+      "position": [-240.33, -0.908, 60.766],
+      "extent": [15, 15, 15],
+      "color": [63.1, 44.3, 28.6, 255.0],
+      "colorVariation": [4, 5.5, 5.3, 0],
+      "count": 10000
     }
   ]
 }
