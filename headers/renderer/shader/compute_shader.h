@@ -13,7 +13,5 @@ class ComputeShader : public Shader
     ComputeShader(ComputeShader &&other) = default;
     ComputeShader &operator=(ComputeShader &&other) = default;
 
-    static constexpr std::uint32_t localSize = 64u;
-
     void dispatch(int x, int y, int z);
 };

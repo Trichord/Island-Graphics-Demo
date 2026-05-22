@@ -102,6 +102,8 @@ GlobalVAO BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices
     glVertexArrayAttribBinding(vao.id, 2, 0);
     glVertexArrayAttribBinding(vao.id, 3, 0);
 
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::vbo), vao.vbo);
+
     return vao;
 }
 

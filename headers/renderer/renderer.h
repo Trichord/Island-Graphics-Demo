@@ -31,8 +31,8 @@ class Renderer
     Renderer(Renderer &&other) = delete;
     Renderer &operator=(Renderer &&other) = delete;
 
-    void renderScene(Scene &scene);
     void initializeResources(Scene &scene);
+    void renderScene(Scene &scene, float deltaTime);
 
     std::uint32_t getFrameCount() const;
     TextureManager &getTextureManager();
@@ -57,7 +57,7 @@ class Renderer
     UBOs UBOs_;
     SSBOs SSBOs_;
     GlobalVAO VAO_;
-    
+
     // Textures
     CascadeShadow cascadeShadow_;
     RenderTarget msaaShadowTarget_;
@@ -69,8 +69,10 @@ class Renderer
     // Compute Shaders
     ComputeShader cullShader_;
     ComputeShader compactionShader_;
+    ComputeShader particleShader_;
     std::uint32_t cullWorkGroupSize_{0};
     std::uint32_t compactionWorkGroupSize_{0};
+    std::vector<ParticleCompute> particleUniforms_;
 
     // Shaders and Uniforms
     void loadShaders();
@@ -93,6 +95,7 @@ class Renderer
     void shadowPass(GraphicsShader &shader, int cascade, bool alphaTested);
 
     // Updates
+    void updateParticles(float deltaTime);
     void updateCameraUBO(Scene &scene);
     void updateSceneTransforms(Scene &scene);
     void updateFrustumPlanesUBO(const glm::mat4 &cullMatrix);

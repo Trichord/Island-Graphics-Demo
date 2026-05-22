@@ -23,10 +23,15 @@
 #include "thread_pool.h"
 #include "transform.h"
 
+#include <iostream>
+
+namespace
+{
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.111f};
 constexpr float alphaCutoff{0.425f};
 constexpr int shadowMapMSAA{2};
+} // namespace
 
 const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix);
 
@@ -56,7 +61,7 @@ Renderer::Renderer(ThreadPool &threadPool, TextureManager &textureManager, const
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getColorTextureID());
 }
 
-void Renderer::renderScene(Scene &scene)
+void Renderer::renderScene(Scene &scene, float deltaTime)
 {
     ++framesRendered_;
 
@@ -75,6 +80,7 @@ void Renderer::renderScene(Scene &scene)
     if (cameraUpdated)
         updateCameraUBO(scene);
 
+    updateParticles(deltaTime);
     cullScene(scene.getCamera().getViewProjectionMatrix());
     renderScene();
 }
@@ -97,6 +103,7 @@ void Renderer::loadShaders()
     shaders_[shaderIndex(skybox)] = GraphicsShader{skybox, "./shaders/skybox.vert", "./shaders/skybox.frag"};
     shaders_[shaderIndex(water)] = GraphicsShader{water, "./shaders/water.vert", "./shaders/water.frag"};
     shaders_[shaderIndex(ocean)] = GraphicsShader{ocean, "./shaders/water.vert", "./shaders/ocean.frag"};
+    shaders_[shaderIndex(particles)] = GraphicsShader{particles, "./shaders/particles.vert", "./shaders/particles.frag"};
 
     // Internal use only shaders
     shaders_[shaderIndex(shadowMap)] =
@@ -107,6 +114,7 @@ void Renderer::loadShaders()
     // Compute
     cullShader_ = ComputeShader{"./shaders/frustum_cull.comp"};
     compactionShader_ = ComputeShader{"./shaders/compact_draws.comp"};
+    particleShader_ = ComputeShader{"./shaders/particles.comp"};
 }
 
 void Renderer::setupShader(GraphicsShader &shader)
@@ -186,7 +194,7 @@ void Renderer::updateSceneTransforms(Scene &scene)
     for (Handle handle : updatedTransformHandles)
     {
         std::uint32_t bufferBaseIndex{matricesBaseIndex_.at(handle)};
-        std::vector<Transform>& transforms{scene.getEntryByHandle(handle).transforms};
+        std::vector<Transform> &transforms{scene.getEntryByHandle(handle).transforms};
 
         updatedMatrices_.clear();
         updatedMatrices_.reserve(transforms.size());
@@ -213,18 +221,19 @@ TextureManager &Renderer::getTextureManager()
 
 void Renderer::cullScene(const glm::mat4 &cullMatrix)
 {
+    constexpr int shaderLocalSize{64};
+
     glClearNamedBufferData(SSBOs_.drawCounts, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
     glClearNamedBufferData(SSBOs_.cullResults, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
 
     updateFrustumPlanesUBO(cullMatrix);
 
     cullShader_.use();
-    cullShader_.dispatch((cullWorkGroupSize_ + (ComputeShader::localSize - 1u)) / ComputeShader::localSize, 1u, 1u);
+    cullShader_.dispatch((cullWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     compactionShader_.use();
-    compactionShader_.dispatch((compactionWorkGroupSize_ + (ComputeShader::localSize - 1u)) / ComputeShader::localSize,
-                               1u, 1u);
+    compactionShader_.dispatch((compactionWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT);
 }
 
@@ -255,4 +264,28 @@ const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
     normalizePlane(far);
 
     return {left, right, top, bottom, near, far};
+}
+
+void Renderer::updateParticles(float deltaTime)
+{
+    constexpr int shaderLocalSize{64};
+
+    if (particleUniforms_.empty())
+        return;
+
+    particleShader_.use();
+    particleShader_.setFloat("deltaTime", deltaTime);
+
+    for (ParticleCompute dispatch : particleUniforms_)
+    {
+        int particles{static_cast<int>(dispatch.numParticles)};
+
+        particleShader_.setIntU("mapIndex", dispatch.mapIndex);
+        particleShader_.setIntU("sharedBufferIndex", dispatch.sharedBufferIndex);
+        particleShader_.setIntU("numParticles", particles);
+
+        particleShader_.dispatch((particles + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
+    }
+
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 }

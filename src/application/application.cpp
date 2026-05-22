@@ -101,7 +101,7 @@ void Application::run()
         processKeyboard(islandScene, physicsHandler);
 
         // Draw
-        renderer.renderScene(islandScene);
+        renderer.renderScene(islandScene, deltaTime_);
         glfwSwapBuffers(window_);
 
         // Check for window close
@@ -173,6 +173,7 @@ bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_FRAMEBUFFER_SRGB);
+    glEnable(GL_PROGRAM_POINT_SIZE);
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 

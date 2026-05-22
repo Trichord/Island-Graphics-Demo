@@ -27,6 +27,7 @@ class SceneProcessor
         SSBOs ssbos;
         GlobalVAO vao;
         std::vector<MultiDrawBucket> buckets;
+        std::vector<ParticleCompute> particleInfo;
         std::vector<DrawElementsIndirectCommand> commands;
         std::unordered_map<Handle, std::uint32_t> matricesBaseIndexMap;
 
@@ -122,6 +123,9 @@ class SceneProcessor
     // Buffer management - help find base index into matrices buffer for model updates
     std::unordered_map<Handle, std::uint32_t> matricesBaseIndex_;
 
+    // Particle indirection tracking for CPU-side uniform setting
+    std::vector<ParticleCompute> particles_;
+
     bool sceneProcessed_{false};
     bool buffersBuilt_{false};
 
@@ -135,6 +139,7 @@ class SceneProcessor
     void createAABBs();
     void createDrawBuckets();
     void createDrawCommands();
+    void createParticleInfo();
     void createAndUploadMatrices();
     void createAndUploadBufferMap();
 

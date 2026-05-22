@@ -100,13 +100,31 @@ std::unordered_set<Handle> &Scene::getUpdatedModels()
 void Scene::loadGLTFTextures(Handle handle, const Model &model)
 {
     const std::filesystem::path modelPath{model.getPath()};
-    textureManager_.loadModelTextures(handle, model.getAsset(), modelPath.parent_path());
+
+    if (model.getAsset().materials.empty())
+        textureManager_.addDefaultMaterial(handle);
+    else
+        textureManager_.loadModelTextures(handle, model.getAsset(), modelPath.parent_path());
+}
+
+void Scene::addParticles(Handle handle, const Particles &particles)
+{
+    textureManager_.addDefaultMaterial(handle);
+
+    entries_.emplace_back(Entry{
+        .handle = handle,
+        .aabb = particles.getAABB(),
+        .primitives = particles.getPrimitives(),
+        .transforms = {{}},
+        .shaderType = ShaderType::particles,
+    });
 }
 
 void Scene::addSkybox(Handle handle, const Skybox &skybox)
 {
     const std::filesystem::path image{skybox.getPath()};
 
+    textureManager_.addDefaultMaterial(handle);
     textureManager_.loadCubemapTextures(handle, image);
 
     entries_.emplace_back(Entry{
@@ -228,28 +246,32 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
         std::size_t entryIndex{entries_.size()};
         Handle handle{textureManager_.assignHandle()};
 
-        std::visit(overloaded{
-                       [&](const ModelEntry &entry) {
-                           Model model{entry.modelPath};
-                           addModel(handle, model, entry.transform, entry.shader, entry.name);
-                       },
-                       [&](const InstancedModelEntry &entry) {
-                           InstancedModel model{
-                               entry.modelPath, entry.positionsPath,
-                               InstancedModel::Randomize{.minScale = entry.minScale, .maxScale = entry.maxScale}};
-                           addInstancedModel(handle, model, entry.shader, entry.name);
-                       },
-                       [&](const CubeMappedModelEntry &entry) {
-                           Model model{entry.modelPath};
-                           addCubemappedModel(handle, model, entry.cubemapPath, entry.transform, entry.shader,
-                                              entry.name);
-                       },
-                       [&](const SkyboxEntry &entry) {
-                           Skybox skybox{entry.skyboxPath};
-                           addSkybox(handle, skybox);
-                       },
-                   },
-                   sceneEntry);
+        std::visit(
+            overloaded{
+                [&](const ParticlesEntry &entry) {
+                    Particles particles{entry.position, entry.extent, entry.color, entry.colorVariation, entry.count};
+                    addParticles(handle, particles);
+                },
+                [&](const SkyboxEntry &entry) {
+                    Skybox skybox{entry.skyboxPath};
+                    addSkybox(handle, skybox);
+                },
+                [&](const ModelEntry &entry) {
+                    Model model{entry.modelPath};
+                    addModel(handle, model, entry.transform, entry.shader, entry.name);
+                },
+                [&](const InstancedModelEntry &entry) {
+                    InstancedModel model{
+                        entry.modelPath, entry.positionsPath,
+                        InstancedModel::Randomize{.minScale = entry.minScale, .maxScale = entry.maxScale}};
+                    addInstancedModel(handle, model, entry.shader, entry.name);
+                },
+                [&](const CubeMappedModelEntry &entry) {
+                    Model model{entry.modelPath};
+                    addCubemappedModel(handle, model, entry.cubemapPath, entry.transform, entry.shader, entry.name);
+                },
+            },
+            sceneEntry);
 
         entriesByHandle_[handle] = entryIndex;
     }

@@ -35,6 +35,8 @@ class TextureManager
     void loadModelTextures(const Handle handle, const fastgltf::Asset &asset, const std::filesystem::path &parentPath);
     void loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath);
 
+    void addDefaultMaterial(const Handle handle);
+
     GLenum getReflectionColorFormat() const;
     std::span<const Material> getMaterials(Handle handle) const;
 
