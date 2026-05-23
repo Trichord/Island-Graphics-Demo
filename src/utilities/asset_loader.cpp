@@ -179,12 +179,6 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
                     asset, positionAccessor,
                     [&](glm::vec3 position, std::size_t index) { vertices[index].position = position; });
             }
-#ifdef DEBUG
-            else
-            {
-                std::cerr << "ERROR: Fastgltf loading non-vec3 positions" << std::endl;
-            }
-#endif // DEBUG
 
             // Normals
             if (normalIt)
@@ -197,12 +191,6 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
                         asset, normalAccessor,
                         [&](glm::vec3 normal, std::size_t index) { vertices[index].normal = normal; });
                 }
-#ifdef DEBUG
-                else
-                {
-                    std::cerr << "ERROR: Fastgltf loading non-vec3 normals" << std::endl;
-                }
-#endif // DEBUG
             }
 
             // Tangents
@@ -216,12 +204,6 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
                         asset, tangentAccessor,
                         [&](glm::vec4 tangent, std::size_t index) { vertices[index].tangent = tangent; });
                 }
-#ifdef DEBUG
-                else
-                {
-                    std::cerr << "ERROR: Fastgltf loading non-vec4 tangents" << std::endl;
-                }
-#endif // DEBUG
             }
 
             // Texture coordinates
@@ -236,12 +218,6 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
                         asset, texCoordAccessor,
                         [&](glm::vec2 texCoords, std::size_t index) { vertices[index].texCoords = texCoords; });
                 }
-#ifdef DEBUG
-                else
-                {
-                    std::cerr << "ERROR: Fastgltf loading non-vec2 uv coordinates" << std::endl;
-                }
-#endif // DEBUG
             }
 
             // Indices
@@ -256,12 +232,6 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
                     fastgltf::iterateAccessor<std::uint32_t>(asset, indicesAccessor,
                                                              [&](std::uint32_t index) { indices[idx++] = index; });
                 }
-#ifdef DEBUG
-                else
-                {
-                    std::cerr << "ERROR: Fastgltf loading non-scalar indices" << std::endl;
-                }
-#endif // DEBUG
             }
 
             // Check if there are any materials at all
