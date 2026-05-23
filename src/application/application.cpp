@@ -123,9 +123,9 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
     glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
     glfwWindowHint(GLFW_DEPTH_BITS, 32);
 
-#ifdef DEBUG
+#ifdef _DEBUG
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
-#endif // DEBUG
+#endif
 
     if (graphicsSettings.msaa)
         glfwWindowHint(GLFW_SAMPLES, graphicsSettings.msaa);
@@ -190,7 +190,7 @@ bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
         return false;
     }
 
-#ifdef DEBUG
+#ifdef _DEBUG
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageCallback(glDebugOutput, nullptr);
@@ -339,7 +339,7 @@ void Application::registerJolt()
     JPH::RegisterTypes();
 }
 
-#ifdef DEBUG
+#ifdef _DEBUG
 void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length,
                             const char *message, const void *userParam)
 {
@@ -422,5 +422,6 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum 
     }
     std::cout << std::endl;
     std::cout << std::endl;
+
 }
-#endif // DEBUG
+#endif
