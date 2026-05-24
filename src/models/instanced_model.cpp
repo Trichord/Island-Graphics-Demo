@@ -59,7 +59,7 @@ std::vector<Transform> InstancedModel::randomizeRotationScale(std::vector<glm::v
         if (min == max)
             return min;
 
-        if (max > min)
+        if (max < min)
             std::swap(max, min);
 
         std::uniform_real_distribution<float> rnd{min, max};

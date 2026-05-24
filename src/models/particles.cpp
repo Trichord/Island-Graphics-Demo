@@ -36,7 +36,7 @@ std::vector<Primitive> Particles::generateParticles(const glm::vec3 &position, c
         if (min == max)
             return min;
 
-        if (max > min)
+        if (max < min)
             std::swap(max, min);
 
         std::uniform_real_distribution<float> rnd{min, max};
