@@ -51,11 +51,8 @@ struct MultiDrawBucket
     fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
 };
 
-// Allows uniforms to be set for particle compute shaders, since particles are vertices and don't map cleanly to the
-// SSBOs.
-struct ParticleCompute
+struct ParticleUniforms
 {
-    std::uint32_t mapIndex{0};
-    std::uint32_t sharedBufferIndex{0};
-    std::size_t numParticles{0};
+    std::uint32_t sharedIndex{0};
+    std::uint32_t localGroupSize{0};
 };

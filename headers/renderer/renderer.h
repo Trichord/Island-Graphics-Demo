@@ -72,20 +72,23 @@ class Renderer
     ComputeShader particleShader_;
     std::uint32_t cullWorkGroupSize_{0};
     std::uint32_t compactionWorkGroupSize_{0};
-    std::vector<ParticleCompute> particleUniforms_;
+    std::vector<ParticleUniforms> particleUniforms_;
 
-    // Shaders and Uniforms
+    // Initialization
     void loadShaders();
     void setupShader(GraphicsShader &shader);
-    void setSceneShaderUniforms(Scene &scene);
 
     // Setup
-    void takeBuffers(SceneProcessor::ProcessedScene &processed);
+    void setSceneShaderUniforms(Scene &scene);
+    void takeBufferData(SceneProcessor::ProcessedScene &processed);
+    void takeGPUObjects(SceneProcessor::ProcessedScene &processed);
+    void setLocalGroupSizes(SceneProcessor::ProcessedScene &processed);
+    void setParticleUniforms(const std::unordered_map<ShaderType, SceneProcessor::BucketData> &bucketMap);
 
     // Cubemap Generation
-    void borrowSkybox(const SceneProcessor &processor);
-    void createCubemaps(Scene &scene, const SceneProcessor &processor,
-                        std::vector<DrawElementsIndirectCommand> &commands);
+    void borrowSkybox(const std::unordered_map<ShaderType, SceneProcessor::BucketData> &bucketMap);
+    void createCubemaps(Scene &scene, const std::unordered_map<ShaderType, SceneProcessor::BucketData> &bucketMap,
+                        const std::vector<DrawElementsIndirectCommand> &commandsSource);
     void renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget);
 
     // Drawing

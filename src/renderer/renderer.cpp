@@ -274,11 +274,12 @@ void Renderer::updateParticles(float deltaTime)
     particleShader_.use();
     particleShader_.setFloat("deltaTime", deltaTime);
 
-    for (ParticleCompute dispatch : particleUniforms_)
+    for (ParticleUniforms dispatch : particleUniforms_)
     {
-        int particles{static_cast<int>(dispatch.numParticles)};
+        unsigned int particles{static_cast<unsigned int>(dispatch.localGroupSize)};
+        unsigned int sharedIndex{static_cast<unsigned int>(dispatch.sharedIndex)};
 
-        particleShader_.setIntU("sharedBufferIndex", dispatch.sharedBufferIndex);
+        particleShader_.setIntU("sharedBufferIndex", sharedIndex);
         particleShader_.setIntU("numParticles", particles);
 
         particleShader_.dispatch((particles + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
