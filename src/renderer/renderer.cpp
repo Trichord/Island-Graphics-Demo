@@ -23,8 +23,6 @@
 #include "thread_pool.h"
 #include "transform.h"
 
-#include <iostream>
-
 namespace
 {
 // Scale mipmaps and alpha cutoff for foliage
@@ -90,31 +88,29 @@ void Renderer::loadShaders()
     using enum ShaderType;
 
     if (graphicsSettings_.shadowResolution > 1)
-        shaders_[shaderIndex(directionalPBR)] = GraphicsShader{directionalPBR, "./shaders/directional_PBR_shadow.vert",
-                                                               "./shaders/directional_PBR_shadow.frag"};
+        shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR_shadow.vert",
+                                                 "./shaders/directional_PBR_shadow.frag"};
     else
-        shaders_[shaderIndex(directionalPBR)] =
-            GraphicsShader{directionalPBR, "./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"};
+        shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR.vert",
+                                                 "./shaders/directional_PBR.frag"};
 
-    shaders_[shaderIndex(grass)] = GraphicsShader{grass, "./shaders/grass.vert", "./shaders/grass.frag"};
-    shaders_[shaderIndex(trees)] = GraphicsShader{trees, "./shaders/trees.vert", "./shaders/trees.frag"};
-    shaders_[shaderIndex(reflective)] =
-        GraphicsShader{reflective, "./shaders/reflective.vert", "./shaders/reflective.frag"};
-    shaders_[shaderIndex(skybox)] = GraphicsShader{skybox, "./shaders/skybox.vert", "./shaders/skybox.frag"};
-    shaders_[shaderIndex(water)] = GraphicsShader{water, "./shaders/water.vert", "./shaders/water.frag"};
-    shaders_[shaderIndex(ocean)] = GraphicsShader{ocean, "./shaders/water.vert", "./shaders/ocean.frag"};
-    shaders_[shaderIndex(particles)] = GraphicsShader{particles, "./shaders/particles.vert", "./shaders/particles.frag"};
+    shaders_[shaderIndex(grass)] = {grass, "./shaders/grass.vert", "./shaders/grass.frag"};
+    shaders_[shaderIndex(trees)] = {trees, "./shaders/trees.vert", "./shaders/trees.frag"};
+    shaders_[shaderIndex(reflective)] = {reflective, "./shaders/reflective.vert", "./shaders/reflective.frag"};
+    shaders_[shaderIndex(skybox)] = {skybox, "./shaders/skybox.vert", "./shaders/skybox.frag"};
+    shaders_[shaderIndex(water)] = {water, "./shaders/water.vert", "./shaders/water.frag"};
+    shaders_[shaderIndex(ocean)] = {ocean, "./shaders/water.vert", "./shaders/ocean.frag"};
+    shaders_[shaderIndex(particles)] = {particles, "./shaders/particles.vert", "./shaders/particles.frag"};
 
     // Internal use only shaders
-    shaders_[shaderIndex(shadowMap)] =
-        GraphicsShader{shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
-    shaders_[shaderIndex(shadowMapAlpha)] =
-        GraphicsShader{shadowMapAlpha, "./shaders/shadow_pass_alpha.vert", "./shaders/shadow_pass_alpha.frag"};
+    shaders_[shaderIndex(shadowMap)] = {shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
+    shaders_[shaderIndex(shadowMapAlpha)] = {shadowMapAlpha, "./shaders/shadow_pass_alpha.vert",
+                                             "./shaders/shadow_pass_alpha.frag"};
 
     // Compute
-    cullShader_ = ComputeShader{"./shaders/frustum_cull.comp"};
-    compactionShader_ = ComputeShader{"./shaders/compact_draws.comp"};
-    particleShader_ = ComputeShader{"./shaders/particles.comp"};
+    cullShader_ = {"./shaders/frustum_cull.comp"};
+    compactionShader_ = {"./shaders/compact_draws.comp"};
+    particleShader_ = {"./shaders/particles.comp"};
 }
 
 void Renderer::setupShader(GraphicsShader &shader)
@@ -125,6 +121,8 @@ void Renderer::setupShader(GraphicsShader &shader)
 
     // Setup Window settings
     shader.setFloat("gamma", graphicsSettings_.gamma);
+    shader.setInt("screenHeight", graphicsSettings_.screenHeight);
+    shader.setInt("screenWidth", graphicsSettings_.screenWidth);
 }
 
 void Renderer::updateCameraUBO(Scene &scene)

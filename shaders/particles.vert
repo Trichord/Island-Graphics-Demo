@@ -15,10 +15,10 @@ struct Metadata
 };
 
 // Constants
-const float pointSize = 25.0;
+const float pointSize = 0.025;
 
 // Attributes
-layout (location = 0) in vec4 aPos;
+layout (location = 0) in vec3 aPos;
 layout (location = 2) in vec4 aColor;
 
 // UBOs
@@ -48,6 +48,10 @@ layout(binding = 7, std430) restrict readonly buffer visibleInstancesSSBO
    uint instances[];
 };
 
+// In
+uniform int screenHeight;
+uniform float fov;
+
 // Out
 flat out vec4 color;
 
@@ -61,6 +65,6 @@ void main()
 
 	color = aColor;
 	
-	gl_Position = projectionViewMatrix * modelMatrix * aPos;
-	gl_PointSize = pointSize / gl_Position.w;
+	gl_Position = projectionViewMatrix * modelMatrix * vec4(aPos, 1.0);
+	gl_PointSize = (screenHeight * pointSize) / (gl_Position.w * tan(radians(fov) * 0.5));
 }

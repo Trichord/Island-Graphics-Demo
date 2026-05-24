@@ -6,15 +6,15 @@
 #include <utility>
 #include <vector>
 
-#include "model.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "model.h"
 #include "texture_manager.h"
 #include "transform.h"
 #include "world_vectors.h"
 
-InstancedModel::InstancedModel(const std::filesystem::path &modelPath,
-                               const std::filesystem::path &positionsPath, Randomize randomize)
+InstancedModel::InstancedModel(const std::filesystem::path &modelPath, const std::filesystem::path &positionsPath,
+                               Randomize randomize)
     : Model{modelPath}, positionsPath_{positionsPath}, randomize_{randomize}
 {
 }
@@ -55,20 +55,28 @@ std::vector<glm::vec3> InstancedModel::loadPositions() const
 
 std::vector<Transform> InstancedModel::randomizeRotationScale(std::vector<glm::vec3> &positions) const
 {
+    auto randomFloat = [](float min, float max, std::mt19937 &mt) {
+        if (min == max)
+            return min;
+
+        if (max > min)
+            std::swap(max, min);
+
+        std::uniform_real_distribution<float> rnd{min, max};
+        return rnd(mt);
+    };
+
     std::random_device rd;
     std::mt19937 mt(rd());
 
     std::vector<Transform> transforms;
     transforms.reserve(positions.size());
 
-    // Rotate the model somewhere in the 360 degree range
-    std::uniform_real_distribution<float> randRotation{0.0f, 360.0f};
-    std::uniform_real_distribution<float> randScale{randomize_.minScale, randomize_.maxScale};
-
     for (auto &position : positions)
     {
-        float instanceRotation{randRotation(mt)};
-        float instanceScale{randScale(mt)};
+        // Rotate the model somewhere in the 360 degree range
+        float instanceRotation{randomFloat(0.0, 360.0f, mt)};
+        float instanceScale{randomFloat(randomize_.minScale, randomize_.maxScale, mt)};
 
         Transform transform{position};
 
