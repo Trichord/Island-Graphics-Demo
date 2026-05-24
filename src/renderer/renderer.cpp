@@ -278,7 +278,6 @@ void Renderer::updateParticles(float deltaTime)
     {
         int particles{static_cast<int>(dispatch.numParticles)};
 
-        particleShader_.setIntU("mapIndex", dispatch.mapIndex);
         particleShader_.setIntU("sharedBufferIndex", dispatch.sharedBufferIndex);
         particleShader_.setIntU("numParticles", particles);
 
