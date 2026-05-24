@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
 
 #pragma warning(push)
 #pragma warning(disable : 5260)
@@ -12,7 +11,6 @@
 #include "cascade_shadow.h"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
-#include "transform.h"
 
 // Struct for MultiDrawElements
 struct DrawElementsIndirectCommand

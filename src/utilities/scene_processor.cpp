@@ -5,11 +5,11 @@
 #include <iostream>
 #include <iterator>
 #include <limits>
-#include <optional>
 #include <span>
 #include <stdexcept>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -24,6 +24,7 @@
 #include "primitive.h"
 #include "renderer_types.h"
 #include "scene.h"
+#include "shader_bucket_hash.h"
 #include "texture_manager.h"
 #include "textures.h"
 #include "transform.h"
@@ -86,6 +87,7 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
     auto buckets = createDrawBuckets(drawEntries_);
     auto AABBs = createAABBs(drawEntries_);
     auto vertexCounts = createVertexCounts(drawEntries_);
+    auto particlesMap = createParticleBufferMap(drawEntries_);
 
     auto bufferSizes = calculateBufferSizes(commands, buckets);
     auto SSBOs = createSSBOs(commands, AABBs, bufferSizes);
@@ -99,8 +101,8 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
     glNamedBufferSubData(SSBOs.metadata, 0, static_cast<GLsizeiptr>(metadata.size() * sizeof(PrimitiveMetadata)),
                          metadata.data());
 
-    auto map = createBufferMap(drawEntries_, metadata, buckets, matricesMap);
-    glNamedBufferSubData(SSBOs.map, 0, static_cast<GLsizeiptr>(map.size() * sizeof(BufferMap)), map.data());
+    auto map = createVisibilityBufferMap(drawEntries_, metadata, buckets, matricesMap);
+    glNamedBufferSubData(SSBOs.map, 0, static_cast<GLsizeiptr>(map.size() * sizeof(VisibilityBufferMap)), map.data());
 
     // Only store this so the metadata cubemaps can be updated later
     metadata_ = std::move(metadata);
@@ -118,9 +120,9 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
                 .buckets = std::move(buckets),
                 .matricesBaseIndexMap = std::move(matricesMap),
             },
-        .bucketMap = std::move(shaderBucketMap),
         .commands = std::move(commands),
         .vertexCounts = std::move(vertexCounts),
+        .bucketMap = std::move(shaderBucketMap),
     };
 }
 
@@ -195,7 +197,7 @@ BufferBuilder::Sizes SceneProcessor::calculateBufferSizes(const std::vector<Draw
 
     bufferSizes.metadata = commands.size() * sizeof(PrimitiveMetadata);
     bufferSizes.matrices = totals_.matrices * sizeof(glm::mat4);
-    bufferSizes.bufferMap = totals_.instances * sizeof(BufferMap);
+    bufferSizes.bufferMap = totals_.instances * sizeof(VisibilityBufferMap);
     bufferSizes.drawCounts = buckets.size() * sizeof(std::uint32_t);
     bufferSizes.cullResults = commands.size() * sizeof(std::uint32_t);
     bufferSizes.visibleInstances = totals_.instances * sizeof(std::uint32_t);
@@ -217,15 +219,16 @@ std::vector<AABB> SceneProcessor::createAABBs(const std::vector<DrawEntry> &entr
     return AABBs;
 }
 
-std::unordered_map<ShaderType, SceneProcessor::BucketData> SceneProcessor::createShaderBucketMap(const std::vector<DrawEntry>& entries)
+std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> SceneProcessor::createShaderBucketMap(
+    const std::vector<DrawEntry> &entries)
 {
-    std::unordered_map<ShaderType, BucketData> bucketMap;
+    std::unordered_map<ShaderBucket, BucketData, ShaderBucketHash> bucketMap;
 
     for (std::size_t i{0}; i < entries.size(); ++i)
     {
         const DrawEntry &entry{entries[i]};
 
-        auto [iter, inserted] = bucketMap.try_emplace(entry.shaderType);
+        auto [iter, inserted] = bucketMap.try_emplace(std::pair{entry.shaderType, entry.alphaMode});
         auto &bucketData = iter->second;
 
         if (inserted)
@@ -440,12 +443,12 @@ void SceneProcessor::setMetadataMaterials(const std::vector<DrawEntry> &entries,
     }
 }
 
-std::vector<SceneProcessor::BufferMap> SceneProcessor::createBufferMap(
+std::vector<SceneProcessor::VisibilityBufferMap> SceneProcessor::createVisibilityBufferMap(
     const std::vector<SceneProcessor::DrawEntry> &entries,
     const std::vector<SceneProcessor::PrimitiveMetadata> &metadata, const std::vector<MultiDrawBucket> &buckets,
     const std::unordered_map<Handle, std::uint32_t> matricesMap)
 {
-    std::vector<BufferMap> map;
+    std::vector<VisibilityBufferMap> map;
     map.reserve(totals_.instances);
 
     for (std::size_t i{0}; i < buckets.size(); ++i)
@@ -464,9 +467,9 @@ std::vector<SceneProcessor::BufferMap> SceneProcessor::createBufferMap(
 
             for (std::size_t k{0}; k < transforms.size(); ++k)
             {
-                map.emplace_back(BufferMap{
+                map.emplace_back(VisibilityBufferMap{
                     .matricesIndex = matricesBufferBaseIndex + static_cast<std::uint32_t>(k),
-                    .sharedBaseIndex = j,
+                    .sharedIndex = j,
                     .drawBucket = currentBucket,
                     .drawCommandsBaseIndex = bucket.drawCommandsBaseIndex,
                     .visibleInstancesBaseIndex = visibleInstancesBufferBaseIndex,
@@ -478,9 +481,34 @@ std::vector<SceneProcessor::BufferMap> SceneProcessor::createBufferMap(
     return map;
 }
 
+std::vector<SceneProcessor::ParticleBufferMap> SceneProcessor::createParticleBufferMap(
+    const std::vector<DrawEntry> &entries)
+{
+    std::size_t currentVertex{0};
+    std::vector<ParticleBufferMap> particleMap;
+
+    for (std::size_t i{0}; i < entries.size(); ++i)
+    {
+        if (entries[i].shaderType == ShaderType::particles)
+        {
+            for (std::size_t j{0}; j < entries[i].primitive->vertices.size(); ++j)
+            {
+                std::uint32_t vboIndex{static_cast<std::uint32_t>(currentVertex + j)};
+                std::uint32_t sharedIndex{static_cast<std::uint32_t>(i)};
+
+                particleMap.emplace_back(ParticleBufferMap{.vboIndex = vboIndex, .sharedIndex = sharedIndex});
+            }
+        }
+
+        currentVertex += entries[i].primitive->vertices.size();
+    }
+
+    return particleMap;
+}
+
 void SceneProcessor::updateMetadataCubemaps(GLuint metadataBufferID)
 {
-    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(drawEntries_.size()); ++i)
+    for (std::size_t i{0}; i < drawEntries_.size(); ++i)
     {
         using enum ShaderType;
 

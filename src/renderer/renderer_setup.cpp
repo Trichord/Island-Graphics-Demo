@@ -2,13 +2,17 @@
 
 #include <array>
 #include <cstdint>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "aabb.h"
+#include "buffer_builder.h"
 #include "buffers.h"
 #include "camera.h"
 #include "cascade_shadow.h"
 #include "directional_light.h"
+#include "fastgltf/types.hpp"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
@@ -18,6 +22,7 @@
 #include "renderer_types.h"
 #include "scene.h"
 #include "scene_processor.h"
+#include "shader_bucket_hash.h"
 #include "texture_manager.h"
 #include "transform.h"
 #include "world_vectors.h"
@@ -47,9 +52,9 @@ void Renderer::initializeResources(Scene &scene)
     // Extract to local
     std::vector<DrawElementsIndirectCommand> drawCommands{std::move(processed.commands)};
     AABB sceneAABB{processed.sceneData.worldAABB};
-    std::unordered_map<ShaderType, SceneProcessor::BucketData> bucketMap{std::move(processed.bucketMap)};
+    auto bucketMap{std::move(processed.bucketMap)};
     std::vector<std::size_t> vertexCounts{std::move(processed.vertexCounts)};
-    
+
     setParticleUniforms(bucketMap, vertexCounts);
     setLocalGroupSizes(processed, drawCommands.size());
 
@@ -116,12 +121,14 @@ void Renderer::setSceneShaderUniforms(Scene &scene)
     }
 }
 
-void Renderer::borrowSkybox(const std::unordered_map<ShaderType, SceneProcessor::BucketData> &bucketMap)
+void Renderer::borrowSkybox(
+    const std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> &bucketMap)
 {
     using enum ShaderType;
+    using enum fastgltf::AlphaMode;
 
-    auto skyboxIter = bucketMap.find(skybox);
-    auto oceanIter = bucketMap.find(ocean);
+    auto skyboxIter = bucketMap.find(ShaderBucket{skybox, Opaque});
+    auto oceanIter = bucketMap.find(ShaderBucket{ocean, Opaque});
 
     if (skyboxIter == bucketMap.end() || oceanIter == bucketMap.end())
         return;
@@ -135,12 +142,14 @@ void Renderer::borrowSkybox(const std::unordered_map<ShaderType, SceneProcessor:
         textureManager_.borrowCubemaps(oceanHandle, skyboxHandle);
 }
 
-void Renderer::createCubemaps(Scene &scene, const std::unordered_map<ShaderType, SceneProcessor::BucketData> &bucketMap,
-                              const std::vector<DrawElementsIndirectCommand> &commandsSource)
+void Renderer::createCubemaps(
+    Scene &scene, const std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> &bucketMap,
+    const std::vector<DrawElementsIndirectCommand> &commandsSource)
 {
     using enum ShaderType;
+    using enum fastgltf::AlphaMode;
 
-    auto waterIter = bucketMap.find(water);
+    auto waterIter = bucketMap.find(ShaderBucket{water, Blend});
 
     if (waterIter == bucketMap.end())
         return;
@@ -253,9 +262,14 @@ void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget 
     }
 }
 
-void Renderer::setParticleUniforms(const std::unordered_map<ShaderType, SceneProcessor::BucketData> &bucketMap, const std::vector<std::size_t>& vertexCounts)
+void Renderer::setParticleUniforms(
+    const std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> &bucketMap,
+    const std::vector<std::size_t> &vertexCounts)
 {
-    auto particleIter = bucketMap.find(ShaderType::particles);
+    using enum ShaderType;
+    using enum fastgltf::AlphaMode;
+
+    auto particleIter = bucketMap.find(ShaderBucket{particles, Mask});
 
     if (particleIter == bucketMap.end())
         return;
