@@ -14,10 +14,10 @@
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
 #include "handle.h"
-#include "shader_bucket_hash.h"
 #include "primitive.h"
 #include "renderer_types.h"
 #include "scene.h"
+#include "shader_bucket_hash.h"
 #include "texture_manager.h"
 #include "transform.h"
 
@@ -84,37 +84,6 @@ class SceneProcessor
         fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
     };
 
-    // GPU resident metadata for texture and buffer indexing
-    struct PrimitiveMetadata
-    {
-        int albedoArray{0};
-        int albedoLayer{0};
-        int armArray{0};
-        int armLayer{0};
-        int normalArray{0};
-        int normalLayer{0};
-        int cubemapArray{0};
-        int cubemapLayer{0};
-        std::uint32_t visibleInstancesBaseIndex{0};
-    };
-
-    // Maps an entry in the visibility buffer, so that a compute shader global ID can find its resources
-    struct VisibilityBufferMap
-    {
-        std::uint32_t matricesIndex{0};
-        std::uint32_t sharedIndex{0};
-        std::uint32_t drawBucket{0};
-        std::uint32_t drawCommandsBaseIndex{0};
-        std::uint32_t visibleInstancesBaseIndex{0};
-    };
-
-    // Maps a particle back to the VBO and shared index.
-    struct ParticleBufferMap
-    {
-        std::uint32_t vboIndex{0};
-        std::uint32_t sharedIndex{0};
-    };
-
     AABB sceneAABB_;
     SceneTotals totals_;
     std::vector<DrawEntry> drawEntries_;
@@ -132,31 +101,31 @@ class SceneProcessor
     [[nodiscard]] BufferBuilder::Sizes calculateBufferSizes(const std::vector<DrawElementsIndirectCommand> &commands,
                                                             const std::vector<MultiDrawBucket> &buckets);
 
-    // Staging
-    [[nodiscard]] std::unordered_map<ShaderBucket, BucketData, ShaderBucketHash> createShaderBucketMap(
-        const std::vector<DrawEntry> &entries);
+    // Stage One (draw entry only)
     [[nodiscard]] std::vector<AABB> createAABBs(const std::vector<DrawEntry> &entries);
-    [[nodiscard]] std::vector<DrawElementsIndirectCommand> createDrawCommands(
-        const std::vector<DrawEntry> &drawEntries);
-    [[nodiscard]] std::vector<MultiDrawBucket> createDrawBuckets(const std::vector<DrawEntry> &entries);
-    [[nodiscard]] std::unordered_map<Handle, std::uint32_t> createMatricesBaseIndexMap(
-        const std::vector<DrawEntry> &entries);
-
-    // Buffers
-    [[nodiscard]] GlobalVAO createVAO(const std::vector<DrawEntry> &entries);
-    [[nodiscard]] SSBOs createSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
-                                    const std::vector<AABB> &AABBs, const BufferBuilder::Sizes bufferSizes);
-
-    // GPU data creation
     [[nodiscard]] std::vector<glm::mat4> createMatrices(const std::vector<DrawEntry> &entries);
     [[nodiscard]] std::vector<PrimitiveMetadata> createMetadata(const std::vector<DrawEntry> &entries);
-    [[nodiscard]] std::vector<VisibilityBufferMap> createVisibilityBufferMap(
-        const std::vector<SceneProcessor::DrawEntry> &entries,
-        const std::vector<SceneProcessor::PrimitiveMetadata> &metadata, const std::vector<MultiDrawBucket> &buckets,
-        const std::unordered_map<Handle, std::uint32_t> matricesMap);
-    [[nodiscard]] std::vector<ParticleBufferMap> createParticleBufferMap(
-        const std::vector<SceneProcessor::DrawEntry> &entries);
+    [[nodiscard]] std::vector<MultiDrawBucket> createDrawBuckets(const std::vector<DrawEntry> &entries);
+    [[nodiscard]] std::vector<ParticleBufferMap> createParticleBufferMap(const std::vector<DrawEntry> &entries);
+    [[nodiscard]] std::vector<DrawElementsIndirectCommand> createDrawCommands(const std::vector<DrawEntry> &entries);
+    [[nodiscard]] std::unordered_map<Handle, std::uint32_t> createMatricesBaseIndexMap(
+        const std::vector<DrawEntry> &entries);
+    [[nodiscard]] std::unordered_map<ShaderBucket, BucketData, ShaderBucketHash> createShaderBucketMap(
+        const std::vector<DrawEntry> &entries);
 
+    // Stage two (multi-vector dependent)
+    [[nodiscard]] std::vector<VisibilityBufferMap> createVisibilityBufferMap(
+        const std::vector<DrawEntry> &entries, const std::vector<PrimitiveMetadata> &metadata,
+        const std::vector<MultiDrawBucket> &buckets, const std::unordered_map<Handle, std::uint32_t> matricesMap);
+
+    // GPU data creation
+    [[nodiscard]] GlobalVAO createVAO(const std::vector<DrawEntry> &entries);
+    [[nodiscard]] SSBOs createSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
+                                    const std::vector<glm::mat4> &matrices,
+                                    const std::vector<PrimitiveMetadata> &metadata,
+                                    const std::vector<VisibilityBufferMap> &visibilityMap,
+                                    const std::vector<ParticleBufferMap> &particleMap, const std::vector<AABB> &aabbs,
+                                    BufferBuilder::Sizes sizes);
     // Metadata helpers
     void setMetadataMaterials(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata);
     void setVisibleInstancesBaseIndex(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata);

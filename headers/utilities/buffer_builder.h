@@ -27,7 +27,11 @@ class BufferBuilder
                                      const std::vector<std::uint32_t> &indices) const;
 
     [[nodiscard]] SSBOs buildSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
-                                   const std::vector<AABB> &aabbs, Sizes sizes) const;
+                                   const std::vector<glm::mat4> &matrices,
+                                   const std::vector<PrimitiveMetadata> &metadata,
+                                   const std::vector<VisibilityBufferMap> &visibilityMap,
+                                   const std::vector<ParticleBufferMap> &particleMap, const std::vector<AABB> &aabbs,
+                                   BufferBuilder::Sizes sizes) const;
 
     [[nodiscard]] UBOs buildUBOs();
 
