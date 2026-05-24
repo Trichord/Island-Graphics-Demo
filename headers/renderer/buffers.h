@@ -185,10 +185,10 @@ enum class BindingPointUBO : unsigned int
     time
 };
 
-// Shader Storage Buffer Object binding points (unsigned int)
+// Shader Storage Buffer Object binding points (unsigned int). Must be <= 16 total
 enum class BindingPointSSBO : unsigned int
 {
-    map,
+    visibilityMap,
     aabb,
     matrices,
     metadata,
@@ -197,5 +197,6 @@ enum class BindingPointSSBO : unsigned int
     drawCommands,
     visibleInstances,
     drawCommandsSource,
-    vbo
+    vbo,
+    particleMap
 };

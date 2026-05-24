@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "aabb.h"
 #include "buffers.h"
 #include "cascade_shadow.h"
 #include "compute_shader.h"
@@ -19,6 +18,7 @@
 #include "renderer_types.h"
 #include "scene.h"
 #include "scene_processor.h"
+#include "shader_bucket_hash.h"
 #include "texture_manager.h"
 #include "thread_pool.h"
 
@@ -83,12 +83,14 @@ class Renderer
     void takeBufferData(SceneProcessor::ProcessedScene &processed);
     void takeGPUObjects(SceneProcessor::ProcessedScene &processed);
     void setLocalGroupSizes(SceneProcessor::ProcessedScene &processed, std::size_t numDrawCommands);
-    void setParticleUniforms(const std::unordered_map<ShaderType, SceneProcessor::BucketData> &bucketMap,
-                             const std::vector<std::size_t> &vertexCounts);
+    void setParticleUniforms(
+        const std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> &bucketMap,
+        const std::vector<std::size_t> &vertexCounts);
 
     // Cubemap Generation
-    void borrowSkybox(const std::unordered_map<ShaderType, SceneProcessor::BucketData> &bucketMap);
-    void createCubemaps(Scene &scene, const std::unordered_map<ShaderType, SceneProcessor::BucketData> &bucketMap,
+    void borrowSkybox(const std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> &bucketMap);
+    void createCubemaps(Scene &scene,
+                        const std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> &bucketMap,
                         const std::vector<DrawElementsIndirectCommand> &commandsSource);
     void renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget);
 
