@@ -246,32 +246,33 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
         std::size_t entryIndex{entries_.size()};
         Handle handle{textureManager_.assignHandle()};
 
-        std::visit(
-            overloaded{
-                [&](const ParticlesEntry &entry) {
-                    Particles particles{entry.position, entry.extent, entry.color, entry.colorVariation, entry.count};
-                    addParticles(handle, particles);
-                },
-                [&](const SkyboxEntry &entry) {
-                    Skybox skybox{entry.skyboxPath};
-                    addSkybox(handle, skybox);
-                },
-                [&](const ModelEntry &entry) {
-                    Model model{entry.modelPath};
-                    addModel(handle, model, entry.transform, entry.shader, entry.name);
-                },
-                [&](const InstancedModelEntry &entry) {
-                    InstancedModel model{
-                        entry.modelPath, entry.positionsPath,
-                        InstancedModel::Randomize{.minScale = entry.minScale, .maxScale = entry.maxScale}};
-                    addInstancedModel(handle, model, entry.shader, entry.name);
-                },
-                [&](const CubeMappedModelEntry &entry) {
-                    Model model{entry.modelPath};
-                    addCubemappedModel(handle, model, entry.cubemapPath, entry.transform, entry.shader, entry.name);
-                },
-            },
-            sceneEntry);
+        std::visit(overloaded{
+                       [&](const ParticlesEntry &entry) {
+                           Particles particles{entry.position,       entry.extent,   entry.color,
+                                               entry.colorVariation, entry.lifetime, entry.count};
+                           addParticles(handle, particles);
+                       },
+                       [&](const SkyboxEntry &entry) {
+                           Skybox skybox{entry.skyboxPath};
+                           addSkybox(handle, skybox);
+                       },
+                       [&](const ModelEntry &entry) {
+                           Model model{entry.modelPath};
+                           addModel(handle, model, entry.transform, entry.shader, entry.name);
+                       },
+                       [&](const InstancedModelEntry &entry) {
+                           InstancedModel model{
+                               entry.modelPath, entry.positionsPath,
+                               InstancedModel::Randomize{.minScale = entry.minScale, .maxScale = entry.maxScale}};
+                           addInstancedModel(handle, model, entry.shader, entry.name);
+                       },
+                       [&](const CubeMappedModelEntry &entry) {
+                           Model model{entry.modelPath};
+                           addCubemappedModel(handle, model, entry.cubemapPath, entry.transform, entry.shader,
+                                              entry.name);
+                       },
+                   },
+                   sceneEntry);
 
         entriesByHandle_[handle] = entryIndex;
     }

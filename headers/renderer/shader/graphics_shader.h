@@ -13,8 +13,8 @@ enum class ShaderType
     grass,
     water,
     ocean,
-    skybox,
     particles,
+    skybox,
     shadowMap,
     shadowMapAlpha,
     count

@@ -93,9 +93,9 @@ class Scene
     void addSkybox(Handle handle, const Skybox &skybox);
     void addParticles(Handle handle, const Particles &particles);
     void addModel(Handle handle, const Model &model, const Transform &transform, ShaderType shaderType,
-                  const std::string &name = "");
+                  const std::string &name = {});
     void addInstancedModel(Handle handle, const InstancedModel &model, ShaderType shaderType,
-                           const std::string &name = "");
+                           const std::string &name = {});
     void addCubemappedModel(Handle handle, const Model &model, const std::filesystem::path &imagePath,
-                            const Transform &transform, ShaderType shaderType, const std::string &name = "");
+                            const Transform &transform, ShaderType shaderType, const std::string &name = {});
 };

@@ -53,7 +53,9 @@ void Application::run()
     if (!createOpenGLViewport(graphicsSettings))
         return;
 
+#ifndef _DEBUG
     registerCallbacks();
+#endif
 
     // Jolt Physics
     registerJolt();
@@ -122,13 +124,11 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
     glfwWindowHint(GLFW_DEPTH_BITS, 32);
+    glfwWindowHint(GLFW_SAMPLES, graphicsSettings.msaa);
 
 #ifdef _DEBUG
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 #endif
-
-    if (graphicsSettings.msaa)
-        glfwWindowHint(GLFW_SAMPLES, graphicsSettings.msaa);
 
     int width{graphicsSettings.screenWidth};
     int height{graphicsSettings.screenHeight};
@@ -343,11 +343,6 @@ void Application::registerJolt()
 void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length,
                             const char *message, const void *userParam)
 {
-    // ignore non-significant error/warning codes
-    if (id == 131169 || id == 131185 || id == 131218 || id == 131204)
-        return;
-
-    std::cout << "---------------" << std::endl;
     std::cout << "Debug message (" << id << "): " << message << std::endl;
 
     switch (source)
@@ -420,8 +415,6 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum 
         std::cout << "Severity: notification";
         break;
     }
-    std::cout << std::endl;
-    std::cout << std::endl;
-
+    std::cout << std::endl << std::endl;
 }
 #endif
