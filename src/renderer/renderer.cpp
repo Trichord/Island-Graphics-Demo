@@ -278,21 +278,13 @@ void Renderer::updateParticles(float deltaTime)
 {
     constexpr int shaderLocalSize{64};
 
-    if (particleUniforms_.empty())
+    if (!particleWorkGroupSize_)
         return;
 
     particleShader_.use();
 
-    for (ParticleUniforms dispatch : particleUniforms_)
-    {
-        unsigned int particles{static_cast<unsigned int>(dispatch.localGroupSize)};
-        unsigned int sharedIndex{static_cast<unsigned int>(dispatch.sharedIndex)};
-
-        particleShader_.setIntU("sharedBufferIndex", sharedIndex);
-        particleShader_.setIntU("numParticles", particles);
-
-        particleShader_.dispatch((particles + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
-    }
+    int particleCount{static_cast<int>(particleWorkGroupSize_)};
+    particleShader_.dispatch((particleCount + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
 
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 }

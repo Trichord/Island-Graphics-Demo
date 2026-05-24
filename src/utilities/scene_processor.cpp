@@ -87,22 +87,14 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
     auto buckets = createDrawBuckets(drawEntries_);
     auto AABBs = createAABBs(drawEntries_);
     auto vertexCounts = createVertexCounts(drawEntries_);
-    auto particlesMap = createParticleBufferMap(drawEntries_);
-
-    auto bufferSizes = calculateBufferSizes(commands, buckets);
-    auto SSBOs = createSSBOs(commands, AABBs, bufferSizes);
+    auto particleMap = createParticleBufferMap(drawEntries_);
+    auto matrices = createMatrices(drawEntries_);
+    auto metadata = createMetadata(drawEntries_);
+    auto visibilityMap = createVisibilityBufferMap(drawEntries_, metadata, buckets, matricesMap);
 
     // GPU data upload
-    auto matrices = createMatrices(drawEntries_);
-    glNamedBufferSubData(SSBOs.matrices, 0, static_cast<GLsizeiptr>(matrices.size() * sizeof(glm::mat4)),
-                         matrices.data());
-
-    auto metadata = createMetadata(drawEntries_);
-    glNamedBufferSubData(SSBOs.metadata, 0, static_cast<GLsizeiptr>(metadata.size() * sizeof(PrimitiveMetadata)),
-                         metadata.data());
-
-    auto map = createVisibilityBufferMap(drawEntries_, metadata, buckets, matricesMap);
-    glNamedBufferSubData(SSBOs.map, 0, static_cast<GLsizeiptr>(map.size() * sizeof(VisibilityBufferMap)), map.data());
+    auto bufferSizes = calculateBufferSizes(commands, buckets);
+    auto SSBOs = createSSBOs(commands, matrices, metadata, visibilityMap, particleMap, AABBs, bufferSizes);
 
     // Only store this so the metadata cubemaps can be updated later
     metadata_ = std::move(metadata);
@@ -247,7 +239,7 @@ std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> S
     return bucketMap;
 }
 
-std::vector<DrawElementsIndirectCommand> SceneProcessor::createDrawCommands(const std::vector<DrawEntry> &drawEntries)
+std::vector<DrawElementsIndirectCommand> SceneProcessor::createDrawCommands(const std::vector<DrawEntry> &entries)
 {
     std::vector<DrawElementsIndirectCommand> commands;
     commands.reserve(totals_.primitives);
@@ -255,9 +247,9 @@ std::vector<DrawElementsIndirectCommand> SceneProcessor::createDrawCommands(cons
     std::size_t vaoIndex{0};
     std::size_t eboIndex{0};
 
-    for (std::size_t i{0}; i < drawEntries.size(); ++i)
+    for (std::size_t i{0}; i < entries.size(); ++i)
     {
-        const DrawEntry &entry{drawEntries[i]};
+        const DrawEntry &entry{entries[i]};
         const Primitive &primitive{*entry.primitive};
         const std::size_t numIndices{primitive.indices.size()};
 
@@ -355,10 +347,14 @@ GlobalVAO SceneProcessor::createVAO(const std::vector<DrawEntry> &entries)
 }
 
 SSBOs SceneProcessor::createSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
-                                  const std::vector<AABB> &AABBs, const BufferBuilder::Sizes bufferSizes)
+                                  const std::vector<glm::mat4> &matrices,
+                                  const std::vector<PrimitiveMetadata> &metadata,
+                                  const std::vector<VisibilityBufferMap> &visibilityMap,
+                                  const std::vector<ParticleBufferMap> &particleMap, const std::vector<AABB> &aabbs,
+                                  BufferBuilder::Sizes sizes)
 {
     BufferBuilder builder;
-    return builder.buildSSBOs(commands, AABBs, bufferSizes);
+    return builder.buildSSBOs(commands, matrices, metadata, visibilityMap, particleMap, aabbs, sizes);
 }
 
 std::vector<glm::mat4> SceneProcessor::createMatrices(const std::vector<DrawEntry> &entries)
@@ -382,7 +378,7 @@ std::vector<glm::mat4> SceneProcessor::createMatrices(const std::vector<DrawEntr
     return matrices;
 }
 
-std::vector<SceneProcessor::PrimitiveMetadata> SceneProcessor::createMetadata(const std::vector<DrawEntry> &entries)
+std::vector<PrimitiveMetadata> SceneProcessor::createMetadata(const std::vector<DrawEntry> &entries)
 {
     std::vector<PrimitiveMetadata> metadata;
     metadata.resize(entries.size());
@@ -443,10 +439,9 @@ void SceneProcessor::setMetadataMaterials(const std::vector<DrawEntry> &entries,
     }
 }
 
-std::vector<SceneProcessor::VisibilityBufferMap> SceneProcessor::createVisibilityBufferMap(
-    const std::vector<SceneProcessor::DrawEntry> &entries,
-    const std::vector<SceneProcessor::PrimitiveMetadata> &metadata, const std::vector<MultiDrawBucket> &buckets,
-    const std::unordered_map<Handle, std::uint32_t> matricesMap)
+std::vector<VisibilityBufferMap> SceneProcessor::createVisibilityBufferMap(
+    const std::vector<SceneProcessor::DrawEntry> &entries, const std::vector<PrimitiveMetadata> &metadata,
+    const std::vector<MultiDrawBucket> &buckets, const std::unordered_map<Handle, std::uint32_t> matricesMap)
 {
     std::vector<VisibilityBufferMap> map;
     map.reserve(totals_.instances);
@@ -481,8 +476,7 @@ std::vector<SceneProcessor::VisibilityBufferMap> SceneProcessor::createVisibilit
     return map;
 }
 
-std::vector<SceneProcessor::ParticleBufferMap> SceneProcessor::createParticleBufferMap(
-    const std::vector<DrawEntry> &entries)
+std::vector<ParticleBufferMap> SceneProcessor::createParticleBufferMap(const std::vector<DrawEntry> &entries)
 {
     std::size_t currentVertex{0};
     std::vector<ParticleBufferMap> particleMap;

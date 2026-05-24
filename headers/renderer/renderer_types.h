@@ -22,6 +22,46 @@ struct DrawElementsIndirectCommand
     unsigned int baseInstance;
 };
 
+// Buffer offset and primitive count for Multi Draw Indirect calls
+struct MultiDrawBucket
+{
+    std::uint32_t maxDrawCalls{0};
+    std::uint32_t drawCommandsBaseIndex{0};
+    ShaderType shaderType{ShaderType::directionalPBR};
+    fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
+};
+
+// GPU resident metadata for texture and buffer indexing
+struct PrimitiveMetadata
+{
+    int albedoArray{0};
+    int albedoLayer{0};
+    int armArray{0};
+    int armLayer{0};
+    int normalArray{0};
+    int normalLayer{0};
+    int cubemapArray{0};
+    int cubemapLayer{0};
+    std::uint32_t visibleInstancesBaseIndex{0};
+};
+
+// Maps an entry in the visibility buffer, so that a compute shader global ID can find its resources
+struct VisibilityBufferMap
+{
+    std::uint32_t matricesIndex{0};
+    std::uint32_t sharedIndex{0};
+    std::uint32_t drawBucket{0};
+    std::uint32_t drawCommandsBaseIndex{0};
+    std::uint32_t visibleInstancesBaseIndex{0};
+};
+
+// Maps a particle back to the VBO and shared index.
+struct ParticleBufferMap
+{
+    std::uint32_t vboIndex{0};
+    std::uint32_t sharedIndex{0};
+};
+
 // Packs all uniforms for sharing across shaders
 struct PackedCameraUniforms
 {
@@ -37,21 +77,6 @@ struct PackedCascadeShadows
 {
     glm::vec4 splits;
     glm::mat4 matrices[shadowCascadeCount];
-};
-
-// Buffer offset and primitive count for Multi Draw Indirect calls
-struct MultiDrawBucket
-{
-    std::uint32_t maxDrawCalls{0};
-    std::uint32_t drawCommandsBaseIndex{0};
-    ShaderType shaderType{ShaderType::directionalPBR};
-    fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
-};
-
-struct ParticleUniforms
-{
-    std::uint32_t sharedIndex{0};
-    std::uint32_t localGroupSize{0};
 };
 
 struct PackedTime
