@@ -158,10 +158,12 @@ bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
 {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        std::cout << "ERROR: Failed to initialize GLAD" << std::endl;
         glfwTerminate();
         return false;
     }
+
+    bool supported{true};
 
     GLsizei width{static_cast<GLsizei>(graphicsSettings.screenWidth)};
     GLsizei height{static_cast<GLsizei>(graphicsSettings.screenHeight)};
@@ -185,9 +187,47 @@ bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
     // If ARB version fails too, just exit
     if (!glMultiDrawElementsIndirectCount)
     {
-        std::cerr << "GPU does not support required OpenGL features: MultiDrawElementsIndirectCount" << std::endl;
-        glfwTerminate();
-        return false;
+        std::cerr << "GPU does not support required OpenGL features: MultiDrawElementsIndirectCount" << std::endl; 
+        supported = false;
+    }
+
+    GLint maxSSBOs{0};
+    GLint maxSSBObindings{0};
+    GLint maxVertexSSBOs{0};
+    GLint maxFragmentSSBOs{0};
+
+    glGetIntegerv(GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS, &maxSSBOs);
+    glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxSSBObindings);
+    glGetIntegerv(GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS, &maxVertexSSBOs);
+    glGetIntegerv(GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS, &maxFragmentSSBOs);
+
+    if (maxSSBOs < 16)
+    {
+        std::cerr << "ERROR: GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS (" << maxSSBOs << ") does not meet required (16)"
+                  << std::endl;
+        supported = false;
+    }
+
+    if (maxSSBObindings < 16)
+    {
+        std::cerr << "ERROR: GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS (" << maxSSBObindings
+                  << ") does not meet required (16)" << std::endl;
+        supported = false;
+    }
+
+    if (maxVertexSSBOs < 4)
+    {
+        std::cerr << "ERROR: GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS (" << maxVertexSSBOs << ") does not meet required (4)"
+                  << std::endl;
+        supported = false;
+    }
+
+    if (maxFragmentSSBOs < 4)
+    {
+        std::cerr << "ERROR: GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS (" << maxFragmentSSBOs
+                  << ") does not meet required (4)"
+                  << std::endl;
+        supported = false;
     }
 
 #ifdef _DEBUG
@@ -197,7 +237,10 @@ bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
     glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 #endif // DEBUG
 
-    return true;
+    if (!supported)
+        glfwTerminate();
+
+    return supported;
 }
 
 void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)

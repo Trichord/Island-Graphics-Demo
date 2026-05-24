@@ -45,7 +45,7 @@ SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &
     std::vector<SimpleAABB> simpleAABBs{simplifyAABBs(aabbs)};
     std::size_t drawCommandsSize{commands.size() * sizeof(DrawElementsIndirectCommand)};
 
-    buildSSBO(&buffers.map, sizes.bufferMap, map, true, nullptr);
+    buildSSBO(&buffers.map, sizes.bufferMap, visibilityMap, true, nullptr);
     buildSSBO(&buffers.aabb, simpleAABBs.size() * sizeof(SimpleAABB), aabb, false, simpleAABBs.data());
     buildSSBO(&buffers.matrices, sizes.matrices, matrices, true, nullptr);
     buildSSBO(&buffers.metadata, sizes.metadata, metadata, true, nullptr);
