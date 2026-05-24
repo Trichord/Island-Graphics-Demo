@@ -30,7 +30,7 @@ std::vector<Primitive> Particles::generateParticles(const glm::vec3 &position, c
                                                     const glm::vec4 &color, const glm::vec4 colorVariation,
                                                     float lifetime, int numParticles)
 {
-    constexpr float minLifetimePercent{0.75};
+    constexpr float minLifetimePercent{0.50};
 
     auto randomFloat = [](float min, float max, std::mt19937 &mt) {
         if (min == max)
@@ -89,7 +89,7 @@ std::vector<Primitive> Particles::generateParticles(const glm::vec3 &position, c
         vertex.tangent = glm::vec4{red, green, blue, alpha};
 
         // (Max life time, current life remaining)
-        vertex.texCoords = glm::vec2{lifetime, lifetime};
+        vertex.texCoords = glm::vec2{lifetime, randomFloat(lifetime * minLifetimePercent, lifetime, mt)};
     }
 
     return primitives;
