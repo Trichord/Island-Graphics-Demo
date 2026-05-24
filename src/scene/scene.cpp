@@ -24,6 +24,45 @@
 #include "transform.h"
 #include "json/json.hpp"
 
+namespace
+{
+void validateSceneEntry(Scene::Entry &entry)
+{
+    using enum ShaderType;
+    using enum fastgltf::AlphaMode;
+
+    if (entry.shaderType == ocean)
+    {
+        if (entry.primitives.front().alphaMode == Opaque)
+            return;
+
+        for (Primitive &primitive : entry.primitives)
+        {
+            if (primitive.alphaMode == Opaque)
+                continue;
+
+            std::cerr << "WARNING: Overriding ocean shader primitive alpha mode wtih Opaque" << std::endl;
+            primitive.alphaMode = Opaque;
+        }
+    }
+
+    if (entry.shaderType == water)
+    {
+        if (entry.primitives.front().alphaMode == Blend)
+            return;
+
+        for (Primitive &primitive : entry.primitives)
+        {
+            if (primitive.alphaMode == Blend)
+                continue;
+
+            std::cerr << "WARNING: Overriding water shader primitive alpha mode wtih Blend" << std::endl;
+            primitive.alphaMode = Blend;
+        }
+    }
+}
+} // namespace
+
 Scene::Scene(TextureManager &textureManager, const GraphicsSettings &graphicsSettings,
              const std::filesystem::path &jsonFile)
     : textureManager_{textureManager}
@@ -274,6 +313,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
                    },
                    sceneEntry);
 
+        validateSceneEntry(entries_.back());
         entriesByHandle_[handle] = entryIndex;
     }
 }

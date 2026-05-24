@@ -10,6 +10,12 @@ struct DrawElementsIndirectCommand
     uint baseInstance;
 };
 
+struct ParticleMap
+{
+    uint vboIndex;
+    uint sharedIndex;
+};
+
 struct Particle
 {
     vec4 position;
@@ -58,6 +64,11 @@ layout(binding = 8, std430) restrict readonly buffer drawCommandsSourceSSBO
     DrawElementsIndirectCommand commands[];
 };
 
+layout(binding = 10, std430) restrict readonly buffer particleMapSSBO
+{
+    ParticleMap map[];
+};
+
 // This is the VBO for all gLTF models aliased as vec4s. Avoids having multiple definitions of a 
 // vertex and padding issues, since the actual vertex is: Position (vec3), Normal (vec3), tangent (vec4), tex (vec2)
 layout(binding = 9, std430) buffer VBO
@@ -65,22 +76,20 @@ layout(binding = 9, std430) buffer VBO
     vec4 particles[];
 };
 
-// In
-uniform uint sharedBufferIndex;
-uniform uint numParticles;
-
 // AABBs for particles are already in world space
 void main()
 {
     uint id = gl_GlobalInvocationID.x;
 
-    if (id >= numParticles)
+    if (id >= map.length())
         return;
     
-    AABB aabb = AABBs[sharedBufferIndex];
+    ParticleMap particleMap = map[id];
 
-    // Base vertex is from the vertex struct, which is 48 bytes. 3 * vec4s gets us the right offset
-    uint particleIndex = (uint(commands[sharedBufferIndex].baseVertex) + id) * 3;
+    AABB aabb = AABBs[particleMap.sharedIndex];
+
+    // Multiply by 3 to convert a vertex struct index (48 bytes) into vec4s
+    uint particleIndex = particleMap.vboIndex * 3;
     
     // Position xyz and velocity x
     vec4 d0 = particles[particleIndex];

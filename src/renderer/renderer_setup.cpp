@@ -49,14 +49,13 @@ void Renderer::initializeResources(Scene &scene)
     takeGPUObjects(processed);
     takeBufferData(processed);
 
-    // Extract to local
-    std::vector<DrawElementsIndirectCommand> drawCommands{std::move(processed.commands)};
+    // Extract temporaries
+    std::vector<DrawElementsIndirectCommand> commands{std::move(processed.commands)};
     AABB sceneAABB{processed.sceneData.worldAABB};
     auto bucketMap{std::move(processed.bucketMap)};
     std::vector<std::size_t> vertexCounts{std::move(processed.vertexCounts)};
 
-    setParticleUniforms(bucketMap, vertexCounts);
-    setLocalGroupSizes(processed, drawCommands.size());
+    setLocalGroupSizes(processed, commands, vertexCounts, bucketMap);
 
     // Setup for cascade shadow maps
     float nearPlane{scene.getCamera().getNearPlane()};
@@ -73,7 +72,7 @@ void Renderer::initializeResources(Scene &scene)
     borrowSkybox(bucketMap);
 
     // Dynamic cubemap generation. The scene must be ready to render, except water / ocean.
-    createCubemaps(scene, bucketMap, drawCommands);
+    createCubemaps(scene, commands, bucketMap);
 
     // Update the GPU metadata buffers for the freshly created cubemaps
     processor.updateMetadataCubemaps(SSBOs_.metadata);
@@ -97,10 +96,23 @@ void Renderer::takeBufferData(SceneProcessor::ProcessedScene &processed)
     matricesBaseIndex_ = std::move(processed.bufferData.matricesBaseIndexMap);
 }
 
-void Renderer::setLocalGroupSizes(SceneProcessor::ProcessedScene &processed, std::size_t numDrawCommands)
+void Renderer::setLocalGroupSizes(const SceneProcessor::ProcessedScene &processed,
+                                  const std::vector<DrawElementsIndirectCommand> &commands,
+                                  const std::vector<std::size_t> vertexCounts, const BucketMap &bucketMap)
 {
+    using enum ShaderType;
+
     cullWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneData.numInstances);
-    compactionWorkGroupSize_ = static_cast<std::uint32_t>(numDrawCommands);
+    compactionWorkGroupSize_ = static_cast<std::uint32_t>(commands.size());
+
+    for (const auto &[key, bucket] : bucketMap)
+    {
+        if (key.first == particles)
+        {
+            for (std::size_t i{bucket.startIndex}; i <= bucket.endIndex; ++i)
+                particleWorkGroupSize_ += static_cast<std::uint32_t>(vertexCounts[i]);
+        }
+    }
 }
 
 void Renderer::setSceneShaderUniforms(Scene &scene)
@@ -121,8 +133,7 @@ void Renderer::setSceneShaderUniforms(Scene &scene)
     }
 }
 
-void Renderer::borrowSkybox(
-    const std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> &bucketMap)
+void Renderer::borrowSkybox(const BucketMap &bucketMap)
 {
     using enum ShaderType;
     using enum fastgltf::AlphaMode;
@@ -142,9 +153,8 @@ void Renderer::borrowSkybox(
         textureManager_.borrowCubemaps(oceanHandle, skyboxHandle);
 }
 
-void Renderer::createCubemaps(
-    Scene &scene, const std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> &bucketMap,
-    const std::vector<DrawElementsIndirectCommand> &commandsSource)
+void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndirectCommand> &commandsSource,
+                              const BucketMap &bucketMap)
 {
     using enum ShaderType;
     using enum fastgltf::AlphaMode;
@@ -259,31 +269,5 @@ void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget 
         renderFace(faces[i], camera);
 
         target.blitTo(blitTarget);
-    }
-}
-
-void Renderer::setParticleUniforms(
-    const std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> &bucketMap,
-    const std::vector<std::size_t> &vertexCounts)
-{
-    using enum ShaderType;
-    using enum fastgltf::AlphaMode;
-
-    auto particleIter = bucketMap.find(ShaderBucket{particles, Mask});
-
-    if (particleIter == bucketMap.end())
-        return;
-
-    std::size_t start{particleIter->second.startIndex};
-    std::size_t end{particleIter->second.endIndex};
-
-    particleUniforms_.reserve(end - start + 1);
-
-    for (std::size_t i{start}; i <= end; ++i)
-    {
-        std::uint32_t sharedIndex{static_cast<std::uint32_t>(i)};
-        std::uint32_t groupSize{static_cast<std::uint32_t>(vertexCounts[i])};
-
-        particleUniforms_.emplace_back(ParticleUniforms{.sharedIndex = sharedIndex, .localGroupSize = groupSize});
     }
 }

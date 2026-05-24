@@ -38,6 +38,8 @@ class Renderer
     TextureManager &getTextureManager();
 
   private:
+    using BucketMap = std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash>;
+
     std::uint32_t framesRendered_{0};
     static constexpr float depthClear_{1.0f};
     static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
@@ -72,7 +74,7 @@ class Renderer
     ComputeShader particleShader_;
     std::uint32_t cullWorkGroupSize_{0};
     std::uint32_t compactionWorkGroupSize_{0};
-    std::vector<ParticleUniforms> particleUniforms_;
+    std::uint32_t particleWorkGroupSize_{0};
 
     // Initialization
     void loadShaders();
@@ -82,16 +84,14 @@ class Renderer
     void setSceneShaderUniforms(Scene &scene);
     void takeBufferData(SceneProcessor::ProcessedScene &processed);
     void takeGPUObjects(SceneProcessor::ProcessedScene &processed);
-    void setLocalGroupSizes(SceneProcessor::ProcessedScene &processed, std::size_t numDrawCommands);
-    void setParticleUniforms(
-        const std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> &bucketMap,
-        const std::vector<std::size_t> &vertexCounts);
+    void setLocalGroupSizes(const SceneProcessor::ProcessedScene &processed,
+                            const std::vector<DrawElementsIndirectCommand> &commands,
+                            const std::vector<std::size_t> vertexCounts, const BucketMap &bucketMap);
 
     // Cubemap Generation
-    void borrowSkybox(const std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> &bucketMap);
-    void createCubemaps(Scene &scene,
-                        const std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> &bucketMap,
-                        const std::vector<DrawElementsIndirectCommand> &commandsSource);
+    void borrowSkybox(const BucketMap &bucketMap);
+    void createCubemaps(Scene &scene, const std::vector<DrawElementsIndirectCommand> &commandsSource,
+                        const BucketMap &bucketMap);
     void renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget);
 
     // Drawing
