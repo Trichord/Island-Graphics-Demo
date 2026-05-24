@@ -43,13 +43,15 @@ void Renderer::initializeResources(Scene &scene)
     // Take ownership of everything before shadow map draw call
     takeGPUObjects(processed);
     takeBufferData(processed);
-    setLocalGroupSizes(processed);
 
     // Extract to local
     std::vector<DrawElementsIndirectCommand> drawCommands{std::move(processed.commands)};
     AABB sceneAABB{processed.sceneData.worldAABB};
     std::unordered_map<ShaderType, SceneProcessor::BucketData> bucketMap{std::move(processed.bucketMap)};
-    setParticleUniforms(bucketMap);
+    std::vector<std::size_t> vertexCounts{std::move(processed.vertexCounts)};
+    
+    setParticleUniforms(bucketMap, vertexCounts);
+    setLocalGroupSizes(processed, drawCommands.size());
 
     // Setup for cascade shadow maps
     float nearPlane{scene.getCamera().getNearPlane()};
@@ -90,10 +92,10 @@ void Renderer::takeBufferData(SceneProcessor::ProcessedScene &processed)
     matricesBaseIndex_ = std::move(processed.bufferData.matricesBaseIndexMap);
 }
 
-void Renderer::setLocalGroupSizes(SceneProcessor::ProcessedScene &processed)
+void Renderer::setLocalGroupSizes(SceneProcessor::ProcessedScene &processed, std::size_t numDrawCommands)
 {
     cullWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneData.numInstances);
-    compactionWorkGroupSize_ = static_cast<std::uint32_t>(processed.commands.size());
+    compactionWorkGroupSize_ = static_cast<std::uint32_t>(numDrawCommands);
 }
 
 void Renderer::setSceneShaderUniforms(Scene &scene)
@@ -251,25 +253,22 @@ void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget 
     }
 }
 
-void Renderer::setParticleUniforms(const std::unordered_map<ShaderType, SceneProcessor::BucketData> &bucketMap)
+void Renderer::setParticleUniforms(const std::unordered_map<ShaderType, SceneProcessor::BucketData> &bucketMap, const std::vector<std::size_t>& vertexCounts)
 {
     auto particleIter = bucketMap.find(ShaderType::particles);
 
     if (particleIter == bucketMap.end())
         return;
 
-    const std::vector<size_t> &vertexCount{particleIter->second.vertexCount};
-
     std::size_t start{particleIter->second.startIndex};
     std::size_t end{particleIter->second.endIndex};
-    std::size_t vertexIter{0};
 
     particleUniforms_.reserve(end - start + 1);
 
-    for (std::size_t i{start}; i <= end; ++i, ++vertexIter)
+    for (std::size_t i{start}; i <= end; ++i)
     {
         std::uint32_t sharedIndex{static_cast<std::uint32_t>(i)};
-        std::uint32_t groupSize{static_cast<std::uint32_t>(vertexCount[vertexIter])};
+        std::uint32_t groupSize{static_cast<std::uint32_t>(vertexCounts[i])};
 
         particleUniforms_.emplace_back(ParticleUniforms{.sharedIndex = sharedIndex, .localGroupSize = groupSize});
     }

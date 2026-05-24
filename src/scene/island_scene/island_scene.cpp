@@ -17,11 +17,14 @@ IslandScene::IslandScene(TextureManager &textureManager, const GraphicsSettings 
 
 void IslandScene::onUpdate(float deltaTime)
 {
+    constexpr float degrees{2.0f};
+    constexpr glm::vec3 oddAxisAngle{0.34f, 0.935f, 0.6f};
+
     // Rotate the fancy space model
     Entry &spaceModel{getEntryByName("spaceModel")};
 
     for (std::size_t i{0}; i < spaceModel.transforms.size(); ++i)
-        spaceModel.transforms[i].rotateAroundAxis(15.0f * deltaTime, glm::vec3{0.34f, 0.935f, 0.6f});
+        spaceModel.transforms[i].rotateAroundAxis(degrees * deltaTime, oddAxisAngle);
 
     updatedModels_.insert(spaceModel.handle);
 }

@@ -71,6 +71,8 @@ void Renderer::renderScene(Scene &scene, float deltaTime)
 
     updateSceneTransforms(scene);
     updateShaderUniforms(scene, lightChanged);
+    updateTimeUBO(deltaTime);
+    updateParticles(deltaTime);
 
     if (framesRendered_ % 2u && graphicsSettings_.shadowResolution > 1 || lightChanged)
         renderShadowMaps(scene, lightChanged);
@@ -78,7 +80,6 @@ void Renderer::renderScene(Scene &scene, float deltaTime)
     if (cameraUpdated)
         updateCameraUBO(scene);
 
-    updateParticles(deltaTime);
     cullScene(scene.getCamera().getViewProjectionMatrix());
     renderScene();
 }
@@ -135,15 +136,24 @@ void Renderer::updateCameraUBO(Scene &scene)
     uniforms.viewProjectionMatrix = camera.getViewProjectionMatrix();
     uniforms.inverseViewProjectMatrix = glm::inverse(uniforms.viewProjectionMatrix);
     uniforms.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
-    uniforms.time = static_cast<float>(glfwGetTime());
 
-    glNamedBufferSubData(UBOs_.camera, 0, sizeof(PackedCameraUniforms), &uniforms);
+    glNamedBufferSubData(UBOs_.camera, 0, static_cast<GLsizeiptr>(sizeof(PackedCameraUniforms)), &uniforms);
 }
 
 void Renderer::updateFrustumPlanesUBO(const glm::mat4 &cullMatrix)
 {
     const std::array<glm::vec4, 6> planes{getFrustumPlanes(cullMatrix)};
-    glNamedBufferSubData(UBOs_.frustumPlanes, 0, 6 * sizeof(glm::vec4), planes.data());
+    glNamedBufferSubData(UBOs_.frustumPlanes, 0, static_cast<GLsizeiptr>(6 * sizeof(glm::vec4)), planes.data());
+}
+
+void Renderer::updateTimeUBO(float deltaTime)
+{
+    PackedTime time{
+        .deltaTime = deltaTime,
+        .timeElapsed = static_cast<float>(glfwGetTime()),
+    };
+
+    glNamedBufferSubData(UBOs_.time, 0, static_cast<GLsizeiptr>(sizeof(PackedTime)), &time);
 }
 
 void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll)
@@ -272,7 +282,6 @@ void Renderer::updateParticles(float deltaTime)
         return;
 
     particleShader_.use();
-    particleShader_.setFloat("deltaTime", deltaTime);
 
     for (ParticleUniforms dispatch : particleUniforms_)
     {
