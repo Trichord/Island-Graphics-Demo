@@ -17,6 +17,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(ShaderType, {{ShaderType::directionalPBR, "directio
                                           {ShaderType::grass, "grass"},
                                           {ShaderType::water, "water"},
                                           {ShaderType::ocean, "ocean"},
+                                          {ShaderType::particles, "particles"},
                                           {ShaderType::skybox, "skybox"}})
 
 struct ModelEntry
@@ -52,6 +53,7 @@ struct ParticlesEntry
     glm::vec3 extent{0.0f};
     glm::vec4 color{0.0f};
     glm::vec4 colorVariation{0.0f};
+    float lifetime{0.0f};
     int count{0};
 };
 
@@ -107,7 +109,7 @@ inline void from_json(const nlohmann::json &j, Transform &t)
 {
     t = Transform{
         j.contains("position") ? parseVec3(j.at("position")) : glm::vec3{0.0f},
-        j.contains("scale") ? parseVec3(j.at("scale")) : glm::vec3{1.0f},
+        j.contains("scale") ? glm::vec3{j.at("scale").get<float>()} : glm::vec3{1.0f},
         j.value("rotationDegrees", 0.0f),
         j.contains("rotationAxis") ? parseVec3(j.at("rotationAxis")) : glm::vec3{0.0, 1.0, 0.0},
     };
@@ -115,7 +117,7 @@ inline void from_json(const nlohmann::json &j, Transform &t)
 
 inline void from_json(const nlohmann::json &j, ModelEntry &model)
 {
-    model.name = j.value("name", "");
+    model.name = j.value("name", std::string{});
     model.transform = j.value("transform", Transform{});
     model.modelPath = j.value("modelPath", std::filesystem::path{});
     model.shader = j.value("shader", ShaderType::directionalPBR);
@@ -123,7 +125,7 @@ inline void from_json(const nlohmann::json &j, ModelEntry &model)
 
 inline void from_json(const nlohmann::json &j, InstancedModelEntry &model)
 {
-    model.name = j.value("name", "");
+    model.name = j.value("name", std::string{});
     model.minScale = j.value("minScale", 1.0f);
     model.maxScale = j.value("maxScale", 1.0f);
     model.modelPath = j.value("modelPath", std::filesystem::path{});
@@ -133,7 +135,7 @@ inline void from_json(const nlohmann::json &j, InstancedModelEntry &model)
 
 inline void from_json(const nlohmann::json &j, CubeMappedModelEntry &model)
 {
-    model.name = j.value("name", "");
+    model.name = j.value("name", std::string{});
     model.transform = j.value("transform", Transform{});
     model.modelPath = j.value("modelPath", std::filesystem::path{});
     model.cubemapPath = j.value("cubemapPath", std::filesystem::path{});
@@ -146,6 +148,7 @@ inline void from_json(const nlohmann::json &j, ParticlesEntry &particle)
     particle.extent = j.contains("extent") ? parseVec3(j.at("extent")) : glm::vec3{0.0f};
     particle.color = j.contains("color") ? parseVec4(j.at("color")) : glm::vec4{1.0f};
     particle.colorVariation = j.contains("colorVariation") ? parseVec4(j.at("colorVariation")) : glm::vec4{0.0f};
+    particle.lifetime = j.value("lifetime", 0.0f);
     particle.count = j.value("count", 0);
 }
 

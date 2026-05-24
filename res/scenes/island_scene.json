@@ -34,8 +34,7 @@
       "type": "cubemapped",
       "name": "spaceModel",
       "transform": {
-        "position": [-21.0, 13.4615, -48.0],
-        "scale": [1.0, 1.0, 1.0]
+        "position": [-21.0, 13.4615, -48.0]
       },
       "modelPath": "./res/models/set_pieces/space_model/space_model.gltf",
       "cubemapPath": "./res/textures/nebula/nebula.ktx2",
@@ -198,7 +197,7 @@
       "type": "model",
       "transform": {
         "position": [121.80589, -6.22636, 145.36897],
-        "scale": [45.0, 1.0, 45.0]
+        "scale": 45.0
       },
       "modelPath": "./res/models/water/pond/pond.gltf",
       "shader": "water"
@@ -207,7 +206,7 @@
       "type": "model",
       "transform": {
         "position": [102.09975, -0.92979, -67.76979],
-        "scale": [5.0, 5.0, 5.0]
+        "scale": 5.0
       },
       "modelPath": "./res/models/water/puddle/puddle.gltf",
       "shader": "water"
@@ -216,7 +215,7 @@
       "type": "model",
       "transform": {
         "position": [0.0, -10.39, 0.0],
-        "scale": [7.5, 7.5, 7.5]
+        "scale": 7.5
       },
       "modelPath": "./res/models/water/ocean/ocean.gltf",
       "shader": "ocean"
@@ -227,11 +226,12 @@
     },
     {
       "type": "particles",
-      "position": [-240.33, -0.908, 60.766],
-      "extent": [15, 15, 15],
-      "color": [63.1, 44.3, 28.6, 255.0],
-      "colorVariation": [4, 5.5, 5.3, 0],
-      "count": 10000
+      "position": [-290.33, -2.5, 60.766],
+      "extent": [10, 10, 10],
+      "color": [215.3, 225.625, 217.15, 255.0],
+      "colorVariation": [10.0, 13.5, 9.3, 0],
+      "lifetime": 25.0,
+      "count": 100000
     }
   ]
 }

@@ -65,7 +65,7 @@ class Player : public JPH::CharacterContactListener
     bool allowSliding_{false};
     bool characterSprinting_{false};
     bool enableCharacterInertia_{true};
-    bool controlMovementDuringJump_{true}; // If false the character cannot change movement direction in mid air
+    bool controlMovementDuringJump_{true};
 
     JPH::Vec3 desiredVelocity_{0.0f, 0.0f, 0.0f};
 

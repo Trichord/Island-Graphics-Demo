@@ -21,7 +21,7 @@ void IslandScene::onUpdate(float deltaTime)
     Entry &spaceModel{getEntryByName("spaceModel")};
 
     for (std::size_t i{0}; i < spaceModel.transforms.size(); ++i)
-        spaceModel.transforms[i].rotateAroundAxis(deltaTime, glm::vec3{0.34f, 0.935f, 0.6f});
+        spaceModel.transforms[i].rotateAroundAxis(15.0f * deltaTime, glm::vec3{0.34f, 0.935f, 0.6f});
 
     updatedModels_.insert(spaceModel.handle);
 }

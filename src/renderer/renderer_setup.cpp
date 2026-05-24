@@ -38,7 +38,7 @@ void Renderer::initializeResources(Scene &scene)
 
     // Take ownership of everything before shadow map draw call
     auto processedScene{processor.processScene()};
-  
+
     BufferBuilder builder;
     UBOs_ = builder.buildUBOs();
     takeBuffers(processedScene);
@@ -88,6 +88,7 @@ void Renderer::takeBuffers(SceneProcessor::ProcessedScene &processed)
 void Renderer::setSceneShaderUniforms(Scene &scene)
 {
     const DirectionalLight &light{scene.getGlobalLight()};
+    const float fov{scene.getCamera().getFOV()};
 
     for (auto &shader : shaders_)
     {
@@ -97,6 +98,8 @@ void Renderer::setSceneShaderUniforms(Scene &scene)
 
         shader.setFloat("windStrength", scene.getWindStrength());
         shader.setVec3("windDirection", scene.getWindDirection());
+        
+        shader.setFloat("fov", fov);
     }
 }
 
