@@ -141,6 +141,7 @@ struct UBOs
     GLuint camera{0};
     GLuint frustumPlanes{0};
     GLuint cascadeShadows{0};
+    GLuint time{0};
 
     UBOs() = default;
     UBOs(const UBOs &other) = delete;
@@ -148,7 +149,7 @@ struct UBOs
 
     UBOs(UBOs &&other) noexcept
         : camera{std::exchange(other.camera, 0)}, frustumPlanes{std::exchange(other.frustumPlanes, 0)},
-          cascadeShadows{std::exchange(other.cascadeShadows, 0)}
+          cascadeShadows{std::exchange(other.cascadeShadows, 0)}, time{std::exchange(other.time, 0)}
     {
     }
 
@@ -162,6 +163,7 @@ struct UBOs
             camera = std::exchange(other.camera, 0);
             frustumPlanes = std::exchange(other.frustumPlanes, 0);
             cascadeShadows = std::exchange(other.cascadeShadows, 0);
+            time = std::exchange(other.time, 0);
         }
 
         return *this;
@@ -169,7 +171,7 @@ struct UBOs
 
     ~UBOs()
     {
-        GLuint buffers[]{camera, frustumPlanes, cascadeShadows};
+        GLuint buffers[]{camera, frustumPlanes, cascadeShadows, time};
         glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
     }
 };
@@ -179,7 +181,8 @@ enum class BindingPointUBO : unsigned int
 {
     camera,
     frustumPlanes,
-    cascadeShadows
+    cascadeShadows,
+    time
 };
 
 // Shader Storage Buffer Object binding points (unsigned int)

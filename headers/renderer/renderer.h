@@ -82,8 +82,9 @@ class Renderer
     void setSceneShaderUniforms(Scene &scene);
     void takeBufferData(SceneProcessor::ProcessedScene &processed);
     void takeGPUObjects(SceneProcessor::ProcessedScene &processed);
-    void setLocalGroupSizes(SceneProcessor::ProcessedScene &processed);
-    void setParticleUniforms(const std::unordered_map<ShaderType, SceneProcessor::BucketData> &bucketMap);
+    void setLocalGroupSizes(SceneProcessor::ProcessedScene &processed, std::size_t numDrawCommands);
+    void setParticleUniforms(const std::unordered_map<ShaderType, SceneProcessor::BucketData> &bucketMap,
+                             const std::vector<std::size_t> &vertexCounts);
 
     // Cubemap Generation
     void borrowSkybox(const std::unordered_map<ShaderType, SceneProcessor::BucketData> &bucketMap);
@@ -98,6 +99,7 @@ class Renderer
     void shadowPass(GraphicsShader &shader, int cascade, bool alphaTested);
 
     // Updates
+    void updateTimeUBO(float deltaTime);
     void updateParticles(float deltaTime);
     void updateCameraUBO(Scene &scene);
     void updateSceneTransforms(Scene &scene);

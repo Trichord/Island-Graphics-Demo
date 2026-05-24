@@ -81,11 +81,13 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
     // Staging
     auto VAO = createVAO(drawEntries_);
     auto matricesMap = createMatricesBaseIndexMap(drawEntries_);
-    auto shaderBucketMap = createShaderBucketMap();
+    auto shaderBucketMap = createShaderBucketMap(drawEntries_);
     auto commands = createDrawCommands(drawEntries_);
     auto buckets = createDrawBuckets(drawEntries_);
-    auto bufferSizes = calculateBufferSizes(commands, buckets);
     auto AABBs = createAABBs(drawEntries_);
+    auto vertexCounts = createVertexCounts(drawEntries_);
+
+    auto bufferSizes = calculateBufferSizes(commands, buckets);
     auto SSBOs = createSSBOs(commands, AABBs, bufferSizes);
 
     // GPU data upload
@@ -118,6 +120,7 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
             },
         .bucketMap = std::move(shaderBucketMap),
         .commands = std::move(commands),
+        .vertexCounts = std::move(vertexCounts),
     };
 }
 
@@ -174,6 +177,17 @@ std::vector<SceneProcessor::DrawEntry> SceneProcessor::createDrawEntries(Scene &
     return drawEntries;
 }
 
+std::vector<std::size_t> SceneProcessor::createVertexCounts(const std::vector<DrawEntry> &entries)
+{
+    std::vector<std::size_t> vertexCounts;
+    vertexCounts.reserve(entries.size());
+
+    for (const DrawEntry &entry : entries)
+        vertexCounts.emplace_back(entry.primitive->vertices.size());
+
+    return vertexCounts;
+}
+
 BufferBuilder::Sizes SceneProcessor::calculateBufferSizes(const std::vector<DrawElementsIndirectCommand> &commands,
                                                           const std::vector<MultiDrawBucket> &buckets)
 {
@@ -203,13 +217,13 @@ std::vector<AABB> SceneProcessor::createAABBs(const std::vector<DrawEntry> &entr
     return AABBs;
 }
 
-std::unordered_map<ShaderType, SceneProcessor::BucketData> SceneProcessor::createShaderBucketMap()
+std::unordered_map<ShaderType, SceneProcessor::BucketData> SceneProcessor::createShaderBucketMap(const std::vector<DrawEntry>& entries)
 {
     std::unordered_map<ShaderType, BucketData> bucketMap;
 
-    for (std::size_t i{0}; i < drawEntries_.size(); ++i)
+    for (std::size_t i{0}; i < entries.size(); ++i)
     {
-        DrawEntry &entry{drawEntries_[i]};
+        const DrawEntry &entry{entries[i]};
 
         auto [iter, inserted] = bucketMap.try_emplace(entry.shaderType);
         auto &bucketData = iter->second;
@@ -225,7 +239,6 @@ std::unordered_map<ShaderType, SceneProcessor::BucketData> SceneProcessor::creat
         }
 
         bucketData.handles.emplace(entry.handle);
-        bucketData.vertexCount.emplace_back(entry.primitive->vertices.size());
     }
 
     return bucketMap;
