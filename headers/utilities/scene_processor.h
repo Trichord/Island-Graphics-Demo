@@ -41,7 +41,6 @@ class SceneProcessor
         std::size_t startIndex{0};
         std::size_t endIndex{0};
         std::set<Handle> handles;
-        std::vector<size_t> vertexCount;
     };
 
     struct ProcessedScene
@@ -52,6 +51,7 @@ class SceneProcessor
         BufferData bufferData;
         std::unordered_map<ShaderType, BucketData> bucketMap;
         std::vector<DrawElementsIndirectCommand> commands;
+        std::vector<size_t> vertexCounts;
     };
 
     SceneProcessor(Scene &scene, TextureManager &textureManager);
@@ -118,11 +118,15 @@ class SceneProcessor
     // Setup
     SceneTotals getSceneTotals(Scene &scene);
     std::vector<DrawEntry> createDrawEntries(Scene &scene);
+
+    // Counting
+    [[nodiscard]] std::vector<std::size_t> createVertexCounts(const std::vector<DrawEntry> &entries);
     [[nodiscard]] BufferBuilder::Sizes calculateBufferSizes(const std::vector<DrawElementsIndirectCommand> &commands,
                                                             const std::vector<MultiDrawBucket> &buckets);
 
     // Staging
-    [[nodiscard]] std::unordered_map<ShaderType, BucketData> createShaderBucketMap();
+    [[nodiscard]] std::unordered_map<ShaderType, BucketData> createShaderBucketMap(
+        const std::vector<DrawEntry> &entries);
     [[nodiscard]] std::vector<AABB> createAABBs(const std::vector<DrawEntry> &entries);
     [[nodiscard]] std::vector<DrawElementsIndirectCommand> createDrawCommands(
         const std::vector<DrawEntry> &drawEntries);

@@ -32,7 +32,6 @@ struct PackedCameraUniforms
     glm::mat4 viewProjectionMatrix{1.0f};
     glm::mat4 inverseViewProjectMatrix{1.0f};
     glm::vec4 cameraPosition{0.0f};
-    float time{0.0f};
 };
 
 // Packed data for light transforms and frustum splits
@@ -55,4 +54,10 @@ struct ParticleUniforms
 {
     std::uint32_t sharedIndex{0};
     std::uint32_t localGroupSize{0};
+};
+
+struct PackedTime
+{
+    float deltaTime{0.0f};
+    float timeElapsed{0.0f};
 };

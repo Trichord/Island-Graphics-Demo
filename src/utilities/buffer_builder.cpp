@@ -65,6 +65,7 @@ UBOs BufferBuilder::buildUBOs()
     buildUBO(&ubos.camera, sizeof(PackedCameraUniforms), BindingPointUBO::camera);
     buildUBO(&ubos.cascadeShadows, sizeof(PackedCascadeShadows), BindingPointUBO::cascadeShadows);
     buildUBO(&ubos.frustumPlanes, 6 * sizeof(glm::vec4), BindingPointUBO::frustumPlanes);
+    buildUBO(&ubos.time, sizeof(PackedTime), BindingPointUBO::time);
 
     return ubos;
 }
