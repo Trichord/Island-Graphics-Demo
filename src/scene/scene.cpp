@@ -1,8 +1,10 @@
-#include "scene.h"
+#include "scene/scene.h"
 
 #include <filesystem>
 #include <fstream>
+#include <glm/glm.hpp>
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -10,19 +12,17 @@
 #include <variant>
 #include <vector>
 
-#include "camera.h"
-#include "directional_light.h"
-#include "glm/glm.hpp"
-#include "graphics_settings.h"
-#include "graphics_shader.h"
-#include "handle.h"
-#include "instanced_model.h"
-#include "model.h"
-#include "scene_file.h"
-#include "skybox.h"
-#include "texture_manager.h"
-#include "transform.h"
-#include "json/json.hpp"
+#include "application/graphics_settings.h"
+#include "models/instanced_model.h"
+#include "models/model.h"
+#include "models/skybox.h"
+#include "renderer/shader/graphics_shader.h"
+#include "scene/camera.h"
+#include "scene/directional_light.h"
+#include "scene/handle.h"
+#include "scene/scene_file.h"
+#include "utilities/texture_manager.h"
+#include "utilities/transform.h"
 
 namespace
 {

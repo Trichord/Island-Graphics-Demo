@@ -1,0 +1,28 @@
+{
+  "name": "island-demo",
+  "version-string": "1.0.0",
+  "dependencies": [
+    "glfw3",
+    {
+      "name": "glad",
+      "features": [
+        "gl-api-46",
+        "loader"
+      ]
+    },
+    "glm",
+    {
+      "name": "imgui",
+      "features": [
+        "glfw-binding",
+        "opengl3-binding"
+      ]
+    },
+    "fastgltf",
+    "nlohmann-json",
+    {
+      "name": "joltphysics"
+    },
+    "ktx"
+  ]
+}

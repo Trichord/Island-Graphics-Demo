@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gl_context.h"
+#include "application/gl_context.h"
 
 /**
  * @brief Callback handles iconfiying and restoring the application window

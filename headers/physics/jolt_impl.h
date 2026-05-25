@@ -1,15 +1,13 @@
 #pragma once
 
+#include <glm/glm.hpp>
+#include <jolt/Core/Core.h>
+#include <jolt/Jolt.h>
+#include <jolt/Math/Float3.h>
+#include <jolt/Math/Vec3.h>
+#include <jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
+#include <jolt/Physics/Collision/ObjectLayer.h>
 #include <stdexcept>
-
-#include "jolt/Jolt.h"
-
-#include "glm/glm.hpp"
-#include "jolt/Core/Core.h"
-#include "jolt/Math/Float3.h"
-#include "jolt/Math/Vec3.h"
-#include "jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h"
-#include "jolt/Physics/Collision/ObjectLayer.h"
 
 static inline glm::vec3 toGLM(const JPH::Vec3 &vec)
 {

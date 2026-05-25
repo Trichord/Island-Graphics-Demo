@@ -2,9 +2,9 @@
 
 #include <filesystem>
 
-#include "graphics_settings.h"
-#include "scene.h"
-#include "texture_manager.h"
+#include "application/graphics_settings.h"
+#include "scene/scene.h"
+#include "utilities/texture_manager.h"
 
 /* Concrete implementation of a scene */
 

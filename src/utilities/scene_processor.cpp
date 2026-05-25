@@ -1,7 +1,10 @@
-#include "scene_processor.h"
+#include "utilities/scene_processor.h"
 
 #include <algorithm>
 #include <cstdint>
+#include <fastgltf/types.hpp>
+#include <glad/glad.h>
+#include <glm/glm.hpp>
 #include <iostream>
 #include <iterator>
 #include <limits>
@@ -13,21 +16,18 @@
 #include <utility>
 #include <vector>
 
-#include "aabb.h"
-#include "buffer_builder.h"
-#include "buffers.h"
-#include "fastgltf/types.hpp"
-#include "glad/glad.h"
-#include "glm/glm.hpp"
-#include "graphics_shader.h"
-#include "handle.h"
-#include "primitive.h"
-#include "renderer_types.h"
-#include "scene.h"
-#include "shader_bucket_hash.h"
-#include "texture_manager.h"
-#include "textures.h"
-#include "transform.h"
+#include "models/aabb.h"
+#include "models/primitive.h"
+#include "renderer/buffers.h"
+#include "renderer/renderer_types.h"
+#include "renderer/shader/graphics_shader.h"
+#include "renderer/textures.h"
+#include "scene/handle.h"
+#include "scene/scene.h"
+#include "utilities/buffer_builder.h"
+#include "utilities/shader_bucket_hash.h"
+#include "utilities/texture_manager.h"
+#include "utilities/transform.h"
 
 namespace
 {

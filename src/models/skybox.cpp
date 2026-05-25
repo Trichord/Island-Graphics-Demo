@@ -1,14 +1,14 @@
-#include "skybox.h"
+#include "models/skybox.h"
 
 #include <cstdint>
+#include <fastgltf/types.hpp>
 #include <filesystem>
+#include <glm/glm.hpp>
 #include <utility>
 #include <vector>
 
-#include "aabb.h"
-#include "fastgltf/types.hpp"
-#include "glm/glm.hpp"
-#include "primitive.h"
+#include "models/aabb.h"
+#include "models/primitive.h"
 
 constexpr float skyboxSize{1e18f};
 

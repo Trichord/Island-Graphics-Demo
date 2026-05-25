@@ -1,13 +1,13 @@
-#include "particles.h"
+#include "models/particles.h"
 
+#include <glm/glm.hpp>
 #include <iostream>
 #include <numeric>
 #include <random>
 #include <vector>
 
-#include "aabb.h"
-#include "glm/glm.hpp"
-#include "primitive.h"
+#include "models/aabb.h"
+#include "models/primitive.h"
 
 Particles::Particles(const glm::vec3 &position, const glm::vec3 &extent, const glm::vec4 &color,
                      const glm::vec4 colorVariation, float lifeTime, int numParticles)

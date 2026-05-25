@@ -1,8 +1,7 @@
-#include "aabb.h"
+#include "models/aabb.h"
 
 #include <array>
-
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
 
 AABB::AABB(float minX, float minY, float minZ, float maxX, float maxY, float maxZ)
     : center_{0.5f * (glm::vec3{minX, minY, minZ} + glm::vec3{maxX, maxY, maxZ})},
@@ -62,7 +61,7 @@ void AABB::resize(float scale)
     extent_ *= scale;
 }
 
-const glm::vec3& AABB::getCenter() const
+const glm::vec3 &AABB::getCenter() const
 {
     return center_;
 }

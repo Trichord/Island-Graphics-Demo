@@ -1,22 +1,23 @@
-#include "player.h"
+#include "physics/player.h"
 
-#include "jolt/Core/Reference.h"
-#include "jolt/Core/TempAllocator.h"
-#include "jolt/Geometry/Plane.h"
-#include "jolt/Math/Quat.h"
-#include "jolt/Math/Real.h"
-#include "jolt/Math/Vec3.h"
-#include "jolt/Physics/Character/CharacterBase.h"
-#include "jolt/Physics/Character/CharacterVirtual.h"
-#include "jolt/Physics/Collision/Shape/CapsuleShape.h"
-#include "jolt/Physics/Collision/Shape/RotatedTranslatedShape.h"
-#include "jolt/Physics/Collision/Shape/Shape.h"
-#include "jolt/Physics/PhysicsSystem.h"
-#include "jolt_impl.h"
+#include <jolt/Math/Quat.h>
+#include <jolt/Core/Reference.h>
+#include <jolt/Core/TempAllocator.h>
+#include <jolt/Geometry/Plane.h>
 #include <jolt/Math/MathTypes.h>
+#include <jolt/Math/Real.h>
+#include <jolt/Math/Vec3.h>
 #include <jolt/Physics/Body/BodyID.h>
+#include <jolt/Physics/Character/CharacterBase.h>
+#include <jolt/Physics/Character/CharacterVirtual.h>
 #include <jolt/Physics/Collision/PhysicsMaterial.h>
+#include <jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include <jolt/Physics/Collision/Shape/Shape.h>
 #include <jolt/Physics/Collision/Shape/SubShapeID.h>
+#include <jolt/Physics/PhysicsSystem.h>
+
+#include "physics/jolt_impl.h"
 
 void Player::init(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator)
 {

@@ -1,7 +1,10 @@
-#include "shader_base.h"
+#include "renderer/shader/shader_base.h"
 
 #include <filesystem>
 #include <fstream>
+#include <glad/glad.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <ios>
 #include <iostream>
 #include <iterator>
@@ -9,10 +12,6 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
-
-#include "glad/glad.h"
-#include "glm/glm.hpp"
-#include "glm/gtc/type_ptr.hpp"
 
 void Shader::linkShader(std::span<GLuint> sourceIDs, const std::string_view path)
 {

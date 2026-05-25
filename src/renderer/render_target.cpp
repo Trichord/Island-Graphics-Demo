@@ -1,11 +1,11 @@
-#include "render_target.h"
+#include "renderer/render_target.h"
 
+#include <glad/glad.h>
 #include <iostream>
 #include <stdexcept>
 #include <utility>
 
-#include "glad/glad.h"
-#include "texture_utilities.h"
+#include "utilities/texture_utilities.h"
 
 RenderTarget::RenderTarget(int width, int height, Settings settings)
     : layers_{settings.textureArrayDepth}, width_{width}, height_{height}, internalFormat_{settings.internalFormat}

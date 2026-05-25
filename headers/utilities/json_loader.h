@@ -1,6 +1,6 @@
 #include <filesystem>
 
-#include "graphics_settings.h"
+#include "application/graphics_settings.h"
 
 namespace jsonLoader
 {

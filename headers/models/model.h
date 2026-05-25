@@ -1,12 +1,12 @@
 #pragma once
 
+#include <fastgltf/types.hpp>
 #include <filesystem>
 #include <vector>
 
-#include "aabb.h"
-#include "fastgltf/types.hpp"
-#include "primitive.h"
-#include "texture_manager.h"
+#include "models/aabb.h"
+#include "models/primitive.h"
+#include "utilities/texture_manager.h"
 
 class Model
 {

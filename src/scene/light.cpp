@@ -1,7 +1,7 @@
-#include "light.h"
+#include "scene/light.h"
 
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 Light::Light(const glm::vec3 &newColor) : color_{newColor}
 {

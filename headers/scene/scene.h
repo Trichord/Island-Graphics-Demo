@@ -1,26 +1,26 @@
 #pragma once
 
 #include <filesystem>
+#include <glm/glm.hpp>
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-#include "aabb.h"
-#include "camera.h"
-#include "directional_light.h"
-#include "glm/glm.hpp"
-#include "graphics_settings.h"
-#include "graphics_shader.h"
-#include "handle.h"
-#include "instanced_model.h"
-#include "model.h"
-#include "particles.h"
-#include "primitive.h"
-#include "skybox.h"
-#include "texture_manager.h"
-#include "transform.h"
+#include "application/graphics_settings.h"
+#include "models/aabb.h"
+#include "models/instanced_model.h"
+#include "models/model.h"
+#include "models/particles.h"
+#include "models/primitive.h"
+#include "models/skybox.h"
+#include "renderer/shader/graphics_shader.h"
+#include "scene/camera.h"
+#include "scene/directional_light.h"
+#include "scene/handle.h"
+#include "utilities/texture_manager.h"
+#include "utilities/transform.h"
 
 class Scene
 {

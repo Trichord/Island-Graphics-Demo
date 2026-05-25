@@ -2,7 +2,7 @@
 
 #include <array>
 
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
 
 class AABB
 {
