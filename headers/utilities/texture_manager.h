@@ -2,19 +2,19 @@
 
 #include <fastgltf/types.hpp>
 #include <filesystem>
+#include <glad/glad.h>
 #include <span>
 #include <unordered_map>
 #include <vector>
 
-#include "array_texture.h"
-#include "asset_loader.h"
-#include "glad/glad.h"
-#include "graphics_settings.h"
-#include "handle.h"
-#include "ktx_texture.h"
-#include "render_target.h"
-#include "textures.h"
-#include "thread_pool.h"
+#include "application/graphics_settings.h"
+#include "renderer/render_target.h"
+#include "renderer/textures.h"
+#include "scene/handle.h"
+#include "utilities/array_texture.h"
+#include "utilities/asset_loader.h"
+#include "utilities/ktx_texture.h"
+#include "utilities/thread_pool.h"
 
 // Texture units. Easier to keep it here with the arrays
 namespace TextureUnit

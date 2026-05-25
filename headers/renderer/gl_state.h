@@ -1,9 +1,8 @@
 #pragma once
 
+#include <fastgltf/types.hpp>
+#include <glad/glad.h>
 #include <vector>
-
-#include "fastgltf/types.hpp"
-#include "glad/glad.h"
 
 class GLState
 {

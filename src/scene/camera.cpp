@@ -1,12 +1,12 @@
-#include "camera.h"
+#include "scene/camera.h"
 
 #include <algorithm>
 #include <cmath>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_access.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_access.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "world_vectors.h"
+#include "utilities/world_vectors.h"
 
 constexpr float maxPitch{85.0f};
 constexpr float minPitch{-maxPitch};

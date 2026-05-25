@@ -1,7 +1,8 @@
 #pragma once
 
-#include "glm/glm.hpp"
-#include "world_vectors.h"
+#include <glm/glm.hpp>
+
+#include "utilities/world_vectors.h"
 
 class Camera
 {
@@ -56,7 +57,7 @@ class Camera
     float nearPlane_{0.1f};
     float farPlane_{1000.0f};
     float aspectRatio_{16.0f / 9.0f};
-    
+
     void updateMatrices();
     glm::vec3 createFront() const;
 };

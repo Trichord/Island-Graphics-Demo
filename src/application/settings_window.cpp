@@ -1,16 +1,16 @@
-#include "settings_window.h"
+#include "application/settings_window.h"
 
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 #include <iostream>
 #include <vector>
 
-#include "gl_context.h"
-#include "graphics_settings.h"
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
-#include "texture_loader.h"
-#include "texture_utilities.h"
-#include "textures.h"
+#include "application/gl_context.h"
+#include "application/graphics_settings.h"
+#include "renderer/textures.h"
+#include "utilities/texture_loader.h"
+#include "utilities/texture_utilities.h"
 
 constexpr int GUIWidth{1024};
 constexpr int GUIHeight{655};
@@ -151,8 +151,10 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
 
         ImGuiViewport *imGuiViewPort{GetMainViewport()};
 
-        float dpi{imGuiViewPort->DpiScale};
-        ImGui::SetNextWindowSize(ImVec2{GUIWidth * dpi, GUIHeight * dpi}, ImGuiCond_Always);
+        float xScale{1.0};
+        float yScale{1.0};
+        glfwGetWindowContentScale(window, &xScale, &yScale);
+        ImGui::SetNextWindowSize(ImVec2{GUIWidth * xScale, GUIHeight * yScale}, ImGuiCond_Always);
 
         ImVec2 imguiCenter{imGuiViewPort->GetCenter()};
         SetNextWindowPos(imguiCenter, ImGuiCond_Always, ImVec2{0.5f, 0.5f});

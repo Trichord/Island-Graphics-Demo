@@ -1,16 +1,16 @@
 #pragma once
 
 #include <cstdint>
+#include <glm/glm.hpp>
 
 #pragma warning(push)
 #pragma warning(disable : 5260)
-#include "fastgltf/types.hpp"
-#include "json/json.hpp"
+#include <fastgltf/types.hpp>
+#include <nlohmann/json.hpp>
 #pragma warning(pop)
 
-#include "cascade_shadow.h"
-#include "glm/glm.hpp"
-#include "graphics_shader.h"
+#include "renderer/cascade_shadow.h"
+#include "renderer/shader/graphics_shader.h"
 
 // Struct for MultiDrawElements
 struct DrawElementsIndirectCommand

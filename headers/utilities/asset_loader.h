@@ -1,13 +1,12 @@
 #pragma once
 
+#include <fastgltf/types.hpp>
 #include <filesystem>
-
 #include <vector>
 
-#include "fastgltf/types.hpp"
-#include "handle.h"
-#include "primitive.h"
-#include "textures.h"
+#include "models/primitive.h"
+#include "renderer/textures.h"
+#include "scene/handle.h"
 
 namespace AssetLoader
 {

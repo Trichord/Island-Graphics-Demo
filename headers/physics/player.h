@@ -1,20 +1,20 @@
 #pragma once
 
-#include "jolt/Jolt.h"
+#include <jolt/Jolt.h>
 
-#include "glm/glm.hpp"
-#include "jolt/Core/Reference.h"
-#include "jolt/Core/TempAllocator.h"
-#include "jolt/Math/Math.h"
-#include "jolt/Math/MathTypes.h"
-#include "jolt/Math/Real.h"
-#include "jolt/Math/Vec3.h"
-#include "jolt/Physics/Body/BodyID.h"
-#include "jolt/Physics/Character/CharacterVirtual.h"
-#include "jolt/Physics/Collision/PhysicsMaterial.h"
-#include "jolt/Physics/Collision/Shape/Shape.h"
-#include "jolt/Physics/Collision/Shape/SubShapeID.h"
-#include "jolt/Physics/PhysicsSystem.h"
+#include <glm/glm.hpp>
+#include <jolt/Core/Reference.h>
+#include <jolt/Core/TempAllocator.h>
+#include <jolt/Math/Math.h>
+#include <jolt/Math/MathTypes.h>
+#include <jolt/Math/Real.h>
+#include <jolt/Math/Vec3.h>
+#include <jolt/Physics/Body/BodyID.h>
+#include <jolt/Physics/Character/CharacterVirtual.h>
+#include <jolt/Physics/Collision/PhysicsMaterial.h>
+#include <jolt/Physics/Collision/Shape/Shape.h>
+#include <jolt/Physics/Collision/Shape/SubShapeID.h>
+#include <jolt/Physics/PhysicsSystem.h>
 
 class Player : public JPH::CharacterContactListener
 {

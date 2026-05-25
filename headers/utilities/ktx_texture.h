@@ -4,11 +4,9 @@
 #define KHRONOS_STATIC
 #endif
 
-#include "KHR/ktx.h"
-
 #include <filesystem>
-
-#include "glad/glad.h"
+#include <glad/glad.h>
+#include <ktx.h>
 
 class KTXTexture
 {

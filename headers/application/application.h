@@ -2,14 +2,15 @@
 
 #include <filesystem>
 
-#include "jolt/Jolt.h"
+#include <jolt/Jolt.h>
 
-#include "gl_context.h"
-#include "graphics_settings.h"
-#include "jolt/Core/Core.h"
-#include "jolt_impl.h"
-#include "player_physics.h"
-#include "scene.h"
+#include <jolt/Core/Core.h>
+
+#include "application/gl_context.h"
+#include "application/graphics_settings.h"
+#include "physics/jolt_impl.h"
+#include "physics/player_physics.h"
+#include "scene/scene.h"
 
 /**
  * @brief Handles window creation, user input, and the main loop.

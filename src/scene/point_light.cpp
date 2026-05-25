@@ -1,9 +1,11 @@
-#include "point_light.h"
+#include "scene/point_light.h"
 
-#include "glm/glm.hpp"
-#include "light.h"
+#include <glm/glm.hpp>
 
-PointLight::PointLight(const glm::vec3 &newPosition, const glm::vec3 &newColor) : Light{newColor}, position_{newPosition}
+#include "scene/light.h"
+
+PointLight::PointLight(const glm::vec3 &newPosition, const glm::vec3 &newColor)
+    : Light{newColor}, position_{newPosition}
 {
 }
 
