@@ -1,22 +1,23 @@
-#include "player_physics.h"
+#include "physics/player_physics.h"
 
-#include "jolt/jolt.h"
+#include <jolt/Jolt.h>
 
-#include "glm/glm.hpp"
-#include "jolt/Core/TempAllocator.h"
-#include "jolt/Math/Quat.h"
-#include "jolt/Math/Real.h"
-#include "jolt/Math/Vec3.h"
-#include "jolt/Physics/Body/BodyCreationSettings.h"
-#include "jolt/Physics/Body/MotionType.h"
-#include "jolt/Physics/Collision/Shape/MeshShape.h"
-#include "jolt/Physics/Collision/Shape/Shape.h"
-#include "jolt/Physics/EActivation.h"
-#include "jolt/Physics/PhysicsSystem.h"
-#include "jolt_impl.h"
-#include "physics_utilities.h"
-#include "scene.h"
-#include "world_vectors.h"
+#include <glm/glm.hpp>
+#include <jolt/Core/TempAllocator.h>
+#include <jolt/Math/Quat.h>
+#include <jolt/Math/Real.h>
+#include <jolt/Math/Vec3.h>
+#include <jolt/Physics/Body/BodyCreationSettings.h>
+#include <jolt/Physics/Body/MotionType.h>
+#include <jolt/Physics/Collision/Shape/MeshShape.h>
+#include <jolt/Physics/Collision/Shape/Shape.h>
+#include <jolt/Physics/EActivation.h>
+#include <jolt/Physics/PhysicsSystem.h>
+
+#include "physics/jolt_impl.h"
+#include "physics/physics_utilities.h"
+#include "scene/scene.h"
+#include "utilities/world_vectors.h"
 
 PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator)
     : resetPosition_{toJPHVec3(scene.getCamera().getPosition())}, physicsSystem_{physicsSystem},
@@ -24,7 +25,7 @@ PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JP
 {
     using namespace JPH;
 
-    //bodyInterface_ = &physicsSystem_.GetBodyInterfaceNoLock();
+    // bodyInterface_ = &physicsSystem_.GetBodyInterfaceNoLock();
     bodyInterface_ = &physicsSystem_.GetBodyInterface();
 
     // Build the static collision mesh from scene

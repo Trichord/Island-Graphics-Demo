@@ -1,29 +1,29 @@
-#include "application.h"
+#include "application/application.h"
 
 #include <algorithm>
 #include <cstdint>
+#include <glm/glm.hpp>
 #include <iostream>
+#include <jolt/Core/Factory.h>
+#include <jolt/Core/JobSystemSingleThreaded.h>
+#include <jolt/Core/Memory.h>
+#include <jolt/Core/TempAllocator.h>
+#include <jolt/Physics/PhysicsSystem.h>
+#include <jolt/registerTypes.h>
 #include <thread>
 
-#include "camera.h"
-#include "gl_context.h"
-#include "glfw_callbacks.h"
-#include "glm/glm.hpp"
-#include "graphics_settings.h"
-#include "island_scene.h"
-#include "jolt/Core/Factory.h"
-#include "jolt/Core/JobSystemSingleThreaded.h"
-#include "jolt/Core/Memory.h"
-#include "jolt/Core/TempAllocator.h"
-#include "jolt/Physics/PhysicsSystem.h"
-#include "jolt/registerTypes.h"
-#include "json_loader.h"
-#include "player_physics.h"
-#include "renderer.h"
-#include "scene.h"
-#include "settings_window.h"
-#include "texture_manager.h"
-#include "thread_pool.h"
+#include "application/gl_context.h"
+#include "application/glfw_callbacks.h"
+#include "application/graphics_settings.h"
+#include "application/settings_window.h"
+#include "physics/player_physics.h"
+#include "renderer/renderer.h"
+#include "scene/camera.h"
+#include "scene/island_scene/island_scene.h"
+#include "scene/scene.h"
+#include "utilities/json_loader.h"
+#include "utilities/texture_manager.h"
+#include "utilities/thread_pool.h"
 
 Application::~Application()
 {
@@ -187,7 +187,7 @@ bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
     // If ARB version fails too, just exit
     if (!glMultiDrawElementsIndirectCount)
     {
-        std::cerr << "GPU does not support required OpenGL features: MultiDrawElementsIndirectCount" << std::endl; 
+        std::cerr << "GPU does not support required OpenGL features: MultiDrawElementsIndirectCount" << std::endl;
         supported = false;
     }
 
@@ -225,8 +225,7 @@ bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
     if (maxFragmentSSBOs < 4)
     {
         std::cerr << "ERROR: GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS (" << maxFragmentSSBOs
-                  << ") does not meet required (4)"
-                  << std::endl;
+                  << ") does not meet required (4)" << std::endl;
         supported = false;
     }
 

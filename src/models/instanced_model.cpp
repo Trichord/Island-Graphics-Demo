@@ -1,17 +1,17 @@
-#include "instanced_model.h"
+#include "models/instanced_model.h"
 
 #include <fstream>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <random>
 #include <utility>
 #include <vector>
 
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "model.h"
-#include "texture_manager.h"
-#include "transform.h"
-#include "world_vectors.h"
+#include "models/model.h"
+#include "utilities/texture_manager.h"
+#include "utilities/transform.h"
+#include "utilities/world_vectors.h"
 
 InstancedModel::InstancedModel(const std::filesystem::path &modelPath, const std::filesystem::path &positionsPath,
                                Randomize randomize)

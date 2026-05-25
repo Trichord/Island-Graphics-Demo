@@ -1,25 +1,25 @@
 #pragma once
 
 #include <cstdint>
+#include <fastgltf/types.hpp>
+#include <glad/glad.h>
+#include <glm/glm.hpp>
 #include <set>
 #include <span>
 #include <unordered_map>
 #include <vector>
 
-#include "aabb.h"
-#include "buffer_builder.h"
-#include "buffers.h"
-#include "fastgltf/types.hpp"
-#include "glad/glad.h"
-#include "glm/glm.hpp"
-#include "graphics_shader.h"
-#include "handle.h"
-#include "primitive.h"
-#include "renderer_types.h"
-#include "scene.h"
-#include "shader_bucket_hash.h"
-#include "texture_manager.h"
-#include "transform.h"
+#include "models/aabb.h"
+#include "models/primitive.h"
+#include "renderer/buffers.h"
+#include "renderer/renderer_types.h"
+#include "renderer/shader/graphics_shader.h"
+#include "scene/handle.h"
+#include "scene/scene.h"
+#include "utilities/buffer_builder.h"
+#include "utilities/shader_bucket_hash.h"
+#include "utilities/texture_manager.h"
+#include "utilities/transform.h"
 
 class SceneProcessor
 {

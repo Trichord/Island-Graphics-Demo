@@ -3,8 +3,8 @@
 #include <array>
 #include <utility>
 
-#include "gl_context.h"
-#include "graphics_settings.h"
+#include "application/gl_context.h"
+#include "application/graphics_settings.h"
 
 /**
  * @brief Creates a GLFW window, using Dear ImGUI as a user interface.  Allows

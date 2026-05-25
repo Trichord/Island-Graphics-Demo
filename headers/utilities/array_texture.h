@@ -1,10 +1,10 @@
 #pragma once
 
+#include <glad/glad.h>
 #include <optional>
 
-#include "glad/glad.h"
-#include "ktx_texture.h"
-#include "render_target.h"
+#include "renderer/render_target.h"
+#include "utilities/ktx_texture.h"
 
 class ArrayTexture
 {

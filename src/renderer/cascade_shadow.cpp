@@ -1,17 +1,18 @@
+#include "renderer/cascade_shadow.h"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
-#include "aabb.h"
-#include "cascade_shadow.h"
-#include "directional_light.h"
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "world_vectors.h"
+#include "models/aabb.h"
+#include "scene/directional_light.h"
+#include "utilities/world_vectors.h"
 
 CascadeShadow::CascadeShadow(DirectionalLight &light, AABB worldAABB, float nearPlane) : nearPlane_{nearPlane}
 {
-    //Small adjustment so the furthest cascade perfectly fits
+    // Small adjustment so the furthest cascade perfectly fits
     constexpr float orthoBoxModifier{1.05f};
 
     const glm::vec3 center{worldAABB.getCenter()};

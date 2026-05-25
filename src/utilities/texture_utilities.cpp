@@ -1,14 +1,13 @@
-#include "texture_utilities.h"
-
-#include "ktx_texture.h"
+#include "utilities/texture_utilities.h"
 
 #include <algorithm>
 #include <filesystem>
+#include <glad/glad.h>
 #include <iostream>
 
-#include "KHR/vkformat_enum.h"
-#include "glad/glad.h"
-#include "textures.h"
+#include "renderer/textures.h"
+#include "utilities/ktx_texture.h"
+#include "utilities/vkformat_enum.h"
 
 namespace
 {

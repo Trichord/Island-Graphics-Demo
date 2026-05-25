@@ -3,8 +3,8 @@
 #include <filesystem>
 #include <vector>
 
-#include "aabb.h"
-#include "primitive.h"
+#include "models/aabb.h"
+#include "models/primitive.h"
 
 class Skybox
 {
