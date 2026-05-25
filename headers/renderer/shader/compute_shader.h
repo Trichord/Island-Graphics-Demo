@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shader_base.h"
+#include "renderer/shader/shader_base.h"
 
 #include <cstdint>
 #include <filesystem>

@@ -1,9 +1,8 @@
-#include "gl_state.h"
+#include "renderer/gl_state.h"
 
+#include <fastgltf/types.hpp>
+#include <glad/glad.h>
 #include <stdexcept>
-
-#include "fastgltf/types.hpp"
-#include "glad/glad.h"
 
 constexpr GLuint maxTextureUnits{16u};
 

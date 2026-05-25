@@ -2,10 +2,10 @@
 
 #include <filesystem>
 #include <vector>
+#include <glm/glm.hpp>
 
-#include "glm/glm.hpp"
-#include "model.h"
-#include "transform.h"
+#include "models/model.h"
+#include "utilities/transform.h"
 
 class InstancedModel : public Model
 {

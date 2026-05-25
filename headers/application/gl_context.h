@@ -5,5 +5,5 @@
  * include <GL/gl.h>, causing GLAD throw a "header already included" error.
  */
 
-#include "glad/glad.h"
-#include "GLFW/glfw3.h"
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>

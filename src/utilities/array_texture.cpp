@@ -1,6 +1,8 @@
-#include "array_texture.h"
+#include "utilities/array_texture.h"
 
 #include <cstdint>
+#include <glad/glad.h>
+#include <glm/glm.hpp>
 #include <iostream>
 #include <optional>
 #include <stdexcept>
@@ -8,11 +10,9 @@
 #include <utility>
 #include <vector>
 
-#include "glad/glad.h"
-#include "glm/glm.hpp"
-#include "ktx_texture.h"
-#include "render_target.h"
-#include "texture_utilities.h"
+#include "renderer/render_target.h"
+#include "utilities/ktx_texture.h"
+#include "utilities/texture_utilities.h"
 
 namespace
 {

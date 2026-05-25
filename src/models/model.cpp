@@ -1,6 +1,8 @@
-#include "model.h"
+#include "models/model.h"
 
+#include <fastgltf/types.hpp>
 #include <filesystem>
+#include <glm/glm.hpp>
 #include <iostream>
 #include <limits>
 #include <optional>
@@ -11,13 +13,10 @@
 #include <utility>
 #include <vector>
 
-#include "aabb.h"
-#include "asset_loader.h"
-#include "fastgltf/types.hpp"
-#include "glm/glm.hpp"
-#include "primitive.h"
-
-#include "texture_manager.h"
+#include "models/aabb.h"
+#include "models/primitive.h"
+#include "utilities/asset_loader.h"
+#include "utilities/texture_manager.h"
 
 Model::Model(const std::filesystem::path &path)
     : asset_{AssetLoader::loadAsset(path)}, filePath_{path}, primitives_{AssetLoader::loadMeshes(asset_)},

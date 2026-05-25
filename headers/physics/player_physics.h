@@ -1,17 +1,17 @@
 #pragma once
 
+#include <jolt/Jolt.h>
+
 #include <cstdint>
+#include <glm/glm.hpp>
+#include <jolt/Core/TempAllocator.h>
+#include <jolt/Math/Vec3.h>
+#include <jolt/Physics/Body/Body.h>
+#include <jolt/Physics/Body/BodyInterface.h>
+#include <jolt/Physics/PhysicsSystem.h>
 
-#include "jolt/Jolt.h"
-
-#include "glm/glm.hpp"
-#include "jolt/Core/TempAllocator.h"
-#include "jolt/Math/Vec3.h"
-#include "jolt/Physics/Body/Body.h"
-#include "jolt/Physics/Body/BodyInterface.h"
-#include "jolt/Physics/PhysicsSystem.h"
-#include "player.h"
-#include "scene.h"
+#include "physics/player.h"
+#include "scene/scene.h"
 
 enum CharacterMovement : std::uint8_t
 {

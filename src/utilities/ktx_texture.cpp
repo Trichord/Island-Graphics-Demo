@@ -1,14 +1,14 @@
 #pragma once
 
-#include "ktx_texture.h"
+#include "utilities/ktx_texture.h"
 
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
+#include <ktx.h>
 #include <utility>
 
-#include "KHR/ktx.h"
-#include "texture_utilities.h"
+#include "utilities/texture_utilities.h"
 
 KTXTexture::KTXTexture(const std::filesystem::path path) : path_{path}
 {

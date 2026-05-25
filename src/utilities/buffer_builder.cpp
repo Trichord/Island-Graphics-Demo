@@ -1,15 +1,15 @@
-#include "buffer_builder.h"
+#include "utilities/buffer_builder.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <glad/glad.h>
+#include <glm/glm.hpp>
 #include <vector>
 
-#include "aabb.h"
-#include "buffers.h"
-#include "glad/glad.h"
-#include "glm/glm.hpp"
-#include "primitive.h"
-#include "renderer_types.h"
+#include "models/aabb.h"
+#include "models/primitive.h"
+#include "renderer/buffers.h"
+#include "renderer/renderer_types.h"
 
 namespace
 {

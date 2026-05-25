@@ -1,8 +1,10 @@
-#include "physics_utilities.h"
+#include "physics/physics_utilities.h"
 
 #include <algorithm>
 #include <cstdint>
+#include <fastgltf/types.hpp>
 #include <filesystem>
+#include <glm/glm.hpp>
 #include <iostream>
 #include <span>
 #include <stdexcept>
@@ -10,13 +12,11 @@
 #include <system_error>
 #include <vector>
 
-#include "asset_loader.h"
-#include "fastgltf/types.hpp"
-#include "glm/glm.hpp"
-#include "jolt_impl.h"
-#include "primitive.h"
-#include "scene.h"
-#include "transform.h"
+#include "models/primitive.h"
+#include "physics/jolt_impl.h"
+#include "scene/scene.h"
+#include "utilities/asset_loader.h"
+#include "utilities/transform.h"
 
 void iterateVertices(physicsUtilities::CollisionMesh &collisionMesh, const std::span<Primitive> &primitives,
                      const glm::mat4 &modelMatrix)

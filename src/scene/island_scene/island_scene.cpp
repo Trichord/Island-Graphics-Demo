@@ -1,13 +1,13 @@
-#include "island_scene.h"
+#include "scene/island_scene/island_scene.h"
 
 #include <filesystem>
+#include <glm/glm.hpp>
 #include <vector>
 
-#include "glm/glm.hpp"
-#include "graphics_settings.h"
-#include "scene.h"
-#include "texture_manager.h"
-#include "transform.h"
+#include "application/graphics_settings.h"
+#include "scene/scene.h"
+#include "utilities/texture_manager.h"
+#include "utilities/transform.h"
 
 IslandScene::IslandScene(TextureManager &textureManager, const GraphicsSettings &graphicsSettings,
                          const std::filesystem::path &jsonFile)

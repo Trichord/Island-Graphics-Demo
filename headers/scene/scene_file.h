@@ -1,15 +1,15 @@
 #pragma once
 
 #include <filesystem>
+#include <glm/glm.hpp>
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <variant>
 #include <vector>
 
-#include "glm/glm.hpp"
-#include "graphics_shader.h"
-#include "transform.h"
-#include "json/json.hpp"
+#include "renderer/shader/graphics_shader.h"
+#include "utilities/transform.h"
 
 NLOHMANN_JSON_SERIALIZE_ENUM(ShaderType, {{ShaderType::directionalPBR, "directionalPBR"},
                                           {ShaderType::reflective, "reflective"},

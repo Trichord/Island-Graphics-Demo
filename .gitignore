@@ -1,10 +1,10 @@
-OpenGL Demo.vcxproj
-OpenGL Demo.vcxproj.filters
-OpenGL Demo.vcxproj.user
+imgui.ini
+settings.json
+
+/build/
 /x64
 /.vs
+
 OpenGL.vcxproj
 OpenGL.vcxproj.user
 OpenGL.vcxproj.filters
-imgui.ini
-settings.json

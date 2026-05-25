@@ -1,11 +1,11 @@
 #pragma once
 
+#include <jolt/Jolt.h>
+
+#include <jolt/Geometry/Triangle.h>
 #include <limits>
 
-#include "jolt/jolt.h"
-
-#include "jolt/Geometry/Triangle.h"
-#include "scene.h"
+#include "scene/scene.h"
 
 namespace physicsUtilities
 {

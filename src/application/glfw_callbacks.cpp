@@ -1,6 +1,5 @@
-#include "glfw_callbacks.h"
-
-#include "gl_context.h"
+#include "application/glfw_callbacks.h"
+#include "application/gl_context.h"
 
 void window_iconify_callback(GLFWwindow *window, int iconified)
 {
