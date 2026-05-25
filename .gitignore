@@ -1,9 +1,10 @@
 imgui.ini
 settings.json
 
-/build/
-/x64
 /.vs
+/x64
+/bin/
+/build/
 
 OpenGL.vcxproj
 OpenGL.vcxproj.user
