@@ -1,4 +1,4 @@
-#include "texture_loader.h"
+#include "utilities/texture_loader.h"
 
 #include <atomic>
 #include <filesystem>
@@ -9,8 +9,8 @@
 #include <utility>
 #include <vector>
 
-#include "ktx_texture.h"
-#include "thread_pool.h"
+#include "utilities/ktx_texture.h"
+#include "utilities/thread_pool.h"
 
 TextureLoader::TextureLoader(ThreadPool &threadPool, const std::vector<std::filesystem::path> &filepaths)
     : numImages_{filepaths.size()}, numImagesLoaded_{0}

@@ -1,9 +1,15 @@
-#include "asset_loader.h"
+#include "utilities/asset_loader.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <fastgltf/core.hpp>
+#include <fastgltf/glm_element_traits.hpp>
+#include <fastgltf/math.hpp>
+#include <fastgltf/tools.hpp>
+#include <fastgltf/types.hpp>
 #include <filesystem>
+#include <glm/glm.hpp>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -13,16 +19,10 @@
 #include <variant>
 #include <vector>
 
-#include "aabb.h"
-#include "fastgltf/core.hpp"
-#include "fastgltf/glm_element_traits.hpp"
-#include "fastgltf/math.hpp"
-#include "fastgltf/tools.hpp"
-#include "fastgltf/types.hpp"
-#include "glm/glm.hpp"
-#include "handle.h"
-#include "primitive.h"
-#include "textures.h"
+#include "models/aabb.h"
+#include "models/primitive.h"
+#include "renderer/textures.h"
+#include "scene/handle.h"
 
 namespace
 {

@@ -1,8 +1,7 @@
 #pragma once
 
 #include <array>
-
-#include "glad/glad.h"
+#include <glad/glad.h>
 
 class RenderTarget
 {

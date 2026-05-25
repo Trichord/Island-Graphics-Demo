@@ -1,16 +1,17 @@
+#include "renderer/renderer.h"
+
 #include <cstdint>
+#include <fastgltf/types.hpp>
+#include <glad/glad.h>
+#include <glm/glm.hpp>
 #include <vector>
 
-#include "camera.h"
-#include "cascade_shadow.h"
-#include "directional_light.h"
-#include "fastgltf/types.hpp"
-#include "glad/glad.h"
-#include "glm/glm.hpp"
-#include "graphics_shader.h"
-#include "renderer.h"
-#include "renderer_types.h"
-#include "scene.h"
+#include "renderer/cascade_shadow.h"
+#include "renderer/renderer_types.h"
+#include "renderer/shader/graphics_shader.h"
+#include "scene/camera.h"
+#include "scene/directional_light.h"
+#include "scene/scene.h"
 
 // Reduce the distance of the camera's far plane by 80% for shadow cascades.
 constexpr float farPlaneReduction{0.2f};
@@ -127,7 +128,7 @@ void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)
         using enum fastgltf::AlphaMode;
 
         MultiDrawBucket &mdb{drawBuckets_[i]};
-        
+
         if (mdb.shaderType == ocean || mdb.shaderType == skybox)
             continue;
 

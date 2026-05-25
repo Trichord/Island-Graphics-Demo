@@ -1,10 +1,10 @@
 #pragma once
 
+#include <glm/glm.hpp>
 #include <vector>
 
-#include "aabb.h"
-#include "glm/glm.hpp"
-#include "primitive.h"
+#include "models/aabb.h"
+#include "models/primitive.h"
 
 class Particles
 {

@@ -1,9 +1,8 @@
 #pragma once
 
+#include <glad/glad.h>
 #include <iterator>
 #include <utility>
-
-#include "glad/glad.h"
 
 /* Shader Storage Buffer Objects
  *

@@ -1,10 +1,10 @@
 #pragma once
 
 #include <array>
+#include <glm/glm.hpp>
 
-#include "aabb.h"
-#include "directional_light.h"
-#include "glm/glm.hpp"
+#include "models/aabb.h"
+#include "scene/directional_light.h"
 
 struct Cascade
 {

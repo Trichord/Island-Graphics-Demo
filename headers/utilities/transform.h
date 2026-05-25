@@ -1,7 +1,7 @@
 #pragma once
 
-#include "glm/glm.hpp"
-#include "glm/gtc/quaternion.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 /* The 'Set absolute' functions will reset that object property then adjust.
  * 'Set relative' will adjust the current state by the amount in the parameter.

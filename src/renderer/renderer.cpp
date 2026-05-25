@@ -1,27 +1,27 @@
-#include "renderer.h"
+#include "renderer/renderer.h"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_access.hpp>
 #include <unordered_set>
 #include <vector>
 
-#include "camera.h"
-#include "cascade_shadow.h"
-#include "compute_shader.h"
-#include "directional_light.h"
-#include "gl_context.h"
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_access.hpp"
-#include "graphics_settings.h"
-#include "graphics_shader.h"
-#include "handle.h"
-#include "render_target.h"
-#include "renderer_types.h"
-#include "scene.h"
-#include "texture_manager.h"
-#include "thread_pool.h"
-#include "transform.h"
+#include "application/gl_context.h"
+#include "application/graphics_settings.h"
+#include "renderer/cascade_shadow.h"
+#include "renderer/render_target.h"
+#include "renderer/renderer_types.h"
+#include "renderer/shader/compute_shader.h"
+#include "renderer/shader/graphics_shader.h"
+#include "scene/camera.h"
+#include "scene/directional_light.h"
+#include "scene/handle.h"
+#include "scene/scene.h"
+#include "utilities/texture_manager.h"
+#include "utilities/thread_pool.h"
+#include "utilities/transform.h"
 
 namespace
 {

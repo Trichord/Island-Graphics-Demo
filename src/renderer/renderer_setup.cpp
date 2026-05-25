@@ -1,31 +1,31 @@
-#include "renderer.h"
+#include "renderer/renderer.h"
 
 #include <array>
 #include <cstdint>
+#include <fastgltf/types.hpp>
+#include <glad/glad.h>
+#include <glm/glm.hpp>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "aabb.h"
-#include "buffer_builder.h"
-#include "buffers.h"
-#include "camera.h"
-#include "cascade_shadow.h"
-#include "directional_light.h"
-#include "fastgltf/types.hpp"
-#include "glad/glad.h"
-#include "glm/glm.hpp"
-#include "graphics_shader.h"
-#include "handle.h"
-#include "primitive.h"
-#include "render_target.h"
-#include "renderer_types.h"
-#include "scene.h"
-#include "scene_processor.h"
-#include "shader_bucket_hash.h"
-#include "texture_manager.h"
-#include "transform.h"
-#include "world_vectors.h"
+#include "models/aabb.h"
+#include "models/primitive.h"
+#include "renderer/buffers.h"
+#include "renderer/cascade_shadow.h"
+#include "renderer/render_target.h"
+#include "renderer/renderer_types.h"
+#include "renderer/shader/graphics_shader.h"
+#include "scene/camera.h"
+#include "scene/directional_light.h"
+#include "scene/handle.h"
+#include "scene/scene.h"
+#include "utilities/buffer_builder.h"
+#include "utilities/scene_processor.h"
+#include "utilities/shader_bucket_hash.h"
+#include "utilities/texture_manager.h"
+#include "utilities/transform.h"
+#include "utilities/world_vectors.h"
 
 void Renderer::initializeResources(Scene &scene)
 {

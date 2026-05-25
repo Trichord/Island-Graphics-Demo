@@ -1,14 +1,14 @@
-#include "json_loader.h"
+#include "utilities/json_loader.h"
 
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <system_error>
 
-#include "graphics_settings.h"
-#include "json/json.hpp"
+#include "application/graphics_settings.h"
 
 using json = nlohmann::json;
 

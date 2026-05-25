@@ -1,10 +1,10 @@
 #pragma once
 
+#include <fastgltf/types.hpp>
 #include <type_traits>
 #include <utility>
 
-#include "fastgltf/types.hpp"
-#include "graphics_shader.h"
+#include "renderer/shader/graphics_shader.h"
 
 using ShaderBucket = std::pair<ShaderType, fastgltf::AlphaMode>;
 

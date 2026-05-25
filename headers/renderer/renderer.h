@@ -2,25 +2,25 @@
 
 #include <array>
 #include <cstdint>
+#include <glad/glad.h>
+#include <glm/glm.hpp>
 #include <unordered_map>
 #include <vector>
 
-#include "buffers.h"
-#include "cascade_shadow.h"
-#include "compute_shader.h"
-#include "gl_state.h"
-#include "glad/glad.h"
-#include "glm/glm.hpp"
-#include "graphics_settings.h"
-#include "graphics_shader.h"
-#include "handle.h"
-#include "render_target.h"
-#include "renderer_types.h"
-#include "scene.h"
-#include "scene_processor.h"
-#include "shader_bucket_hash.h"
-#include "texture_manager.h"
-#include "thread_pool.h"
+#include "application/graphics_settings.h"
+#include "renderer/buffers.h"
+#include "renderer/cascade_shadow.h"
+#include "renderer/gl_state.h"
+#include "renderer/render_target.h"
+#include "renderer/renderer_types.h"
+#include "renderer/shader/compute_shader.h"
+#include "renderer/shader/graphics_shader.h"
+#include "scene/handle.h"
+#include "scene/scene.h"
+#include "utilities/scene_processor.h"
+#include "utilities/shader_bucket_hash.h"
+#include "utilities/texture_manager.h"
+#include "utilities/thread_pool.h"
 
 class Renderer
 {

@@ -1,13 +1,13 @@
 #pragma once
 
 #include <cstdint>
+#include <glad/glad.h>
 #include <vector>
 
-#include "aabb.h"
-#include "buffers.h"
-#include "glad/glad.h"
-#include "primitive.h"
-#include "renderer_types.h"
+#include "models/aabb.h"
+#include "models/primitive.h"
+#include "renderer/buffers.h"
+#include "renderer/renderer_types.h"
 
 class BufferBuilder
 {

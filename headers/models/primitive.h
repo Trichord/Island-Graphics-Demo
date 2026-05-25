@@ -1,11 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <fastgltf/types.hpp>
+#include <glm/glm.hpp>
 #include <vector>
 
-#include "aabb.h"
-#include "fastgltf/types.hpp"
-#include "glm/glm.hpp"
+#include "models/aabb.h"
 
 struct Primitive
 {

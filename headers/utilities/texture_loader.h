@@ -1,14 +1,13 @@
 #pragma once
 
-#include "thread_pool.h"
-
 #include <atomic>
 #include <condition_variable>
 #include <filesystem>
 #include <mutex>
 #include <vector>
 
-#include "ktx_texture.h"
+#include "utilities/ktx_texture.h"
+#include "utilities/thread_pool.h"
 
 /*
 TextureLoader takes in a vector of image filepaths, and returns a vector of
