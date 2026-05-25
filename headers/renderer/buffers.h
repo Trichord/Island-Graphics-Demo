@@ -5,16 +5,16 @@
 
 #include "glad/glad.h"
 
-/* Buffers
+/* Shader Storage Buffer Objects
  *
  * Overall strategy: maintain set regions for each primitive so that a base index is always known. From there, any
  * instancing is always base + instance.
  *
- * Map: Per (primitive × instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
+ * Visibility Map: Per (primitive × instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
  *      - matricesIndex: index into Matrices buffer
  *      - sharedBaseIndex: index into AABBs/Metadata/DrawCommands (the primitive)
  *      - drawBucket: which draw bucket this primitive belongs to
- *      - drawBucketBaseIndex: start of that bucket in DrawCommands
+ *      - drawCommandsBaseIndex: start of that bucket in DrawCommands
  *      - visibleInstancesBaseIndex: start of the (primitive x instance) in the visibility buffer
  *
  * AABB: Per primitive. Local-space bounding boxes
@@ -27,6 +27,8 @@
  *                   instances that passed the frustum test. Each primitive owns a
  *                   contiguous section sized to its instance count.
  * DrawCommandsSource: Per primitive. Immutable source of truth, set once at load
+ * ParticleMap: Per vertex, for particles only. Allows any index in map buffer to look up its vertex in the VBO, and its
+ * sharedBaseIndex.
  *
  * 1:1 indexed buffers: AABB[i], Metadata[i], DrawCommands[i], DrawCommandsSource[i]
  * Flattened buffers: Map[j], VisibleInstances[j] where j spans all (primitive × instance) pairs
@@ -36,7 +38,7 @@
 // Holds the OpenGL handles for all Shader Storage Buffer Objects
 struct SSBOs
 {
-    GLuint map{0};
+    GLuint visibilityMap{0};
     GLuint aabb{0};
     GLuint matrices{0};
     GLuint metadata{0};
@@ -45,18 +47,20 @@ struct SSBOs
     GLuint drawCommands{0};
     GLuint visibleInstances{0};
     GLuint drawCommandsSource{0};
+    GLuint particleMap{0};
 
     SSBOs() = default;
     SSBOs(const SSBOs &other) = delete;
     SSBOs &operator=(const SSBOs &other) = delete;
 
     SSBOs(SSBOs &&other) noexcept
-        : map{std::exchange(other.map, 0)}, aabb{std::exchange(other.aabb, 0)},
+        : visibilityMap{std::exchange(other.visibilityMap, 0)}, aabb{std::exchange(other.aabb, 0)},
           matrices{std::exchange(other.matrices, 0)}, metadata{std::exchange(other.metadata, 0)},
           drawCounts{std::exchange(other.drawCounts, 0)}, cullResults{std::exchange(other.cullResults, 0)},
           drawCommands{std::exchange(other.drawCommands, 0)},
           visibleInstances{std::exchange(other.visibleInstances, 0)},
-          drawCommandsSource{std::exchange(other.drawCommandsSource, 0)}
+          drawCommandsSource{std::exchange(other.drawCommandsSource, 0)},
+          particleMap{std::exchange(other.particleMap, 0)}
     {
     }
 
@@ -64,11 +68,11 @@ struct SSBOs
     {
         if (this != &other)
         {
-            GLuint buffers[]{map,         aabb,         matrices,         metadata,          drawCounts,
-                             cullResults, drawCommands, visibleInstances, drawCommandsSource};
+            GLuint buffers[]{visibilityMap, aabb,         matrices,         metadata,           drawCounts,
+                             cullResults,   drawCommands, visibleInstances, drawCommandsSource, particleMap};
             glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
 
-            map = std::exchange(other.map, 0);
+            visibilityMap = std::exchange(other.visibilityMap, 0);
             aabb = std::exchange(other.aabb, 0);
             matrices = std::exchange(other.matrices, 0);
             metadata = std::exchange(other.metadata, 0);
@@ -77,6 +81,7 @@ struct SSBOs
             drawCommands = std::exchange(other.drawCommands, 0);
             visibleInstances = std::exchange(other.visibleInstances, 0);
             drawCommandsSource = std::exchange(other.drawCommandsSource, 0);
+            particleMap = std::exchange(other.particleMap, 0);
         }
 
         return *this;
@@ -84,8 +89,8 @@ struct SSBOs
 
     ~SSBOs()
     {
-        GLuint buffers[]{map,         aabb,         matrices,         metadata,          drawCounts,
-                         cullResults, drawCommands, visibleInstances, drawCommandsSource};
+        GLuint buffers[]{visibilityMap, aabb,         matrices,         metadata,           drawCounts,
+                         cullResults,   drawCommands, visibleInstances, drawCommandsSource, particleMap};
         glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
     }
 };
@@ -141,6 +146,7 @@ struct UBOs
     GLuint camera{0};
     GLuint frustumPlanes{0};
     GLuint cascadeShadows{0};
+    GLuint time{0};
 
     UBOs() = default;
     UBOs(const UBOs &other) = delete;
@@ -148,7 +154,7 @@ struct UBOs
 
     UBOs(UBOs &&other) noexcept
         : camera{std::exchange(other.camera, 0)}, frustumPlanes{std::exchange(other.frustumPlanes, 0)},
-          cascadeShadows{std::exchange(other.cascadeShadows, 0)}
+          cascadeShadows{std::exchange(other.cascadeShadows, 0)}, time{std::exchange(other.time, 0)}
     {
     }
 
@@ -162,6 +168,7 @@ struct UBOs
             camera = std::exchange(other.camera, 0);
             frustumPlanes = std::exchange(other.frustumPlanes, 0);
             cascadeShadows = std::exchange(other.cascadeShadows, 0);
+            time = std::exchange(other.time, 0);
         }
 
         return *this;
@@ -169,7 +176,7 @@ struct UBOs
 
     ~UBOs()
     {
-        GLuint buffers[]{camera, frustumPlanes, cascadeShadows};
+        GLuint buffers[]{camera, frustumPlanes, cascadeShadows, time};
         glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
     }
 };
@@ -179,13 +186,14 @@ enum class BindingPointUBO : unsigned int
 {
     camera,
     frustumPlanes,
-    cascadeShadows
+    cascadeShadows,
+    time
 };
 
-// Shader Storage Buffer Object binding points (unsigned int)
+// Shader Storage Buffer Object binding points (unsigned int). Must be <= 16 total
 enum class BindingPointSSBO : unsigned int
 {
-    map,
+    visibilityMap,
     aabb,
     matrices,
     metadata,
@@ -194,4 +202,6 @@ enum class BindingPointSSBO : unsigned int
     drawCommands,
     visibleInstances,
     drawCommandsSource,
+    vbo,
+    particleMap
 };

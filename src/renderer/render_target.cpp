@@ -152,7 +152,11 @@ RenderTarget &RenderTarget::operator=(RenderTarget &&other) noexcept
 
 RenderTarget::~RenderTarget()
 {
-    glDeleteTextures(1, &colorTextureID_);
+    if (FBO_ == 0)
+        return;
+
+    if (colorTextureID_)
+        glDeleteTextures(1, &colorTextureID_);
 
     if (depthMapTextureID_)
         glDeleteTextures(1, &depthMapTextureID_);

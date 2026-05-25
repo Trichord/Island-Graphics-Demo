@@ -37,23 +37,28 @@ std::vector<SimpleAABB> simplifyAABBs(const std::vector<AABB> &aabbs)
 } // namespace
 
 SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
-                                const std::vector<AABB> &aabbs, BufferBuilder::Sizes sizes) const
+                                const std::vector<glm::mat4> &matrices, const std::vector<PrimitiveMetadata> &metadata,
+                                const std::vector<VisibilityBufferMap> &visibilityMap,
+                                const std::vector<ParticleBufferMap> &particleMap, const std::vector<AABB> &aabbs,
+                                BufferBuilder::Sizes sizes) const
 {
-    using enum BindingPointSSBO;
-
     SSBOs buffers;
     std::vector<SimpleAABB> simpleAABBs{simplifyAABBs(aabbs)};
     std::size_t drawCommandsSize{commands.size() * sizeof(DrawElementsIndirectCommand)};
 
-    buildSSBO(&buffers.map, sizes.bufferMap, map, true, nullptr);
-    buildSSBO(&buffers.aabb, simpleAABBs.size() * sizeof(SimpleAABB), aabb, false, simpleAABBs.data());
-    buildSSBO(&buffers.matrices, sizes.matrices, matrices, true, nullptr);
-    buildSSBO(&buffers.metadata, sizes.metadata, metadata, true, nullptr);
-    buildSSBO(&buffers.drawCounts, sizes.drawCounts, drawCounts, false, nullptr);
-    buildSSBO(&buffers.cullResults, sizes.cullResults, cullResults, false, nullptr);
-    buildSSBO(&buffers.drawCommands, drawCommandsSize, drawCommands, true, nullptr);
-    buildSSBO(&buffers.visibleInstances, sizes.visibleInstances, visibleInstances, false, nullptr);
-    buildSSBO(&buffers.drawCommandsSource, drawCommandsSize, drawCommandsSource, false, commands.data());
+    buildSSBO(&buffers.visibilityMap, sizes.bufferMap, BindingPointSSBO::visibilityMap, false, visibilityMap.data());
+    buildSSBO(&buffers.aabb, simpleAABBs.size() * sizeof(SimpleAABB), BindingPointSSBO::aabb, false,
+              simpleAABBs.data());
+    buildSSBO(&buffers.matrices, sizes.matrices, BindingPointSSBO::matrices, true, matrices.data());
+    buildSSBO(&buffers.metadata, sizes.metadata, BindingPointSSBO::metadata, true, metadata.data());
+    buildSSBO(&buffers.drawCounts, sizes.drawCounts, BindingPointSSBO::drawCounts, false, nullptr);
+    buildSSBO(&buffers.cullResults, sizes.cullResults, BindingPointSSBO::cullResults, false, nullptr);
+    buildSSBO(&buffers.drawCommands, drawCommandsSize, BindingPointSSBO::drawCommands, true, nullptr);
+    buildSSBO(&buffers.visibleInstances, sizes.visibleInstances, BindingPointSSBO::visibleInstances, false, nullptr);
+    buildSSBO(&buffers.drawCommandsSource, drawCommandsSize, BindingPointSSBO::drawCommandsSource, false,
+              commands.data());
+    buildSSBO(&buffers.particleMap, particleMap.size() * sizeof(ParticleBufferMap), BindingPointSSBO::particleMap,
+              false, particleMap.data());
 
     return buffers;
 }
@@ -65,6 +70,7 @@ UBOs BufferBuilder::buildUBOs()
     buildUBO(&ubos.camera, sizeof(PackedCameraUniforms), BindingPointUBO::camera);
     buildUBO(&ubos.cascadeShadows, sizeof(PackedCascadeShadows), BindingPointUBO::cascadeShadows);
     buildUBO(&ubos.frustumPlanes, 6 * sizeof(glm::vec4), BindingPointUBO::frustumPlanes);
+    buildUBO(&ubos.time, sizeof(PackedTime), BindingPointUBO::time);
 
     return ubos;
 }
@@ -101,6 +107,8 @@ GlobalVAO BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices
     glVertexArrayAttribBinding(vao.id, 1, 0);
     glVertexArrayAttribBinding(vao.id, 2, 0);
     glVertexArrayAttribBinding(vao.id, 3, 0);
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::vbo), vao.vbo);
 
     return vao;
 }
