@@ -2,13 +2,17 @@
 
 #include <array>
 #include <cstdint>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "aabb.h"
+#include "buffer_builder.h"
 #include "buffers.h"
 #include "camera.h"
 #include "cascade_shadow.h"
 #include "directional_light.h"
+#include "fastgltf/types.hpp"
 #include "glad/glad.h"
 #include "glm/glm.hpp"
 #include "graphics_shader.h"
@@ -18,6 +22,7 @@
 #include "renderer_types.h"
 #include "scene.h"
 #include "scene_processor.h"
+#include "shader_bucket_hash.h"
 #include "texture_manager.h"
 #include "transform.h"
 #include "world_vectors.h"
@@ -27,6 +32,9 @@ void Renderer::initializeResources(Scene &scene)
     if (scene.getAllSceneEntries().empty())
         return;
 
+    BufferBuilder builder;
+    UBOs_ = builder.buildUBOs();
+
     SceneProcessor processor{scene, textureManager_};
 
     // Cubemaps. Reserve space up front for any load-time generated cubemaps
@@ -35,26 +43,24 @@ void Renderer::initializeResources(Scene &scene)
     textureManager_.reserveCubemaps(numCubemaps, graphicsSettings_.reflectionResolution, colorFormat);
 
     textureManager_.buildAllTextures();
+    SceneProcessor::ProcessedScene processed{processor.processScene()};
 
     // Take ownership of everything before shadow map draw call
-    auto processedScene{processor.processScene()};
-  
-    BufferBuilder builder;
-    UBOs_ = builder.buildUBOs();
-    takeBuffers(processedScene);
+    takeGPUObjects(processed);
+    takeBufferData(processed);
 
-    drawBuckets_ = std::move(processedScene.buckets);
-    matricesBaseIndex_ = std::move(processedScene.matricesBaseIndexMap);
-    cullWorkGroupSize_ = static_cast<std::uint32_t>(processedScene.numInstances);
-    compactionWorkGroupSize_ = static_cast<std::uint32_t>(processedScene.numPrimitives);
+    // Extract temporaries
+    std::vector<DrawElementsIndirectCommand> commands{std::move(processed.commands)};
+    AABB sceneAABB{processed.sceneData.worldAABB};
+    auto bucketMap{std::move(processed.bucketMap)};
+    std::vector<std::size_t> vertexCounts{std::move(processed.vertexCounts)};
 
-    // Local copy kept for cubemap generation
-    auto drawCommands = std::move(processedScene.commands);
+    setLocalGroupSizes(processed, commands, vertexCounts, bucketMap);
 
     // Setup for cascade shadow maps
     float nearPlane{scene.getCamera().getNearPlane()};
     DirectionalLight &light{scene.getGlobalLight()};
-    cascadeShadow_ = CascadeShadow(light, processedScene.worldAABB, nearPlane);
+    cascadeShadow_ = CascadeShadow(light, sceneAABB, nearPlane);
 
     // Set the light based uniforms and draw shadows
     setSceneShaderUniforms(scene);
@@ -63,10 +69,10 @@ void Renderer::initializeResources(Scene &scene)
         renderShadowMaps(scene, true);
 
     // Assign the skybox to any ocean shaders
-    borrowSkybox(processor);
+    borrowSkybox(bucketMap);
 
     // Dynamic cubemap generation. The scene must be ready to render, except water / ocean.
-    createCubemaps(scene, processor, drawCommands);
+    createCubemaps(scene, commands, bucketMap);
 
     // Update the GPU metadata buffers for the freshly created cubemaps
     processor.updateMetadataCubemaps(SSBOs_.metadata);
@@ -75,7 +81,7 @@ void Renderer::initializeResources(Scene &scene)
     updateCameraUBO(scene);
 }
 
-void Renderer::takeBuffers(SceneProcessor::ProcessedScene &processed)
+void Renderer::takeGPUObjects(SceneProcessor::ProcessedScene &processed)
 {
     VAO_ = std::move(processed.vao);
     SSBOs_ = std::move(processed.ssbos);
@@ -84,9 +90,35 @@ void Renderer::takeBuffers(SceneProcessor::ProcessedScene &processed)
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, SSBOs_.drawCommands);
 }
 
+void Renderer::takeBufferData(SceneProcessor::ProcessedScene &processed)
+{
+    drawBuckets_ = std::move(processed.bufferData.buckets);
+    matricesBaseIndex_ = std::move(processed.bufferData.matricesBaseIndexMap);
+}
+
+void Renderer::setLocalGroupSizes(const SceneProcessor::ProcessedScene &processed,
+                                  const std::vector<DrawElementsIndirectCommand> &commands,
+                                  const std::vector<std::size_t> vertexCounts, const BucketMap &bucketMap)
+{
+    using enum ShaderType;
+
+    cullWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneData.numInstances);
+    compactionWorkGroupSize_ = static_cast<std::uint32_t>(commands.size());
+
+    for (const auto &[key, bucket] : bucketMap)
+    {
+        if (key.first == particles)
+        {
+            for (std::size_t i{bucket.startIndex}; i <= bucket.endIndex; ++i)
+                particleWorkGroupSize_ += static_cast<std::uint32_t>(vertexCounts[i]);
+        }
+    }
+}
+
 void Renderer::setSceneShaderUniforms(Scene &scene)
 {
     const DirectionalLight &light{scene.getGlobalLight()};
+    const float fov{scene.getCamera().getFOV()};
 
     for (auto &shader : shaders_)
     {
@@ -96,37 +128,49 @@ void Renderer::setSceneShaderUniforms(Scene &scene)
 
         shader.setFloat("windStrength", scene.getWindStrength());
         shader.setVec3("windDirection", scene.getWindDirection());
+
+        shader.setFloat("fov", fov);
     }
 }
 
-void Renderer::borrowSkybox(const SceneProcessor &processor)
+void Renderer::borrowSkybox(const BucketMap &bucketMap)
 {
     using enum ShaderType;
+    using enum fastgltf::AlphaMode;
 
-    auto skyboxHandle = processor.getSkyboxHandle();
-    auto oceanInfo = processor.getShaderBucketInfo(ocean);
+    auto skyboxIter = bucketMap.find(ShaderBucket{skybox, Opaque});
+    auto oceanIter = bucketMap.find(ShaderBucket{ocean, Opaque});
 
-    if (!skyboxHandle.has_value() || !oceanInfo.has_value())
+    if (skyboxIter == bucketMap.end() || oceanIter == bucketMap.end())
         return;
 
-    for (Handle &oceanHandle : oceanInfo.value().handles)
-        textureManager_.borrowCubemaps(oceanHandle, skyboxHandle.value());
+    if (skyboxIter->second.handles.empty())
+        return;
+
+    Handle skyboxHandle{*skyboxIter->second.handles.begin()};
+
+    for (const Handle &oceanHandle : oceanIter->second.handles)
+        textureManager_.borrowCubemaps(oceanHandle, skyboxHandle);
 }
 
-void Renderer::createCubemaps(Scene &scene, const SceneProcessor &processor,
-                              std::vector<DrawElementsIndirectCommand> &commands)
+void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndirectCommand> &commandsSource,
+                              const BucketMap &bucketMap)
 {
     using enum ShaderType;
+    using enum fastgltf::AlphaMode;
 
-    auto optWaterInfo = processor.getShaderBucketInfo(water);
+    auto waterIter = bucketMap.find(ShaderBucket{water, Blend});
 
-    if (!optWaterInfo.has_value())
+    if (waterIter == bucketMap.end())
         return;
 
-    auto &waterInfo = optWaterInfo.value();
+    std::size_t commandsStart{waterIter->second.startIndex};
+    std::size_t commandsEnd{waterIter->second.endIndex};
+
+    std::vector<DrawElementsIndirectCommand> commands = commandsSource;
 
     // Ensure reflections don't capture uninitialized other reflections or self geometry
-    for (std::size_t i{waterInfo.drawCommandsStartIndex}; i < waterInfo.drawCommandsStartIndex + waterInfo.size; ++i)
+    for (std::size_t i{commandsStart}; i <= commandsEnd; ++i)
         commands[i].count = 0;
 
     // Update the draw command buffer now that water is invisible

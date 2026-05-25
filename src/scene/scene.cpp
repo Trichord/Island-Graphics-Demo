@@ -24,6 +24,45 @@
 #include "transform.h"
 #include "json/json.hpp"
 
+namespace
+{
+void validateSceneEntry(Scene::Entry &entry)
+{
+    using enum ShaderType;
+    using enum fastgltf::AlphaMode;
+
+    if (entry.shaderType == ocean)
+    {
+        if (entry.primitives.front().alphaMode == Opaque)
+            return;
+
+        for (Primitive &primitive : entry.primitives)
+        {
+            if (primitive.alphaMode == Opaque)
+                continue;
+
+            std::cerr << "WARNING: Overriding ocean shader primitive alpha mode wtih Opaque" << std::endl;
+            primitive.alphaMode = Opaque;
+        }
+    }
+
+    if (entry.shaderType == water)
+    {
+        if (entry.primitives.front().alphaMode == Blend)
+            return;
+
+        for (Primitive &primitive : entry.primitives)
+        {
+            if (primitive.alphaMode == Blend)
+                continue;
+
+            std::cerr << "WARNING: Overriding water shader primitive alpha mode wtih Blend" << std::endl;
+            primitive.alphaMode = Blend;
+        }
+    }
+}
+} // namespace
+
 Scene::Scene(TextureManager &textureManager, const GraphicsSettings &graphicsSettings,
              const std::filesystem::path &jsonFile)
     : textureManager_{textureManager}
@@ -100,13 +139,31 @@ std::unordered_set<Handle> &Scene::getUpdatedModels()
 void Scene::loadGLTFTextures(Handle handle, const Model &model)
 {
     const std::filesystem::path modelPath{model.getPath()};
-    textureManager_.loadModelTextures(handle, model.getAsset(), modelPath.parent_path());
+
+    if (model.getAsset().materials.empty())
+        textureManager_.addDefaultMaterial(handle);
+    else
+        textureManager_.loadModelTextures(handle, model.getAsset(), modelPath.parent_path());
+}
+
+void Scene::addParticles(Handle handle, const Particles &particles)
+{
+    textureManager_.addDefaultMaterial(handle);
+
+    entries_.emplace_back(Entry{
+        .handle = handle,
+        .aabb = particles.getAABB(),
+        .primitives = particles.getPrimitives(),
+        .transforms = {{}},
+        .shaderType = ShaderType::particles,
+    });
 }
 
 void Scene::addSkybox(Handle handle, const Skybox &skybox)
 {
     const std::filesystem::path image{skybox.getPath()};
 
+    textureManager_.addDefaultMaterial(handle);
     textureManager_.loadCubemapTextures(handle, image);
 
     entries_.emplace_back(Entry{
@@ -229,6 +286,15 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
         Handle handle{textureManager_.assignHandle()};
 
         std::visit(overloaded{
+                       [&](const ParticlesEntry &entry) {
+                           Particles particles{entry.position,       entry.extent,   entry.color,
+                                               entry.colorVariation, entry.lifetime, entry.count};
+                           addParticles(handle, particles);
+                       },
+                       [&](const SkyboxEntry &entry) {
+                           Skybox skybox{entry.skyboxPath};
+                           addSkybox(handle, skybox);
+                       },
                        [&](const ModelEntry &entry) {
                            Model model{entry.modelPath};
                            addModel(handle, model, entry.transform, entry.shader, entry.name);
@@ -244,13 +310,10 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
                            addCubemappedModel(handle, model, entry.cubemapPath, entry.transform, entry.shader,
                                               entry.name);
                        },
-                       [&](const SkyboxEntry &entry) {
-                           Skybox skybox{entry.skyboxPath};
-                           addSkybox(handle, skybox);
-                       },
                    },
                    sceneEntry);
 
+        validateSceneEntry(entries_.back());
         entriesByHandle_[handle] = entryIndex;
     }
 }

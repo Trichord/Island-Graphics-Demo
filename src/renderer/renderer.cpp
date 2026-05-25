@@ -23,10 +23,13 @@
 #include "thread_pool.h"
 #include "transform.h"
 
+namespace
+{
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.111f};
 constexpr float alphaCutoff{0.425f};
 constexpr int shadowMapMSAA{2};
+} // namespace
 
 const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix);
 
@@ -56,10 +59,8 @@ Renderer::Renderer(ThreadPool &threadPool, TextureManager &textureManager, const
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getColorTextureID());
 }
 
-void Renderer::renderScene(Scene &scene)
+void Renderer::renderScene(Scene &scene, float deltaTime)
 {
-    ++framesRendered_;
-
     glClearNamedFramebufferfv(0, GL_COLOR, 0, clearColor_.data());
     glClearNamedFramebufferfv(0, GL_DEPTH, 0, &depthClear_);
 
@@ -68,6 +69,8 @@ void Renderer::renderScene(Scene &scene)
 
     updateSceneTransforms(scene);
     updateShaderUniforms(scene, lightChanged);
+    updateTimeUBO(deltaTime);
+    updateParticles(deltaTime);
 
     if (framesRendered_ % 2u && graphicsSettings_.shadowResolution > 1 || lightChanged)
         renderShadowMaps(scene, lightChanged);
@@ -77,6 +80,8 @@ void Renderer::renderScene(Scene &scene)
 
     cullScene(scene.getCamera().getViewProjectionMatrix());
     renderScene();
+
+    ++framesRendered_;
 }
 
 void Renderer::loadShaders()
@@ -84,29 +89,29 @@ void Renderer::loadShaders()
     using enum ShaderType;
 
     if (graphicsSettings_.shadowResolution > 1)
-        shaders_[shaderIndex(directionalPBR)] = GraphicsShader{directionalPBR, "./shaders/directional_PBR_shadow.vert",
-                                                               "./shaders/directional_PBR_shadow.frag"};
+        shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR_shadow.vert",
+                                                 "./shaders/directional_PBR_shadow.frag"};
     else
-        shaders_[shaderIndex(directionalPBR)] =
-            GraphicsShader{directionalPBR, "./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag"};
+        shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR.vert",
+                                                 "./shaders/directional_PBR.frag"};
 
-    shaders_[shaderIndex(grass)] = GraphicsShader{grass, "./shaders/grass.vert", "./shaders/grass.frag"};
-    shaders_[shaderIndex(trees)] = GraphicsShader{trees, "./shaders/trees.vert", "./shaders/trees.frag"};
-    shaders_[shaderIndex(reflective)] =
-        GraphicsShader{reflective, "./shaders/reflective.vert", "./shaders/reflective.frag"};
-    shaders_[shaderIndex(skybox)] = GraphicsShader{skybox, "./shaders/skybox.vert", "./shaders/skybox.frag"};
-    shaders_[shaderIndex(water)] = GraphicsShader{water, "./shaders/water.vert", "./shaders/water.frag"};
-    shaders_[shaderIndex(ocean)] = GraphicsShader{ocean, "./shaders/water.vert", "./shaders/ocean.frag"};
+    shaders_[shaderIndex(grass)] = {grass, "./shaders/grass.vert", "./shaders/grass.frag"};
+    shaders_[shaderIndex(trees)] = {trees, "./shaders/trees.vert", "./shaders/trees.frag"};
+    shaders_[shaderIndex(reflective)] = {reflective, "./shaders/reflective.vert", "./shaders/reflective.frag"};
+    shaders_[shaderIndex(skybox)] = {skybox, "./shaders/skybox.vert", "./shaders/skybox.frag"};
+    shaders_[shaderIndex(water)] = {water, "./shaders/water.vert", "./shaders/water.frag"};
+    shaders_[shaderIndex(ocean)] = {ocean, "./shaders/water.vert", "./shaders/ocean.frag"};
+    shaders_[shaderIndex(particles)] = {particles, "./shaders/particles.vert", "./shaders/particles.frag"};
 
     // Internal use only shaders
-    shaders_[shaderIndex(shadowMap)] =
-        GraphicsShader{shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
-    shaders_[shaderIndex(shadowMapAlpha)] =
-        GraphicsShader{shadowMapAlpha, "./shaders/shadow_pass_alpha.vert", "./shaders/shadow_pass_alpha.frag"};
+    shaders_[shaderIndex(shadowMap)] = {shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
+    shaders_[shaderIndex(shadowMapAlpha)] = {shadowMapAlpha, "./shaders/shadow_pass_alpha.vert",
+                                             "./shaders/shadow_pass_alpha.frag"};
 
     // Compute
-    cullShader_ = ComputeShader{"./shaders/frustum_cull.comp"};
-    compactionShader_ = ComputeShader{"./shaders/compact_draws.comp"};
+    cullShader_ = {"./shaders/frustum_cull.comp"};
+    compactionShader_ = {"./shaders/compact_draws.comp"};
+    particleShader_ = {"./shaders/particles.comp"};
 }
 
 void Renderer::setupShader(GraphicsShader &shader)
@@ -117,6 +122,8 @@ void Renderer::setupShader(GraphicsShader &shader)
 
     // Setup Window settings
     shader.setFloat("gamma", graphicsSettings_.gamma);
+    shader.setInt("screenHeight", graphicsSettings_.screenHeight);
+    shader.setInt("screenWidth", graphicsSettings_.screenWidth);
 }
 
 void Renderer::updateCameraUBO(Scene &scene)
@@ -129,15 +136,24 @@ void Renderer::updateCameraUBO(Scene &scene)
     uniforms.viewProjectionMatrix = camera.getViewProjectionMatrix();
     uniforms.inverseViewProjectMatrix = glm::inverse(uniforms.viewProjectionMatrix);
     uniforms.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
-    uniforms.time = static_cast<float>(glfwGetTime());
 
-    glNamedBufferSubData(UBOs_.camera, 0, sizeof(PackedCameraUniforms), &uniforms);
+    glNamedBufferSubData(UBOs_.camera, 0, static_cast<GLsizeiptr>(sizeof(PackedCameraUniforms)), &uniforms);
 }
 
 void Renderer::updateFrustumPlanesUBO(const glm::mat4 &cullMatrix)
 {
     const std::array<glm::vec4, 6> planes{getFrustumPlanes(cullMatrix)};
-    glNamedBufferSubData(UBOs_.frustumPlanes, 0, 6 * sizeof(glm::vec4), planes.data());
+    glNamedBufferSubData(UBOs_.frustumPlanes, 0, static_cast<GLsizeiptr>(6 * sizeof(glm::vec4)), planes.data());
+}
+
+void Renderer::updateTimeUBO(float deltaTime)
+{
+    PackedTime time{
+        .deltaTime = framesRendered_ == 0 ? 0.0f : deltaTime,
+        .timeElapsed = static_cast<float>(glfwGetTime()),
+    };
+
+    glNamedBufferSubData(UBOs_.time, 0, static_cast<GLsizeiptr>(sizeof(PackedTime)), &time);
 }
 
 void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll)
@@ -186,7 +202,7 @@ void Renderer::updateSceneTransforms(Scene &scene)
     for (Handle handle : updatedTransformHandles)
     {
         std::uint32_t bufferBaseIndex{matricesBaseIndex_.at(handle)};
-        std::vector<Transform>& transforms{scene.getEntryByHandle(handle).transforms};
+        std::vector<Transform> &transforms{scene.getEntryByHandle(handle).transforms};
 
         updatedMatrices_.clear();
         updatedMatrices_.reserve(transforms.size());
@@ -213,18 +229,19 @@ TextureManager &Renderer::getTextureManager()
 
 void Renderer::cullScene(const glm::mat4 &cullMatrix)
 {
+    constexpr int shaderLocalSize{64};
+
     glClearNamedBufferData(SSBOs_.drawCounts, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
     glClearNamedBufferData(SSBOs_.cullResults, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
 
     updateFrustumPlanesUBO(cullMatrix);
 
     cullShader_.use();
-    cullShader_.dispatch((cullWorkGroupSize_ + (ComputeShader::localSize - 1u)) / ComputeShader::localSize, 1u, 1u);
+    cullShader_.dispatch((cullWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     compactionShader_.use();
-    compactionShader_.dispatch((compactionWorkGroupSize_ + (ComputeShader::localSize - 1u)) / ComputeShader::localSize,
-                               1u, 1u);
+    compactionShader_.dispatch((compactionWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT);
 }
 
@@ -255,4 +272,19 @@ const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
     normalizePlane(far);
 
     return {left, right, top, bottom, near, far};
+}
+
+void Renderer::updateParticles(float deltaTime)
+{
+    constexpr int shaderLocalSize{64};
+
+    if (!particleWorkGroupSize_)
+        return;
+
+    particleShader_.use();
+
+    int particleCount{static_cast<int>(particleWorkGroupSize_)};
+    particleShader_.dispatch((particleCount + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
+
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 }

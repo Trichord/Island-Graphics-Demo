@@ -74,6 +74,11 @@ Handle TextureManager::assignHandle()
     return handle;
 }
 
+void TextureManager::addDefaultMaterial(const Handle handle)
+{
+    addMaterials(handle, 1);
+}
+
 void TextureManager::loadModelTextures(const Handle handle, const fastgltf::Asset &asset,
                                        const std::filesystem::path &parentPath)
 {
@@ -93,18 +98,9 @@ void TextureManager::loadCubemapTextures(const Handle handle, const std::filesys
     auto materials = findMaterials(handle);
     std::vector<int> materialIndices;
 
-    if (materials.empty())
-    {
-        // Handle edge case where we specifically loaded a cubemap but the model has no materials.
-        materialIndices = {0};
-        addMaterials(handle, 1);
-    }
-    else
-    {
-        // Every model gets one cubemap
-        materialIndices.resize(materials.size());
-        std::iota(materialIndices.begin(), materialIndices.end(), 0);
-    }
+    // Every model gets one cubemap
+    materialIndices.resize(materials.size());
+    std::iota(materialIndices.begin(), materialIndices.end(), 0);
 
     deferredTextures_.emplace_back(AssetLoader::DeferredTexture{
         .handle = handle,
