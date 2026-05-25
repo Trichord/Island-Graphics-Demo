@@ -61,8 +61,6 @@ Renderer::Renderer(ThreadPool &threadPool, TextureManager &textureManager, const
 
 void Renderer::renderScene(Scene &scene, float deltaTime)
 {
-    ++framesRendered_;
-
     glClearNamedFramebufferfv(0, GL_COLOR, 0, clearColor_.data());
     glClearNamedFramebufferfv(0, GL_DEPTH, 0, &depthClear_);
 
@@ -82,6 +80,8 @@ void Renderer::renderScene(Scene &scene, float deltaTime)
 
     cullScene(scene.getCamera().getViewProjectionMatrix());
     renderScene();
+
+    ++framesRendered_;
 }
 
 void Renderer::loadShaders()
@@ -149,7 +149,7 @@ void Renderer::updateFrustumPlanesUBO(const glm::mat4 &cullMatrix)
 void Renderer::updateTimeUBO(float deltaTime)
 {
     PackedTime time{
-        .deltaTime = deltaTime,
+        .deltaTime = framesRendered_ == 0 ? 0.0f : deltaTime,
         .timeElapsed = static_cast<float>(glfwGetTime()),
     };
 
