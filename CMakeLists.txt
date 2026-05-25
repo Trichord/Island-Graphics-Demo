@@ -46,7 +46,13 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 # Compiler options
 
-target_compile_options(${PROJECT_NAME} PRIVATE /permissive-)
+target_compile_options(${PROJECT_NAME} PRIVATE
+    /permissive-
+    $<$<CONFIG:Release>:/GL /Ot /Gy /GR->
+)
+target_link_options(${PROJECT_NAME} PRIVATE
+    $<$<CONFIG:Release>:/LTCG>
+)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     JPH_USE_AVX2
