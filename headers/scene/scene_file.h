@@ -17,6 +17,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(ShaderType, {{ShaderType::directionalPBR, "directio
                                           {ShaderType::grass, "grass"},
                                           {ShaderType::water, "water"},
                                           {ShaderType::ocean, "ocean"},
+                                          {ShaderType::particles, "particles"},
                                           {ShaderType::skybox, "skybox"}})
 
 struct ModelEntry
@@ -44,6 +45,16 @@ struct CubeMappedModelEntry
     std::filesystem::path modelPath;
     std::filesystem::path cubemapPath;
     ShaderType shader{ShaderType::directionalPBR};
+};
+
+struct ParticlesEntry
+{
+    glm::vec3 position{0.0f};
+    glm::vec3 extent{0.0f};
+    glm::vec4 color{0.0f};
+    glm::vec4 colorVariation{0.0f};
+    float lifetime{0.0f};
+    int count{0};
 };
 
 struct SkyboxEntry
@@ -74,7 +85,7 @@ struct SceneCamera
     float FOV{45.0f};
 };
 
-using SceneEntry = std::variant<ModelEntry, InstancedModelEntry, CubeMappedModelEntry, SkyboxEntry>;
+using SceneEntry = std::variant<ModelEntry, InstancedModelEntry, CubeMappedModelEntry, SkyboxEntry, ParticlesEntry>;
 
 struct SceneDescription
 {
@@ -89,11 +100,16 @@ inline glm::vec3 parseVec3(const nlohmann::json &j)
     return {j.at(0).get<float>(), j.at(1).get<float>(), j.at(2).get<float>()};
 }
 
+inline glm::vec4 parseVec4(const nlohmann::json &j)
+{
+    return {j.at(0).get<float>(), j.at(1).get<float>(), j.at(2).get<float>(), j.at(3).get<float>()};
+}
+
 inline void from_json(const nlohmann::json &j, Transform &t)
 {
     t = Transform{
         j.contains("position") ? parseVec3(j.at("position")) : glm::vec3{0.0f},
-        j.contains("scale") ? parseVec3(j.at("scale")) : glm::vec3{1.0f},
+        j.contains("scale") ? glm::vec3{j.at("scale").get<float>()} : glm::vec3{1.0f},
         j.value("rotationDegrees", 0.0f),
         j.contains("rotationAxis") ? parseVec3(j.at("rotationAxis")) : glm::vec3{0.0, 1.0, 0.0},
     };
@@ -101,7 +117,7 @@ inline void from_json(const nlohmann::json &j, Transform &t)
 
 inline void from_json(const nlohmann::json &j, ModelEntry &model)
 {
-    model.name = j.value("name", "");
+    model.name = j.value("name", std::string{});
     model.transform = j.value("transform", Transform{});
     model.modelPath = j.value("modelPath", std::filesystem::path{});
     model.shader = j.value("shader", ShaderType::directionalPBR);
@@ -109,7 +125,7 @@ inline void from_json(const nlohmann::json &j, ModelEntry &model)
 
 inline void from_json(const nlohmann::json &j, InstancedModelEntry &model)
 {
-    model.name = j.value("name", "");
+    model.name = j.value("name", std::string{});
     model.minScale = j.value("minScale", 1.0f);
     model.maxScale = j.value("maxScale", 1.0f);
     model.modelPath = j.value("modelPath", std::filesystem::path{});
@@ -119,11 +135,21 @@ inline void from_json(const nlohmann::json &j, InstancedModelEntry &model)
 
 inline void from_json(const nlohmann::json &j, CubeMappedModelEntry &model)
 {
-    model.name = j.value("name", "");
+    model.name = j.value("name", std::string{});
     model.transform = j.value("transform", Transform{});
     model.modelPath = j.value("modelPath", std::filesystem::path{});
     model.cubemapPath = j.value("cubemapPath", std::filesystem::path{});
     model.shader = j.value("shader", ShaderType::directionalPBR);
+}
+
+inline void from_json(const nlohmann::json &j, ParticlesEntry &particle)
+{
+    particle.position = j.contains("position") ? parseVec3(j.at("position")) : glm::vec3{0.0f};
+    particle.extent = j.contains("extent") ? parseVec3(j.at("extent")) : glm::vec3{0.0f};
+    particle.color = j.contains("color") ? parseVec4(j.at("color")) : glm::vec4{1.0f};
+    particle.colorVariation = j.contains("colorVariation") ? parseVec4(j.at("colorVariation")) : glm::vec4{0.0f};
+    particle.lifetime = j.value("lifetime", 0.0f);
+    particle.count = j.value("count", 0);
 }
 
 inline void from_json(const nlohmann::json &j, SkyboxEntry &skybox)
@@ -166,6 +192,8 @@ inline SceneEntry parseSceneEntry(const nlohmann::json &j)
         return j.get<InstancedModelEntry>();
     if (type == "skybox")
         return j.get<SkyboxEntry>();
+    if (type == "particles")
+        return j.get<ParticlesEntry>();
 
     std::cerr << "ERROR: could not load model type " << type << std::endl;
     throw nlohmann::json::type_error::create(302, "Unknown model type: " + type, &j);

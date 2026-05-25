@@ -5,11 +5,11 @@
 #include <iostream>
 #include <iterator>
 #include <limits>
-#include <optional>
 #include <span>
 #include <stdexcept>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -24,13 +24,13 @@
 #include "primitive.h"
 #include "renderer_types.h"
 #include "scene.h"
+#include "shader_bucket_hash.h"
 #include "texture_manager.h"
 #include "textures.h"
 #include "transform.h"
 
 namespace
 {
-
 AABB getSceneBounds(Scene &scene)
 {
     glm::vec3 min{std::numeric_limits<float>::infinity()};
@@ -57,44 +57,17 @@ AABB getSceneBounds(Scene &scene)
 
     return {min, max};
 }
-
-void processSceneError()
-{
-    std::cerr << "ERROR: SceneProcessor::processScene() has not been called" << std::endl;
-    throw std::logic_error("SceneProcessor::processScene() has not been called");
-}
-
-void drawEntriesError()
-{
-    std::cerr << "ERROR: Draw entries empty on a non-empty scene" << std::endl;
-    throw std::logic_error("Draw entries empty");
-}
-
-void metadataError()
-{
-    std::cerr << "ERROR: metadata empty on a non-empty scene" << std::endl;
-    throw std::logic_error("metadata empty");
-}
-
-void drawCommandsError()
-{
-    std::cerr << "ERROR: Draw commands or buckets not built" << std::endl;
-    throw std::logic_error("Draw commands or buckets empty");
-}
-
 } // namespace
 
-SceneProcessor::SceneProcessor(Scene &scene, TextureManager &textureManager) : textureManager_{textureManager}
+SceneProcessor::SceneProcessor(Scene &scene, TextureManager &textureManager)
+    : sceneAABB_{getSceneBounds(scene)}, totals_{getSceneTotals(scene)}, drawEntries_{createDrawEntries(scene)},
+      textureManager_{textureManager}
 {
-    if (scene.getAllSceneEntries().empty())
-    {
-        std::cerr << "ERROR: SceneProcessor called with empty scene" << std::endl;
-        throw std::logic_error("SceneProcessor called with empty scene");
-    }
+}
 
-    sceneAABB_ = getSceneBounds(scene);
-    sceneTotals_ = getSceneTotals(scene);
-    createDrawEntries(scene);
+std::size_t SceneProcessor::getNumDynamicCubemaps() const
+{
+    return totals_.dynamicCubemaps;
 }
 
 SceneProcessor::ProcessedScene SceneProcessor::processScene()
@@ -106,89 +79,43 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
         throw std::logic_error("SceneProcessor::processScene() called before TextureManager::buildAllTextures()");
     }
 
-    // Must be in order of draw entries (built from scene) -> commands -> buckets
-    createDrawCommands();
-    createDrawBuckets();
+    // Staging
+    auto VAO = createVAO(drawEntries_);
+    auto matricesMap = createMatricesBaseIndexMap(drawEntries_);
+    auto shaderBucketMap = createShaderBucketMap(drawEntries_);
+    auto commands = createDrawCommands(drawEntries_);
+    auto buckets = createDrawBuckets(drawEntries_);
+    auto AABBs = createAABBs(drawEntries_);
+    auto vertexCounts = createVertexCounts(drawEntries_);
+    auto particleMap = createParticleBufferMap(drawEntries_);
+    auto matrices = createMatrices(drawEntries_);
+    auto metadata = createMetadata(drawEntries_);
+    auto visibilityMap = createVisibilityBufferMap(drawEntries_, metadata, buckets, matricesMap);
 
-    // Everything below relies on draw entries, commands, and buckets.
-    calculateBufferSizes();
-    createAABBs();
+    // GPU data upload
+    auto bufferSizes = calculateBufferSizes(commands, buckets);
+    auto SSBOs = createSSBOs(commands, matrices, metadata, visibilityMap, particleMap, AABBs, bufferSizes);
 
-    // Must be after draw commands and AABBs, since those are uploaded and immutable
-    createSSBOHandles();
-
-    // Metadata and buffer uploads. Must be after all SSBO handles are created
-    createAndUploadMatrices();
-    createAndUploadMetadata();
-    createAndUploadBufferMap();
-    createVAO();
-
-    sceneProcessed_ = true;
+    // Only store this so the metadata cubemaps can be updated later
+    metadata_ = std::move(metadata);
 
     return {
-        .ssbos = std::move(SSBOs_),
-        .vao = std::move(vao_),
-        .buckets = std::move(drawBuckets_),
-        .commands = std::move(drawCommands_),
-        .matricesBaseIndexMap = std::move(matricesBaseIndex_),
-        .worldAABB = std::move(sceneAABB_),
-        .numInstances = sceneTotals_.instances,
-        .numPrimitives = sceneTotals_.primitives,
-    };
-}
-
-void SceneProcessor::calculateBufferSizes()
-{
-    if (drawCommands_.empty() || drawBuckets_.empty())
-        drawCommandsError();
-
-    bufferSizes_.metadata = drawCommands_.size() * sizeof(PrimitiveMetadata);
-    bufferSizes_.matrices = sceneTotals_.matrices * sizeof(glm::mat4);
-    bufferSizes_.bufferMap = sceneTotals_.instances * sizeof(BufferMap);
-    bufferSizes_.drawCounts = drawBuckets_.size() * sizeof(std::uint32_t);
-    bufferSizes_.cullResults = drawCommands_.size() * sizeof(std::uint32_t);
-    bufferSizes_.visibleInstances = sceneTotals_.instances * sizeof(std::uint32_t);
-}
-
-std::size_t SceneProcessor::getNumDynamicCubemaps() const
-{
-    return sceneTotals_.dynamicCubemaps;
-}
-
-std::optional<Handle> SceneProcessor::getSkyboxHandle() const
-{
-    auto skyboxIter = std::ranges::lower_bound(drawEntries_, ShaderType::skybox, {}, &DrawEntry::shaderType);
-
-    if (skyboxIter == drawEntries_.end())
-        return {};
-    else
-        return skyboxIter->handle;
-}
-
-std::optional<SceneProcessor::ShaderBucketInfo> SceneProcessor::getShaderBucketInfo(ShaderType shader) const
-{
-    if (!sceneProcessed_)
-        processSceneError();
-
-    ShaderBucketInfo info;
-
-    for (std::size_t i{0}; i < drawEntries_.size(); ++i)
-    {
-        if (drawEntries_[i].shaderType == shader)
-        {
-            info.drawCommandsStartIndex = i;
-
-            while (i < drawEntries_.size() && drawEntries_[i].shaderType == shader)
+        .ssbos = std::move(SSBOs),
+        .vao = std::move(VAO),
+        .sceneData =
             {
-                info.handles.push_back(drawEntries_[i++].handle);
-                ++info.size;
-            }
-
-            return info;
-        }
-    }
-
-    return {};
+                .worldAABB = std::move(sceneAABB_),
+                .numInstances = totals_.instances,
+            },
+        .bufferData =
+            {
+                .buckets = std::move(buckets),
+                .matricesBaseIndexMap = std::move(matricesMap),
+            },
+        .commands = std::move(commands),
+        .vertexCounts = std::move(vertexCounts),
+        .bucketMap = std::move(shaderBucketMap),
+    };
 }
 
 SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene)
@@ -218,48 +145,115 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene)
 }
 
 // Build up all scene entries by shader type
-void SceneProcessor::createDrawEntries(Scene &scene)
+std::vector<SceneProcessor::DrawEntry> SceneProcessor::createDrawEntries(Scene &scene)
 {
-    drawEntries_.reserve(sceneTotals_.primitives);
+    std::vector<DrawEntry> drawEntries;
+    drawEntries.reserve(totals_.primitives);
 
     for (Scene::Entry &entry : scene.getAllSceneEntries())
     {
-        std::uint32_t numTransforms{static_cast<std::uint32_t>(entry.transforms.size())};
-
         for (Primitive &primitive : entry.primitives)
         {
             using enum fastgltf::AlphaMode;
 
-            drawEntries_.emplace_back(DrawEntry{.handle = entry.handle,
-                                                .primitive = &primitive,
-                                                .transforms = entry.transforms,
-                                                .shaderType = entry.shaderType,
-                                                .alphaMode = primitive.alphaMode});
+            drawEntries.emplace_back(DrawEntry{.handle = entry.handle,
+                                               .primitive = &primitive,
+                                               .transforms = entry.transforms,
+                                               .shaderType = entry.shaderType,
+                                               .alphaMode = primitive.alphaMode});
         }
     }
 
-    std::ranges::sort(drawEntries_, [](const DrawEntry &a, const DrawEntry &b) {
+    std::ranges::sort(drawEntries, [](const DrawEntry &a, const DrawEntry &b) {
         return std::tie(a.shaderType, a.alphaMode) < std::tie(b.shaderType, b.alphaMode);
     });
+
+    return drawEntries;
 }
 
-void SceneProcessor::createDrawCommands()
+std::vector<std::size_t> SceneProcessor::createVertexCounts(const std::vector<DrawEntry> &entries)
 {
-    if (drawEntries_.empty())
-        drawEntriesError();
+    std::vector<std::size_t> vertexCounts;
+    vertexCounts.reserve(entries.size());
 
-    drawCommands_.reserve(sceneTotals_.primitives);
+    for (const DrawEntry &entry : entries)
+        vertexCounts.emplace_back(entry.primitive->vertices.size());
+
+    return vertexCounts;
+}
+
+BufferBuilder::Sizes SceneProcessor::calculateBufferSizes(const std::vector<DrawElementsIndirectCommand> &commands,
+                                                          const std::vector<MultiDrawBucket> &buckets)
+{
+    BufferBuilder::Sizes bufferSizes;
+
+    bufferSizes.metadata = commands.size() * sizeof(PrimitiveMetadata);
+    bufferSizes.matrices = totals_.matrices * sizeof(glm::mat4);
+    bufferSizes.bufferMap = totals_.instances * sizeof(VisibilityBufferMap);
+    bufferSizes.drawCounts = buckets.size() * sizeof(std::uint32_t);
+    bufferSizes.cullResults = commands.size() * sizeof(std::uint32_t);
+    bufferSizes.visibleInstances = totals_.instances * sizeof(std::uint32_t);
+
+    return bufferSizes;
+}
+
+std::vector<AABB> SceneProcessor::createAABBs(const std::vector<DrawEntry> &entries)
+{
+    std::vector<AABB> AABBs;
+    AABBs.reserve(totals_.primitives);
+
+    for (const DrawEntry &entry : entries)
+    {
+        const AABB &aabb{entry.primitive->aabb};
+        AABBs.emplace_back(aabb);
+    }
+
+    return AABBs;
+}
+
+std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> SceneProcessor::createShaderBucketMap(
+    const std::vector<DrawEntry> &entries)
+{
+    std::unordered_map<ShaderBucket, BucketData, ShaderBucketHash> bucketMap;
+
+    for (std::size_t i{0}; i < entries.size(); ++i)
+    {
+        const DrawEntry &entry{entries[i]};
+
+        auto [iter, inserted] = bucketMap.try_emplace(std::pair{entry.shaderType, entry.alphaMode});
+        auto &bucketData = iter->second;
+
+        if (inserted)
+        {
+            bucketData.startIndex = i;
+            bucketData.endIndex = i;
+        }
+        else
+        {
+            bucketData.endIndex = i;
+        }
+
+        bucketData.handles.emplace(entry.handle);
+    }
+
+    return bucketMap;
+}
+
+std::vector<DrawElementsIndirectCommand> SceneProcessor::createDrawCommands(const std::vector<DrawEntry> &entries)
+{
+    std::vector<DrawElementsIndirectCommand> commands;
+    commands.reserve(totals_.primitives);
 
     std::size_t vaoIndex{0};
     std::size_t eboIndex{0};
 
-    for (std::size_t i{0}; i < drawEntries_.size(); ++i)
+    for (std::size_t i{0}; i < entries.size(); ++i)
     {
-        DrawEntry &entry{drawEntries_[i]};
-        Primitive &primitive{*entry.primitive};
-        std::size_t numIndices{primitive.indices.size()};
+        const DrawEntry &entry{entries[i]};
+        const Primitive &primitive{*entry.primitive};
+        const std::size_t numIndices{primitive.indices.size()};
 
-        drawCommands_.emplace_back(
+        commands.emplace_back(
             DrawElementsIndirectCommand{.count = static_cast<unsigned int>(numIndices),
                                         .instanceCount = static_cast<unsigned int>(entry.transforms.size()),
                                         .firstIndex = static_cast<unsigned int>(eboIndex),
@@ -269,41 +263,31 @@ void SceneProcessor::createDrawCommands()
         vaoIndex += primitive.vertices.size();
         eboIndex += numIndices;
     }
+
+    return commands;
 }
 
-void SceneProcessor::createAABBs()
-{
-    AABBs_.reserve(sceneTotals_.primitives);
-
-    for (const DrawEntry &entry : drawEntries_)
-    {
-        const AABB &aabb{entry.primitive->aabb};
-        AABBs_.emplace_back(aabb);
-    }
-}
-
-void SceneProcessor::createDrawBuckets()
+std::vector<MultiDrawBucket> SceneProcessor::createDrawBuckets(const std::vector<DrawEntry> &entries)
 {
     using enum ShaderType;
     using enum fastgltf::AlphaMode;
 
-    if (drawEntries_.empty())
-        drawEntriesError();
+    std::vector<MultiDrawBucket> buckets;
 
-    ShaderType currentShaderType{drawEntries_.front().shaderType};
-    fastgltf::AlphaMode currentAlphaMode{drawEntries_.front().alphaMode};
+    ShaderType currentShaderType{entries.front().shaderType};
+    fastgltf::AlphaMode currentAlphaMode{entries.front().alphaMode};
 
     std::uint32_t start{0};
     std::uint32_t end{0};
 
-    for (const DrawEntry &entry : drawEntries_)
+    for (const DrawEntry &entry : entries)
     {
         if (currentShaderType != entry.shaderType || currentAlphaMode != entry.alphaMode)
         {
-            drawBuckets_.emplace_back(MultiDrawBucket{.size = end - start,
-                                                      .drawCommandsBaseIndex = start,
-                                                      .shaderType = currentShaderType,
-                                                      .alphaMode = currentAlphaMode});
+            buckets.emplace_back(MultiDrawBucket{.maxDrawCalls = end - start,
+                                                 .drawCommandsBaseIndex = start,
+                                                 .shaderType = currentShaderType,
+                                                 .alphaMode = currentAlphaMode});
 
             start = end;
             currentShaderType = entry.shaderType;
@@ -314,86 +298,117 @@ void SceneProcessor::createDrawBuckets()
     }
 
     if (end - start > 0)
-        drawBuckets_.emplace_back(MultiDrawBucket{
-            .size = end - start,
+        buckets.emplace_back(MultiDrawBucket{
+            .maxDrawCalls = end - start,
             .drawCommandsBaseIndex = start,
             .shaderType = currentShaderType,
             .alphaMode = currentAlphaMode,
         });
+
+    return buckets;
 }
 
-void SceneProcessor::createAndUploadMatrices()
+std::unordered_map<Handle, std::uint32_t> SceneProcessor::createMatricesBaseIndexMap(
+    const std::vector<DrawEntry> &entries)
 {
-    if (!buffersBuilt_ || !SSBOs_.matrices)
-    {
-        std::cerr << "ERROR: Matrices buffer not built" << std::endl;
-        throw std::logic_error("Matrices buffer not built");
-    }
-
-    if (drawEntries_.empty())
-        drawEntriesError();
-
     std::uint32_t matricesIndex{0};
-    matrices_.reserve(sceneTotals_.matrices);
+    std::unordered_map<Handle, std::uint32_t> baseIndices;
 
-    for (std::size_t i{0}; i < drawEntries_.size(); ++i)
+    for (std::size_t i{0}; i < entries.size(); ++i)
     {
-        auto [iter, inserted] = matricesBaseIndex_.try_emplace(drawEntries_[i].handle);
+        auto [iter, inserted] = baseIndices.try_emplace(entries[i].handle);
 
         if (inserted)
         {
-            for (Transform &transform : drawEntries_[i].transforms)
-                matrices_.emplace_back(transform.getModelMatrix());
-
             iter->second = matricesIndex;
-            matricesIndex += static_cast<std::uint32_t>(drawEntries_[i].transforms.size());
+            matricesIndex += static_cast<std::uint32_t>(entries[i].transforms.size());
         }
     }
-    glNamedBufferSubData(SSBOs_.matrices, 0, static_cast<GLsizeiptr>(matrices_.size() * sizeof(glm::mat4)),
-                         matrices_.data());
+
+    return baseIndices;
 }
 
-void SceneProcessor::createAndUploadMetadata()
+GlobalVAO SceneProcessor::createVAO(const std::vector<DrawEntry> &entries)
 {
-    if (!buffersBuilt_ || !SSBOs_.metadata)
+    std::vector<Primitive::Vertex> vertices;
+    std::vector<std::uint32_t> indices;
+
+    vertices.reserve(totals_.vertices);
+    indices.reserve(totals_.indices);
+
+    for (const DrawEntry &entry : entries)
     {
-        std::cerr << "ERROR: Metadata buffer not built" << std::endl;
-        throw std::logic_error("Metadata buffer not built");
+        std::copy(entry.primitive->vertices.begin(), entry.primitive->vertices.end(), std::back_inserter(vertices));
+        std::copy(entry.primitive->indices.begin(), entry.primitive->indices.end(), std::back_inserter(indices));
     }
 
-    metadata_.resize(drawEntries_.size());
-    setVisibleInstancesBaseIndex();
-    setMetadataMaterials();
-
-    glNamedBufferSubData(SSBOs_.metadata, 0, static_cast<GLsizeiptr>(metadata_.size() * sizeof(PrimitiveMetadata)),
-                         metadata_.data());
+    BufferBuilder builder;
+    return builder.buildVAO(vertices, indices);
 }
 
-void SceneProcessor::setVisibleInstancesBaseIndex()
+SSBOs SceneProcessor::createSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
+                                  const std::vector<glm::mat4> &matrices,
+                                  const std::vector<PrimitiveMetadata> &metadata,
+                                  const std::vector<VisibilityBufferMap> &visibilityMap,
+                                  const std::vector<ParticleBufferMap> &particleMap, const std::vector<AABB> &aabbs,
+                                  BufferBuilder::Sizes sizes)
 {
-    if (drawEntries_.empty())
-        drawEntriesError();
+    BufferBuilder builder;
+    return builder.buildSSBOs(commands, matrices, metadata, visibilityMap, particleMap, aabbs, sizes);
+}
 
+std::vector<glm::mat4> SceneProcessor::createMatrices(const std::vector<DrawEntry> &entries)
+{
+    std::vector<glm::mat4> matrices;
+    matrices.reserve(totals_.matrices);
+
+    std::unordered_set<Handle> seenHandles;
+
+    for (std::size_t i{0}; i < entries.size(); ++i)
+    {
+        auto [iter, inserted] = seenHandles.emplace(entries[i].handle);
+
+        if (inserted)
+        {
+            for (Transform &transform : entries[i].transforms)
+                matrices.emplace_back(transform.getModelMatrix());
+        }
+    }
+
+    return matrices;
+}
+
+std::vector<PrimitiveMetadata> SceneProcessor::createMetadata(const std::vector<DrawEntry> &entries)
+{
+    std::vector<PrimitiveMetadata> metadata;
+    metadata.resize(entries.size());
+    setVisibleInstancesBaseIndex(entries, metadata);
+    setMetadataMaterials(entries, metadata);
+
+    return metadata;
+}
+
+void SceneProcessor::setVisibleInstancesBaseIndex(const std::vector<DrawEntry> &entries,
+                                                  std::vector<PrimitiveMetadata> &metadata)
+{
     std::uint32_t visibleIndex{0};
 
-    for (std::size_t i{0}; i < drawEntries_.size(); ++i)
+    for (std::size_t i{0}; i < entries.size(); ++i)
     {
-        const std::size_t numTransforms{drawEntries_[i].transforms.size()};
+        const std::size_t numTransforms{entries[i].transforms.size()};
 
-        metadata_[i].visibleInstancesBaseIndex = visibleIndex;
+        metadata[i].visibleInstancesBaseIndex = visibleIndex;
         visibleIndex += static_cast<std::uint32_t>(numTransforms);
     }
 }
 
-void SceneProcessor::setMetadataMaterials()
+void SceneProcessor::setMetadataMaterials(const std::vector<DrawEntry> &entries,
+                                          std::vector<PrimitiveMetadata> &metadata)
 {
-    if (drawEntries_.empty())
-        drawEntriesError();
-
-    for (std::size_t i{0}; i < drawEntries_.size(); ++i)
+    for (std::size_t i{0}; i < entries.size(); ++i)
     {
-        const DrawEntry &entry{drawEntries_[i]};
-        PrimitiveMetadata &metaEntry{metadata_[i]};
+        const DrawEntry &entry{entries[i]};
+        PrimitiveMetadata &metaEntry{metadata[i]};
 
         const int matIndex{entry.primitive->materialIndex};
         std::span<const Material> materials{textureManager_.getMaterials(entry.handle)};
@@ -424,38 +439,32 @@ void SceneProcessor::setMetadataMaterials()
     }
 }
 
-void SceneProcessor::createAndUploadBufferMap()
+std::vector<VisibilityBufferMap> SceneProcessor::createVisibilityBufferMap(
+    const std::vector<SceneProcessor::DrawEntry> &entries, const std::vector<PrimitiveMetadata> &metadata,
+    const std::vector<MultiDrawBucket> &buckets, const std::unordered_map<Handle, std::uint32_t> matricesMap)
 {
-    if (drawEntries_.empty())
-        drawEntriesError();
+    std::vector<VisibilityBufferMap> map;
+    map.reserve(totals_.instances);
 
-    if (metadata_.empty())
-        metadataError();
-
-    if (drawCommands_.empty() || drawBuckets_.empty())
-        drawCommandsError();
-
-    bufferMap_.reserve(sceneTotals_.instances);
-
-    for (std::size_t i{0}; i < drawBuckets_.size(); ++i)
+    for (std::size_t i{0}; i < buckets.size(); ++i)
     {
-        MultiDrawBucket &bucket{drawBuckets_[i]};
+        const MultiDrawBucket &bucket{buckets[i]};
 
-        for (std::uint32_t j{bucket.drawCommandsBaseIndex}; j < bucket.drawCommandsBaseIndex + bucket.size; ++j)
+        for (std::uint32_t j{bucket.drawCommandsBaseIndex}; j < bucket.drawCommandsBaseIndex + bucket.maxDrawCalls; ++j)
         {
-            const Handle handle{drawEntries_[j].handle};
-            const PrimitiveMetadata &metadata{metadata_[j]};
-            const std::span<Transform> transforms{drawEntries_[j].transforms};
+            const Handle handle{entries[j].handle};
+            const PrimitiveMetadata &metaEntry{metadata[j]};
+            const std::span<Transform> transforms{entries[j].transforms};
 
-            const std::uint32_t matricesBufferBaseIndex{matricesBaseIndex_.at(handle)};
-            const std::uint32_t visibleInstancesBufferBaseIndex{metadata.visibleInstancesBaseIndex};
+            const std::uint32_t matricesBufferBaseIndex{matricesMap.at(handle)};
+            const std::uint32_t visibleInstancesBufferBaseIndex{metaEntry.visibleInstancesBaseIndex};
             const std::uint32_t currentBucket{static_cast<std::uint32_t>(i)};
 
             for (std::size_t k{0}; k < transforms.size(); ++k)
             {
-                bufferMap_.emplace_back(BufferMap{
+                map.emplace_back(VisibilityBufferMap{
                     .matricesIndex = matricesBufferBaseIndex + static_cast<std::uint32_t>(k),
-                    .sharedBaseIndex = j,
+                    .sharedIndex = j,
                     .drawBucket = currentBucket,
                     .drawCommandsBaseIndex = bucket.drawCommandsBaseIndex,
                     .visibleInstancesBaseIndex = visibleInstancesBufferBaseIndex,
@@ -464,71 +473,54 @@ void SceneProcessor::createAndUploadBufferMap()
         }
     }
 
-    glNamedBufferSubData(SSBOs_.map, 0, static_cast<GLsizeiptr>(bufferMap_.size() * sizeof(BufferMap)),
-                         bufferMap_.data());
+    return map;
 }
 
-void SceneProcessor::createVAO()
+std::vector<ParticleBufferMap> SceneProcessor::createParticleBufferMap(const std::vector<DrawEntry> &entries)
 {
-    if (drawEntries_.empty())
-        drawEntriesError();
+    std::size_t currentVertex{0};
+    std::vector<ParticleBufferMap> particleMap;
 
-    std::vector<Primitive::Vertex> vertices;
-    std::vector<std::uint32_t> indices;
-
-    vertices.reserve(sceneTotals_.vertices);
-    indices.reserve(sceneTotals_.indices);
-
-    for (const DrawEntry &entry : drawEntries_)
+    for (std::size_t i{0}; i < entries.size(); ++i)
     {
-        std::copy(entry.primitive->vertices.begin(), entry.primitive->vertices.end(), std::back_inserter(vertices));
-        std::copy(entry.primitive->indices.begin(), entry.primitive->indices.end(), std::back_inserter(indices));
+        if (entries[i].shaderType == ShaderType::particles)
+        {
+            for (std::size_t j{0}; j < entries[i].primitive->vertices.size(); ++j)
+            {
+                std::uint32_t vboIndex{static_cast<std::uint32_t>(currentVertex + j)};
+                std::uint32_t sharedIndex{static_cast<std::uint32_t>(i)};
+
+                particleMap.emplace_back(ParticleBufferMap{.vboIndex = vboIndex, .sharedIndex = sharedIndex});
+            }
+        }
+
+        currentVertex += entries[i].primitive->vertices.size();
     }
 
-    BufferBuilder builder;
-    vao_ = builder.buildVAO(vertices, indices);
-}
-
-void SceneProcessor::createSSBOHandles()
-{
-    if (drawCommands_.empty())
-        drawCommandsError();
-
-    if (AABBs_.empty())
-    {
-        std::cerr << "ERROR: AABBs not built" << std::endl;
-        throw std::logic_error("AABBs not built");
-    }
-
-    BufferBuilder builder;
-    SSBOs_ = builder.buildSSBOs(drawCommands_, AABBs_, bufferSizes_);
-    buffersBuilt_ = true;
+    return particleMap;
 }
 
 void SceneProcessor::updateMetadataCubemaps(GLuint metadataBufferID)
 {
-    if (!sceneProcessed_)
-        processSceneError();
-
-    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(drawEntries_.size()); ++i)
+    for (std::size_t i{0}; i < drawEntries_.size(); ++i)
     {
         using enum ShaderType;
 
-        if (drawEntries_[i].shaderType == water || drawEntries_[i].shaderType == ocean)
-        {
-            PrimitiveMetadata &metaEntry{metadata_[i]};
+        if (drawEntries_[i].shaderType != water && drawEntries_[i].shaderType != ocean)
+            continue;
 
-            const Handle handle{drawEntries_[i].handle};
-            const Primitive &primitive{*drawEntries_[i].primitive};
-            std::span<const Material> materials{textureManager_.getMaterials(handle)};
-            const Material &material{materials[primitive.materialIndex]};
+        PrimitiveMetadata &metaEntry{metadata_[i]};
 
-            const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
-            metaEntry.cubemapArray = cubemap.array;
-            metaEntry.cubemapLayer = cubemap.layer;
+        const Handle handle{drawEntries_[i].handle};
+        const Primitive &primitive{*drawEntries_[i].primitive};
+        std::span<const Material> materials{textureManager_.getMaterials(handle)};
+        const Material &material{materials[primitive.materialIndex]};
 
-            glNamedBufferSubData(metadataBufferID, static_cast<GLintptr>(i * sizeof(PrimitiveMetadata)),
-                                 static_cast<GLsizeiptr>(sizeof(PrimitiveMetadata)), &metaEntry);
-        }
+        const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
+        metaEntry.cubemapArray = cubemap.array;
+        metaEntry.cubemapLayer = cubemap.layer;
+
+        glNamedBufferSubData(metadataBufferID, static_cast<GLintptr>(i * sizeof(PrimitiveMetadata)),
+                             static_cast<GLsizeiptr>(sizeof(PrimitiveMetadata)), &metaEntry);
     }
 }

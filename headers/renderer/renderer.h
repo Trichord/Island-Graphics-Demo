@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "aabb.h"
 #include "buffers.h"
 #include "cascade_shadow.h"
 #include "compute_shader.h"
@@ -19,6 +18,7 @@
 #include "renderer_types.h"
 #include "scene.h"
 #include "scene_processor.h"
+#include "shader_bucket_hash.h"
 #include "texture_manager.h"
 #include "thread_pool.h"
 
@@ -31,13 +31,15 @@ class Renderer
     Renderer(Renderer &&other) = delete;
     Renderer &operator=(Renderer &&other) = delete;
 
-    void renderScene(Scene &scene);
     void initializeResources(Scene &scene);
+    void renderScene(Scene &scene, float deltaTime);
 
     std::uint32_t getFrameCount() const;
     TextureManager &getTextureManager();
 
   private:
+    using BucketMap = std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash>;
+
     std::uint32_t framesRendered_{0};
     static constexpr float depthClear_{1.0f};
     static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
@@ -57,7 +59,7 @@ class Renderer
     UBOs UBOs_;
     SSBOs SSBOs_;
     GlobalVAO VAO_;
-    
+
     // Textures
     CascadeShadow cascadeShadow_;
     RenderTarget msaaShadowTarget_;
@@ -69,21 +71,27 @@ class Renderer
     // Compute Shaders
     ComputeShader cullShader_;
     ComputeShader compactionShader_;
+    ComputeShader particleShader_;
     std::uint32_t cullWorkGroupSize_{0};
     std::uint32_t compactionWorkGroupSize_{0};
+    std::uint32_t particleWorkGroupSize_{0};
 
-    // Shaders and Uniforms
+    // Initialization
     void loadShaders();
     void setupShader(GraphicsShader &shader);
-    void setSceneShaderUniforms(Scene &scene);
 
     // Setup
-    void takeBuffers(SceneProcessor::ProcessedScene &processed);
+    void setSceneShaderUniforms(Scene &scene);
+    void takeBufferData(SceneProcessor::ProcessedScene &processed);
+    void takeGPUObjects(SceneProcessor::ProcessedScene &processed);
+    void setLocalGroupSizes(const SceneProcessor::ProcessedScene &processed,
+                            const std::vector<DrawElementsIndirectCommand> &commands,
+                            const std::vector<std::size_t> vertexCounts, const BucketMap &bucketMap);
 
     // Cubemap Generation
-    void borrowSkybox(const SceneProcessor &processor);
-    void createCubemaps(Scene &scene, const SceneProcessor &processor,
-                        std::vector<DrawElementsIndirectCommand> &commands);
+    void borrowSkybox(const BucketMap &bucketMap);
+    void createCubemaps(Scene &scene, const std::vector<DrawElementsIndirectCommand> &commandsSource,
+                        const BucketMap &bucketMap);
     void renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget);
 
     // Drawing
@@ -93,6 +101,8 @@ class Renderer
     void shadowPass(GraphicsShader &shader, int cascade, bool alphaTested);
 
     // Updates
+    void updateTimeUBO(float deltaTime);
+    void updateParticles(float deltaTime);
     void updateCameraUBO(Scene &scene);
     void updateSceneTransforms(Scene &scene);
     void updateFrustumPlanesUBO(const glm::mat4 &cullMatrix);
