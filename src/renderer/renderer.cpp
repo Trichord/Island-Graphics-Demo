@@ -34,15 +34,16 @@ const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix);
 
 Renderer::Renderer(ThreadPool &threadPool, TextureManager &textureManager, const GraphicsSettings &settings)
     : graphicsSettings_{settings}, threadPool_{threadPool}, textureManager_{textureManager},
-      shadowPassTarget_{settings.shadowResolution,
-                        settings.shadowResolution,
-                        {
-                            .depthType = RenderTarget::DepthType::texture,
-                            .depthFormat = GL_DEPTH_COMPONENT24,
-                            .textureArray = true,
-                            .textureArrayDepth = shadowCascadeCount,
-                            .shadowMap = true,
-                        }}
+      shadowPassTarget_{settings.shadowResolution ? RenderTarget{settings.shadowResolution,
+                                                                 settings.shadowResolution,
+                                                                 {
+                                                                     .depthType = RenderTarget::DepthType::texture,
+                                                                     .depthFormat = GL_DEPTH_COMPONENT24,
+                                                                     .textureArray = true,
+                                                                     .textureArrayDepth = shadowCascadeCount,
+                                                                     .shadowMap = true,
+                                                                 }}
+                                                  : RenderTarget{}}
 {
     loadShaders();
 
@@ -65,7 +66,7 @@ void Renderer::renderScene(Scene &scene, float deltaTime)
     updateTimeUBO(deltaTime);
     updateParticles(deltaTime);
 
-    if (graphicsSettings_.shadowResolution > 1 && (framesRendered_ % 2u || lightChanged))
+    if (graphicsSettings_.shadowResolution && (framesRendered_ % 2u || lightChanged))
         renderShadowMaps(scene, lightChanged);
 
     if (cameraUpdated)
@@ -81,7 +82,7 @@ void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    if (graphicsSettings_.shadowResolution > 1)
+    if (graphicsSettings_.shadowResolution)
         shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR_shadow.vert",
                                                  "./shaders/directional_PBR_shadow.frag"};
     else

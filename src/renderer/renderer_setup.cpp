@@ -83,7 +83,7 @@ void Renderer::initializeResources(Scene &scene)
 
 void Renderer::takeGPUObjects(SceneProcessor::ProcessedScene &processed)
 {
-    VAO_ = std::move(processed.vao);
+    VAOs_ = std::move(processed.vao);
     SSBOs_ = std::move(processed.ssbos);
 
     glBindBuffer(GL_PARAMETER_BUFFER, SSBOs_.drawCounts);

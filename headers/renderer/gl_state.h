@@ -12,6 +12,7 @@ class GLState
     void bindTexture(GLuint unit, GLuint id);
     void setAlphaMode(fastgltf::AlphaMode mode);
     void setDepthFunction(GLenum depthFunction);
+    void setVAO(GLint vao);
 
   private:
     bool a2cEnabled_{false};
@@ -19,6 +20,8 @@ class GLState
     bool cullFaceEnabled_{false};
 
     GLenum currentDepthFunc_{GL_LESS};
+
+    GLuint currentVAO_{0};
 
     std::vector<GLuint> textureUnits_;
 };

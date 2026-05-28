@@ -15,8 +15,8 @@ struct Metadata
 };
 
 // Attributes
-layout (location = 0) in vec3 aPos;
-layout (location = 3) in vec2 aTexCoords;
+layout (location = 0) in vec4 aPos;
+layout (location = 1) in vec2 aTexCoords;
 
 // UBOs
 layout (std140, binding = 2) uniform cascadeShadows
@@ -60,5 +60,5 @@ void main()
 	texCoords = aTexCoords;
 	metadataIndex = gl_BaseInstance;
 
-	gl_Position = lightMatrices[cascade] * modelMatrix * vec4(aPos, 1.0);;
+	gl_Position = lightMatrices[cascade] * modelMatrix * aPos;
 }

@@ -47,7 +47,7 @@ class SceneProcessor
     struct ProcessedScene
     {
         SSBOs ssbos;
-        GlobalVAO vao;
+        VAOs vao;
         SceneData sceneData;
         BufferData bufferData;
         std::vector<DrawElementsIndirectCommand> commands;
@@ -119,7 +119,7 @@ class SceneProcessor
         const std::vector<MultiDrawBucket> &buckets, const std::unordered_map<Handle, std::uint32_t> matricesMap);
 
     // GPU data creation
-    [[nodiscard]] GlobalVAO createVAO(const std::vector<DrawEntry> &entries);
+    [[nodiscard]] VAOs createVAO(const std::vector<DrawEntry> &entries);
     [[nodiscard]] SSBOs createSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
                                     const std::vector<glm::mat4> &matrices,
                                     const std::vector<PrimitiveMetadata> &metadata,
