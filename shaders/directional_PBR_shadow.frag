@@ -16,13 +16,14 @@ struct Metadata
 
 // Constants
 const float INVERSE_PI = 0.31830988618;
-const float minVariance = 0.000001;
+const float minVariance = 0.0000001;
 const int cascadeCount = 3;
-const float lightBleedReduction = 0.2;
+const float lightBleedReduction = 0.486496;
+
 
 // Samplers
-layout(binding = 0) uniform sampler2DArray textures[10];
-layout(binding = 13) uniform sampler2DArray shadowMap;
+layout(binding = 0) uniform sampler2DArray textures[11];
+layout(binding = 14) uniform sampler2DArray shadowMap;
 
 // UBOs
 layout (std140, binding = 2) uniform cascadeShadow

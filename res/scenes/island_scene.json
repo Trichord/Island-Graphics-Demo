@@ -25,9 +25,20 @@
       "type": "model",
       "transform": {
         "position": [-220.61097, -6.58, -140.05396],
-        "rotationDegrees": -65.0
+        "rotation": [0.0, -65.0, 0.0]
       },
       "modelPath": "./res/models/set_pieces/statue/statue.gltf",
+      "shader": "directionalPBR"
+    },
+    {
+      "type": "model",
+      "name": "boat",
+      "transform": {
+        "position": [-256.687, -9.91824, 35.649],
+        "rotation": [1.19411, -6.05362, -19.0008],
+        "scale": 0.02
+      },
+      "modelPath": "./res/models/set_pieces/boat/boat.gltf",
       "shader": "directionalPBR"
     },
     {
@@ -188,7 +199,7 @@
       "type": "model",
       "transform": {
         "position": [196.18584, -0.93, 154.62890],
-        "rotationDegrees": 45.0
+        "rotation": [0.0, 45.0, 0.0]
       },
       "modelPath": "./res/models/trees/dead_tree/dead_tree.gltf",
       "shader": "directionalPBR"

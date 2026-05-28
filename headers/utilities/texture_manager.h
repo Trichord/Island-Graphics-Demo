@@ -20,8 +20,8 @@
 namespace TextureUnit
 {
 static constexpr int array2DBase{0};
-static constexpr int arrayCubemapBase{10};
-static constexpr int shadow{13};
+static constexpr int arrayCubemapBase{11};
+static constexpr int shadow{14};
 } // namespace TextureUnit
 
 class TextureManager

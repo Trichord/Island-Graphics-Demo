@@ -107,12 +107,12 @@ inline glm::vec4 parseVec4(const nlohmann::json &j)
 
 inline void from_json(const nlohmann::json &j, Transform &t)
 {
-    t = Transform{
-        j.contains("position") ? parseVec3(j.at("position")) : glm::vec3{0.0f},
-        j.contains("scale") ? glm::vec3{j.at("scale").get<float>()} : glm::vec3{1.0f},
-        j.value("rotationDegrees", 0.0f),
-        j.contains("rotationAxis") ? parseVec3(j.at("rotationAxis")) : glm::vec3{0.0, 1.0, 0.0},
-    };
+    t = Transform{j.contains("position") ? parseVec3(j.at("position")) : glm::vec3{0.0f},
+                  j.contains("scale") ? glm::vec3{j.at("scale").get<float>()} : glm::vec3{1.0f}, 0.0f};
+
+    glm::vec3 rotation{j.contains("rotation") ? parseVec3(j.at("rotation")) : glm::vec3{0.0f}};
+
+    t.setAbsoluteRotation(rotation);
 }
 
 inline void from_json(const nlohmann::json &j, ModelEntry &model)

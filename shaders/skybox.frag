@@ -25,7 +25,7 @@ layout (std140, binding = 0) uniform cameraData
 };
 
 // Samplers
-layout(binding = 10) uniform samplerCubeArray cubemaps[3];
+layout(binding = 11) uniform samplerCubeArray cubemaps[3];
 
 // SSBOs
 layout(binding = 3, std430) restrict readonly buffer metadataSSBO

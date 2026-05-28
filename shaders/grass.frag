@@ -20,7 +20,7 @@ const int cascadeCount = 3;
 const float lightBleedReduction = 0.2;
 
 // Samplers
-layout(binding = 0) uniform sampler2DArray textures[10];
+layout(binding = 0) uniform sampler2DArray textures[11];
 
 // SSBOs
 layout(binding = 3, std430) restrict readonly buffer metadataSSBO

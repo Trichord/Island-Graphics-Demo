@@ -39,7 +39,7 @@ TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &s
      * all cubemaps get an SRGB cubemap. ArrayTexture fallback support for different internal formats is minimal.
      */
 
-    arrayTextures_.reserve(10);
+    arrayTextures_.reserve(11);
 
     arrayTextures_.emplace_back(ArrayTexture{4096, 4096, GL_COMPRESSED_RG_RGTC2});
     arrayTextures_.emplace_back(ArrayTexture{4096, 4096, GL_COMPRESSED_RGBA_BPTC_UNORM});
@@ -54,6 +54,7 @@ TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &s
     arrayTextures_.emplace_back(ArrayTexture{1024, 1024, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM});
 
     arrayTextures_.emplace_back(ArrayTexture{512, 512, GL_COMPRESSED_RG_RGTC2, true});
+    arrayTextures_.emplace_back(ArrayTexture{512, 512, GL_COMPRESSED_RGBA_BPTC_UNORM});
 
     arrayCubemaps_.reserve(3);
 
