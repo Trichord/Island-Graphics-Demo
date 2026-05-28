@@ -20,7 +20,8 @@ layout (location = 0) in vec3 aPos;
 // UBOs
 layout (std140, binding = 2) uniform cascadeShadows
 {
-    vec4 splits;
+	vec4 near;
+    vec4 far;
     mat4 lightMatrices[3];
 };
 

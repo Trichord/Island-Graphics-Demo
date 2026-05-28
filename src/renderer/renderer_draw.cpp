@@ -66,7 +66,6 @@ void Renderer::renderScene()
 
 void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
 {
-    msaaShadowTarget_.bind();
     glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
 
     GraphicsShader &shadowShader{shaders_[shaderIndex(ShaderType::shadowMap)]};
@@ -90,6 +89,8 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
     // Only update outer cascade if the light changed
     int cascadeCount{lightChanged ? shadowCascadeCount : shadowCascadeCount - 1};
 
+    shadowPassTarget_.bind();
+
     // Tighter cascades depend on player location and have to be updated
     for (int i{0}; i < cascadeCount; ++i)
     {
@@ -97,7 +98,8 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
 
         const glm::mat4 lightVP{cascades[i].viewProjection};
 
-        msaaShadowTarget_.clear();
+        shadowPassTarget_.setTextureLayer(i);
+        shadowPassTarget_.clear();
 
         cullScene(lightVP);
 
@@ -108,13 +110,9 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
         // Alpha tested geometry
         shadowAlphaShader.use();
         shadowPass(shadowAlphaShader, i, true);
-
-        // Hardware filter the variance shadow map
-        shadowPassTarget_.setTextureLayer(i);
-        msaaShadowTarget_.blitTo(shadowPassTarget_);
     }
 
-    msaaShadowTarget_.unbind();
+    shadowPassTarget_.unbind();
     glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
 }
 

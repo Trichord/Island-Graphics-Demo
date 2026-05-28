@@ -14,9 +14,6 @@ struct Metadata
 	uint visibleInstancesBaseIndex;
 };
 
-// Constants
-const float lightBleedReduction = 0.2f;
-
 // Samplers
 layout(binding = 0) uniform sampler2DArray textures[11];
 
@@ -30,18 +27,6 @@ layout(binding = 3, std430) restrict readonly buffer metadataSSBO
 in vec2 texCoords;
 in flat int metadataIndex;
 
-// Out
-out vec2 fragColor;
-
-//Credit: Andrew Lauritzen
-vec2 computeMoments(float depth)
-{
-  vec2 moments;
-  moments.x = depth;
-  moments.y = depth * depth;
-  return moments;
-}
-
 void main()
 {	
 	Metadata meta = metadata[metadataIndex];
@@ -52,6 +37,4 @@ void main()
 
 	if (alpha < 0.1)
 		discard;
-
-	fragColor = computeMoments(gl_FragCoord.z);
 }

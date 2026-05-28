@@ -15,7 +15,7 @@ struct Metadata
 };
 
 // Constants
-const float INVERSE_PI = 0.31830988618;
+const float inversePi = 0.31830988618;
 
 // Samplers
 layout(binding = 0) uniform sampler2DArray textures[11];
@@ -134,7 +134,7 @@ void main()
 	// Burley diffuse
 	float FD90 = 0.5 + 2 * roughness * (HdotV * HdotV);
 	float burleyFactor = burleyDiffuseFactor(FD90, NdotL, NdotV);
-	vec3 diffuse = kD * albedo.rgb * INVERSE_PI * burleyFactor;
+	vec3 diffuse = kD * albedo.rgb * inversePi * burleyFactor;
 
 	vec3 accumulatedLight = diffuse * lightColor * NdotL;
 	

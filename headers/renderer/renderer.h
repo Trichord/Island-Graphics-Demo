@@ -62,7 +62,6 @@ class Renderer
 
     // Textures
     CascadeShadow cascadeShadow_;
-    RenderTarget msaaShadowTarget_;
     RenderTarget shadowPassTarget_;
 
     // Drawing

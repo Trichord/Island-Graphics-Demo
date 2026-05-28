@@ -8,20 +8,21 @@ class RenderTarget
   public:
     enum class DepthType
     {
-        NONE,
+        none,
         RBO,
-        TEXTURE
+        texture
     };
 
     struct Settings
     {
-        int msaa{2};
-        DepthType depthType{DepthType::RBO};
-        GLenum internalFormat{GL_SRGB8};
-        GLenum depthFormat{GL_DEPTH_COMPONENT24};
+        int msaa{0};
+        DepthType depthType{DepthType::none};
+        GLenum internalFormat{GL_NONE};
+        GLenum depthFormat{GL_NONE};
         bool textureArray{false};
         GLsizei textureArrayDepth{1};
         bool generateMipmaps{false};
+        bool shadowMap{false};
     };
 
     RenderTarget(int width, int height, Settings settings);
@@ -54,7 +55,7 @@ class RenderTarget
     int layers_{1};
     int width_{1920};
     int height_{1080};
-    
+
     GLuint FBO_{0};
     GLuint depthRBO_{0};
     GLuint colorTextureID_{0};
@@ -63,4 +64,12 @@ class RenderTarget
 
     void createRenderTarget(int width, int height, const Settings &settings);
     void createMSAARenderTarget(int width, int height, const Settings &settings);
+
+    void createRBO(int width, int height, const Settings &settings);
+    void createDepthTexture(int width, int height, GLenum target, const Settings &settings);
+    void createColorTexture(int width, int height, int mipLevels, GLenum target, const Settings &settings);
+
+    void createMultisampleRBO(int width, int height, const Settings &settings);
+    void createMultisampleTexture(int width, int height, const Settings &settings);
+    void createMultisampleColorTexture(int width, int height, const Settings &settings);
 };

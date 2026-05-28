@@ -195,19 +195,18 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndire
     GLenum colorFormat{textureManager_.getReflectionColorFormat()};
     RenderTarget cubeFaces{faceSize, faceSize,
                            RenderTarget::Settings{.msaa = graphicsSettings_.msaa,
-                                                  .depthType = RenderTarget::DepthType::TEXTURE,
+                                                  .depthType = RenderTarget::DepthType::texture,
                                                   .internalFormat = colorFormat,
                                                   .depthFormat = GL_DEPTH_COMPONENT24,
                                                   .textureArray = true,
                                                   .textureArrayDepth = 6}};
 
     RenderTarget blitTarget{faceSize, faceSize,
-                            RenderTarget::Settings{.msaa = 0,
-                                                   .depthType = RenderTarget::DepthType::NONE,
-                                                   .internalFormat = colorFormat,
-                                                   .depthFormat = GL_NONE,
-                                                   .textureArray = true,
-                                                   .textureArrayDepth = 6}};
+                            RenderTarget::Settings{
+                                .internalFormat = colorFormat,
+                                .textureArray = true,
+                                .textureArrayDepth = 6,
+                            }};
 
     cubeFaces.bind();
 
