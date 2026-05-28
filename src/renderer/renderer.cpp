@@ -28,35 +28,28 @@ namespace
 // Scale mipmaps and alpha cutoff for foliage
 constexpr float mipScale{0.111f};
 constexpr float alphaCutoff{0.425f};
-constexpr int shadowMapMSAA{2};
 } // namespace
 
 const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix);
 
 Renderer::Renderer(ThreadPool &threadPool, TextureManager &textureManager, const GraphicsSettings &settings)
     : graphicsSettings_{settings}, threadPool_{threadPool}, textureManager_{textureManager},
-      msaaShadowTarget_{settings.shadowResolution,
-                        settings.shadowResolution,
-                        {.msaa = shadowMapMSAA,
-                         .depthType = RenderTarget::DepthType::RBO,
-                         .internalFormat = GL_RG32F,
-                         .depthFormat = GL_DEPTH_COMPONENT32F}},
-
       shadowPassTarget_{settings.shadowResolution,
                         settings.shadowResolution,
-                        {.msaa = 0,
-                         .depthType = RenderTarget::DepthType::NONE,
-                         .internalFormat = GL_RG32F,
-                         .depthFormat = GL_NONE,
-                         .textureArray = true,
-                         .textureArrayDepth = shadowCascadeCount}}
+                        {
+                            .depthType = RenderTarget::DepthType::texture,
+                            .depthFormat = GL_DEPTH_COMPONENT24,
+                            .textureArray = true,
+                            .textureArrayDepth = shadowCascadeCount,
+                            .shadowMap = true,
+                        }}
 {
     loadShaders();
 
     for (auto &shader : shaders_)
         setupShader(shader);
 
-    glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getColorTextureID());
+    glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getDepthMapTextureID());
 }
 
 void Renderer::renderScene(Scene &scene, float deltaTime)
@@ -72,7 +65,7 @@ void Renderer::renderScene(Scene &scene, float deltaTime)
     updateTimeUBO(deltaTime);
     updateParticles(deltaTime);
 
-    if (framesRendered_ % 2u && graphicsSettings_.shadowResolution > 1 || lightChanged)
+    if (graphicsSettings_.shadowResolution > 1 && (framesRendered_ % 2u || lightChanged))
         renderShadowMaps(scene, lightChanged);
 
     if (cameraUpdated)
@@ -169,8 +162,10 @@ void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChange
 
     if (uploadAll)
     {
-        cascadeShadows.splits = {cascades[0].far, cascades[1].far, cascades[2].far, 0.0f};
-        bytes += sizeof(cascadeShadows.splits);
+        cascadeShadows.near = {cascades[0].near, cascades[1].near, cascades[2].near, 0.0f};
+        cascadeShadows.far = {cascades[0].far, cascades[1].far, cascades[2].far, 0.0f};
+        bytes += sizeof(cascadeShadows.far);
+        bytes += sizeof(cascadeShadows.near);
     }
 
     int cascadesCount{lightChanged ? shadowCascadeCount : shadowCascadeCount - 1};

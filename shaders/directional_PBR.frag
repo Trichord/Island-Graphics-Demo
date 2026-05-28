@@ -15,11 +15,10 @@ struct Metadata
 };
 
 // Constants
-const float INVERSE_PI = 0.31830988618;
+const float inversePi = 0.31830988618;
 
 // Samplers
 layout(binding = 0) uniform sampler2DArray textures[11];
-layout(binding = 12) uniform sampler2DArray shadowMap;
 
 // SSBOs
 layout(binding = 3, std430) restrict readonly buffer metadataSSBO
@@ -55,7 +54,7 @@ float distributionGGX(float NdotH, float roughness)
 	float denom = fma(NdotH2, a2 - 1.0, 1.0);
 	float denom2 = denom * denom;
 
-	return a2 * INVERSE_PI / denom2;
+	return a2 * inversePi / denom2;
 }
 
 // Smith's method with Schlick-GGX for geometric shadowing.  k = (a + 1)^2 / 8
@@ -163,7 +162,7 @@ void main()
 	// Burley diffuse
 	float FD90 = 0.5 + 2 * roughness * (HdotV * HdotV);
 	float burleyFactor = burleyDiffuseFactor(FD90, NdotL, NdotV);
-	vec3 fD = albedo.rgb * INVERSE_PI * burleyFactor;
+	vec3 fD = albedo.rgb * inversePi * burleyFactor;
 
 	vec3 diffuse = kD * fD;
 

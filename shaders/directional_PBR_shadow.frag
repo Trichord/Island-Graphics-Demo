@@ -15,20 +15,19 @@ struct Metadata
 };
 
 // Constants
-const float INVERSE_PI = 0.31830988618;
-const float minVariance = 0.0000001;
+const float shadowBias = -0.0005;
+const float inversePi = 0.31830988618;
 const int cascadeCount = 3;
-const float lightBleedReduction = 0.486496;
-
 
 // Samplers
 layout(binding = 0) uniform sampler2DArray textures[11];
-layout(binding = 14) uniform sampler2DArray shadowMap;
+layout(binding = 14) uniform sampler2DArrayShadow shadowMap;
 
 // UBOs
 layout (std140, binding = 2) uniform cascadeShadow
 {
-    vec4 splits;
+	vec4 near;
+    vec4 far;
     mat4 lightMatrices[3];
 };
 
@@ -68,7 +67,7 @@ float distributionGGX(float NdotH, float roughness)
 	float denom = fma(NdotH2, a2 - 1.0, 1.0);
 	float denom2 = denom * denom;
 
-	return a2 * INVERSE_PI / denom2;
+	return a2 * inversePi / denom2;
 }
 
 // Smith's method with Schlick-GGX for geometric shadowing.  k = (a + 1)^2 / 8
@@ -114,44 +113,24 @@ float burleyDiffuseFactor(float FD90, float NdotL, float NdotV)
 	return (1.0 + FDminusOne * L5) * (1.0 + FDminusOne * V5); 
 }
 
-// Andrew Lauritzen - "Summed-Area Variance Shadow Maps"
-float ChebyshevUpperBound(vec2 moments, float t)
-{
-  // One-tailed inequality valid if t > Moments.x
-	float p = step(t, moments.x);
-
-	// Compute variance.
-	float variance = moments.y - (moments.x * moments.x);
-	variance = max(variance, minVariance);
-
-	// Compute probabilistic upper bound.
-	float d = t - moments.x;
-	float pMax = variance / (variance + d * d);
-
-	//Reduce light bleeding
-	pMax = smoothstep(lightBleedReduction, 1.0, pMax);
-	return max(p, pMax);
-}
-
 int calculateCascadeIndex(float depth)
 {
-	if (splits.x > depth)
+	if (far.x > depth)
 		return 0;
 
-	else if (splits.y > depth)
+	else if (far.y > depth)
 		return 1;
 
 	else
 		return 2;
 }
 
-float ShadowContribution(vec2 lightTexCoord, float distanceToLight, int layer)
+float ShadowContribution(int layer)
 {	
-	// Read the moments from the variance shadow map.
-	vec2 moments = texture(shadowMap, vec3(lightTexCoord.xy, float(layer))).rg;
+	vec3 shadowCoords = vec3(lightMatrices[layer] * fsIn.worldFragPos);
+	shadowCoords = shadowCoords * 0.5 + 0.5;
 
-	// Compute the Chebyshev upper bound.
-	return ChebyshevUpperBound(moments, distanceToLight);
+	return texture(shadowMap, vec4(shadowCoords.xy, float(layer), shadowCoords.z + shadowBias));
 }
 
 // ACES film tone mapping (Krzysztof Narkowicz)
@@ -216,7 +195,7 @@ void main()
 	// Burley diffuse
 	float FD90 = 0.5 + 2 * roughness * (HdotV * HdotV);
 	float burleyFactor = burleyDiffuseFactor(FD90, NdotL, NdotV);
-	vec3 fD = albedo.rgb * INVERSE_PI * burleyFactor;
+	vec3 fD = albedo.rgb * inversePi * burleyFactor;
 
 	vec3 diffuse = kD * fD;
 
@@ -227,9 +206,7 @@ void main()
 	int layer = calculateCascadeIndex(-fsIn.viewFragPos.z);
 
 	// Shadows
-	vec3 shadowCoords = vec3(lightMatrices[layer] * fsIn.worldFragPos);
-	shadowCoords = shadowCoords * 0.5 + 0.5;
-	float shadow = ShadowContribution(shadowCoords.xy, shadowCoords.z, layer);
+	float shadow = ShadowContribution(layer);
 
 	vec3 ambient = ambientLight * albedo.rgb * ao;
 	vec3 color = ambient + Lo * shadow;

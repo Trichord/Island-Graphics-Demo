@@ -419,3 +419,22 @@ If you use this 3D model in your project be sure to copy paste this credit where
 This work is based on "Set of Modular Rocks" (https://sketchfab.com/3d-models/set-of-modular-rocks-f435208fadd24363ad285d8e505a794d) by Cleuza Costa (https://sketchfab.com/CleuzaCosta) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
 </details>
 
+
+<h2> Wooden Boat</h2>
+
+<details>
+<summary>By o0ozexo0o</summary>
+
+Model Information:
+
+\* title:	Wooden Boat
+\* source:	https://sketchfab.com/3d-models/wooden-boat-55118b23a5494e4b81eed831b9f8c871
+\* author:	o0ozexo0o (https://sketchfab.com/dadndan0091)
+
+Model License:
+
+\* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+\* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Wooden Boat" (https://sketchfab.com/3d-models/wooden-boat-55118b23a5494e4b81eed831b9f8c871) by o0ozexo0o (https://sketchfab.com/dadndan0091) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

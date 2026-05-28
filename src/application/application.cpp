@@ -311,13 +311,13 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
 
     if (glfwGetKey(window_, GLFW_KEY_KP_9) == GLFW_PRESS)
         transform.setRelativePosition(glm::vec3{0.0f, -objectSpeed, 0.0f});
-    
+
     if (glfwGetKey(window_, GLFW_KEY_UP) == GLFW_PRESS)
         transform.setRelativeRotation(glm::vec3{0.0f, objectSpeed, 0.0f});
 
     if (glfwGetKey(window_, GLFW_KEY_DOWN) == GLFW_PRESS)
         transform.setRelativeRotation(glm::vec3{0.0f, -objectSpeed, 0.0f});
-        
+
     if (glfwGetKey(window_, GLFW_KEY_LEFT) == GLFW_PRESS)
         transform.setRelativeRotation(glm::vec3{objectSpeed, 0.0f, 0.0f});
 
@@ -329,7 +329,7 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
 
     if (glfwGetKey(window_, GLFW_KEY_M) == GLFW_PRESS)
         transform.setRelativeRotation(glm::vec3{0.0f, 0.0f, -objectSpeed});
-    
+
     if (glfwGetKey(window_, GLFW_KEY_P) == GLFW_PRESS)
     {
         auto p = transform.getPosition();
