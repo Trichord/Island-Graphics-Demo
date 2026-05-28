@@ -13,14 +13,23 @@
 #include "scene/directional_light.h"
 #include "scene/scene.h"
 
+namespace
+{
 // Reduce the distance of the camera's far plane by 80% for shadow cascades.
 constexpr float farPlaneReduction{0.2f};
+
+// Hardware shadow bias
+constexpr GLfloat polygonFactor{1.11201f};
+constexpr GLfloat polygonUnits{1.0f};
+} // namespace
 
 // Render objects, grouped by shader type
 void Renderer::renderScene()
 {
     if (drawBuckets_.empty())
         return;
+
+    glState_.setVAO(VAOs_.vao);
 
     GraphicsShader *shader{&shaders_.front()};
     ShaderType currentShaderType{shader->getType()};
@@ -66,7 +75,10 @@ void Renderer::renderScene()
 
 void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
 {
+    glState_.setVAO(VAOs_.shadowVAO);
     glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(polygonFactor, polygonUnits);
 
     GraphicsShader &shadowShader{shaders_[shaderIndex(ShaderType::shadowMap)]};
     GraphicsShader &shadowAlphaShader{shaders_[shaderIndex(ShaderType::shadowMapAlpha)]};
@@ -114,6 +126,7 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
 
     shadowPassTarget_.unbind();
     glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
+    glDisable(GL_POLYGON_OFFSET_FILL);
 }
 
 void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)

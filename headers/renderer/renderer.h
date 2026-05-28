@@ -58,7 +58,7 @@ class Renderer
     // GPU Buffers
     UBOs UBOs_;
     SSBOs SSBOs_;
-    GlobalVAO VAO_;
+    VAOs VAOs_;
 
     // Textures
     CascadeShadow cascadeShadow_;

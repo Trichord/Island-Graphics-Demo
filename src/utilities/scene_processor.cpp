@@ -328,7 +328,7 @@ std::unordered_map<Handle, std::uint32_t> SceneProcessor::createMatricesBaseInde
     return baseIndices;
 }
 
-GlobalVAO SceneProcessor::createVAO(const std::vector<DrawEntry> &entries)
+VAOs SceneProcessor::createVAO(const std::vector<DrawEntry> &entries)
 {
     std::vector<Primitive::Vertex> vertices;
     std::vector<std::uint32_t> indices;

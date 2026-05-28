@@ -42,7 +42,7 @@ class SettingsWindow
     static constexpr std::array<int, 5> anisoTable_{0, 2, 4, 8, 16};
 
     inline static const std::array<const char *, 4> shadowQuality_{"Off", "Low", "Medium", "High"};
-    static constexpr std::array<int, 4> shadowTable_{1, 512, 1024, 2048};
+    static constexpr std::array<int, 4> shadowTable_{0, 1024, 2048, 4096};
 
     inline static const std::array<const char *, 3> reflectionQuality_{"Low", "Medium", "High"};
     static constexpr std::array<int, 3> reflectionTable_{512, 1024, 2048};

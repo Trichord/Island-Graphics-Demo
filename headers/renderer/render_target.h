@@ -25,6 +25,7 @@ class RenderTarget
         bool shadowMap{false};
     };
 
+    RenderTarget() = default;
     RenderTarget(int width, int height, Settings settings);
     RenderTarget(const RenderTarget &other) = delete;
     RenderTarget &operator=(const RenderTarget &) = delete;

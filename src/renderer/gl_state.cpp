@@ -89,3 +89,12 @@ void GLState::setDepthFunction(GLenum depthFunction)
     currentDepthFunc_ = depthFunction;
     glDepthFunc(depthFunction);
 }
+
+void GLState::setVAO(GLint vao)
+{
+    if (vao != currentVAO_)
+    {
+        glBindVertexArray(vao);
+        currentVAO_ = vao;
+    }
+}

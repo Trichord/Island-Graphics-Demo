@@ -94,49 +94,63 @@ struct SSBOs
     }
 };
 
-/* Vertex attribute layout:
+/*
+ * Vertex attribute layout:
  * 0 - position (vec3)
  * 1 - normal (vec3)
  * 2 - tangent (vec4)
  * 3 - texture coordinates (vec2)
+ *
+ * Shadow attribute layout:
+ * 0 - position (vec3)
+ * 1 - texture coordinates (vec2)
  */
 
-struct GlobalVAO
+struct VAOs
 {
-    GLuint id{0};
+    GLuint vao{0};
     GLuint vbo{0};
     GLuint ebo{0};
+    GLuint shadowVAO{0};
+    GLuint shadowVBO{0};
 
-    GlobalVAO() = default;
-    GlobalVAO(const GlobalVAO &other) = delete;
-    GlobalVAO &operator=(const GlobalVAO &other) = delete;
+    VAOs() = default;
+    VAOs(const VAOs &other) = delete;
+    VAOs &operator=(const VAOs &other) = delete;
 
-    GlobalVAO(GlobalVAO &&other) noexcept
-        : id{std::exchange(other.id, 0)}, vbo{std::exchange(other.vbo, 0)}, ebo{std::exchange(other.ebo, 0)}
+    VAOs(VAOs &&other) noexcept
+        : vao{std::exchange(other.vao, 0)}, vbo{std::exchange(other.vbo, 0)}, ebo{std::exchange(other.ebo, 0)},
+          shadowVAO{std::exchange(other.shadowVAO, 0)}, shadowVBO{std::exchange(other.shadowVBO, 0)}
     {
     }
 
-    GlobalVAO &operator=(GlobalVAO &&other) noexcept
+    VAOs &operator=(VAOs &&other) noexcept
     {
         if (this != &other)
         {
             glDeleteBuffers(1, &ebo);
             glDeleteBuffers(1, &vbo);
-            glDeleteVertexArrays(1, &id);
+            glDeleteBuffers(1, &shadowVBO);
+            glDeleteVertexArrays(1, &vao);
+            glDeleteVertexArrays(1, &shadowVAO);
 
-            id = std::exchange(other.id, 0);
+            vao = std::exchange(other.vao, 0);
             vbo = std::exchange(other.vbo, 0);
             ebo = std::exchange(other.ebo, 0);
+            shadowVAO = std::exchange(other.shadowVAO, 0);
+            shadowVBO = std::exchange(other.shadowVBO, 0);
         }
 
         return *this;
     }
 
-    ~GlobalVAO()
+    ~VAOs()
     {
         glDeleteBuffers(1, &ebo);
         glDeleteBuffers(1, &vbo);
-        glDeleteVertexArrays(1, &id);
+        glDeleteBuffers(1, &shadowVBO);
+        glDeleteVertexArrays(1, &vao);
+        glDeleteVertexArrays(1, &shadowVAO);
     }
 };
 
@@ -202,5 +216,6 @@ enum class BindingPointSSBO : unsigned int
     visibleInstances,
     drawCommandsSource,
     vbo,
-    particleMap
+    particleMap,
+    shadowVBO
 };

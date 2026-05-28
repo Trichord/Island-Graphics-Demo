@@ -75,18 +75,17 @@ UBOs BufferBuilder::buildUBOs()
     return ubos;
 }
 
-GlobalVAO BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices,
-                                  const std::vector<std::uint32_t> &indices) const
+VAOs BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices,
+                             const std::vector<std::uint32_t> &indices) const
 {
-    GlobalVAO vao;
+    VAOs vao;
 
-    glCreateVertexArrays(1, &vao.id);
-    glBindVertexArray(vao.id);
+    glCreateVertexArrays(1, &vao.vao);
 
-    glEnableVertexArrayAttrib(vao.id, 0);
-    glEnableVertexArrayAttrib(vao.id, 1);
-    glEnableVertexArrayAttrib(vao.id, 2);
-    glEnableVertexArrayAttrib(vao.id, 3);
+    glEnableVertexArrayAttrib(vao.vao, 0);
+    glEnableVertexArrayAttrib(vao.vao, 1);
+    glEnableVertexArrayAttrib(vao.vao, 2);
+    glEnableVertexArrayAttrib(vao.vao, 3);
 
     glCreateBuffers(1, &vao.vbo);
     glNamedBufferStorage(vao.vbo, vertices.size() * sizeof(Primitive::Vertex), vertices.data(), 0);
@@ -94,21 +93,52 @@ GlobalVAO BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices
     glCreateBuffers(1, &vao.ebo);
     glNamedBufferStorage(vao.ebo, indices.size() * sizeof(std::uint32_t), indices.data(), 0);
 
-    glVertexArrayVertexBuffer(vao.id, 0, vao.vbo, 0, sizeof(Primitive::Vertex));
+    glVertexArrayVertexBuffer(vao.vao, 0, vao.vbo, 0, sizeof(Primitive::Vertex));
+    glVertexArrayElementBuffer(vao.vao, vao.ebo);
 
-    glVertexArrayElementBuffer(vao.id, vao.ebo);
+    glVertexArrayAttribFormat(vao.vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, position));
+    glVertexArrayAttribFormat(vao.vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, normal));
+    glVertexArrayAttribFormat(vao.vao, 2, 4, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, tangent));
+    glVertexArrayAttribFormat(vao.vao, 3, 2, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, texCoords));
 
-    glVertexArrayAttribFormat(vao.id, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, position));
-    glVertexArrayAttribFormat(vao.id, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, normal));
-    glVertexArrayAttribFormat(vao.id, 2, 4, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, tangent));
-    glVertexArrayAttribFormat(vao.id, 3, 2, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, texCoords));
-
-    glVertexArrayAttribBinding(vao.id, 0, 0);
-    glVertexArrayAttribBinding(vao.id, 1, 0);
-    glVertexArrayAttribBinding(vao.id, 2, 0);
-    glVertexArrayAttribBinding(vao.id, 3, 0);
+    glVertexArrayAttribBinding(vao.vao, 0, 0);
+    glVertexArrayAttribBinding(vao.vao, 1, 0);
+    glVertexArrayAttribBinding(vao.vao, 2, 0);
+    glVertexArrayAttribBinding(vao.vao, 3, 0);
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::vbo), vao.vbo);
+
+    // Shadow VAO
+    struct ShadowVertex
+    {
+        glm::vec4 pos{0.0f};
+        glm::vec2 uv{0.0f};
+    };
+
+    std::vector<ShadowVertex> shadowVerts;
+    shadowVerts.reserve(vertices.size());
+
+    for (const Primitive::Vertex &v : vertices)
+        shadowVerts.emplace_back(ShadowVertex{.pos = glm::vec4{v.position, 1.0f}, .uv = v.texCoords});
+
+    glCreateVertexArrays(1, &vao.shadowVAO);
+
+    glEnableVertexArrayAttrib(vao.shadowVAO, 0);
+    glEnableVertexArrayAttrib(vao.shadowVAO, 1);
+
+    glCreateBuffers(1, &vao.shadowVBO);
+    glNamedBufferStorage(vao.shadowVBO, vertices.size() * sizeof(ShadowVertex), shadowVerts.data(), 0);
+
+    glVertexArrayVertexBuffer(vao.shadowVAO, 0, vao.shadowVBO, 0, sizeof(ShadowVertex));
+    glVertexArrayElementBuffer(vao.shadowVAO, vao.ebo);
+
+    glVertexArrayAttribFormat(vao.shadowVAO, 0, 3, GL_FLOAT, GL_FALSE, offsetof(ShadowVertex, pos));
+    glVertexArrayAttribFormat(vao.shadowVAO, 1, 2, GL_FLOAT, GL_FALSE, offsetof(ShadowVertex, uv));
+
+    glVertexArrayAttribBinding(vao.shadowVAO, 0, 0);
+    glVertexArrayAttribBinding(vao.shadowVAO, 1, 0);
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::shadowVBO), vao.shadowVBO);
 
     return vao;
 }

@@ -15,7 +15,6 @@ struct Metadata
 };
 
 // Constants
-const float shadowBias = -0.0005;
 const float inversePi = 0.31830988618;
 const int cascadeCount = 3;
 
@@ -130,7 +129,7 @@ float ShadowContribution(int layer)
 	vec3 shadowCoords = vec3(lightMatrices[layer] * fsIn.worldFragPos);
 	shadowCoords = shadowCoords * 0.5 + 0.5;
 
-	return texture(shadowMap, vec4(shadowCoords.xy, float(layer), shadowCoords.z + shadowBias));
+	return texture(shadowMap, vec4(shadowCoords.xy, float(layer), shadowCoords.z));
 }
 
 // ACES film tone mapping (Krzysztof Narkowicz)
