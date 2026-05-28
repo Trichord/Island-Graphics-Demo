@@ -87,16 +87,12 @@ void Application::run()
     threadPool.stopAllThreads();
     addGlfwUserParam(islandScene);
 
-    // Average FPS
-    float totalTime{0};
-
     while (!glfwWindowShouldClose(window_))
     {
         // Delta Time
         currentFrame_ = (float)glfwGetTime();
         deltaTime_ = currentFrame_ - lastFrame_;
         lastFrame_ = currentFrame_;
-        totalTime += deltaTime_;
 
         // Update
         islandScene.onUpdate(deltaTime_);
@@ -110,7 +106,6 @@ void Application::run()
         glfwPollEvents();
     }
 
-    std::cout << "Average FPS: " << renderer.getFrameCount() / totalTime << std::endl;
     return;
 }
 
@@ -180,11 +175,6 @@ bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // If MDI Count not supported
-    if (!glMultiDrawElementsIndirectCount)
-        glMultiDrawElementsIndirectCount =
-            (PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTPROC)glfwGetProcAddress("glMultiDrawElementsIndirectCountARB");
-
-    // If ARB version fails too, just exit
     if (!glMultiDrawElementsIndirectCount)
     {
         std::cerr << "GPU does not support required OpenGL features: MultiDrawElementsIndirectCount" << std::endl;
@@ -299,32 +289,54 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
     //****************************************
     constexpr float objectSpeed{0.0005f};
 
-    //SceneEntry &spaceModel{scene.getEntryByName("spaceModel")};
-    //Transform &transform{spaceModel.transforms.front()};
-    DirectionalLight &light{scene.getGlobalLight()};
-    glm::vec3 dir{light.getDirection()};
+    Scene::Entry &boat{scene.getEntryByName("boat")};
+    Transform &transform{boat.transforms.front()};
+   // DirectionalLight &light{scene.getGlobalLight()};
+ //   glm::vec3 dir{light.getDirection()};
 
     if (glfwGetKey(window_, GLFW_KEY_KP_8) == GLFW_PRESS)
-        light.setDirection(glm::vec3{dir.x, dir.y + objectSpeed, dir.z});
+        transform.setRelativePosition(glm::vec3{0.0f, 0.0f, objectSpeed});
 
-    if (glfwGetKey(window_, GLFW_KEY_KP_5) == GLFW_PRESS)
-        light.setDirection(glm::vec3{dir.x, dir.y - objectSpeed, dir.z});
+    if (glfwGetKey(window_, GLFW_KEY_KP_2) == GLFW_PRESS)
+        transform.setRelativePosition(glm::vec3{0.0f, 0.0f, -objectSpeed});
 
     if (glfwGetKey(window_, GLFW_KEY_KP_4) == GLFW_PRESS)
-        light.setDirection(glm::vec3{dir.x + objectSpeed, dir.y, dir.z});
+        transform.setRelativePosition(glm::vec3{objectSpeed, 0.0f, 0.0f});
 
     if (glfwGetKey(window_, GLFW_KEY_KP_6) == GLFW_PRESS)
-        light.setDirection(glm::vec3{dir.x - objectSpeed, dir.y, dir.z});
+        transform.setRelativePosition(glm::vec3{-objectSpeed, 0.0f, 0.0f});
 
     if (glfwGetKey(window_, GLFW_KEY_KP_7) == GLFW_PRESS)
-        light.setDirection(glm::vec3{dir.x, dir.y, dir.z + objectSpeed});
+        transform.setRelativePosition(glm::vec3{0.0f, objectSpeed, 0.0f});
 
     if (glfwGetKey(window_, GLFW_KEY_KP_9) == GLFW_PRESS)
-        light.setDirection(glm::vec3{dir.x, dir.y, dir.z - objectSpeed});
+        transform.setRelativePosition(glm::vec3{0.0f, -objectSpeed, 0.0f});
+    
+    if (glfwGetKey(window_, GLFW_KEY_UP) == GLFW_PRESS)
+        transform.setRelativeRotation(glm::vec3{0.0f, objectSpeed, 0.0f});
 
+    if (glfwGetKey(window_, GLFW_KEY_DOWN) == GLFW_PRESS)
+        transform.setRelativeRotation(glm::vec3{0.0f, -objectSpeed, 0.0f});
+        
+    if (glfwGetKey(window_, GLFW_KEY_LEFT) == GLFW_PRESS)
+        transform.setRelativeRotation(glm::vec3{objectSpeed, 0.0f, 0.0f});
+
+    if (glfwGetKey(window_, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        transform.setRelativeRotation(glm::vec3{-objectSpeed, 0.0f, 0.0f});
+
+    if (glfwGetKey(window_, GLFW_KEY_N) == GLFW_PRESS)
+        transform.setRelativeRotation(glm::vec3{0.0f, 0.0f, objectSpeed});
+
+    if (glfwGetKey(window_, GLFW_KEY_M) == GLFW_PRESS)
+        transform.setRelativeRotation(glm::vec3{0.0f, 0.0f, -objectSpeed});
+    
     if (glfwGetKey(window_, GLFW_KEY_P) == GLFW_PRESS)
     {
-        // Print stuff
+        auto p = transform.getPosition();
+        auto r = transform.getRotation();
+
+        std::cerr << "Postion: (" << p.x << ", " << p.y << ", " << p.z << "), Rotation: (" << r.x << ", " << r.y << ", "
+                  << r.z << ")" << std::endl;
     }
     */
 }

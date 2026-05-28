@@ -18,7 +18,7 @@ struct Metadata
 const float lightBleedReduction = 0.2f;
 
 // Samplers
-layout(binding = 0) uniform sampler2DArray arrayTextures[8];
+layout(binding = 0) uniform sampler2DArray textures[11];
 
 // SSBOs
 layout(binding = 3, std430) restrict readonly buffer metadataSSBO
@@ -48,7 +48,7 @@ void main()
 	int albedoArray = meta.albedoArray;
 	int albedoLayer = meta.albedoLayer;
 
-	float alpha = texture(arrayTextures[albedoArray], vec3(texCoords, albedoLayer)).a;
+	float alpha = texture(textures[albedoArray], vec3(texCoords, albedoLayer)).a;
 
 	if (alpha < 0.1)
 		discard;

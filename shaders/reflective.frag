@@ -15,7 +15,7 @@ struct Metadata
 };
 
 // Samplers
-layout(binding = 10) uniform samplerCubeArray cubemaps[3];
+layout(binding = 11) uniform samplerCubeArray cubemaps[3];
 
 // UBOs
 layout (std140, binding = 0) uniform cameraData 

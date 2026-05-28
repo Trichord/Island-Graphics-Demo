@@ -26,8 +26,8 @@ const vec3 sceneCenter = vec3(0.0);
 const vec3 waterColor = vec3(0.0, 0.08, 0.18);
 
 // Samplers
-layout(binding = 0) uniform sampler2DArray textures[10];
-layout(binding = 10) uniform samplerCubeArray cubemaps[3];
+layout(binding = 0) uniform sampler2DArray textures[11];
+layout(binding = 11) uniform samplerCubeArray cubemaps[3];
 
 // UBOs
 layout (std140, binding = 0) uniform cameraData

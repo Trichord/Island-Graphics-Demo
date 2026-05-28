@@ -18,8 +18,8 @@ struct Metadata
 const float INVERSE_PI = 0.31830988618;
 
 // Samplers
-layout(binding = 0) uniform sampler2DArray textures[10];
-layout(binding = 11) uniform sampler2DArray shadowMap;
+layout(binding = 0) uniform sampler2DArray textures[11];
+layout(binding = 12) uniform sampler2DArray shadowMap;
 
 // SSBOs
 layout(binding = 3, std430) restrict readonly buffer metadataSSBO
