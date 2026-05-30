@@ -10,6 +10,7 @@ const float swaySpeed = 0.75;
 const float maxVertexHeight = 1.0;
 const float minVertexHeight = 0.001;
 const float windScale = 0.1;
+const vec3 worldUp = vec3(0.0, 1.0, 0.0);
 
 // Attributes
 layout (location = 0) in vec3 aPos;
@@ -43,6 +44,11 @@ flat out int metadataIndex;
 out vec3 normal;
 out vec2 texCoords;
 
+#ifdef SHADOWS
+out vec4 viewPos;
+out vec4 worldPos;
+#endif
+
 void main() 
 {
 	Metadata meta = metadata[gl_BaseInstance];
@@ -50,18 +56,21 @@ void main()
 
 	mat4 modelMatrix = matrices[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
-	
-	texCoords = aTexCoords;
-	normal = normalize(normalMatrix * aNormal);
+	vec4 worldPosition = modelMatrix * vec4(aPos, 1.0);
 
-	vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
 	vec3 windTranslation = calcWindTranslation(modelMatrix, time * swaySpeed, windDirection, windStrength);
 	float mask = smoothstep(minVertexHeight, maxVertexHeight, aPos.y);
-	
 	windTranslation *= mask;
 	windTranslation *= windScale;
 
 	metadataIndex = gl_BaseInstance;
+	texCoords = aTexCoords;
+	normal = normalize(normalMatrix * mix(aNormal, worldUp, 0.5));
 
-    gl_Position = projectionViewMatrix * vec4(worldPos.xyz + windTranslation, 1.0);
+	#ifdef SHADOWS
+	viewPos = viewMatrix * worldPosition;
+	worldPos = worldPosition;
+	#endif
+
+    gl_Position = projectionViewMatrix * vec4(worldPosition.xyz + windTranslation, 1.0);
 }

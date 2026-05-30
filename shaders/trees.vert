@@ -41,9 +41,14 @@ flat out int metadataIndex;
 
 out vsOut 
 {
-	vec3 fragPos;
+	vec4 worldPos;
 	vec3 normal;
 	vec2 texCoords;
+
+	#ifdef SHADOWS
+	vec4 viewPos;
+	#endif
+
 } vOut;
 
 void main() 
@@ -62,9 +67,13 @@ void main()
 
 	metadataIndex = gl_BaseInstance;
 
-	vOut.fragPos = worldPos.xyz;
+	vOut.worldPos = worldPos;
 	vOut.texCoords = aTexCoords;
 	vOut.normal = normalize(normalMatrix * aNormal);
+
+	#ifdef SHADOWS
+	vOut.viewPos = viewMatrix * worldPos;
+	#endif
 
 	gl_Position = projectionViewMatrix * worldPos;
 }
