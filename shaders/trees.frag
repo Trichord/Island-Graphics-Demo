@@ -1,45 +1,22 @@
 #version 460 core
 
-// Types
-struct Metadata
-{
-	int albedoArray;
-	int albedoLayer;
-	int armArray;
-	int armLayer;
-	int normalArray;
-	int normalLayer;
-	int cubemapArray;
-	int cubemapLayer;
-	uint visibleInstancesBaseIndex;
-};
-
-// Constants
-const float inversePi = 0.31830988618;
-
-// Samplers
-layout(binding = 0) uniform sampler2DArray textures[11];
-
-// UBOs
-layout (std140, binding = 0) uniform cameraData 
-{
-	layout (offset = 0) mat4 viewMatrix;
-	layout (offset = 64) mat4 projectionMatrix;
-	layout (offset = 128) mat4 projectionViewMatrix;
-	layout (offset = 192) mat4 inverseViewProjectMatrix;
-	layout (offset = 256) vec4 cameraPosition;
-};
+#include "binding_points.glsl"
+#include "constants.glsl"
+#include "foliage.glsl"
+#include "pbr.glsl"
+#include "textures.glsl"
+#include "tone_mapping.glsl"
+#include "types.glsl"
+#include "ubo.glsl"
 
 // SSBOs
-layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
 {
 	Metadata metadata[];
 };
 
 // In
 uniform float gamma;
-uniform float mipScale;
-uniform float alphaCutoff;
 
 uniform vec3 lightDir;
 uniform vec3 lightColor;
@@ -57,45 +34,6 @@ in vsOut
 // Out
 out vec4 fragColor;
 
-// Burely diffuse (unrolled)
-float burleyDiffuseFactor(float FD90, float NdotL, float NdotV)
-{
-	float L = 1.0 - NdotL;
-	float L2 = L * L;
-	float L4 = L2 * L2;
-	float L5 = L4 * L;
-
-	float V = 1.0 - NdotV;
-	float V2 = V * V;
-	float V4 = V2 * V2;
-	float V5 = V4 * V;
-
-	float FDminusOne = FD90 - 1.0;
-
-	return (1.0 + FDminusOne * L5) * (1.0 + FDminusOne * V5); 
-}
-
-// ACES film tone mapping (Krzysztof Narkowicz)
-vec3 ACESFilm(vec3 x) 
-{
-	const float a = 2.51;
-	const float b = 0.03;
-	const float c = 2.43;
-	const float d = 0.59;
-	const float e = 0.14;
-
-	return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
-}
-
-// Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
-float CalcMipLevel(vec2 texture_coord){
-    vec2 dx = dFdx(texture_coord);
-    vec2 dy = dFdy(texture_coord);
-    float delta_max_sqr = max(dot(dx, dx), dot(dy, dy));
-                
-    return max(0.0, 0.5 * log2(delta_max_sqr));
-}
-
 void main() 
 {
 	Metadata meta = metadata[metadataIndex];
@@ -111,7 +49,7 @@ void main()
 
 	// Scale alpha by mip level
     vec2 texSize = vec2(2048, 2048);
-    albedo.a *= 1 + max(0, CalcMipLevel(fsIn.texCoords * texSize)) * mipScale;
+    albedo.a *= 1 + max(0, calcMipLevel(fsIn.texCoords * texSize)) * mipScale;
 
 	// Rescale alpha by partial derivative. Credit: Ben Golus
     albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;

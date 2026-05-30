@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 
 class Shader
 {
@@ -30,6 +31,8 @@ class Shader
     void setMat4(const std::string &name, const glm::mat4 &value);
 
   protected:
+    static constexpr std::string_view shaderBasePath_{"./shaders/shared/"};
+
     Shader() = default;
     Shader(const Shader &) = delete;
     Shader &operator=(const Shader &) = delete;
@@ -44,4 +47,6 @@ class Shader
 
     GLuint createShaderID(GLenum type, const std::filesystem::path &path);
     void linkShader(std::span<GLuint> sourceIDs, const std::string_view path);
+    std::string preProcess(const std::string &shaderString, std::unordered_set<std::string> &seen);
+    std::string loadFile(const std::filesystem::path &path);
 };

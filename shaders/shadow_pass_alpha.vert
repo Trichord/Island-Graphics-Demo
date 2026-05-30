@@ -1,43 +1,25 @@
 #version 460 core
 
-// Types
-struct Metadata
-{
-	int albedoArray;
-	int albedoLayer;
-	int armArray;
-	int armLayer;
-	int normalArray;
-	int normalLayer;
-	int cubemapArray;
-	int cubemapLayer;
-	uint visibleInstancesBaseIndex;
-};
+#include "binding_points.glsl"
+#include "types.glsl"
+#include "ubo.glsl"
 
 // Attributes
 layout (location = 0) in vec4 aPos;
 layout (location = 1) in vec2 aTexCoords;
 
-// UBOs
-layout (std140, binding = 2) uniform cascadeShadows
-{
-	vec4 near;
-    vec4 far;
-    mat4 lightMatrices[3];
-};
-
 // SSBOs
-layout(binding = 2, std430) restrict readonly buffer matricesSSBO 
+layout(binding = SSBO_BINDING_MATRICES, std430) restrict readonly buffer matricesSSBO
 {
    mat4 matrices[];
 };
 
-layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
 {
 	Metadata metadata[];
 };
 
-layout(binding = 7, std430) restrict readonly buffer visibleInstancesSSBO 
+layout(binding = SSBO_BINDING_VISIBLE_INSTANCES, std430) restrict readonly buffer visibleInstancesSSBO 
 {
    uint instances[];
 };
