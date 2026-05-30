@@ -5,12 +5,13 @@
 #include "ubo.glsl"
 
 // Constants
-const float gravity = 15.0f;
+const float gravity = 60.0f;
 const float mass = 0.1f;
 const float invMass = 1.0 / mass;
 const float timeScale = 0.75;
-const float blackHolePosScale = 0.33;
+const float blackHolePosScale = 0.5;
 const float minLifetimePercent = 0.75;
+const float velocityDamper = 0.0125;
 
 // Attributes
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
@@ -74,34 +75,28 @@ void main()
     vec2 lifetimes = d2.zw;
 
     vec3 blackHolePos = aabb.center.xyz + aabb.extent.xyz * blackHolePosScale;
-    vec3 blackHole2Pos = -blackHolePos;
+    blackHolePos.y = aabb.center.y;
 
     // Move black holes around
     blackHolePos.x += sin(time);
     blackHolePos.z += cos(time);
-    blackHole2Pos.x -= sin(time);
-    blackHole2Pos.z -= cos(time);
-
+    blackHolePos.y += sin(time) * 2.0;
+    
     // Force from first black hole
     vec3 d = blackHolePos - position;
     float dist1 = length(d);
-    vec3 force = (gravity / dist1) * normalize(d);
-
-    // Force from second black hole
-    d = blackHole2Pos - position;
-    float dist2 = length(d);
-    force += (gravity / dist2) * normalize(d);
+    vec3 force = (gravity / (dist1 * dist1)) * normalize(d);
 
     // Ending condtions
-    float maxDist = length(aabb.extent.xyz);
+    float innerRadius = min(aabb.extent.x, min(aabb.extent.y, aabb.extent.z));
     
-    float decay = max(dist1, dist2) / maxDist;
+    float decay = dist1 / innerRadius;
     lifetimes.y -= decay * deltaTime * timeScale;
 
-    if (distance(position, aabb.center.xyz) > maxDist || lifetimes.y <= 0)
+    if (distance(position, aabb.center.xyz) > innerRadius || lifetimes.y <= 0)
     {
-        particles[particleIndex] = vec4(aabb.center.xyz, 0.0);
-        particles[particleIndex + 1] = vec4(0.0, 0.0, color.rg);
+        particles[particleIndex] = vec4(aabb.center.xyz, velocity.x * velocityDamper);
+        particles[particleIndex + 1] = vec4(velocity.y * velocityDamper, velocity.z * velocityDamper, color.rg);
         particles[particleIndex + 2] = vec4(color.ba, lifetimes.x, lifetimes.x);
 
         shadowVertices[particleIndex] = aabb.center.xy;
@@ -114,7 +109,7 @@ void main()
 
         vec3 a = force * invMass;
         vec3 v = velocity + a * dt;
-        vec3 p = position + velocity * dt + 0.5 * a * dt * dt;
+        vec3 p = position + v * dt;
         
         particles[particleIndex] = vec4(p, v.x);
         particles[particleIndex + 1] = vec4(v.yz, color.rg);

@@ -26,7 +26,7 @@
  *                   instances that passed the frustum test. Each primitive owns a
  *                   contiguous section sized to its instance count.
  * DrawCommandsSource: Per primitive. Immutable source of truth, set once at load
- * ParticleMap: Per vertex, for particles only. Allows any index in map buffer to look up its vertex in the VBO, and its
+ * VertexMap: Per vertex, for particles only. Allows any index in map buffer to look up its vertex in the VBO, and its
  * sharedBaseIndex.
  *
  * 1:1 indexed buffers: AABB[i], Metadata[i], DrawCommands[i], DrawCommandsSource[i]
@@ -46,7 +46,7 @@ struct SSBOs
     GLuint drawCommands{0};
     GLuint visibleInstances{0};
     GLuint drawCommandsSource{0};
-    GLuint particleMap{0};
+    GLuint vertexMap{0};
 
     SSBOs() = default;
     SSBOs(const SSBOs &other) = delete;
@@ -59,7 +59,7 @@ struct SSBOs
           drawCommands{std::exchange(other.drawCommands, 0)},
           visibleInstances{std::exchange(other.visibleInstances, 0)},
           drawCommandsSource{std::exchange(other.drawCommandsSource, 0)},
-          particleMap{std::exchange(other.particleMap, 0)}
+          vertexMap{std::exchange(other.vertexMap, 0)}
     {
     }
 
@@ -68,7 +68,7 @@ struct SSBOs
         if (this != &other)
         {
             GLuint buffers[]{visibilityMap, aabb,         matrices,         metadata,           drawCounts,
-                             cullResults,   drawCommands, visibleInstances, drawCommandsSource, particleMap};
+                             cullResults,   drawCommands, visibleInstances, drawCommandsSource, vertexMap};
             glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
 
             visibilityMap = std::exchange(other.visibilityMap, 0);
@@ -80,7 +80,7 @@ struct SSBOs
             drawCommands = std::exchange(other.drawCommands, 0);
             visibleInstances = std::exchange(other.visibleInstances, 0);
             drawCommandsSource = std::exchange(other.drawCommandsSource, 0);
-            particleMap = std::exchange(other.particleMap, 0);
+            vertexMap = std::exchange(other.vertexMap, 0);
         }
 
         return *this;
@@ -89,7 +89,7 @@ struct SSBOs
     ~SSBOs()
     {
         GLuint buffers[]{visibilityMap, aabb,         matrices,         metadata,           drawCounts,
-                         cullResults,   drawCommands, visibleInstances, drawCommandsSource, particleMap};
+                         cullResults,   drawCommands, visibleInstances, drawCommandsSource, vertexMap};
         glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
     }
 };

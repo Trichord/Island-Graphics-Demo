@@ -350,7 +350,7 @@ SSBOs SceneProcessor::createSSBOs(const std::vector<DrawElementsIndirectCommand>
                                   const std::vector<glm::mat4> &matrices,
                                   const std::vector<PrimitiveMetadata> &metadata,
                                   const std::vector<VisibilityBufferMap> &visibilityMap,
-                                  const std::vector<ParticleBufferMap> &particleMap, const std::vector<AABB> &aabbs,
+                                  const std::vector<VertexBufferMap> &particleMap, const std::vector<AABB> &aabbs,
                                   BufferBuilder::Sizes sizes)
 {
     BufferBuilder builder;
@@ -476,10 +476,10 @@ std::vector<VisibilityBufferMap> SceneProcessor::createVisibilityBufferMap(
     return map;
 }
 
-std::vector<ParticleBufferMap> SceneProcessor::createParticleBufferMap(const std::vector<DrawEntry> &entries)
+std::vector<VertexBufferMap> SceneProcessor::createParticleBufferMap(const std::vector<DrawEntry> &entries)
 {
     std::size_t currentVertex{0};
-    std::vector<ParticleBufferMap> particleMap;
+    std::vector<VertexBufferMap> particleMap;
 
     for (std::size_t i{0}; i < entries.size(); ++i)
     {
@@ -490,7 +490,7 @@ std::vector<ParticleBufferMap> SceneProcessor::createParticleBufferMap(const std
                 std::uint32_t vboIndex{static_cast<std::uint32_t>(currentVertex + j)};
                 std::uint32_t sharedIndex{static_cast<std::uint32_t>(i)};
 
-                particleMap.emplace_back(ParticleBufferMap{.vboIndex = vboIndex, .sharedIndex = sharedIndex});
+                particleMap.emplace_back(VertexBufferMap{.vboIndex = vboIndex, .sharedIndex = sharedIndex});
             }
         }
 
