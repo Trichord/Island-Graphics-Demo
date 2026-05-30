@@ -83,25 +83,25 @@ void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    if (graphicsSettings_.shadowResolution)
-        shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR_shadow.vert",
-                                                 "./shaders/directional_PBR_shadow.frag"};
-    else
-        shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR.vert",
-                                                 "./shaders/directional_PBR.frag"};
+    std::string defines{graphicsSettings_.shadowResolution ? "#define SHADOWS\n" : ""};
 
-    shaders_[shaderIndex(grass)] = {grass, "./shaders/grass.vert", "./shaders/grass.frag"};
-    shaders_[shaderIndex(trees)] = {trees, "./shaders/trees.vert", "./shaders/trees.frag"};
-    shaders_[shaderIndex(reflective)] = {reflective, "./shaders/reflective.vert", "./shaders/reflective.frag"};
-    shaders_[shaderIndex(skybox)] = {skybox, "./shaders/skybox.vert", "./shaders/skybox.frag"};
-    shaders_[shaderIndex(water)] = {water, "./shaders/water.vert", "./shaders/water.frag"};
-    shaders_[shaderIndex(ocean)] = {ocean, "./shaders/water.vert", "./shaders/ocean.frag"};
-    shaders_[shaderIndex(particles)] = {particles, "./shaders/particles.vert", "./shaders/particles.frag"};
+    shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR.vert",
+                                             "./shaders/directional_PBR.frag", defines};
+    shaders_[shaderIndex(grass)] = {grass, "./shaders/grass.vert", "./shaders/grass.frag", defines};
+    shaders_[shaderIndex(trees)] = {trees, "./shaders/trees.vert", "./shaders/trees.frag", defines};
+    shaders_[shaderIndex(reflective)] = {reflective, "./shaders/reflective.vert", "./shaders/reflective.frag", defines};
+    shaders_[shaderIndex(skybox)] = {skybox, "./shaders/skybox.vert", "./shaders/skybox.frag", defines};
+    shaders_[shaderIndex(water)] = {water, "./shaders/water.vert", "./shaders/water.frag", defines};
+    shaders_[shaderIndex(ocean)] = {ocean, "./shaders/water.vert", "./shaders/ocean.frag", defines};
+    shaders_[shaderIndex(particles)] = {particles, "./shaders/particles.vert", "./shaders/particles.frag", defines};
 
     // Internal use only shaders
-    shaders_[shaderIndex(shadowMap)] = {shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
-    shaders_[shaderIndex(shadowMapAlpha)] = {shadowMapAlpha, "./shaders/shadow_pass_alpha.vert",
-                                             "./shaders/shadow_pass_alpha.frag"};
+    if (graphicsSettings_.shadowResolution)
+    {
+        shaders_[shaderIndex(shadowMap)] = {shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
+        shaders_[shaderIndex(shadowMapAlpha)] = {shadowMapAlpha, "./shaders/shadow_pass_alpha.vert",
+                                                 "./shaders/shadow_pass_alpha.frag"};
+    }
 
     // Compute
     cullShader_ = {"./shaders/frustum_cull.comp"};

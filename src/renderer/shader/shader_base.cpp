@@ -16,38 +16,6 @@
 #include <unordered_set>
 #include <utility>
 
-void Shader::linkShader(std::span<GLuint> sourceIDs, const std::string_view path)
-{
-    id_ = glCreateProgram();
-
-    for (GLuint sourceID : sourceIDs)
-        glAttachShader(id_, sourceID);
-
-    glLinkProgram(id_);
-
-    int success{0};
-    glGetProgramiv(id_, GL_LINK_STATUS, &success);
-
-    if (!success)
-    {
-        std::string infoLog;
-        GLint logLength;
-        glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &logLength);
-        infoLog.resize(logLength);
-
-        glGetProgramInfoLog(id_, logLength, NULL, infoLog.data());
-        std::cerr << "ERROR: Shader program link error: " << path << std::endl << infoLog.data() << std::endl;
-
-        for (GLuint sourceID : sourceIDs)
-            glDeleteShader(sourceID);
-
-        throw std::runtime_error("Shader program linking failed");
-    }
-
-    for (GLuint sourceID : sourceIDs)
-        glDeleteShader(sourceID);
-}
-
 Shader::Shader(Shader &&other) noexcept
 {
     id_ = other.id_;
@@ -168,12 +136,12 @@ GLint Shader::getCachedUniform(const std::string &name)
     return iter->second;
 }
 
-GLuint Shader::createShaderID(GLenum type, const std::filesystem::path &path)
+GLuint Shader::createShaderID(GLenum type, const std::filesystem::path &path, const std::string &defines)
 {
     std::string fileContents{loadFile(path)};
 
     std::unordered_set<std::string> seen;
-    std::string codeString{preProcess(fileContents, seen)};
+    std::string codeString{preProcess(fileContents, defines, seen, 0)};
 
     GLuint shaderID{0};
     GLint success{0};
@@ -242,7 +210,8 @@ std::string Shader::loadFile(const std::filesystem::path &path)
     return fileContents;
 }
 
-std::string Shader::preProcess(const std::string &shaderString, std::unordered_set<std::string> &seen)
+std::string Shader::preProcess(const std::string &shaderString, const std::string &defines,
+                               std::unordered_set<std::string> &seen, std::size_t lineNum)
 {
     std::istringstream stream{shaderString};
     std::string result;
@@ -256,6 +225,12 @@ std::string Shader::preProcess(const std::string &shaderString, std::unordered_s
 
     while (std::getline(stream, line))
     {
+        ++lineNum;
+
+        // Let #version come first
+        if (lineNum == 2)
+            result += defines;
+
         // Find the #include
         std::size_t found{line.find("#include")};
 
@@ -274,14 +249,14 @@ std::string Shader::preProcess(const std::string &shaderString, std::unordered_s
 
         if (inBlockComment)
             continue;
- 
+
         if (found != std::string::npos)
         {
             // Single line block quote
             if (blockStart != std::string::npos && blockEnd != std::string::npos && found > blockStart &&
                 found < blockEnd)
                 continue;
- 
+
             std::size_t left{line.find('"')};
             std::size_t right{line.rfind('"')};
 
@@ -305,7 +280,7 @@ std::string Shader::preProcess(const std::string &shaderString, std::unordered_s
 
             std::string fileContents{loadFile(path)};
 
-            result += preProcess(fileContents, seen);
+            result += preProcess(fileContents, defines, seen, lineNum);
             continue;
         }
 
@@ -313,4 +288,36 @@ std::string Shader::preProcess(const std::string &shaderString, std::unordered_s
     }
 
     return result;
+}
+
+void Shader::linkShader(std::span<GLuint> sourceIDs, const std::string_view path)
+{
+    id_ = glCreateProgram();
+
+    for (GLuint sourceID : sourceIDs)
+        glAttachShader(id_, sourceID);
+
+    glLinkProgram(id_);
+
+    int success{0};
+    glGetProgramiv(id_, GL_LINK_STATUS, &success);
+
+    if (!success)
+    {
+        std::string infoLog;
+        GLint logLength;
+        glGetProgramiv(id_, GL_INFO_LOG_LENGTH, &logLength);
+        infoLog.resize(logLength);
+
+        glGetProgramInfoLog(id_, logLength, NULL, infoLog.data());
+        std::cerr << "ERROR: Shader program link error: " << path << std::endl << infoLog.data() << std::endl;
+
+        for (GLuint sourceID : sourceIDs)
+            glDeleteShader(sourceID);
+
+        throw std::runtime_error("Shader program linking failed");
+    }
+
+    for (GLuint sourceID : sourceIDs)
+        glDeleteShader(sourceID);
 }

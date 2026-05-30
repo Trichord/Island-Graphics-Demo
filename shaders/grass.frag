@@ -6,6 +6,11 @@
 #include "tone_mapping.glsl"
 #include "types.glsl"
 #include "foliage.glsl"
+#include "ubo.glsl"
+
+#ifdef SHADOWS
+#include "shadows.glsl"
+#endif
 
 // SSBOs
 layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
@@ -25,6 +30,11 @@ flat in int metadataIndex;
 in vec3 normal;
 in vec2 texCoords;
 
+#ifdef SHADOWS
+in vec4 viewPos;
+in vec4 worldPos;
+#endif
+
 // Out
 out vec4 fragColor;
 
@@ -34,16 +44,13 @@ void main()
 
     vec4 albedo = texture(textures[meta.albedoArray], vec3(texCoords, meta.albedoLayer));
 
-    // Flip normal if 2D quad is facing away
     vec3 normalizedNormal = normalize(normal);
-    normalizedNormal = gl_FrontFacing ? normalizedNormal : -normalizedNormal;
-
-    // Light Direction
-    vec3 lightDirection = normalize(-lightDir);
-    float NdotL = dot(normalizedNormal, lightDirection);
+    vec3 normalizedLightDir = normalize(-lightDir);
 
     // Diffuse
-    float diffuseStrength = NdotL * 0.5 + 0.6;
+    float diffuse = dot(normalizedLightDir, normalizedNormal);
+    diffuse = diffuse * 0.5 + 0.5;
+    diffuse = diffuse * diffuse;
 
 	// Scale alpha by mip level 0
     vec2 texSize = vec2(textureSize(textures[meta.albedoArray], 0));
@@ -53,9 +60,19 @@ void main()
     // Ambient
     vec3 ambient = ambientLight * lightColor * albedo.rgb;
     
-    // Diffuse continued after filling texture load with math
-    vec3 diffuse = diffuseStrength * lightColor * albedo.rgb;
-    vec3 color = ambient + diffuse;
+    #ifdef SHADOWS
+	// Pick shadow cascade off frag depth
+	int layer = calculateCascadeIndex(-viewPos.z);
+
+	// Shadows
+	float shadow = ShadowContribution(lightMatrices[layer], worldPos, layer);
+    vec3 diffuseColor = diffuse * lightColor * shadow * albedo.rgb;
+    
+    #else
+    vec3 diffuseColor = diffuse * lightColor * albedo.rgb;   
+    #endif
+
+    vec3 color = ambient + diffuseColor;
 
     // Tone mapping
     color = ACESFilm(color);

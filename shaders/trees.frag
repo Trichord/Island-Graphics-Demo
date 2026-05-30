@@ -9,6 +9,10 @@
 #include "types.glsl"
 #include "ubo.glsl"
 
+#ifdef SHADOWS
+#include "shadows.glsl"
+#endif
+
 // SSBOs
 layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
 {
@@ -26,9 +30,14 @@ flat in int metadataIndex;
 
 in vsOut 
 {
-	vec3 fragPos;
+	vec4 worldPos;
 	vec3 normal;
 	vec2 texCoords;
+
+	#ifdef SHADOWS
+	vec4 viewPos;
+	#endif
+
 } fsIn;
 
 // Out
@@ -56,7 +65,7 @@ void main()
 
 	// Vectors
 	vec3 N = normalize(normal);
-	vec3 V = normalize(cameraPosition.xyz - fsIn.fragPos);
+	vec3 V = normalize(cameraPosition.xyz - fsIn.worldPos.xyz);
 	vec3 L = normalize(-lightDir);
 	vec3 H = normalize(L + V);
 	
@@ -74,7 +83,15 @@ void main()
 	float burleyFactor = burleyDiffuseFactor(FD90, NdotL, NdotV);
 	vec3 diffuse = kD * albedo.rgb * inversePi * burleyFactor;
 
+	#ifdef SHADOWS
+
+	int layer = calculateCascadeIndex(-fsIn.viewPos.z);
+	float shadow = ShadowContribution(lightMatrices[layer], fsIn.worldPos, layer);
+	vec3 accumulatedLight = diffuse * lightColor * shadow * NdotL;
+
+	#else
 	vec3 accumulatedLight = diffuse * lightColor * NdotL;
+	#endif
 	
 	// Ambient
 	vec3 ambient = ambientLight * albedo.rgb * ao;

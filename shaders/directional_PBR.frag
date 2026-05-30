@@ -1,10 +1,16 @@
 #version 460 core
 
 #include "binding_points.glsl"
+#include "constants.glsl"
 #include "pbr.glsl"
-#include "types.glsl"
 #include "textures.glsl"
 #include "tone_mapping.glsl"
+#include "types.glsl"
+#include "ubo.glsl"
+
+#ifdef SHADOWS
+#include "shadows.glsl"
+#endif
 
 // SSBOs
 layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
@@ -26,6 +32,8 @@ in vsOut
 	vec3 lightDir;
 	vec3 tangentFragPos;
 	vec2 texCoords;
+	vec4 viewFragPos;
+	vec4 worldFragPos;
 } fsIn;
 
 // Out
@@ -34,7 +42,7 @@ out vec4 fragColor;
 void main() 
 {
 	Metadata meta = metadata[metadataIndex];
-	
+
 	// Material properties, remap normal from [0, 1] to [-1, 1]
 	vec4 albedo = texture(textures[meta.albedoArray], vec3(fsIn.texCoords, meta.albedoLayer));
 	vec3 ARM = texture(textures[meta.armArray], vec3(fsIn.texCoords, meta.armLayer)).rgb;
@@ -88,7 +96,18 @@ void main()
 	// Outgoing light
 	vec3 Lo = (diffuse + specular) * lightColor * NdotL;
 	vec3 ambient = ambientLight * albedo.rgb * ao;
+
+	#ifdef SHADOWS
+	// Pick shadow cascade off frag depth
+	int layer = calculateCascadeIndex(-fsIn.viewFragPos.z);
+
+	// Shadows
+	float shadow = ShadowContribution(lightMatrices[layer], fsIn.worldFragPos, layer);
+	vec3 color = ambient + Lo * shadow;
+	
+	#else
 	vec3 color = ambient + Lo;
+	#endif
 
 	// Tone mapping
 	color = ACESFilm(color);
