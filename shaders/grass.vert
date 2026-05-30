@@ -1,24 +1,15 @@
 #version 460 core
 
-// Types
-struct Metadata
-{
-	int albedoArray;
-	int albedoLayer;
-	int armArray;
-	int armLayer;
-	int normalArray;
-	int normalLayer;
-	int cubemapArray;
-	int cubemapLayer;
-	uint visibleInstancesBaseIndex;
-};
+#include "binding_points.glsl"
+#include "types.glsl"
+#include "ubo.glsl"
+#include "wind.glsl"
 
 // Constants
 const float swaySpeed = 0.75;
 const float maxVertexHeight = 1.0;
 const float minVertexHeight = 0.001;
-const float PI = 3.14159265358979323846;
+const float windScale = 0.1;
 
 // Attributes
 layout (location = 0) in vec3 aPos;
@@ -26,34 +17,18 @@ layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
 
-// UBOs
-layout (std140, binding = 0) uniform cameraData 
-{
-	layout (offset = 0) mat4 viewMatrix;
-	layout (offset = 64) mat4 projectionMatrix;
-	layout (offset = 128) mat4 projectionViewMatrix;
-	layout (offset = 192) mat4 inverseViewProjectMatrix;
-	layout (offset = 256) vec4 cameraPosition;
-};
-
-layout (std140, binding = 3) uniform packedTime
-{
-	layout (offset = 0) float deltaTime;
-	layout (offset = 4) float time;
-};
-
 // SSBOs
-layout(binding = 2, std430) restrict readonly buffer matricesSSBO 
+layout(binding = SSBO_BINDING_MATRICES, std430) restrict readonly buffer matricesSSBO
 {
    mat4 matrices[];
 };
 
-layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
 {
 	Metadata metadata[];
 };
 
-layout(binding = 7, std430) restrict readonly buffer visibleInstancesSSBO 
+layout(binding = SSBO_BINDING_VISIBLE_INSTANCES, std430) restrict readonly buffer visibleInstancesSSBO 
 {
    uint instances[];
 };
@@ -67,23 +42,6 @@ flat out int metadataIndex;
 
 out vec3 normal;
 out vec2 texCoords;
-
-// Pseudo-random number generator
-float random(vec2 st) 
-{
-    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-}
-
-vec3 calcWindTranslation(mat4 transform, float timeStamp, vec3 windDir, float windStr)
-{
-	const vec4 translation = transform[3];
-	float time1 = sin(timeStamp + random(vec2(translation.x, translation.z)));
-
-	// Remap waves from [-1, 1] to [-0.25, 0.75] 
-	float wave = (time1 * 0.5 + 0.25);
-
-	return windDir * wave * windStr;
-}
 
 void main() 
 {
@@ -101,7 +59,7 @@ void main()
 	float mask = smoothstep(minVertexHeight, maxVertexHeight, aPos.y);
 	
 	windTranslation *= mask;
-	windTranslation *= 0.1;
+	windTranslation *= windScale;
 
 	metadataIndex = gl_BaseInstance;
 

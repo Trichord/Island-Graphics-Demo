@@ -1,66 +1,39 @@
 #version 460 core
 
-// Types
-struct DrawElementsIndirectCommand
-{
-    uint count;
-    uint instanceCount;
-    uint firstIndex;
-    int baseVertex;
-    uint baseInstance;
-};
-
-struct BufferMap
-{
-    uint matricesIndex;
-    uint sharedBaseIndex;
-    uint drawBucket;
-    uint drawCommandsBaseIndex;
-    uint visibleInstancesBaseIndex;
-};
-
-struct AABB
-{
-    vec4 center;
-    vec4 extent;
-};
+#include "binding_points.glsl"
+#include "types.glsl"
+#include "ubo.glsl"
 
 // Attributes
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
-// UBOs
-layout(binding = 1, std140) uniform frustumPlanes
-{
-    vec4 planes[6];
-};
-
 // SSBOs
-layout(binding = 0, std430) restrict readonly buffer mapSSBO
+layout(binding = SSBO_BINDING_VISIBILITY_MAP, std430) restrict readonly buffer mapSSBO
 {
     BufferMap maps[];
 };
 
-layout(binding = 1, std430) restrict readonly buffer aabbSSBO
+layout(binding = SSBO_BINDING_AABB, std430) restrict readonly buffer aabbSSBO
 {
     AABB AABBs[];
 };
 
-layout(binding = 2, std430) restrict readonly buffer matricesSSBO 
+layout(binding = SSBO_BINDING_MATRICES, std430) restrict readonly buffer matricesSSBO
 {
     mat4 matrices[];
 };
 
-layout(binding = 5, std430) restrict writeonly buffer cullResultsSSBO
+layout(binding = SSBO_BINDING_CULL_RESULTS, std430) restrict writeonly buffer cullResultsSSBO
 {
     uint cullResults[];
 };
 
-layout(binding = 7, std430) restrict writeonly buffer visibleInstancesSSBO
+layout(binding = SSBO_BINDING_VISIBLE_INSTANCES, std430) restrict writeonly buffer visibleInstancesSSBO
 {
     uint visibleInstances[];
 };
 
-layout(binding = 8, std430) restrict readonly buffer drawCommandsSourceSSBO
+layout(binding = SSBO_BINDING_DRAW_COMMANDS_SOURCE, std430) restrict readonly buffer drawCommandsSourceSSBO
 {
     DrawElementsIndirectCommand commands[];
 };

@@ -1,67 +1,38 @@
 #version 460 core
 
-// Types
-struct DrawElementsIndirectCommand
-{
-    uint count;
-    uint instanceCount;
-    uint firstIndex;
-    int baseVertex;
-    uint baseInstance;
-};
-
-struct BufferMap
-{
-    uint matricesIndex;
-    uint sharedBaseIndex;
-    uint drawBucket;
-    uint drawCommandsBaseIndex;
-    uint visibleInstancesBaseIndex;
-};
-
-struct Metadata
-{
-	int albedoArray;
-	int albedoLayer;
-	int armArray;
-	int armLayer;
-	int normalArray;
-	int normalLayer;
-	int cubemapArray;
-	int cubemapLayer;
-	uint visibleInstancesBaseIndex;
-};
+#include "binding_points.glsl"
+#include "types.glsl"
 
 // Attributes
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 // SSBOs
-layout(binding = 0, std430) restrict readonly buffer mapSSBO
+layout(binding = SSBO_BINDING_VISIBILITY_MAP, std430) restrict readonly buffer mapSSBO
 {
     BufferMap maps[];
 };
 
-layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
 {
     Metadata metadata[];
 };
 
-layout(binding = 4, std430) buffer drawCountsSSBO
+layout(binding = SSBO_BINDING_DRAW_COUNTS, std430) buffer drawCountsSSBO
 {
     uint drawCounts[];
 };
 
-layout(binding = 5, std430) restrict readonly buffer cullResultsSSBO
+layout(binding = SSBO_BINDING_CULL_RESULTS, std430) restrict readonly buffer cullResultsSSBO
 {
     uint cullResults[];
 };
 
-layout(binding = 6, std430) restrict writeonly buffer drawCommandsSSBO
+layout(binding = SSBO_BINDING_DRAW_COMMANDS, std430) restrict writeonly buffer drawCommandsSSBO
 {
     DrawElementsIndirectCommand commandsDestination[];
 };
 
-layout(binding = 8, std430) restrict readonly buffer drawCommandsSourceSSBO
+layout(binding = SSBO_BINDING_DRAW_COMMANDS_SOURCE, std430) restrict readonly buffer drawCommandsSourceSSBO
 {
     DrawElementsIndirectCommand commandsSource[];
 };

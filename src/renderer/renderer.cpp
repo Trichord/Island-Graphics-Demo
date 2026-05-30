@@ -25,9 +25,9 @@
 
 namespace
 {
-// Scale mipmaps and alpha cutoff for foliage
-constexpr float mipScale{0.111f};
-constexpr float alphaCutoff{0.425f};
+// Hardware shadow bias
+constexpr GLfloat polygonFactor{1.11201f};
+constexpr GLfloat polygonUnits{1.0f};
 } // namespace
 
 const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix);
@@ -51,6 +51,7 @@ Renderer::Renderer(ThreadPool &threadPool, TextureManager &textureManager, const
         setupShader(shader);
 
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getDepthMapTextureID());
+    glPolygonOffset(polygonFactor, polygonUnits);
 }
 
 void Renderer::renderScene(Scene &scene, float deltaTime)
@@ -110,10 +111,6 @@ void Renderer::loadShaders()
 
 void Renderer::setupShader(GraphicsShader &shader)
 {
-    // Constants
-    shader.setFloat("mipScale", mipScale);
-    shader.setFloat("alphaCutoff", alphaCutoff);
-
     // Setup Window settings
     shader.setFloat("gamma", graphicsSettings_.gamma);
     shader.setInt("screenHeight", graphicsSettings_.screenHeight);

@@ -1,34 +1,14 @@
 #version 460 core
 
-// Types
-struct Metadata
-{
-	int albedoArray;
-	int albedoLayer;
-	int armArray;
-	int armLayer;
-	int normalArray;
-	int normalLayer;
-	int cubemapArray;
-	int cubemapLayer;
-	uint visibleInstancesBaseIndex;
-};
+#include "binding_points.glsl"
+#include "types.glsl"
+#include "ubo.glsl"
 
 // Attributes
 layout (location = 0) in vec3 aPos;
 
-// UBOs
-layout (std140, binding = 0) uniform cameraData 
-{
-	layout (offset = 0) mat4 viewMatrix;
-	layout (offset = 64) mat4 projectionMatrix;
-	layout (offset = 128) mat4 projectionViewMatrix;
-	layout (offset = 192) mat4 inverseViewProjectMatrix;
-	layout (offset = 256) vec4 cameraPosition;
-};
-
 // SSBOs
-layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
 {
 	Metadata metadata[];
 };
