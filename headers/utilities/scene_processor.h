@@ -106,7 +106,7 @@ class SceneProcessor
     [[nodiscard]] std::vector<glm::mat4> createMatrices(const std::vector<DrawEntry> &entries);
     [[nodiscard]] std::vector<PrimitiveMetadata> createMetadata(const std::vector<DrawEntry> &entries);
     [[nodiscard]] std::vector<MultiDrawBucket> createDrawBuckets(const std::vector<DrawEntry> &entries);
-    [[nodiscard]] std::vector<ParticleBufferMap> createParticleBufferMap(const std::vector<DrawEntry> &entries);
+    [[nodiscard]] std::vector<VertexBufferMap> createParticleBufferMap(const std::vector<DrawEntry> &entries);
     [[nodiscard]] std::vector<DrawElementsIndirectCommand> createDrawCommands(const std::vector<DrawEntry> &entries);
     [[nodiscard]] std::unordered_map<Handle, std::uint32_t> createMatricesBaseIndexMap(
         const std::vector<DrawEntry> &entries);
@@ -124,7 +124,7 @@ class SceneProcessor
                                     const std::vector<glm::mat4> &matrices,
                                     const std::vector<PrimitiveMetadata> &metadata,
                                     const std::vector<VisibilityBufferMap> &visibilityMap,
-                                    const std::vector<ParticleBufferMap> &particleMap, const std::vector<AABB> &aabbs,
+                                    const std::vector<VertexBufferMap> &particleMap, const std::vector<AABB> &aabbs,
                                     BufferBuilder::Sizes sizes);
     // Metadata helpers
     void setMetadataMaterials(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata);

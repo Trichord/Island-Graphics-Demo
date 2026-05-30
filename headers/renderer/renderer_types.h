@@ -56,7 +56,7 @@ struct VisibilityBufferMap
 };
 
 // Maps a particle back to the VBO and shared index.
-struct ParticleBufferMap
+struct VertexBufferMap
 {
     std::uint32_t vboIndex{0};
     std::uint32_t sharedIndex{0};

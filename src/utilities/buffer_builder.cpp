@@ -39,7 +39,7 @@ std::vector<SimpleAABB> simplifyAABBs(const std::vector<AABB> &aabbs)
 SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
                                 const std::vector<glm::mat4> &matrices, const std::vector<PrimitiveMetadata> &metadata,
                                 const std::vector<VisibilityBufferMap> &visibilityMap,
-                                const std::vector<ParticleBufferMap> &particleMap, const std::vector<AABB> &aabbs,
+                                const std::vector<VertexBufferMap> &particleMap, const std::vector<AABB> &aabbs,
                                 BufferBuilder::Sizes sizes) const
 {
     SSBOs buffers;
@@ -57,7 +57,7 @@ SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &
     buildSSBO(&buffers.visibleInstances, sizes.visibleInstances, BindingPointSSBO::visibleInstances, false, nullptr);
     buildSSBO(&buffers.drawCommandsSource, drawCommandsSize, BindingPointSSBO::drawCommandsSource, false,
               commands.data());
-    buildSSBO(&buffers.particleMap, particleMap.size() * sizeof(ParticleBufferMap), BindingPointSSBO::particleMap,
+    buildSSBO(&buffers.vertexMap, particleMap.size() * sizeof(VertexBufferMap), BindingPointSSBO::particleMap,
               false, particleMap.data());
 
     return buffers;
