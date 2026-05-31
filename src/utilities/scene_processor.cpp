@@ -25,7 +25,6 @@
 #include "scene/handle.h"
 #include "scene/scene.h"
 #include "utilities/buffer_builder.h"
-#include "utilities/shader_bucket_hash.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 
@@ -82,39 +81,41 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
     // Staging
     auto VAO = createVAO(drawEntries_);
     auto matricesMap = createMatricesBaseIndexMap(drawEntries_);
-    auto shaderBucketMap = createShaderBucketMap(drawEntries_);
     auto commands = createDrawCommands(drawEntries_);
     auto buckets = createDrawBuckets(drawEntries_);
     auto AABBs = createAABBs(drawEntries_);
-    auto vertexCounts = createVertexCounts(drawEntries_);
-    auto particleMap = createParticleBufferMap(drawEntries_);
+    auto vertexMap = createVertexBufferMap(drawEntries_);
+    auto vertexMapIndices = createVertexMapBaseIndices(drawEntries_);
     auto matrices = createMatrices(drawEntries_);
     auto metadata = createMetadata(drawEntries_);
+
+    auto drawBucketHandles = createDrawBucketHandles(drawEntries_, buckets);
     auto visibilityMap = createVisibilityBufferMap(drawEntries_, metadata, buckets, matricesMap);
 
     // GPU data upload
     auto bufferSizes = calculateBufferSizes(commands, buckets);
-    auto SSBOs = createSSBOs(commands, matrices, metadata, visibilityMap, particleMap, AABBs, bufferSizes);
+    auto SSBOs = createSSBOs(commands, matrices, metadata, visibilityMap, vertexMap, AABBs, bufferSizes);
 
     // Only store this so the metadata cubemaps can be updated later
     metadata_ = std::move(metadata);
 
     return {
-        .ssbos = std::move(SSBOs),
-        .vao = std::move(VAO),
-        .sceneData =
+        .VAOs = std::move(VAO),
+        .SSBOs = std::move(SSBOs),
+        .sceneDescriptor =
             {
                 .worldAABB = std::move(sceneAABB_),
                 .numInstances = totals_.instances,
+                .numVertices = totals_.vertices,
             },
-        .bufferData =
+        .bufferDescriptor =
             {
-                .buckets = std::move(buckets),
+                .vertexMapBaseIndices = std::move(vertexMapIndices),
                 .matricesBaseIndexMap = std::move(matricesMap),
+                .drawBucketHandles = std::move(drawBucketHandles),
             },
+        .drawBuckets = std::move(buckets),
         .commands = std::move(commands),
-        .vertexCounts = std::move(vertexCounts),
-        .bucketMap = std::move(shaderBucketMap),
     };
 }
 
@@ -171,17 +172,6 @@ std::vector<SceneProcessor::DrawEntry> SceneProcessor::createDrawEntries(Scene &
     return drawEntries;
 }
 
-std::vector<std::size_t> SceneProcessor::createVertexCounts(const std::vector<DrawEntry> &entries)
-{
-    std::vector<std::size_t> vertexCounts;
-    vertexCounts.reserve(entries.size());
-
-    for (const DrawEntry &entry : entries)
-        vertexCounts.emplace_back(entry.primitive->vertices.size());
-
-    return vertexCounts;
-}
-
 BufferBuilder::Sizes SceneProcessor::calculateBufferSizes(const std::vector<DrawElementsIndirectCommand> &commands,
                                                           const std::vector<MultiDrawBucket> &buckets)
 {
@@ -211,32 +201,22 @@ std::vector<AABB> SceneProcessor::createAABBs(const std::vector<DrawEntry> &entr
     return AABBs;
 }
 
-std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash> SceneProcessor::createShaderBucketMap(
-    const std::vector<DrawEntry> &entries)
+std::vector<std::set<Handle>> SceneProcessor::createDrawBucketHandles(const std::vector<DrawEntry> &entries,
+                                                                      const std::vector<MultiDrawBucket> &drawBuckets)
 {
-    std::unordered_map<ShaderBucket, BucketData, ShaderBucketHash> bucketMap;
+    std::vector<std::set<Handle>> handles;
+    handles.resize(drawBuckets.size());
 
-    for (std::size_t i{0}; i < entries.size(); ++i)
+    for (std::size_t i{0}; i < drawBuckets.size(); ++i)
     {
-        const DrawEntry &entry{entries[i]};
+        std::uint32_t start{drawBuckets[i].drawCommandsBaseIndex};
+        std::uint32_t end{drawBuckets[i].drawCommandsBaseIndex + drawBuckets[i].maxDrawCalls};
 
-        auto [iter, inserted] = bucketMap.try_emplace(std::pair{entry.shaderType, entry.alphaMode});
-        auto &bucketData = iter->second;
-
-        if (inserted)
-        {
-            bucketData.startIndex = i;
-            bucketData.endIndex = i;
-        }
-        else
-        {
-            bucketData.endIndex = i;
-        }
-
-        bucketData.handles.emplace(entry.handle);
+        for (std::size_t j{start}; j < end; ++j)
+            handles[i].emplace(entries[j].handle);
     }
 
-    return bucketMap;
+    return handles;
 }
 
 std::vector<DrawElementsIndirectCommand> SceneProcessor::createDrawCommands(const std::vector<DrawEntry> &entries)
@@ -350,11 +330,11 @@ SSBOs SceneProcessor::createSSBOs(const std::vector<DrawElementsIndirectCommand>
                                   const std::vector<glm::mat4> &matrices,
                                   const std::vector<PrimitiveMetadata> &metadata,
                                   const std::vector<VisibilityBufferMap> &visibilityMap,
-                                  const std::vector<VertexBufferMap> &particleMap, const std::vector<AABB> &aabbs,
+                                  const std::vector<VertexBufferMap> &vertexBufferMap, const std::vector<AABB> &aabbs,
                                   BufferBuilder::Sizes sizes)
 {
     BufferBuilder builder;
-    return builder.buildSSBOs(commands, matrices, metadata, visibilityMap, particleMap, aabbs, sizes);
+    return builder.buildSSBOs(commands, matrices, metadata, visibilityMap, vertexBufferMap, aabbs, sizes);
 }
 
 std::vector<glm::mat4> SceneProcessor::createMatrices(const std::vector<DrawEntry> &entries)
@@ -476,28 +456,52 @@ std::vector<VisibilityBufferMap> SceneProcessor::createVisibilityBufferMap(
     return map;
 }
 
-std::vector<VertexBufferMap> SceneProcessor::createParticleBufferMap(const std::vector<DrawEntry> &entries)
+std::vector<VertexBufferMap> SceneProcessor::createVertexBufferMap(const std::vector<DrawEntry> &entries)
 {
     std::size_t currentVertex{0};
-    std::vector<VertexBufferMap> particleMap;
+    std::vector<VertexBufferMap> vertexBufferMap;
 
     for (std::size_t i{0}; i < entries.size(); ++i)
     {
-        if (entries[i].shaderType == ShaderType::particles)
+        using enum ShaderType;
+
+        ShaderType type{entries[i].shaderType};
+
+        if (type == particles || type == grass || type == trees)
         {
             for (std::size_t j{0}; j < entries[i].primitive->vertices.size(); ++j)
             {
                 std::uint32_t vboIndex{static_cast<std::uint32_t>(currentVertex + j)};
                 std::uint32_t sharedIndex{static_cast<std::uint32_t>(i)};
 
-                particleMap.emplace_back(VertexBufferMap{.vboIndex = vboIndex, .sharedIndex = sharedIndex});
+                vertexBufferMap.emplace_back(VertexBufferMap{.vboIndex = vboIndex, .sharedIndex = sharedIndex});
             }
         }
 
         currentVertex += entries[i].primitive->vertices.size();
     }
 
-    return particleMap;
+    return vertexBufferMap;
+}
+
+std::unordered_map<ShaderType, std::size_t> SceneProcessor::createVertexMapBaseIndices(
+    const std::vector<DrawEntry> &drawEntries)
+{
+    std::unordered_map<ShaderType, std::size_t> vertexMapDescriptor;
+    std::size_t currentVertex{0};
+
+    for (const DrawEntry &entry : drawEntries)
+    {
+        using enum ShaderType;
+
+        if (entry.shaderType == particles || entry.shaderType == grass || entry.shaderType == trees)
+        {
+            auto [iter, inserted] = vertexMapDescriptor.try_emplace(entry.shaderType, currentVertex);
+            currentVertex += entry.primitive->vertices.size();
+        }
+    }
+
+    return vertexMapDescriptor;
 }
 
 void SceneProcessor::updateMetadataCubemaps(GLuint metadataBufferID)

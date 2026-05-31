@@ -17,19 +17,30 @@
  *      - visibleInstancesBaseIndex: start of the (primitive x instance) in the visibility buffer
  *
  * AABB: Per primitive. Local-space bounding boxes
+ * 
  * Matrices: Per model. World-space transforms (multiple primitives share one range)
+ * 
  * Metadata: Per primitive. Material textures, visibility buffer base index
- * DrawCounts: Per draw bucket. Number of surviving draw commands after compaction
- * CullResults: Per primitive. Number of surviving instances after frustum test
- * DrawCommands: Per primitive. Compacted each frame from DrawCommandsSource
- * VisibleInstances: Per (primitive × instance) pair. Indices into Matrices for
+ * 
+ * Draw Counts: Per draw bucket. Number of surviving draw commands after compaction
+ * 
+ * Cull Results: Per primitive. Number of surviving instances after frustum test
+ * 
+ * Draw Commands: Per primitive. Compacted each frame from DrawCommandsSource
+ * 
+ * Visible Instances: Per (primitive × instance) pair. Indices into Matrices for
  *                   instances that passed the frustum test. Each primitive owns a
  *                   contiguous section sized to its instance count.
- * DrawCommandsSource: Per primitive. Immutable source of truth, set once at load
- * VertexMap: Per vertex, for particles only. Allows any index in map buffer to look up its vertex in the VBO, and its
+ * 
+ * Draw Commands Source: Per primitive. Immutable source of truth, set once at load
+ * 
+ * Vertex Map: Per vertex. Allows any index in map buffer to look up its vertex in the VBO, and its
  * sharedBaseIndex.
+ * 
+ * Reset Vertices: For anything directly manipulating the main VBO, this is a copy of the original VBO subset. Allows wind effects to not
+ * accumulate over time, particles to reset to their original position, etc.
  *
- * 1:1 indexed buffers: AABB[i], Metadata[i], DrawCommands[i], DrawCommandsSource[i]
+ * 1:1 indexed buffers: AABB[i], Metadata[i], Draw Commands[i], Draw Commands Source[i]. Vertex Map[j], Reset Vertices[j]
  * Flattened buffers: Map[j], VisibleInstances[j] where j spans all (primitive × instance) pairs
  *
  */
@@ -216,6 +227,7 @@ enum class BindingPointSSBO : unsigned int
     visibleInstances,
     drawCommandsSource,
     vbo,
-    particleMap,
-    shadowVBO
+    vertexMap,
+    shadowVBO,
+    resetVertices
 };

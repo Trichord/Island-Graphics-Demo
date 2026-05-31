@@ -22,10 +22,21 @@
 #include "scene/scene.h"
 #include "utilities/buffer_builder.h"
 #include "utilities/scene_processor.h"
-#include "utilities/shader_bucket_hash.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 #include "utilities/world_vectors.h"
+
+namespace
+{
+std::pair<std::size_t, bool> findBucket(const std::vector<MultiDrawBucket> &buckets, ShaderType type)
+{
+    for (std::size_t i{0}; i < buckets.size(); ++i)
+        if (buckets[i].shaderType == type)
+            return std::pair<std::size_t, bool>{i, true};
+
+    return std::pair<std::size_t, bool>{0, false};
+}
+} // namespace
 
 void Renderer::initializeResources(Scene &scene)
 {
@@ -51,11 +62,12 @@ void Renderer::initializeResources(Scene &scene)
 
     // Extract temporaries
     std::vector<DrawElementsIndirectCommand> commands{std::move(processed.commands)};
-    AABB sceneAABB{processed.sceneData.worldAABB};
-    auto bucketMap{std::move(processed.bucketMap)};
-    std::vector<std::size_t> vertexCounts{std::move(processed.vertexCounts)};
+    AABB sceneAABB{processed.sceneDescriptor.worldAABB};
+    std::vector<std::set<Handle>> bucketHandles{std::move(processed.bufferDescriptor.drawBucketHandles)};
+    std::unordered_map<ShaderType, std::size_t> vertexMapLayout =
+        std::move(processed.bufferDescriptor.vertexMapBaseIndices);
 
-    setLocalGroupSizes(processed, commands, vertexCounts, bucketMap);
+    setupComputeShaders(processed, commands, vertexMapLayout, drawBuckets_);
 
     // Setup for cascade shadow maps
     float nearPlane{scene.getCamera().getNearPlane()};
@@ -69,10 +81,10 @@ void Renderer::initializeResources(Scene &scene)
         renderShadowMaps(scene, true);
 
     // Assign the skybox to any ocean shaders
-    borrowSkybox(bucketMap);
+    borrowSkybox(drawBuckets_, bucketHandles);
 
     // Dynamic cubemap generation. The scene must be ready to render, except water / ocean.
-    createCubemaps(scene, commands, bucketMap);
+    createCubemaps(scene, commands, drawBuckets_);
 
     // Update the GPU metadata buffers for the freshly created cubemaps
     processor.updateMetadataCubemaps(SSBOs_.metadata);
@@ -83,8 +95,8 @@ void Renderer::initializeResources(Scene &scene)
 
 void Renderer::takeGPUObjects(SceneProcessor::ProcessedScene &processed)
 {
-    VAOs_ = std::move(processed.vao);
-    SSBOs_ = std::move(processed.ssbos);
+    VAOs_ = std::move(processed.VAOs);
+    SSBOs_ = std::move(processed.SSBOs);
 
     glBindBuffer(GL_PARAMETER_BUFFER, SSBOs_.drawCounts);
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, SSBOs_.drawCommands);
@@ -92,27 +104,42 @@ void Renderer::takeGPUObjects(SceneProcessor::ProcessedScene &processed)
 
 void Renderer::takeBufferData(SceneProcessor::ProcessedScene &processed)
 {
-    drawBuckets_ = std::move(processed.bufferData.buckets);
-    matricesBaseIndex_ = std::move(processed.bufferData.matricesBaseIndexMap);
+    drawBuckets_ = std::move(processed.drawBuckets);
+    matricesBaseIndex_ = std::move(processed.bufferDescriptor.matricesBaseIndexMap);
 }
 
-void Renderer::setLocalGroupSizes(const SceneProcessor::ProcessedScene &processed,
-                                  const std::vector<DrawElementsIndirectCommand> &commands,
-                                  const std::vector<std::size_t> vertexCounts, const BucketMap &bucketMap)
+void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &processed,
+                                   const std::vector<DrawElementsIndirectCommand> &commands,
+                                   const std::unordered_map<ShaderType, std::size_t> &vertexMapLayout,
+                                   const std::vector<MultiDrawBucket> &drawBuckets)
 {
     using enum ShaderType;
+    using enum fastgltf::AlphaMode;
 
-    cullWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneData.numInstances);
+    cullWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptor.numInstances);
     compactionWorkGroupSize_ = static_cast<std::uint32_t>(commands.size());
 
-    for (const auto &[key, bucket] : bucketMap)
+    for (const MultiDrawBucket &bucket : drawBuckets)
     {
-        if (key.first == particles)
+        if (bucket.shaderType == particles)
         {
-            for (std::size_t i{bucket.startIndex}; i <= bucket.endIndex; ++i)
-                particleWorkGroupSize_ += static_cast<std::uint32_t>(vertexCounts[i]);
+            std::uint32_t start{bucket.drawCommandsBaseIndex};
+            std::uint32_t end{bucket.drawCommandsBaseIndex + bucket.maxDrawCalls};
+
+            std::size_t firstVertex{static_cast<std::size_t>(commands[start].baseVertex)};
+            std::size_t lastVertex{end == commands.size() ? processed.sceneDescriptor.numVertices
+                                                          : static_cast<std::size_t>(commands[end].baseVertex)};
+
+            particleWorkGroupSize_ = lastVertex - firstVertex;
         }
     }
+
+    auto iter = vertexMapLayout.find(particles);
+
+    if (iter == vertexMapLayout.end())
+        return;
+
+    particleShader_.setIntU("vertexMapBase", static_cast<unsigned int>(iter->second));
 }
 
 void Renderer::setSceneShaderUniforms(Scene &scene)
@@ -133,44 +160,43 @@ void Renderer::setSceneShaderUniforms(Scene &scene)
     }
 }
 
-void Renderer::borrowSkybox(const BucketMap &bucketMap)
+void Renderer::borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
+                            const std::vector<std::set<Handle>> &bucketHandles)
 {
     using enum ShaderType;
-    using enum fastgltf::AlphaMode;
 
-    auto skyboxIter = bucketMap.find(ShaderBucket{skybox, Opaque});
-    auto oceanIter = bucketMap.find(ShaderBucket{ocean, Opaque});
+    auto [oceanIndex, oceanFound] = findBucket(drawBuckets, ocean);
+    auto [skyboxIndex, skyboxFound] = findBucket(drawBuckets, skybox);
 
-    if (skyboxIter == bucketMap.end() || oceanIter == bucketMap.end())
+    if (!oceanFound || !skyboxFound)
         return;
 
-    if (skyboxIter->second.handles.empty())
-        return;
+    std::set<Handle> oceanHandles{bucketHandles[oceanIndex]};
+    std::set<Handle> skyboxHandles{bucketHandles[skyboxIndex]};
 
-    Handle skyboxHandle{*skyboxIter->second.handles.begin()};
+    // Should't have more than one skybox. Undefined if there is.
+    Handle skyboxHandle{*skyboxHandles.begin()};
 
-    for (const Handle &oceanHandle : oceanIter->second.handles)
+    for (const Handle &oceanHandle : oceanHandles)
         textureManager_.borrowCubemaps(oceanHandle, skyboxHandle);
 }
 
 void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndirectCommand> &commandsSource,
-                              const BucketMap &bucketMap)
+                              const std::vector<MultiDrawBucket> &drawBuckets)
 {
     using enum ShaderType;
-    using enum fastgltf::AlphaMode;
 
-    auto waterIter = bucketMap.find(ShaderBucket{water, Blend});
+    auto [waterIndex, found] = findBucket(drawBuckets, water);
 
-    if (waterIter == bucketMap.end())
+    if (!found)
         return;
 
-    std::size_t commandsStart{waterIter->second.startIndex};
-    std::size_t commandsEnd{waterIter->second.endIndex};
+    std::size_t commandsStart{drawBuckets[waterIndex].drawCommandsBaseIndex};
 
     std::vector<DrawElementsIndirectCommand> commands = commandsSource;
 
     // Ensure reflections don't capture uninitialized other reflections or self geometry
-    for (std::size_t i{commandsStart}; i <= commandsEnd; ++i)
+    for (std::size_t i{commandsStart}; i < drawBuckets[waterIndex].maxDrawCalls; ++i)
         commands[i].count = 0;
 
     // Update the draw command buffer now that water is invisible

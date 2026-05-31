@@ -17,42 +17,34 @@
 #include "scene/handle.h"
 #include "scene/scene.h"
 #include "utilities/buffer_builder.h"
-#include "utilities/shader_bucket_hash.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 
 class SceneProcessor
 {
   public:
-    struct SceneData
+    struct SceneDescriptor
     {
         AABB worldAABB;
         std::size_t numInstances{0};
+        std::size_t numVertices{0};
     };
 
-    struct BufferData
+    struct BufferDescriptor
     {
-        std::vector<MultiDrawBucket> buckets;
+        std::unordered_map<ShaderType, std::size_t> vertexMapBaseIndices;
         std::unordered_map<Handle, std::uint32_t> matricesBaseIndexMap;
-    };
-
-    // Maps the starting and ending position in the draw commands list, and all the handles contained within that bucket
-    struct BucketData
-    {
-        std::size_t startIndex{0};
-        std::size_t endIndex{0};
-        std::set<Handle> handles;
+        std::vector<std::set<Handle>> drawBucketHandles;
     };
 
     struct ProcessedScene
     {
-        SSBOs ssbos;
-        VAOs vao;
-        SceneData sceneData;
-        BufferData bufferData;
+        VAOs VAOs;
+        SSBOs SSBOs;
+        SceneDescriptor sceneDescriptor;
+        BufferDescriptor bufferDescriptor;
+        std::vector<MultiDrawBucket> drawBuckets;
         std::vector<DrawElementsIndirectCommand> commands;
-        std::vector<size_t> vertexCounts;
-        std::unordered_map<ShaderBucket, BucketData, ShaderBucketHash> bucketMap;
     };
 
     SceneProcessor(Scene &scene, TextureManager &textureManager);
@@ -97,7 +89,6 @@ class SceneProcessor
     std::vector<DrawEntry> createDrawEntries(Scene &scene);
 
     // Counting
-    [[nodiscard]] std::vector<std::size_t> createVertexCounts(const std::vector<DrawEntry> &entries);
     [[nodiscard]] BufferBuilder::Sizes calculateBufferSizes(const std::vector<DrawElementsIndirectCommand> &commands,
                                                             const std::vector<MultiDrawBucket> &buckets);
 
@@ -106,14 +97,16 @@ class SceneProcessor
     [[nodiscard]] std::vector<glm::mat4> createMatrices(const std::vector<DrawEntry> &entries);
     [[nodiscard]] std::vector<PrimitiveMetadata> createMetadata(const std::vector<DrawEntry> &entries);
     [[nodiscard]] std::vector<MultiDrawBucket> createDrawBuckets(const std::vector<DrawEntry> &entries);
-    [[nodiscard]] std::vector<VertexBufferMap> createParticleBufferMap(const std::vector<DrawEntry> &entries);
+    [[nodiscard]] std::vector<VertexBufferMap> createVertexBufferMap(const std::vector<DrawEntry> &entries);
     [[nodiscard]] std::vector<DrawElementsIndirectCommand> createDrawCommands(const std::vector<DrawEntry> &entries);
     [[nodiscard]] std::unordered_map<Handle, std::uint32_t> createMatricesBaseIndexMap(
         const std::vector<DrawEntry> &entries);
-    [[nodiscard]] std::unordered_map<ShaderBucket, BucketData, ShaderBucketHash> createShaderBucketMap(
-        const std::vector<DrawEntry> &entries);
+    [[nodiscard]] std::unordered_map<ShaderType, std::size_t> createVertexMapBaseIndices(
+        const std::vector<DrawEntry> &drawEntries);
 
     // Stage two (multi-vector dependent)
+    [[nodiscard]] std::vector<std::set<Handle>> createDrawBucketHandles(
+        const std::vector<DrawEntry> &entries, const std::vector<MultiDrawBucket> &drawBuckets);
     [[nodiscard]] std::vector<VisibilityBufferMap> createVisibilityBufferMap(
         const std::vector<DrawEntry> &entries, const std::vector<PrimitiveMetadata> &metadata,
         const std::vector<MultiDrawBucket> &buckets, const std::unordered_map<Handle, std::uint32_t> matricesMap);
@@ -124,7 +117,7 @@ class SceneProcessor
                                     const std::vector<glm::mat4> &matrices,
                                     const std::vector<PrimitiveMetadata> &metadata,
                                     const std::vector<VisibilityBufferMap> &visibilityMap,
-                                    const std::vector<VertexBufferMap> &particleMap, const std::vector<AABB> &aabbs,
+                                    const std::vector<VertexBufferMap> &vertexMap, const std::vector<AABB> &aabbs,
                                     BufferBuilder::Sizes sizes);
     // Metadata helpers
     void setMetadataMaterials(const std::vector<DrawEntry> &entries, std::vector<PrimitiveMetadata> &metadata);

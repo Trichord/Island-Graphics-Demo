@@ -99,7 +99,7 @@ set(HEADERS
     headers/utilities/json_loader.h
     headers/utilities/ktx_texture.h
     headers/utilities/scene_processor.h
-    headers/utilities/shader_bucket_hash.h
+    
     headers/utilities/texture_loader.h
     headers/utilities/texture_manager.h
     headers/utilities/texture_utilities.h
