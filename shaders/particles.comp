@@ -5,13 +5,13 @@
 #include "ubo.glsl"
 
 // Constants
-const float gravity = 60.0f;
+const float gravity = 90.0f;
 const float mass = 0.1f;
 const float invMass = 1.0 / mass;
 const float timeScale = 0.75;
-const float blackHolePosScale = 0.5;
+const float blackHolePosScale = 0.33;
 const float minLifetimePercent = 0.75;
-const float velocityDamper = 0.0125;
+const float resetVelocityDamper = 0.005;
 
 // Attributes
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
@@ -29,7 +29,7 @@ layout(binding = SSBO_BINDING_DRAW_COMMANDS_SOURCE, std430) restrict readonly bu
 
 layout(binding = SSBO_BINDING_VERTEX_MAP, std430) restrict readonly buffer VertexMapSSBO
 {
-    VertexMap map[];
+    VertexMap vertexMap[];
 };
 
 // This is the VBO for all gLTF models aliased as vec4s. Avoids having multiple definitions of a 
@@ -45,18 +45,15 @@ layout(binding = SSBO_BINDING_SHADOW_VBO, std430) restrict writeonly buffer shad
     vec2 shadowVertices[];
 };
 
-// In
-uniform uint vertexMapBase;
-
 // AABBs for particles are already in world space
 void main()
 {
     uint id = gl_GlobalInvocationID.x;
 
-    if (vertexMapBase + id >= map.length())
+    if (id >= vertexMap.length())
         return;
     
-    VertexMap map = map[vertexMapBase + id];
+    VertexMap map = vertexMap[id];
     AABB aabb = AABBs[map.sharedIndex];
 
     // Multiply by 3 to convert a vertex struct index (48 bytes) into vec4s
@@ -78,6 +75,7 @@ void main()
     vec2 lifetimes = d2.zw;
 
     vec3 blackHolePos = aabb.center.xyz + aabb.extent.xyz * blackHolePosScale;
+    vec3 originalBlackHolePos = blackHolePos;
     blackHolePos.y = aabb.center.y;
 
     // Move black holes around
@@ -86,25 +84,33 @@ void main()
     blackHolePos.y += sin(time) * 2.0;
     
     // Force from first black hole
-    vec3 d = blackHolePos - position;
-    float dist1 = length(d);
-    vec3 force = (gravity / (dist1 * dist1)) * normalize(d);
+    vec3 toBlackHole = blackHolePos - position;
+    float dist = length(toBlackHole);
+    vec3 force = (gravity / (dist * dist)) * normalize(toBlackHole);
 
     // Ending condtions
     float innerRadius = min(aabb.extent.x, min(aabb.extent.y, aabb.extent.z));
     
-    float decay = dist1 / innerRadius;
+    float decay = dist / innerRadius;
     lifetimes.y -= decay * deltaTime * timeScale;
 
     if (distance(position, aabb.center.xyz) > innerRadius || lifetimes.y <= 0)
-    {
-        particles[particleIndex] = vec4(aabb.center.xyz, velocity.x * velocityDamper);
-        particles[particleIndex + 1] = vec4(velocity.y * velocityDamper, velocity.z * velocityDamper, color.rg);
-        particles[particleIndex + 2] = vec4(color.ba, lifetimes.x, lifetimes.x);
+    {   
+        // Vary the respawn point
+        originalBlackHolePos.y -= sin(time);
 
-        shadowVertices[particleIndex] = aabb.center.xy;
-        shadowVertices[particleIndex + 1] = vec2(aabb.center.z, 1.0f);
-        shadowVertices[particleIndex + 2] = vec2(velocity.xy);
+        //Kill off most of the original velocity, leave some for variation
+        vec3 newVel = velocity * resetVelocityDamper;
+
+        vec3 respawnDir = normalize(aabb.center.xyz - originalBlackHolePos);
+        vec3 resetPos = aabb.center.xyz + respawnDir * innerRadius * 0.80;
+
+        particles[particleIndex] = vec4(resetPos, newVel.x);
+        particles[particleIndex + 1] = vec4(newVel.yz, color.rg);
+        particles[particleIndex + 2] = vec4(color.ba, lifetimes.xx);
+        
+        shadowVertices[particleIndex] = vec2(resetPos.xy);
+        shadowVertices[particleIndex + 1] = vec2(resetPos.z, 1.0);
     }
     else
     { 
@@ -117,9 +123,8 @@ void main()
         particles[particleIndex] = vec4(p, v.x);
         particles[particleIndex + 1] = vec4(v.yz, color.rg);
         particles[particleIndex + 2] = vec4(color.ba, lifetimes);
-
-        shadowVertices[particleIndex] = p.xy;
-        shadowVertices[particleIndex + 1] = vec2(p.z, 1.0f);
-        shadowVertices[particleIndex + 2] = vec2(v.xy);
+        
+        shadowVertices[particleIndex] = vec2(p.xy);
+        shadowVertices[particleIndex + 1] = vec2(p.z, 1.0);
     }
 }

@@ -85,7 +85,6 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
     auto buckets = createDrawBuckets(drawEntries_);
     auto AABBs = createAABBs(drawEntries_);
     auto vertexMap = createVertexBufferMap(drawEntries_);
-    auto vertexMapIndices = createVertexMapBaseIndices(drawEntries_);
     auto matrices = createMatrices(drawEntries_);
     auto metadata = createMetadata(drawEntries_);
 
@@ -110,7 +109,6 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
             },
         .bufferDescriptor =
             {
-                .vertexMapBaseIndices = std::move(vertexMapIndices),
                 .matricesBaseIndexMap = std::move(matricesMap),
                 .drawBucketHandles = std::move(drawBucketHandles),
             },
@@ -467,7 +465,7 @@ std::vector<VertexBufferMap> SceneProcessor::createVertexBufferMap(const std::ve
 
         ShaderType type{entries[i].shaderType};
 
-        if (type == particles || type == grass || type == trees)
+        if (type == particles)
         {
             for (std::size_t j{0}; j < entries[i].primitive->vertices.size(); ++j)
             {
@@ -482,26 +480,6 @@ std::vector<VertexBufferMap> SceneProcessor::createVertexBufferMap(const std::ve
     }
 
     return vertexBufferMap;
-}
-
-std::unordered_map<ShaderType, std::size_t> SceneProcessor::createVertexMapBaseIndices(
-    const std::vector<DrawEntry> &drawEntries)
-{
-    std::unordered_map<ShaderType, std::size_t> vertexMapDescriptor;
-    std::size_t currentVertex{0};
-
-    for (const DrawEntry &entry : drawEntries)
-    {
-        using enum ShaderType;
-
-        if (entry.shaderType == particles || entry.shaderType == grass || entry.shaderType == trees)
-        {
-            auto [iter, inserted] = vertexMapDescriptor.try_emplace(entry.shaderType, currentVertex);
-            currentVertex += entry.primitive->vertices.size();
-        }
-    }
-
-    return vertexMapDescriptor;
 }
 
 void SceneProcessor::updateMetadataCubemaps(GLuint metadataBufferID)

@@ -32,7 +32,6 @@ class SceneProcessor
 
     struct BufferDescriptor
     {
-        std::unordered_map<ShaderType, std::size_t> vertexMapBaseIndices;
         std::unordered_map<Handle, std::uint32_t> matricesBaseIndexMap;
         std::vector<std::set<Handle>> drawBucketHandles;
     };
@@ -101,8 +100,6 @@ class SceneProcessor
     [[nodiscard]] std::vector<DrawElementsIndirectCommand> createDrawCommands(const std::vector<DrawEntry> &entries);
     [[nodiscard]] std::unordered_map<Handle, std::uint32_t> createMatricesBaseIndexMap(
         const std::vector<DrawEntry> &entries);
-    [[nodiscard]] std::unordered_map<ShaderType, std::size_t> createVertexMapBaseIndices(
-        const std::vector<DrawEntry> &drawEntries);
 
     // Stage two (multi-vector dependent)
     [[nodiscard]] std::vector<std::set<Handle>> createDrawBucketHandles(
