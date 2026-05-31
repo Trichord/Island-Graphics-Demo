@@ -82,7 +82,6 @@ class Renderer
     void takeGPUObjects(SceneProcessor::ProcessedScene &processed);
     void setupComputeShaders(const SceneProcessor::ProcessedScene &processed,
                              const std::vector<DrawElementsIndirectCommand> &commands,
-                             const std::unordered_map<ShaderType, std::size_t> &vertexMapLayout,
                              const std::vector<MultiDrawBucket> &drawBuckets);
 
     // Cubemap Generation

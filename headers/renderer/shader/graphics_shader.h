@@ -32,7 +32,7 @@ class GraphicsShader : public Shader
   public:
     GraphicsShader() = default;
     GraphicsShader(ShaderType type, const std::filesystem::path &vertexPath, const std::filesystem::path &fragmentPath,
-                   const std::string &defines = {});
+                   const std::vector<std::string> &defines = {});
     GraphicsShader(GraphicsShader &&other) = default;
     GraphicsShader &operator=(GraphicsShader &&other) = default;
 

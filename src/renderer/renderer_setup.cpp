@@ -64,10 +64,8 @@ void Renderer::initializeResources(Scene &scene)
     std::vector<DrawElementsIndirectCommand> commands{std::move(processed.commands)};
     AABB sceneAABB{processed.sceneDescriptor.worldAABB};
     std::vector<std::set<Handle>> bucketHandles{std::move(processed.bufferDescriptor.drawBucketHandles)};
-    std::unordered_map<ShaderType, std::size_t> vertexMapLayout =
-        std::move(processed.bufferDescriptor.vertexMapBaseIndices);
 
-    setupComputeShaders(processed, commands, vertexMapLayout, drawBuckets_);
+    setupComputeShaders(processed, commands, drawBuckets_);
 
     // Setup for cascade shadow maps
     float nearPlane{scene.getCamera().getNearPlane()};
@@ -110,7 +108,6 @@ void Renderer::takeBufferData(SceneProcessor::ProcessedScene &processed)
 
 void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &processed,
                                    const std::vector<DrawElementsIndirectCommand> &commands,
-                                   const std::unordered_map<ShaderType, std::size_t> &vertexMapLayout,
                                    const std::vector<MultiDrawBucket> &drawBuckets)
 {
     using enum ShaderType;
@@ -133,13 +130,6 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
             particleWorkGroupSize_ = lastVertex - firstVertex;
         }
     }
-
-    auto iter = vertexMapLayout.find(particles);
-
-    if (iter == vertexMapLayout.end())
-        return;
-
-    particleShader_.setIntU("vertexMapBase", static_cast<unsigned int>(iter->second));
 }
 
 void Renderer::setSceneShaderUniforms(Scene &scene)

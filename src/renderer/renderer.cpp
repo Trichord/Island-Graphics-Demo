@@ -83,7 +83,7 @@ void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    std::string defines{graphicsSettings_.shadowResolution ? "#define SHADOWS\n" : ""};
+    const std::vector<std::string> defines{graphicsSettings_.shadowResolution ? "SHADOWS" : ""};
 
     shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR.vert",
                                              "./shaders/directional_PBR.frag", defines};
@@ -98,9 +98,11 @@ void Renderer::loadShaders()
     // Internal use only shaders
     if (graphicsSettings_.shadowResolution)
     {
+        const std::vector<std::string> alphaDefine{"ALPHA_TESTED"};
+
         shaders_[shaderIndex(shadowMap)] = {shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
-        shaders_[shaderIndex(shadowMapAlpha)] = {shadowMapAlpha, "./shaders/shadow_pass_alpha.vert",
-                                                 "./shaders/shadow_pass_alpha.frag"};
+        shaders_[shaderIndex(shadowMapAlpha)] = {shadowMapAlpha, "./shaders/shadow_pass.vert",
+                                                 "./shaders/shadow_pass.frag", alphaDefine};
     }
 
     // Compute

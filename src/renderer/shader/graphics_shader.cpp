@@ -3,7 +3,7 @@
 #include <array>
 
 GraphicsShader::GraphicsShader(ShaderType type, const std::filesystem::path &vertexPath,
-                               const std::filesystem::path &fragmentPath, const std::string &defines)
+                               const std::filesystem::path &fragmentPath, const std::vector<std::string> &defines)
 {
     std::array<GLuint, 2> sourceIDs;
 

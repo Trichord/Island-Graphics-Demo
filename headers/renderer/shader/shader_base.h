@@ -8,6 +8,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 class Shader
 {
@@ -45,9 +46,9 @@ class Shader
 
     GLint getCachedUniform(const std::string &name);
 
-    GLuint createShaderID(GLenum type, const std::filesystem::path &path, const std::string &defines = {});
+    GLuint createShaderID(GLenum type, const std::filesystem::path &path, const std::vector<std::string> &defines = {});
     void linkShader(std::span<GLuint> sourceIDs, const std::string_view path);
-    std::string preProcess(const std::string &shaderString, const std::string &defines,
+    std::string preProcess(const std::string &shaderString, const std::vector<std::string> &defines,
                            std::unordered_set<std::string> &seen, std::size_t lineNum);
     std::string loadFile(const std::filesystem::path &path);
 };

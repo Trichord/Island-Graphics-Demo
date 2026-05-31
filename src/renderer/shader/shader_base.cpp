@@ -136,7 +136,7 @@ GLint Shader::getCachedUniform(const std::string &name)
     return iter->second;
 }
 
-GLuint Shader::createShaderID(GLenum type, const std::filesystem::path &path, const std::string &defines)
+GLuint Shader::createShaderID(GLenum type, const std::filesystem::path &path, const std::vector<std::string> &defines)
 {
     std::string fileContents{loadFile(path)};
 
@@ -210,7 +210,7 @@ std::string Shader::loadFile(const std::filesystem::path &path)
     return fileContents;
 }
 
-std::string Shader::preProcess(const std::string &shaderString, const std::string &defines,
+std::string Shader::preProcess(const std::string &shaderString, const std::vector<std::string> &defines,
                                std::unordered_set<std::string> &seen, std::size_t lineNum)
 {
     std::istringstream stream{shaderString};
@@ -229,7 +229,8 @@ std::string Shader::preProcess(const std::string &shaderString, const std::strin
 
         // Let #version come first
         if (lineNum == 2)
-            result += defines;
+            for (const std::string &define : defines)
+                result += std::string{"#define " + define + '\n'};
 
         // Find the #include
         std::size_t found{line.find("#include")};
