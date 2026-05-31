@@ -30,7 +30,7 @@ class BufferBuilder
                                    const std::vector<glm::mat4> &matrices,
                                    const std::vector<PrimitiveMetadata> &metadata,
                                    const std::vector<VisibilityBufferMap> &visibilityMap,
-                                   const std::vector<VertexBufferMap> &particleMap, const std::vector<AABB> &aabbs,
+                                   const std::vector<VertexBufferMap> &vertexMap, const std::vector<AABB> &aabbs,
                                    BufferBuilder::Sizes sizes) const;
 
     [[nodiscard]] UBOs buildUBOs();

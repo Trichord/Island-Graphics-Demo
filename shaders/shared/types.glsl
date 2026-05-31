@@ -30,7 +30,7 @@ struct BufferMap
     uint visibleInstancesBaseIndex;
 };
 
-struct ParticleMap
+struct VertexMap
 {
     uint vboIndex;
     uint sharedIndex;

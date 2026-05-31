@@ -27,9 +27,9 @@ layout(binding = SSBO_BINDING_DRAW_COMMANDS_SOURCE, std430) restrict readonly bu
     DrawElementsIndirectCommand commands[];
 };
 
-layout(binding = SSBO_BINDING_PARTICLE_MAP, std430) restrict readonly buffer particleMapSSBO
+layout(binding = SSBO_BINDING_VERTEX_MAP, std430) restrict readonly buffer VertexMapSSBO
 {
-    ParticleMap map[];
+    VertexMap map[];
 };
 
 // This is the VBO for all gLTF models aliased as vec4s. Avoids having multiple definitions of a 
@@ -45,19 +45,22 @@ layout(binding = SSBO_BINDING_SHADOW_VBO, std430) restrict writeonly buffer shad
     vec2 shadowVertices[];
 };
 
+// In
+uniform uint vertexMapBase;
+
 // AABBs for particles are already in world space
 void main()
 {
     uint id = gl_GlobalInvocationID.x;
 
-    if (id >= map.length())
+    if (vertexMapBase + id >= map.length())
         return;
     
-    ParticleMap particleMap = map[id];
-    AABB aabb = AABBs[particleMap.sharedIndex];
+    VertexMap map = map[vertexMapBase + id];
+    AABB aabb = AABBs[map.sharedIndex];
 
     // Multiply by 3 to convert a vertex struct index (48 bytes) into vec4s
-    uint particleIndex = particleMap.vboIndex * 3;
+    uint particleIndex = map.vboIndex * 3;
     
     // Position xyz and velocity x
     vec4 d0 = particles[particleIndex];
