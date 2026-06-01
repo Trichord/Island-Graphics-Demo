@@ -43,13 +43,16 @@ uniform vec3 windDirection;
 // Out
 flat out int metadataIndex;
 
-out vec3 normal;
-out vec2 texCoords;
+out VS_OUT 
+{
+	vec3 normal;
+	vec2 texCoords;
 
 #ifdef SHADOWS
-out vec4 viewPos;
-out vec4 worldPos;
+	vec4 viewPos;
+	vec4 worldPos;
 #endif
+} vsOut;
 
 void main() 
 {
@@ -58,23 +61,26 @@ void main()
 
 	mat4 modelMatrix = matrices[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
-	vec4 worldPosition = modelMatrix * vec4(aPos, 1.0);
-	normal = normalize(normalMatrix * mix(aNormal, worldUp, 0.5));
+	vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
+	vec3 normal = normalize(normalMatrix * mix(aNormal, worldUp, 0.5));
 	
-	vec2 noise = texture(textures[meta.normalArray], vec3(modelMatrix[3].xz + time * windTimeScale, meta.normalLayer)).rg;
-	float windFactor = getWindFactor(modelMatrix[3].xyz, time * windTimeScale);
+	// Wind
+	vec2 noise = texture(textures[meta.normalArray], vec3(worldPos.xy + time * 0.05, meta.normalLayer)).rg;
+	float windFactor = getWindFactor(worldPos.xyz, time);
 
-	largeScaleWind(worldPosition.xyz, aColor, windDirection, windFactor, noise.x);
-	mediumScaleWind(worldPosition.xyz, aColor, vec3(noise.rg, -noise.r), windFactor);
-	smallScaleWind(worldPosition.xyz, aColor, normal, vec3(noise.gr, noise.g), windFactor, windStrength);
+	largeScaleWind(worldPos.xyz, aColor, windDirection, windFactor, noise.x);
+	mediumScaleWind(worldPos.xyz, aColor, vec3(noise.rg, -noise.r), windFactor);
+	smallScaleWind(worldPos.xyz, aColor, normal, vec3(noise.gr, noise.g), windFactor, windStrength);
 	
+	// Out params
 	metadataIndex = gl_BaseInstance;
-	texCoords = aTexCoords;
 	
+	vsOut.texCoords = aTexCoords;
+	vsOut.normal = normal;
 	#ifdef SHADOWS
-	viewPos = viewMatrix * worldPosition;
-	worldPos = worldPosition;
+	vsOut.viewPos = viewMatrix * worldPos;
+	vsOut.worldPos = worldPos;
 	#endif
 
-    gl_Position = projectionViewMatrix * worldPosition;
+    gl_Position = projectionViewMatrix * worldPos;
 }

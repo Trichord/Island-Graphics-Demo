@@ -230,7 +230,8 @@ std::string Shader::preProcess(const std::string &shaderString, const std::vecto
         // Let #version come first
         if (lineNum == 2)
             for (const std::string &define : defines)
-                result += std::string{"#define " + define + '\n'};
+                if (!define.empty())
+                    result += std::string{"#define " + define + '\n'};
 
         // Find the #include
         std::size_t found{line.find("#include")};
