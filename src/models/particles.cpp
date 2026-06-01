@@ -86,7 +86,7 @@ std::vector<Primitive> Particles::generateParticles(const glm::vec3 &position, c
 
         vertex.position = glm::vec3{xPos, yPos, zPos};
         vertex.normal = glm::vec3{xVel, yVel, zVel};
-        vertex.tangent = glm::vec4{red, green, blue, alpha};
+        vertex.color = glm::vec4{red, green, blue, alpha};
 
         // (Max life time, current life remaining)
         vertex.texCoords = glm::vec2{lifetime, randomFloat(lifetime * minLifetimePercent, lifetime, mt)};

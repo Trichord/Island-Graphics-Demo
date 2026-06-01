@@ -1,6 +1,7 @@
 #version 460 core
 
 #include "binding_points.glsl"
+#include "textures.glsl"
 #include "types.glsl"
 #include "ubo.glsl"
 #include "wind.glsl"
@@ -17,6 +18,7 @@ layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
+layout (location = 4) in vec4 aColor;
 
 // SSBOs
 layout(binding = SSBO_BINDING_MATRICES, std430) restrict readonly buffer matricesSSBO
@@ -57,20 +59,22 @@ void main()
 	mat4 modelMatrix = matrices[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
 	vec4 worldPosition = modelMatrix * vec4(aPos, 1.0);
+	normal = normalize(normalMatrix * mix(aNormal, worldUp, 0.5));
+	
+	vec2 noise = texture(textures[meta.normalArray], vec3(modelMatrix[3].xz + time * windTimeScale, meta.normalLayer)).rg;
+	float windFactor = getWindFactor(modelMatrix[3].xyz, time * windTimeScale);
 
-	vec3 windTranslation = calcWindTranslation(modelMatrix, time * swaySpeed, windDirection, windStrength);
-	float mask = smoothstep(minVertexHeight, maxVertexHeight, aPos.y);
-	windTranslation *= mask;
-	windTranslation *= windScale;
-
+	largeScaleWind(worldPosition.xyz, aColor, windDirection, windFactor, noise.x);
+	mediumScaleWind(worldPosition.xyz, aColor, vec3(noise.rg, -noise.r), windFactor);
+	smallScaleWind(worldPosition.xyz, aColor, normal, vec3(noise.gr, noise.g), windFactor, windStrength);
+	
 	metadataIndex = gl_BaseInstance;
 	texCoords = aTexCoords;
-	normal = normalize(normalMatrix * mix(aNormal, worldUp, 0.5));
-
+	
 	#ifdef SHADOWS
 	viewPos = viewMatrix * worldPosition;
 	worldPos = worldPosition;
 	#endif
 
-    gl_Position = projectionViewMatrix * vec4(worldPosition.xyz + windTranslation, 1.0);
+    gl_Position = projectionViewMatrix * worldPosition;
 }

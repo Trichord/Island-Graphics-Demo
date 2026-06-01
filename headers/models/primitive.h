@@ -15,6 +15,7 @@ struct Primitive
         glm::vec3 normal{0.0f};
         glm::vec4 tangent{0.0f};
         glm::vec2 texCoords{0.0f};
+        glm::vec4 color{0.0f};
     };
 
     std::vector<Vertex> vertices;
