@@ -86,6 +86,7 @@ VAOs BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices,
     glEnableVertexArrayAttrib(vao.vao, 1);
     glEnableVertexArrayAttrib(vao.vao, 2);
     glEnableVertexArrayAttrib(vao.vao, 3);
+    glEnableVertexArrayAttrib(vao.vao, 4);
 
     glCreateBuffers(1, &vao.vbo);
     glNamedBufferStorage(vao.vbo, vertices.size() * sizeof(Primitive::Vertex), vertices.data(), 0);
@@ -100,11 +101,13 @@ VAOs BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices,
     glVertexArrayAttribFormat(vao.vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, normal));
     glVertexArrayAttribFormat(vao.vao, 2, 4, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, tangent));
     glVertexArrayAttribFormat(vao.vao, 3, 2, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, texCoords));
+    glVertexArrayAttribFormat(vao.vao, 4, 4, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, color));
 
     glVertexArrayAttribBinding(vao.vao, 0, 0);
     glVertexArrayAttribBinding(vao.vao, 1, 0);
     glVertexArrayAttribBinding(vao.vao, 2, 0);
     glVertexArrayAttribBinding(vao.vao, 3, 0);
+    glVertexArrayAttribBinding(vao.vao, 4, 0);
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::vbo), vao.vbo);
 

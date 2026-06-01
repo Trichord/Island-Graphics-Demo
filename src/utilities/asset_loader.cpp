@@ -166,6 +166,7 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
             auto *normalIt = gltfPrimitive.findAttribute("NORMAL");
             auto *tangentIt = gltfPrimitive.findAttribute("TANGENT");
             auto *texCoordIt = gltfPrimitive.findAttribute("TEXCOORD_0");
+            auto *colorIt = gltfPrimitive.findAttribute("COLOR_0");
 
             if (!positionIt)
                 throw std::runtime_error{"fastGLTF loading error: Model has no position accessor"};
@@ -181,7 +182,7 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
             }
 
             // Normals
-            if (normalIt)
+            if (normalIt != gltfPrimitive.attributes.end())
             {
                 auto &normalAccessor = asset.accessors[normalIt->accessorIndex];
 
@@ -194,7 +195,7 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
             }
 
             // Tangents
-            if (tangentIt)
+            if (tangentIt != gltfPrimitive.attributes.end())
             {
                 auto &tangentAccessor = asset.accessors[tangentIt->accessorIndex];
 
@@ -207,7 +208,7 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
             }
 
             // Texture coordinates
-            if (texCoordIt)
+            if (texCoordIt != gltfPrimitive.attributes.end())
             {
                 auto &texCoordAccessor = asset.accessors[texCoordIt->accessorIndex];
 
@@ -217,6 +218,27 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
                     fastgltf::iterateAccessorWithIndex<glm::vec2>(
                         asset, texCoordAccessor,
                         [&](glm::vec2 texCoords, std::size_t index) { vertices[index].texCoords = texCoords; });
+                }
+            }
+
+            // Vertex color
+            if (colorIt != gltfPrimitive.attributes.end())
+            {
+                auto &colorAccessor = asset.accessors[colorIt->accessorIndex];
+
+                if (colorAccessor.type == fastgltf::AccessorType::Vec4)
+                {
+                    fastgltf::iterateAccessorWithIndex<glm::vec4>(
+                        asset, colorAccessor,
+                        [&](glm::vec4 color, std::size_t index) { vertices[index].color = color; });
+                }
+
+                else if (colorAccessor.type == fastgltf::AccessorType::Vec3)
+                {
+                    fastgltf::iterateAccessorWithIndex<glm::vec3>(
+                        asset, colorAccessor, [&](glm::vec3 color, std::size_t index) {
+                            vertices[index].color = glm::vec4{color.r, color.g, color.b, 1.0};
+                        });
                 }
             }
 

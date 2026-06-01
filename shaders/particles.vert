@@ -9,7 +9,7 @@ const float pointSize = 0.025;
 
 // Attributes
 layout (location = 0) in vec3 aPos;
-layout (location = 2) in vec4 aColor;
+layout (location = 4) in vec4 aColor;
 
 // SSBOs
 layout(binding = SSBO_BINDING_MATRICES, std430) restrict readonly buffer matricesSSBO
