@@ -1,7 +1,6 @@
 // Functions for wind effects
 
-const float windWaveLength = 5.5;
-const float windTimeScale = 0.025;
+const float windWaveLength = 5.75;
 
 float getWindFactor(vec3 worldPos, float time)
 {
@@ -22,21 +21,19 @@ void largeScaleWind(inout vec3 worldPos, vec4 vertexColor, vec3 windDirection, f
 	else
 		largeWindPower *= 0.6;
 
-	largeWindPower *= noise;
 	largeWindPower *= vertexColor.r;
 
 	worldPos.x += windDirection.x * largeWindPower;
-	worldPos.y += windDirection.y * largeWindPower;
 	worldPos.z += windDirection.z * largeWindPower;
 }
 
 void mediumScaleWind(inout vec3 worldPos, vec4 vertexColor, vec3 noise, float windFactor)
 {
-	float x = (2 * sin(1 * windFactor)) + 1;
-	float z = (1 * sin(2 * windFactor)) + 0.5;
-	vec3 mediumWindPower = vec3(x, 0.0, z) * vec3(0.1);
+	float x = (0.0525 * sin(1.7 * windFactor));
+	float z = (0.0045 * sin(1.2 * windFactor));
+	vec3 mediumWindPower = vec3(x, 0.0, z);
 
-	mediumWindPower *= noise;
+	mediumWindPower += noise * 0.075;
 	mediumWindPower *= vertexColor.g;
 
 	worldPos += mediumWindPower;
@@ -44,13 +41,12 @@ void mediumScaleWind(inout vec3 worldPos, vec4 vertexColor, vec3 noise, float wi
 
 void smallScaleWind(inout vec3 worldPos, vec4 vertexColor, vec3 normal, vec3 noise, float windFactor, float windStrength)
 {
-	float smallWindPower = (0.065 * sin(2.65 * windFactor));
+	float smallWindPower = (0.125 * sin(2.0 * windFactor));
 	smallWindPower *= windStrength;
 
 	vec3 smallJitter = vec3(smallWindPower);
 	smallJitter *= normal;
 	smallJitter *= vec3(1.0, 0.35, 1.0);
-	smallJitter *= vec3(0.075);
 	smallJitter *= noise;
 	smallJitter *= vertexColor.b;
 

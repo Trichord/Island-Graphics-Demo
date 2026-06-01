@@ -28,17 +28,12 @@ uniform vec3 ambientLight;
 
 flat in int metadataIndex;
 
-in vsOut 
-{
-	vec4 worldPos;
-	vec3 normal;
-	vec2 texCoords;
-
-	#ifdef SHADOWS
-	vec4 viewPos;
-	#endif
-
-} fsIn;
+in vec4 worldPos;
+in vec3 normal;
+in vec2 texCoords;
+#ifdef SHADOWS
+in vec4 viewPos;
+#endif
 
 // Out
 out vec4 fragColor;
@@ -48,9 +43,9 @@ void main()
 	Metadata meta = metadata[metadataIndex];
 
 	// Materials
-	vec4 albedo = texture(textures[meta.albedoArray], vec3(fsIn.texCoords, meta.albedoLayer));
-	vec3 ARM = texture(textures[meta.armArray], vec3(fsIn.texCoords, meta.armLayer)).rgb;
-	vec3 normal = normalize(fsIn.normal);
+	vec4 albedo = texture(textures[meta.albedoArray], vec3(texCoords, meta.albedoLayer));
+	vec3 ARM = texture(textures[meta.armArray], vec3(texCoords, meta.armLayer)).rgb;
+	vec3 normal = normalize(normal);
 
 	float ao = ARM.r;
 	float roughness = ARM.g;
@@ -58,14 +53,14 @@ void main()
 
 	// Scale alpha by mip level
     vec2 texSize = vec2(2048, 2048);
-    albedo.a *= 1 + max(0, calcMipLevel(fsIn.texCoords * texSize)) * mipScale;
+    albedo.a *= 1 + max(0, calcMipLevel(texCoords * texSize)) * mipScale;
 
 	// Rescale alpha by partial derivative. Credit: Ben Golus
     albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
 
 	// Vectors
 	vec3 N = normalize(normal);
-	vec3 V = normalize(cameraPosition.xyz - fsIn.worldPos.xyz);
+	vec3 V = normalize(cameraPosition.xyz - worldPos.xyz);
 	vec3 L = normalize(-lightDir);
 	vec3 H = normalize(L + V);
 	
@@ -86,7 +81,7 @@ void main()
 	#ifdef SHADOWS
 
 	int layer = calculateCascadeIndex(-fsIn.viewPos.z);
-	float shadow = ShadowContribution(lightMatrices[layer], fsIn.worldPos, layer);
+	float shadow = ShadowContribution(lightMatrices[layer], worldPos, layer);
 	vec3 accumulatedLight = diffuse * lightColor * shadow * NdotL;
 
 	#else

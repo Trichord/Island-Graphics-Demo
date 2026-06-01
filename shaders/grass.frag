@@ -27,13 +27,16 @@ uniform vec3 ambientLight;
 
 flat in int metadataIndex;
 
-in vec3 normal;
-in vec2 texCoords;
+in VS_OUT 
+{
+    vec3 normal;
+	vec2 texCoords;
 
 #ifdef SHADOWS
-in vec4 viewPos;
-in vec4 worldPos;
+	vec4 viewPos;
+	vec4 worldPos;
 #endif
+} fsIn;
 
 // Out
 out vec4 fragColor;
@@ -42,9 +45,9 @@ void main()
 {
     Metadata meta = metadata[metadataIndex];
 
-    vec4 albedo = texture(textures[meta.albedoArray], vec3(texCoords, meta.albedoLayer));
+    vec4 albedo = texture(textures[meta.albedoArray], vec3(fsIn.texCoords, meta.albedoLayer));
 
-    vec3 normalizedNormal = normalize(normal);
+    vec3 normalizedNormal = normalize(fsIn.normal);
     vec3 normalizedLightDir = normalize(-lightDir);
 
     // Diffuse
@@ -54,7 +57,7 @@ void main()
 
 	// Scale alpha by mip level 0
     vec2 texSize = vec2(textureSize(textures[meta.albedoArray], 0));
-    albedo.a *= 1 + max(0, calcMipLevel(texCoords * texSize)) * mipScale;
+    albedo.a *= 1 + max(0, calcMipLevel(fsIn.texCoords * texSize)) * mipScale;
     albedo.a = rescaleAlpha(albedo.a);
     
     // Ambient
@@ -62,10 +65,10 @@ void main()
     
     #ifdef SHADOWS
 	// Pick shadow cascade off frag depth
-	int layer = calculateCascadeIndex(-viewPos.z);
+	int layer = calculateCascadeIndex(-fsIn.viewPos.z);
 
 	// Shadows
-	float shadow = ShadowContribution(lightMatrices[layer], worldPos, layer);
+	float shadow = ShadowContribution(lightMatrices[layer], fsIn.worldPos, layer);
     vec3 diffuseColor = diffuse * lightColor * shadow * albedo.rgb;
     
     #else
