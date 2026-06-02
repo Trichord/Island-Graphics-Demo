@@ -4,6 +4,11 @@
 #include <cstdint>
 #include <glad/glad.h>
 
+namespace DynamicCubemaps
+{
+constexpr GLenum internalFormat{GL_SRGB8_ALPHA8};
+}
+
 struct Sampler
 {
     std::uint16_t magFilter{GL_LINEAR};

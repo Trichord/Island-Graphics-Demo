@@ -80,7 +80,7 @@ void main()
 
 	#ifdef SHADOWS
 
-	int layer = calculateCascadeIndex(-fsIn.viewPos.z);
+	int layer = calculateCascadeIndex(-viewPos.z);
 	float shadow = ShadowContribution(lightMatrices[layer], worldPos, layer);
 	vec3 accumulatedLight = diffuse * lightColor * shadow * NdotL;
 

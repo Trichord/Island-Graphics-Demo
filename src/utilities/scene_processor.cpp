@@ -98,23 +98,22 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
     // Only store this so the metadata cubemaps can be updated later
     metadata_ = std::move(metadata);
 
-    return {
-        .VAOs = std::move(VAO),
-        .SSBOs = std::move(SSBOs),
-        .sceneDescriptor =
-            {
-                .worldAABB = std::move(sceneAABB_),
-                .numInstances = totals_.instances,
-                .numVertices = totals_.vertices,
-            },
-        .bufferDescriptor =
-            {
-                .matricesBaseIndexMap = std::move(matricesMap),
-                .drawBucketHandles = std::move(drawBucketHandles),
-            },
-        .drawBuckets = std::move(buckets),
-        .commands = std::move(commands),
-    };
+    return {.VAOs = std::move(VAO),
+            .SSBOs = std::move(SSBOs),
+            .sceneDescriptor =
+                {
+                    .worldAABB = std::move(sceneAABB_),
+                    .numInstances = totals_.instances,
+                    .numVertices = totals_.vertices,
+                    .numPrimitives = totals_.primitives,
+                    .numParticles = totals_.particles,
+                },
+            .bufferDescriptor =
+                {
+                    .matricesBaseIndexMap = std::move(matricesMap),
+                    .drawBucketHandles = std::move(drawBucketHandles),
+                },
+            .drawBuckets = std::move(buckets)};
 }
 
 SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene)
@@ -137,6 +136,9 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene)
         {
             totals.indices += primitive.indices.size();
             totals.vertices += primitive.vertices.size();
+
+            if (entry.shaderType == ShaderType::particles)
+                totals.particles += primitive.vertices.size();
         }
     }
 

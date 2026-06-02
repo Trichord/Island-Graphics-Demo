@@ -61,7 +61,7 @@ class RenderTarget
     GLuint depthRBO_{0};
     GLuint colorTextureID_{0};
     GLuint depthMapTextureID_{0};
-    GLenum internalFormat_{GL_SRGB8};
+    GLenum internalFormat_{GL_NONE};
 
     void createRenderTarget(int width, int height, const Settings &settings);
     void createMSAARenderTarget(int width, int height, const Settings &settings);

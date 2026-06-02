@@ -80,16 +80,14 @@ class Renderer
     void setSceneShaderUniforms(Scene &scene);
     void takeBufferData(SceneProcessor::ProcessedScene &processed);
     void takeGPUObjects(SceneProcessor::ProcessedScene &processed);
-    void setupComputeShaders(const SceneProcessor::ProcessedScene &processed,
-                             const std::vector<DrawElementsIndirectCommand> &commands,
-                             const std::vector<MultiDrawBucket> &drawBuckets);
+    void setupComputeShaders(const SceneProcessor::ProcessedScene &processed);
 
     // Cubemap Generation
     void borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
                       const std::vector<std::set<Handle>> &bucketHandles);
-    void createCubemaps(Scene &scene, const std::vector<DrawElementsIndirectCommand> &commandsSource,
-                        const std::vector<MultiDrawBucket> &drawBuckets);
-    void renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget);
+    void createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets);
+    void renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget,
+                         std::size_t parameterBufferIndex);
 
     // Drawing
     void renderScene();

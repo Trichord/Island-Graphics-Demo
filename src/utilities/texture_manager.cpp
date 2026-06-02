@@ -61,7 +61,7 @@ TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &s
     arrayCubemaps_.emplace_back(ArrayTexture{4096, 4096, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM});
     arrayCubemaps_.emplace_back(ArrayTexture{2048, 2048, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM});
     arrayCubemaps_.emplace_back(ArrayTexture{settings.reflectionResolution, settings.reflectionResolution,
-                                             dynamicCubemapInternalFormat_, true});
+                                             DynamicCubemaps::internalFormat, true});
 }
 
 Handle TextureManager::assignHandle()
@@ -110,12 +110,6 @@ void TextureManager::loadCubemapTextures(const Handle handle, const std::filesys
         .materialIndices = materialIndices,
         .type = Material::cubemap,
     });
-}
-
-// Returns the internal color format used for dynamic cubemaps
-GLenum TextureManager::getReflectionColorFormat() const
-{
-    return dynamicCubemapInternalFormat_;
 }
 
 std::span<const Material> TextureManager::getMaterials(Handle handle) const
@@ -177,7 +171,7 @@ void TextureManager::borrowCubemaps(Handle self, Handle other)
 void TextureManager::setCubemap(Handle handle, std::vector<int> overrideIndices, RenderTarget &renderTarget)
 {
     const int resolution{renderTarget.getWidth()};
-    ArrayReference arrayRef{findCubemapArray(resolution, dynamicCubemapInternalFormat_)};
+    ArrayReference arrayRef{findCubemapArray(resolution, renderTarget.getInternalFormat())};
 
     std::size_t layer{arrayRef.array.insert(renderTarget)};
     SamplerArrayIndex arrayIndex{.array = arrayRef.index, .layer = static_cast<int>(layer)};

@@ -51,9 +51,9 @@ SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &
               simpleAABBs.data());
     buildSSBO(&buffers.matrices, sizes.matrices, BindingPointSSBO::matrices, true, matrices.data());
     buildSSBO(&buffers.metadata, sizes.metadata, BindingPointSSBO::metadata, true, metadata.data());
-    buildSSBO(&buffers.drawCounts, sizes.drawCounts, BindingPointSSBO::drawCounts, false, nullptr);
+    buildSSBO(&buffers.drawCounts, sizes.drawCounts, BindingPointSSBO::drawCounts, true, nullptr);
     buildSSBO(&buffers.cullResults, sizes.cullResults, BindingPointSSBO::cullResults, false, nullptr);
-    buildSSBO(&buffers.drawCommands, drawCommandsSize, BindingPointSSBO::drawCommands, true, nullptr);
+    buildSSBO(&buffers.drawCommands, drawCommandsSize, BindingPointSSBO::drawCommands, false, nullptr);
     buildSSBO(&buffers.visibleInstances, sizes.visibleInstances, BindingPointSSBO::visibleInstances, false, nullptr);
     buildSSBO(&buffers.drawCommandsSource, drawCommandsSize, BindingPointSSBO::drawCommandsSource, false,
               commands.data());

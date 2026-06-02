@@ -28,6 +28,8 @@ class SceneProcessor
         AABB worldAABB;
         std::size_t numInstances{0};
         std::size_t numVertices{0};
+        std::size_t numPrimitives{0};
+        std::size_t numParticles{0};
     };
 
     struct BufferDescriptor
@@ -43,7 +45,6 @@ class SceneProcessor
         SceneDescriptor sceneDescriptor;
         BufferDescriptor bufferDescriptor;
         std::vector<MultiDrawBucket> drawBuckets;
-        std::vector<DrawElementsIndirectCommand> commands;
     };
 
     SceneProcessor(Scene &scene, TextureManager &textureManager);
@@ -62,6 +63,7 @@ class SceneProcessor
         std::size_t instances{0};
         std::size_t primitives{0};
         std::size_t dynamicCubemaps{0};
+        std::size_t particles{0};
     };
 
     // Intermediate step in building the final Draw Commands
