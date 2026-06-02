@@ -65,12 +65,12 @@ void main()
 	vec3 normal = normalize(normalMatrix * mix(aNormal, worldUp, 0.5));
 	
 	// Wind
-	vec2 noise = texture(textures[meta.normalArray], vec3(worldPos.xy + time * 0.05, meta.normalLayer)).rg;
+	vec2 noise = getNoise(textures[meta.normalArray], meta.normalLayer, worldPos.xyz, time);
 	float windFactor = getWindFactor(worldPos.xyz, time);
 
 	largeScaleWind(worldPos.xyz, aColor, windDirection, windFactor, noise.x);
 	mediumScaleWind(worldPos.xyz, aColor, vec3(noise.rg, -noise.r), windFactor);
-	smallScaleWind(worldPos.xyz, aColor, normal, vec3(noise.gr, noise.g), windFactor, windStrength);
+	smallScaleWind(worldPos.xyz, aColor, normal, vec3(noise.gr, noise.g), aPos.y, windFactor, windStrength);
 	
 	// Out params
 	metadataIndex = gl_BaseInstance;
