@@ -36,8 +36,6 @@ class TextureManager
     void loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath);
 
     void addDefaultMaterial(const Handle handle);
-
-    GLenum getReflectionColorFormat() const;
     std::span<const Material> getMaterials(Handle handle) const;
 
     void reserveCubemaps(std::size_t numCubemaps, int resolution, GLenum internalFormat);
@@ -67,7 +65,6 @@ class TextureManager
 
     bool texturesBuilt_{false};
     float globalAnisotropicDegree_{0.0f};
-    GLenum dynamicCubemapInternalFormat_{GL_SRGB8};
 
     ThreadPool &threadPool_;
     std::vector<Material> materials_;

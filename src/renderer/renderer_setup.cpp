@@ -16,6 +16,7 @@
 #include "renderer/render_target.h"
 #include "renderer/renderer_types.h"
 #include "renderer/shader/graphics_shader.h"
+#include "renderer/textures.h"
 #include "scene/camera.h"
 #include "scene/directional_light.h"
 #include "scene/handle.h"
@@ -50,7 +51,7 @@ void Renderer::initializeResources(Scene &scene)
 
     // Cubemaps. Reserve space up front for any load-time generated cubemaps
     std::size_t numCubemaps{processor.getNumDynamicCubemaps()};
-    GLenum colorFormat{textureManager_.getReflectionColorFormat()};
+    GLenum colorFormat{DynamicCubemaps::internalFormat};
     textureManager_.reserveCubemaps(numCubemaps, graphicsSettings_.reflectionResolution, colorFormat);
 
     textureManager_.buildAllTextures();
@@ -61,11 +62,10 @@ void Renderer::initializeResources(Scene &scene)
     takeBufferData(processed);
 
     // Extract temporaries
-    std::vector<DrawElementsIndirectCommand> commands{std::move(processed.commands)};
     AABB sceneAABB{processed.sceneDescriptor.worldAABB};
     std::vector<std::set<Handle>> bucketHandles{std::move(processed.bufferDescriptor.drawBucketHandles)};
 
-    setupComputeShaders(processed, commands, drawBuckets_);
+    setupComputeShaders(processed);
 
     // Setup for cascade shadow maps
     float nearPlane{scene.getCamera().getNearPlane()};
@@ -82,7 +82,7 @@ void Renderer::initializeResources(Scene &scene)
     borrowSkybox(drawBuckets_, bucketHandles);
 
     // Dynamic cubemap generation. The scene must be ready to render, except water / ocean.
-    createCubemaps(scene, commands, drawBuckets_);
+    createCubemaps(scene, drawBuckets_);
 
     // Update the GPU metadata buffers for the freshly created cubemaps
     processor.updateMetadataCubemaps(SSBOs_.metadata);
@@ -106,30 +106,11 @@ void Renderer::takeBufferData(SceneProcessor::ProcessedScene &processed)
     matricesBaseIndex_ = std::move(processed.bufferDescriptor.matricesBaseIndexMap);
 }
 
-void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &processed,
-                                   const std::vector<DrawElementsIndirectCommand> &commands,
-                                   const std::vector<MultiDrawBucket> &drawBuckets)
+void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &processed)
 {
-    using enum ShaderType;
-    using enum fastgltf::AlphaMode;
-
     cullWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptor.numInstances);
-    compactionWorkGroupSize_ = static_cast<std::uint32_t>(commands.size());
-
-    for (const MultiDrawBucket &bucket : drawBuckets)
-    {
-        if (bucket.shaderType == particles)
-        {
-            std::uint32_t start{bucket.drawCommandsBaseIndex};
-            std::uint32_t end{bucket.drawCommandsBaseIndex + bucket.maxDrawCalls};
-
-            std::size_t firstVertex{static_cast<std::size_t>(commands[start].baseVertex)};
-            std::size_t lastVertex{end == commands.size() ? processed.sceneDescriptor.numVertices
-                                                          : static_cast<std::size_t>(commands[end].baseVertex)};
-
-            particleWorkGroupSize_ = lastVertex - firstVertex;
-        }
-    }
+    compactionWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptor.numPrimitives);
+    particleWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptor.numParticles);
 }
 
 void Renderer::setSceneShaderUniforms(Scene &scene)
@@ -171,8 +152,7 @@ void Renderer::borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
         textureManager_.borrowCubemaps(oceanHandle, skyboxHandle);
 }
 
-void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndirectCommand> &commandsSource,
-                              const std::vector<MultiDrawBucket> &drawBuckets)
+void Renderer::createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets)
 {
     using enum ShaderType;
 
@@ -181,17 +161,14 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndire
     if (!found)
         return;
 
-    std::size_t commandsStart{drawBuckets[waterIndex].drawCommandsBaseIndex};
-
-    std::vector<DrawElementsIndirectCommand> commands = commandsSource;
-
-    // Ensure reflections don't capture uninitialized other reflections or self geometry
-    for (std::size_t i{commandsStart}; i < drawBuckets[waterIndex].maxDrawCalls; ++i)
-        commands[i].count = 0;
-
-    // Update the draw command buffer now that water is invisible
-    GLsizeiptr drawCommandBufferSize{static_cast<GLsizeiptr>(commands.size() * sizeof(DrawElementsIndirectCommand))};
-    glNamedBufferSubData(SSBOs_.drawCommands, 0, drawCommandBufferSize, commands.data());
+    // Find which parameter buffer index to 0, so that water never tries to self-draw
+    std::size_t parameterBufferIndex{0};
+    for (std::size_t i{0}; i < drawBuckets.size(); ++i)
+        if (drawBuckets[i].shaderType == water)
+        {
+            parameterBufferIndex = i;
+            break;
+        }
 
     // Save camera settings before we make it bounce around the scene
     Camera &camera{scene.getCamera()};
@@ -208,7 +185,7 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndire
     int faceSize{graphicsSettings_.reflectionResolution};
     glViewport(0, 0, faceSize, faceSize);
 
-    GLenum colorFormat{textureManager_.getReflectionColorFormat()};
+    GLenum colorFormat{DynamicCubemaps::internalFormat};
     RenderTarget cubeFaces{faceSize, faceSize,
                            RenderTarget::Settings{.msaa = graphicsSettings_.msaa,
                                                   .depthType = RenderTarget::DepthType::texture,
@@ -237,7 +214,7 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndire
 
         // Set the camera in the center of the water plane
         camera.setPosition(transform.getPosition());
-        renderCubeFaces(scene, cubeFaces, blitTarget);
+        renderCubeFaces(scene, cubeFaces, blitTarget, parameterBufferIndex);
 
         // Assign the texture
         std::vector<int> materialIndices;
@@ -261,7 +238,8 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndire
     glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
 }
 
-void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget)
+void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget,
+                               std::size_t parameterBufferIndex)
 {
     constexpr std::array<WorldOrientation, 6> faces{WorldOrientation::RIGHT, WorldOrientation::LEFT,
                                                     WorldOrientation::UP,    WorldOrientation::DOWN,
@@ -270,11 +248,16 @@ void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget 
     auto renderFace = [&](WorldOrientation orientation, Camera &camera) {
         camera.setWorldOrientation(orientation);
         updateCameraUBO(scene);
+        cullScene(camera.getViewProjectionMatrix());
+
+        GLuint zero{0};
+        glNamedBufferSubData(SSBOs_.drawCounts, static_cast<GLsizeiptr>(parameterBufferIndex * sizeof(std::uint32_t)),
+                             sizeof(GLuint), &zero);
+
         renderScene();
     };
 
     Camera &camera{scene.getCamera()};
-
     for (int i{0}; i < 6; ++i)
     {
         target.setTextureLayer(i);
