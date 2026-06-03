@@ -61,16 +61,16 @@ void main()
 
 	mat4 modelMatrix = matrices[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
-	vec4 worldPos = modelMatrix * vec4(aPos, 1.0);
 	vec3 normal = normalize(normalMatrix * mix(aNormal, worldUp, 0.5));
+	vec4 worldPosition = modelMatrix * vec4(aPos, 1.0);
 	
 	// Wind
-	vec2 noise = getNoise(textures[meta.normalArray], meta.normalLayer, worldPos.xyz, time);
-	float windFactor = getWindFactor(worldPos.xyz, time);
+	vec2 noise = getNoise(textures[meta.normalArray], meta.normalLayer, worldPosition.xyz, time);
+	float windFactor = getWindFactor(worldPosition.xyz, time);
 
-	largeScaleWind(worldPos.xyz, aColor, windDirection, windFactor, noise.x);
-	mediumScaleWind(worldPos.xyz, aColor, vec3(noise.rg, -noise.r), windFactor);
-	smallScaleWind(worldPos.xyz, aColor, normal, vec3(noise.gr, noise.g), aPos.y, windFactor, windStrength);
+	largeScaleWind(worldPosition.xyz, aColor, windDirection, windFactor, noise.x);
+	mediumScaleWind(worldPosition.xyz, aColor, vec3(noise.rg, -noise.r), windFactor);
+	smallScaleWind(worldPosition.xyz, aColor, normal, vec3(noise.gr, noise.g), aPos.y, windFactor, windStrength);
 	
 	// Out params
 	metadataIndex = gl_BaseInstance;
@@ -78,9 +78,9 @@ void main()
 	vsOut.texCoords = aTexCoords;
 	vsOut.normal = normal;
 	#ifdef SHADOWS
-	vsOut.viewPos = viewMatrix * worldPos;
-	vsOut.worldPos = worldPos;
+	vsOut.viewPos = viewMatrix * worldPosition;
+	vsOut.worldPos = worldPosition;
 	#endif
 
-    gl_Position = projectionViewMatrix * worldPos;
+    gl_Position = projectionViewMatrix * worldPosition;
 }

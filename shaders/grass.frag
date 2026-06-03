@@ -66,8 +66,6 @@ void main()
     #ifdef SHADOWS
 	// Pick shadow cascade off frag depth
 	int layer = calculateCascadeIndex(-fsIn.viewPos.z);
-
-	// Shadows
 	float shadow = ShadowContribution(lightMatrices[layer], fsIn.worldPos, layer);
     vec3 diffuseColor = diffuse * lightColor * shadow * albedo.rgb;
     

@@ -79,7 +79,6 @@ void main()
 	vec3 diffuse = kD * albedo.rgb * inversePi * burleyFactor;
 
 	#ifdef SHADOWS
-
 	int layer = calculateCascadeIndex(-viewPos.z);
 	float shadow = ShadowContribution(lightMatrices[layer], worldPos, layer);
 	vec3 accumulatedLight = diffuse * lightColor * shadow * NdotL;
