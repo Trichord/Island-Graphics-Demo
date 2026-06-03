@@ -138,8 +138,8 @@ void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)
         if (mdb.shaderType == ocean || mdb.shaderType == skybox)
             continue;
 
-        if ((mdb.shaderType == grass || mdb.shaderType == particles) && cascade != 0)
-            continue;
+        if (mdb.shaderType == particles && cascade == shadowCascadeCount - 1)
+           continue;
 
         const bool a2c{mdb.alphaMode == Mask};
 

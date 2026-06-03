@@ -34,6 +34,7 @@ class CascadeShadow
 
     float nearPlane_{0.0f};
     float worldRadius_{0.0f};
+    float worldExtent_{0.0f};
     glm::vec3 worldCenter_{0.0f};
     glm::mat4 outerCascadeProjection_{1.0f};
     std::array<Cascade, shadowCascadeCount> cascades_;

@@ -41,7 +41,7 @@ layout(binding = SSBO_BINDING_VBO, std430) buffer VBO
 // Stripped down mirror of main VBO for shadow pass. Position (vec4), uv (vec2)
 layout(binding = SSBO_BINDING_SHADOW_VBO, std430) restrict writeonly buffer shadowVBO
 {
-    vec2 shadowVertices[];
+    vec4 shadowVertices[];
 };
 
 // AABBs for particles are already in world space
@@ -101,9 +101,9 @@ void main()
                                         vec4(newVel.yz, particle[1].zw),
                                         vec4(particle[2].xy, lifetimes.xx),
                                         color);
-                                        
-        shadowVertices[shadowParticleIndex] = vec2(resetPos.xy);
-        shadowVertices[shadowParticleIndex + 1] = vec2(resetPos.z, 1.0);
+         
+        // 3 vec4's per shadow vertex
+        shadowVertices[shadowParticleIndex] = vec4(resetPos, newVel.x);
     }
     else
     { 
@@ -118,7 +118,6 @@ void main()
                                         vec4(particle[2].xy, lifetimes),
                                         color);
         
-        shadowVertices[shadowParticleIndex] = vec2(p.xy);
-        shadowVertices[shadowParticleIndex + 1] = vec2(p.z, 1.0);
+        shadowVertices[shadowParticleIndex] = vec4(p, v.x);
     }
 }

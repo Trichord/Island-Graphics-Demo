@@ -57,8 +57,8 @@ SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &
     buildSSBO(&buffers.visibleInstances, sizes.visibleInstances, BindingPointSSBO::visibleInstances, false, nullptr);
     buildSSBO(&buffers.drawCommandsSource, drawCommandsSize, BindingPointSSBO::drawCommandsSource, false,
               commands.data());
-    buildSSBO(&buffers.vertexMap, vertexBufferMap.size() * sizeof(VertexBufferMap), BindingPointSSBO::vertexMap,
-              false, vertexBufferMap.data());
+    buildSSBO(&buffers.vertexMap, vertexBufferMap.size() * sizeof(VertexBufferMap), BindingPointSSBO::vertexMap, false,
+              vertexBufferMap.data());
 
     return buffers;
 }
@@ -114,20 +114,29 @@ VAOs BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices,
     // Shadow VAO
     struct ShadowVertex
     {
-        glm::vec4 pos{0.0f};
+        glm::vec3 pos{0.0f};
+        glm::vec3 norm{0.0f};
         glm::vec2 uv{0.0f};
+        glm::vec4 color{0.0f};
     };
 
     std::vector<ShadowVertex> shadowVerts;
     shadowVerts.reserve(vertices.size());
 
     for (const Primitive::Vertex &v : vertices)
-        shadowVerts.emplace_back(ShadowVertex{.pos = glm::vec4{v.position, 1.0f}, .uv = v.texCoords});
+        shadowVerts.emplace_back(ShadowVertex{
+            .pos = v.position,
+            .norm = v.normal,
+            .uv = v.texCoords,
+            .color = v.color,
+        });
 
     glCreateVertexArrays(1, &vao.shadowVAO);
 
     glEnableVertexArrayAttrib(vao.shadowVAO, 0);
     glEnableVertexArrayAttrib(vao.shadowVAO, 1);
+    glEnableVertexArrayAttrib(vao.shadowVAO, 2);
+    glEnableVertexArrayAttrib(vao.shadowVAO, 3);
 
     glCreateBuffers(1, &vao.shadowVBO);
     glNamedBufferStorage(vao.shadowVBO, vertices.size() * sizeof(ShadowVertex), shadowVerts.data(), 0);
@@ -136,10 +145,14 @@ VAOs BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices,
     glVertexArrayElementBuffer(vao.shadowVAO, vao.ebo);
 
     glVertexArrayAttribFormat(vao.shadowVAO, 0, 3, GL_FLOAT, GL_FALSE, offsetof(ShadowVertex, pos));
-    glVertexArrayAttribFormat(vao.shadowVAO, 1, 2, GL_FLOAT, GL_FALSE, offsetof(ShadowVertex, uv));
+    glVertexArrayAttribFormat(vao.shadowVAO, 1, 3, GL_FLOAT, GL_FALSE, offsetof(ShadowVertex, norm));
+    glVertexArrayAttribFormat(vao.shadowVAO, 2, 2, GL_FLOAT, GL_FALSE, offsetof(ShadowVertex, uv));
+    glVertexArrayAttribFormat(vao.shadowVAO, 3, 4, GL_FLOAT, GL_FALSE, offsetof(ShadowVertex, color));
 
     glVertexArrayAttribBinding(vao.shadowVAO, 0, 0);
     glVertexArrayAttribBinding(vao.shadowVAO, 1, 0);
+    glVertexArrayAttribBinding(vao.shadowVAO, 2, 0);
+    glVertexArrayAttribBinding(vao.shadowVAO, 3, 0);
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::shadowVBO), vao.shadowVBO);
 
