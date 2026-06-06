@@ -47,6 +47,6 @@ void setGeometry(std::vector<Primitive> &primitives, AABB &aabb)
     primitives = {Primitive{.vertices = std::move(vertices),
                             .indices = std::move(indices),
                             .aabb = aabb,
-                            .materialIndex = 0,
+                            .materialIndex = std::size_t{0},
                             .alphaMode = fastgltf::AlphaMode::Opaque}};
 }

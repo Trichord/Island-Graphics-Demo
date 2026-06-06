@@ -32,7 +32,6 @@ out vsOut
 {
 	vec2 texCoords;
 	vec3 fragPos;
-	vec4 clipSpace;
 } vOut;
 
 void main() 
@@ -47,10 +46,9 @@ void main()
 
 	vOut.texCoords = aTexCoords;
 	vOut.fragPos = worldPos.xyz;
-	vOut.clipSpace = projectionViewMatrix * worldPos;
 
 	metadataIndex = gl_BaseInstance;
 	scale = length(modelMatrix[0]);
 
-	gl_Position = vOut.clipSpace;
+	gl_Position = viewProjectionMatrix * worldPos;
 }

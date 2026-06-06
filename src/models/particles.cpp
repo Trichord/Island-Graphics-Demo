@@ -1,6 +1,7 @@
 #include "models/particles.h"
 
 #include <glm/glm.hpp>
+#include <glm/gtc/packing.hpp>
 #include <iostream>
 #include <numeric>
 #include <random>
@@ -12,7 +13,7 @@
 Particles::Particles(const glm::vec3 &position, const glm::vec3 &extent, const glm::vec4 &color,
                      const glm::vec4 colorVariation, float lifeTime, int numParticles)
     : aabb_{position - extent, position + extent},
-      primitives_{generateParticles(position, extent, color, colorVariation, lifeTime, numParticles)}
+      primitives_{generateParticles(position, extent, color, colorVariation, std::min(lifeTime, 65504.0f), numParticles)}
 {
 }
 
@@ -85,11 +86,16 @@ std::vector<Primitive> Particles::generateParticles(const glm::vec3 &position, c
         float zVel{randomPos(mt) * velocityModifier};
 
         vertex.position = glm::vec3{xPos, yPos, zPos};
-        vertex.normal = glm::vec3{xVel, yVel, zVel};
-        vertex.color = glm::vec4{red, green, blue, alpha};
+        vertex.color = glm::packUnorm4x8(glm::vec4{red, green, blue, alpha});
 
-        // (Max life time, current life remaining)
-        vertex.texCoords = glm::vec2{lifetime, randomFloat(lifetime * minLifetimePercent, lifetime, mt)};
+        // Velocity stored in normal (x), tangent (y), texCoords (z)
+        vertex.normal = glm::floatBitsToUint(xVel);
+        vertex.tangent = glm::floatBitsToUint(yVel);
+        vertex.texCoords = glm::floatBitsToUint(zVel);
+
+        // Lifetime (max life time, current life remaining)
+        glm::vec2 life{lifetime, randomFloat(lifetime * minLifetimePercent, lifetime, mt)};
+        vertex.boneDataIndex = glm::packHalf2x16(life);
     }
 
     return primitives;

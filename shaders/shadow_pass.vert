@@ -8,9 +8,13 @@
 
 // Attributes
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNormal;
-layout (location = 2) in vec2 aTexCoords;
-layout (location = 3) in vec4 aColor;
+
+#ifdef ALPHA_TESTED
+layout (location = 1) in vec4 aNormal;
+layout (location = 2) in vec4 aTangent;
+layout (location = 3) in vec2 aTexCoords;
+layout (location = 5) in vec4 aColor;
+#endif
 
 // SSBOs
 layout(binding = SSBO_BINDING_MATRICES, std430) restrict readonly buffer matricesSSBO
@@ -30,10 +34,12 @@ layout(binding = SSBO_BINDING_VISIBLE_INSTANCES, std430) restrict readonly buffe
 
 // In
 uniform int cascade;
-uniform float windStrength;
-uniform vec3 windDirection;
 
 #ifdef ALPHA_TESTED
+uniform float windStrength;
+uniform vec3 windDirection;
+uniform vec3 lightDir;
+
 // Out
 out vec2 texCoords;
 
@@ -46,10 +52,11 @@ void main()
 	uint matrixIndex = instances[meta.visibleInstancesBaseIndex + gl_InstanceID];
 
 	mat4 modelMatrix = matrices[matrixIndex];
-	
-	mat3 normalMatrix = mat3(modelMatrix);
-	vec3 normal = normalize(normalMatrix * aNormal);
 	vec4 worldPosition = modelMatrix * vec4(aPos, 1.0);
+	
+#ifdef ALPHA_TESTED
+	mat3 normalMatrix = mat3(modelMatrix);
+	vec3 normal = normalize(normalMatrix * aNormal.xyz);
 	
 	// Wind
 	vec2 noise = getNoise(textures[meta.normalArray], meta.normalLayer, worldPosition.xyz, time);
@@ -58,11 +65,19 @@ void main()
 	largeScaleWind(worldPosition.xyz, aColor, windDirection, windFactor, noise.x);
 	mediumScaleWind(worldPosition.xyz, aColor, vec3(noise.rg, -noise.r), windFactor);
 	smallScaleWind(worldPosition.xyz, aColor, normal, vec3(noise.gr, noise.g), aPos.y, windFactor, windStrength);
+	
+	
+	float NdotL = dot(normal, lightDir);
+	float normalBias = max(0.002 * (1.0 - NdotL), 0.005);
+	
+	if (NdotL < 0.0)
+		worldPosition.xyz += -normal * normalBias;
+	else
+		worldPosition.xyz += normal * normalBias;
 
-	#ifdef ALPHA_TESTED
 	texCoords = aTexCoords;
 	metadataIndex = gl_BaseInstance;
-	#endif
+#endif
 
 	gl_Position = lightMatrices[cascade] * worldPosition;
 }

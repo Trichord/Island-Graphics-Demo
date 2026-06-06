@@ -6,7 +6,7 @@
 
 // Attributes
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNorm;
+layout (location = 1) in vec4 aNormal;
 
 // SSBOs
 layout(binding = SSBO_BINDING_MATRICES, std430) restrict readonly buffer matricesSSBO
@@ -39,10 +39,10 @@ void main()
 	mat4 modelMatrix = matrices[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
 
-	normal = normalMatrix * aNorm;
+	normal = normalMatrix * aNormal.xyz;
 	position = vec3(modelMatrix * vec4(aPos, 1.0f));
 
 	metadataIndex = gl_BaseInstance;
 
-	gl_Position = projectionViewMatrix * vec4(position, 1.0f);
+	gl_Position = viewProjectionMatrix * vec4(position, 1.0f);
 }

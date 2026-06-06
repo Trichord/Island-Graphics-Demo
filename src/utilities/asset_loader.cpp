@@ -10,6 +10,8 @@
 #include <fastgltf/types.hpp>
 #include <filesystem>
 #include <glm/glm.hpp>
+#include <glm/gtc/packing.hpp>
+#include <glm/packing.hpp>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -111,7 +113,11 @@ void applyNodeTransforms(const fastgltf::Asset &asset, std::vector<Primitive> &p
                         for (Primitive::Vertex &vertex : primitive.vertices)
                         {
                             vertex.position = glm::vec3{modelMatrix * glm::vec4{vertex.position, 1.0f}};
-                            vertex.normal = normalMatrix * vertex.normal;
+
+                            glm::vec3 norm{glm::unpackSnorm3x10_1x2(vertex.normal)};
+                            norm = normalMatrix * norm;
+
+                            vertex.normal = glm::packSnorm3x10_1x2(glm::vec4{norm, 0.0f});
                         }
                     }
                 }
@@ -189,8 +195,10 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
                 if (normalAccessor.type == fastgltf::AccessorType::Vec3)
                 {
                     fastgltf::iterateAccessorWithIndex<glm::vec3>(
-                        asset, normalAccessor,
-                        [&](glm::vec3 normal, std::size_t index) { vertices[index].normal = normal; });
+                        asset, normalAccessor, [&](glm::vec3 normal, std::size_t index) {
+                            vertices[index].normal = glm::packSnorm3x10_1x2(glm::vec4{normal, 0.0f});
+                            ;
+                        });
                 }
             }
 
@@ -202,8 +210,9 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
                 if (tangentAccessor.type == fastgltf::AccessorType::Vec4)
                 {
                     fastgltf::iterateAccessorWithIndex<glm::vec4>(
-                        asset, tangentAccessor,
-                        [&](glm::vec4 tangent, std::size_t index) { vertices[index].tangent = tangent; });
+                        asset, tangentAccessor, [&](glm::vec4 tangent, std::size_t index) {
+                            vertices[index].tangent = glm::packSnorm3x10_1x2(tangent);
+                        });
                 }
             }
 
@@ -216,8 +225,9 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
                 {
 
                     fastgltf::iterateAccessorWithIndex<glm::vec2>(
-                        asset, texCoordAccessor,
-                        [&](glm::vec2 texCoords, std::size_t index) { vertices[index].texCoords = texCoords; });
+                        asset, texCoordAccessor, [&](glm::vec2 texCoords, std::size_t index) {
+                            vertices[index].texCoords = glm::packHalf2x16(texCoords);
+                        });
                 }
             }
 
@@ -230,14 +240,14 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
                 {
                     fastgltf::iterateAccessorWithIndex<glm::vec4>(
                         asset, colorAccessor,
-                        [&](glm::vec4 color, std::size_t index) { vertices[index].color = color; });
+                        [&](glm::vec4 color, std::size_t index) { vertices[index].color = glm::packUnorm4x8(color); });
                 }
 
                 else if (colorAccessor.type == fastgltf::AccessorType::Vec3)
                 {
                     fastgltf::iterateAccessorWithIndex<glm::vec3>(
                         asset, colorAccessor, [&](glm::vec3 color, std::size_t index) {
-                            vertices[index].color = glm::vec4{color.r, color.g, color.b, 1.0};
+                            vertices[index].color = glm::packUnorm4x8(glm::vec4{color.r, color.g, color.b, 1.0});
                         });
                 }
             }
@@ -269,7 +279,7 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
             // Build the primitive
             primitives.emplace_back(Primitive{.vertices = std::move(vertices),
                                               .indices = std::move(indices),
-                                              .materialIndex = static_cast<int>(materialIndex),
+                                              .materialIndex = materialIndex,
                                               .alphaMode = alphaMode});
         }
     }
@@ -382,7 +392,7 @@ std::vector<AssetLoader::DeferredTexture> AssetLoader::texturesFromAsset(const f
                 .handle = handle,
                 .path = {paths[descriptor.imageIndex]},
                 .textureRepeat = repeat,
-                .materialIndices = {static_cast<int>(materialIndex)},
+                .materialIndices = {materialIndex},
                 .type = type,
             });
         }
@@ -390,7 +400,7 @@ std::vector<AssetLoader::DeferredTexture> AssetLoader::texturesFromAsset(const f
         {
             DeferredTexture &deferred{deferredTextures[pendingTextureIndex->second]};
 
-            deferred.materialIndices.push_back(static_cast<int>(materialIndex));
+            deferred.materialIndices.push_back(materialIndex);
 
             if (type != deferred.type)
                 std::cerr << "WARNING: gLTF file contains multiple PBR types pointing to the same image" << std::endl;

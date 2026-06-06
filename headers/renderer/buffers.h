@@ -227,7 +227,5 @@ enum class BindingPointSSBO : unsigned int
     visibleInstances,
     drawCommandsSource,
     vbo,
-    vertexMap,
-    shadowVBO,
-    resetVertices
+    vertexMap
 };

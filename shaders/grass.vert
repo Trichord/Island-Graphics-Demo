@@ -15,10 +15,10 @@ const vec3 worldUp = vec3(0.0, 1.0, 0.0);
 
 // Attributes
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNormal;
+layout (location = 1) in vec4 aNormal;
 layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
-layout (location = 4) in vec4 aColor;
+layout (location = 5) in vec4 aColor;
 
 // SSBOs
 layout(binding = SSBO_BINDING_MATRICES, std430) restrict readonly buffer matricesSSBO
@@ -61,7 +61,7 @@ void main()
 
 	mat4 modelMatrix = matrices[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
-	vec3 normal = normalize(normalMatrix * mix(aNormal, worldUp, 0.5));
+	vec3 normal = normalize(normalMatrix * mix(aNormal.xyz, worldUp, 0.5));
 	vec4 worldPosition = modelMatrix * vec4(aPos, 1.0);
 	
 	// Wind
@@ -82,5 +82,5 @@ void main()
 	vsOut.worldPos = worldPosition;
 	#endif
 
-    gl_Position = projectionViewMatrix * worldPosition;
+    gl_Position = viewProjectionMatrix * worldPosition;
 }

@@ -390,10 +390,10 @@ void SceneProcessor::setMetadataMaterials(const std::vector<DrawEntry> &entries,
         const DrawEntry &entry{entries[i]};
         PrimitiveMetadata &metaEntry{metadata[i]};
 
-        const int matIndex{entry.primitive->materialIndex};
+        const std::size_t matIndex{entry.primitive->materialIndex};
         std::span<const Material> materials{textureManager_.getMaterials(entry.handle)};
 
-        if (matIndex < 0 || matIndex >= static_cast<int>(materials.size()))
+        if (matIndex >= materials.size())
         {
             std::cerr << "Material index out of bound for handle " << entry.handle << std::endl;
             throw std::runtime_error("Material index out of bounds");

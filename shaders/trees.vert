@@ -13,10 +13,10 @@ const float maxVertexHeight = 25.0;
 
 // Attributes
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNormal;
+layout (location = 1) in vec4 aNormal;
 layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
-layout (location = 4) in vec4 aColor;
+layout (location = 5) in vec4 aColor;
 
 // SSBOs
 layout(binding = SSBO_BINDING_MATRICES, std430) restrict readonly buffer matricesSSBO
@@ -56,7 +56,7 @@ void main()
 
 	mat4 modelMatrix = matrices[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
-	normal = normalize(normalMatrix * aNormal);
+	normal = normalize(normalMatrix * aNormal.xyz);
 	vec4 worldPosition = modelMatrix * vec4(aPos, 1.0);
 	
 	// Wind
@@ -76,5 +76,5 @@ void main()
 	viewPos = viewMatrix * worldPosition;
 	#endif
 
-	gl_Position = projectionViewMatrix * worldPos;
+	gl_Position = viewProjectionMatrix * worldPos;
 }
