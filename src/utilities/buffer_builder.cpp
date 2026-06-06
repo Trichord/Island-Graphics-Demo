@@ -87,6 +87,7 @@ VAOs BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices,
     glEnableVertexArrayAttrib(vao.vao, 2);
     glEnableVertexArrayAttrib(vao.vao, 3);
     glEnableVertexArrayAttrib(vao.vao, 4);
+    glEnableVertexArrayAttrib(vao.vao, 5);
 
     glCreateBuffers(1, &vao.vbo);
     glNamedBufferStorage(vao.vbo, vertices.size() * sizeof(Primitive::Vertex), vertices.data(), 0);
@@ -98,63 +99,39 @@ VAOs BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices,
     glVertexArrayElementBuffer(vao.vao, vao.ebo);
 
     glVertexArrayAttribFormat(vao.vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, position));
-    glVertexArrayAttribFormat(vao.vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, normal));
-    glVertexArrayAttribFormat(vao.vao, 2, 4, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, tangent));
-    glVertexArrayAttribFormat(vao.vao, 3, 2, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, texCoords));
-    glVertexArrayAttribFormat(vao.vao, 4, 4, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, color));
+    glVertexArrayAttribFormat(vao.vao, 1, 4, GL_INT_2_10_10_10_REV, GL_TRUE, offsetof(Primitive::Vertex, normal));
+    glVertexArrayAttribFormat(vao.vao, 2, 4, GL_INT_2_10_10_10_REV, GL_TRUE, offsetof(Primitive::Vertex, tangent));
+    glVertexArrayAttribFormat(vao.vao, 3, 2, GL_HALF_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, texCoords));
+    glVertexArrayAttribIFormat(vao.vao, 4, 1, GL_UNSIGNED_INT, offsetof(Primitive::Vertex, boneDataIndex));
+    glVertexArrayAttribFormat(vao.vao, 5, 4, GL_UNSIGNED_BYTE, GL_TRUE, offsetof(Primitive::Vertex, color));
 
     glVertexArrayAttribBinding(vao.vao, 0, 0);
     glVertexArrayAttribBinding(vao.vao, 1, 0);
     glVertexArrayAttribBinding(vao.vao, 2, 0);
     glVertexArrayAttribBinding(vao.vao, 3, 0);
     glVertexArrayAttribBinding(vao.vao, 4, 0);
+    glVertexArrayAttribBinding(vao.vao, 5, 0);
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::vbo), vao.vbo);
 
-    // Shadow VAO
-    struct ShadowVertex
-    {
-        glm::vec3 pos{0.0f};
-        glm::vec3 norm{0.0f};
-        glm::vec2 uv{0.0f};
-        glm::vec4 color{0.0f};
-    };
-
-    std::vector<ShadowVertex> shadowVerts;
+    std::vector<glm::vec3> shadowVerts;
     shadowVerts.reserve(vertices.size());
 
-    for (const Primitive::Vertex &v : vertices)
-        shadowVerts.emplace_back(ShadowVertex{
-            .pos = v.position,
-            .norm = v.normal,
-            .uv = v.texCoords,
-            .color = v.color,
-        });
+    for (const Primitive::Vertex &vertex : vertices)
+        shadowVerts.emplace_back(vertex.position);
 
     glCreateVertexArrays(1, &vao.shadowVAO);
 
     glEnableVertexArrayAttrib(vao.shadowVAO, 0);
-    glEnableVertexArrayAttrib(vao.shadowVAO, 1);
-    glEnableVertexArrayAttrib(vao.shadowVAO, 2);
-    glEnableVertexArrayAttrib(vao.shadowVAO, 3);
 
     glCreateBuffers(1, &vao.shadowVBO);
-    glNamedBufferStorage(vao.shadowVBO, vertices.size() * sizeof(ShadowVertex), shadowVerts.data(), 0);
+    glNamedBufferStorage(vao.shadowVBO, vertices.size() * sizeof(glm::vec3), shadowVerts.data(), 0);
 
-    glVertexArrayVertexBuffer(vao.shadowVAO, 0, vao.shadowVBO, 0, sizeof(ShadowVertex));
+    glVertexArrayVertexBuffer(vao.shadowVAO, 0, vao.shadowVBO, 0, sizeof(glm::vec3));
     glVertexArrayElementBuffer(vao.shadowVAO, vao.ebo);
 
-    glVertexArrayAttribFormat(vao.shadowVAO, 0, 3, GL_FLOAT, GL_FALSE, offsetof(ShadowVertex, pos));
-    glVertexArrayAttribFormat(vao.shadowVAO, 1, 3, GL_FLOAT, GL_FALSE, offsetof(ShadowVertex, norm));
-    glVertexArrayAttribFormat(vao.shadowVAO, 2, 2, GL_FLOAT, GL_FALSE, offsetof(ShadowVertex, uv));
-    glVertexArrayAttribFormat(vao.shadowVAO, 3, 4, GL_FLOAT, GL_FALSE, offsetof(ShadowVertex, color));
-
+    glVertexArrayAttribFormat(vao.shadowVAO, 0, 3, GL_FLOAT, GL_FALSE, 0);
     glVertexArrayAttribBinding(vao.shadowVAO, 0, 0);
-    glVertexArrayAttribBinding(vao.shadowVAO, 1, 0);
-    glVertexArrayAttribBinding(vao.shadowVAO, 2, 0);
-    glVertexArrayAttribBinding(vao.shadowVAO, 3, 0);
-
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::shadowVBO), vao.shadowVBO);
 
     return vao;
 }

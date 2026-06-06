@@ -6,7 +6,7 @@
 
 // Attributes
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNormal;
+layout (location = 1) in vec4 aNormal;
 layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
 
@@ -53,7 +53,7 @@ void main()
 
 	//TBN matrix for normal map
 	vec3 T = normalize(normalMatrix * aTangent.xyz);
-	vec3 N = normalize(normalMatrix * aNormal);
+	vec3 N = normalize(normalMatrix * aNormal.xyz);
 	T = normalize(T - dot(T, N) * N); 
 	vec3 B = normalize(cross(N, T) * aTangent.w);
 	mat3 TBN = transpose(mat3(T, B, N));
@@ -69,5 +69,5 @@ void main()
 
 	metadataIndex = gl_BaseInstance;
 	
-	gl_Position = projectionViewMatrix * vOut.worldFragPos;
+	gl_Position = viewProjectionMatrix * vOut.worldFragPos;
 }

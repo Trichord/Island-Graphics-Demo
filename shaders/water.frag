@@ -29,7 +29,6 @@ in vsOut
 {
 	vec2 texCoords;
 	vec3 fragPos;
-	vec4 clipSpace;
 } fsIn;
 
 // Out

@@ -282,63 +282,6 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
     glm::vec3 interpolatedPos{glm::mix(previousPos, physicsHandler.getPosition(), alpha)};
 
     camera.setPosition(interpolatedPos);
-
-    /*
-    //****************************************
-    // Object Positioning - For Testing Only *
-    //****************************************
-    constexpr float objectSpeed{0.0005f};
-
-    Scene::Entry &boat{scene.getEntryByName("boat")};
-    Transform &transform{boat.transforms.front()};
-   // DirectionalLight &light{scene.getGlobalLight()};
- //   glm::vec3 dir{light.getDirection()};
-
-    if (glfwGetKey(window_, GLFW_KEY_KP_8) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{0.0f, 0.0f, objectSpeed});
-
-    if (glfwGetKey(window_, GLFW_KEY_KP_2) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{0.0f, 0.0f, -objectSpeed});
-
-    if (glfwGetKey(window_, GLFW_KEY_KP_4) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{objectSpeed, 0.0f, 0.0f});
-
-    if (glfwGetKey(window_, GLFW_KEY_KP_6) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{-objectSpeed, 0.0f, 0.0f});
-
-    if (glfwGetKey(window_, GLFW_KEY_KP_7) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{0.0f, objectSpeed, 0.0f});
-
-    if (glfwGetKey(window_, GLFW_KEY_KP_9) == GLFW_PRESS)
-        transform.setRelativePosition(glm::vec3{0.0f, -objectSpeed, 0.0f});
-
-    if (glfwGetKey(window_, GLFW_KEY_UP) == GLFW_PRESS)
-        transform.setRelativeRotation(glm::vec3{0.0f, objectSpeed, 0.0f});
-
-    if (glfwGetKey(window_, GLFW_KEY_DOWN) == GLFW_PRESS)
-        transform.setRelativeRotation(glm::vec3{0.0f, -objectSpeed, 0.0f});
-
-    if (glfwGetKey(window_, GLFW_KEY_LEFT) == GLFW_PRESS)
-        transform.setRelativeRotation(glm::vec3{objectSpeed, 0.0f, 0.0f});
-
-    if (glfwGetKey(window_, GLFW_KEY_RIGHT) == GLFW_PRESS)
-        transform.setRelativeRotation(glm::vec3{-objectSpeed, 0.0f, 0.0f});
-
-    if (glfwGetKey(window_, GLFW_KEY_N) == GLFW_PRESS)
-        transform.setRelativeRotation(glm::vec3{0.0f, 0.0f, objectSpeed});
-
-    if (glfwGetKey(window_, GLFW_KEY_M) == GLFW_PRESS)
-        transform.setRelativeRotation(glm::vec3{0.0f, 0.0f, -objectSpeed});
-
-    if (glfwGetKey(window_, GLFW_KEY_P) == GLFW_PRESS)
-    {
-        auto p = transform.getPosition();
-        auto r = transform.getRotation();
-
-        std::cerr << "Postion: (" << p.x << ", " << p.y << ", " << p.z << "), Rotation: (" << r.x << ", " << r.y << ", "
-                  << r.z << ")" << std::endl;
-    }
-    */
 }
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)

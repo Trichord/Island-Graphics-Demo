@@ -32,16 +32,10 @@ layout(binding = SSBO_BINDING_VERTEX_MAP, std430) restrict readonly buffer Verte
     VertexMap vertexMap[];
 };
 
-// Position (vec3), Normal (vec3), tangent (vec4), uv (vec2), color (vec4)
+// Aliased 32 byte Vertex
 layout(binding = SSBO_BINDING_VBO, std430) buffer VBO
 {
-    mat4 particles[];
-};
-
-// Stripped down mirror of main VBO for shadow pass. Position (vec4), uv (vec2)
-layout(binding = SSBO_BINDING_SHADOW_VBO, std430) restrict writeonly buffer shadowVBO
-{
-    vec4 shadowVertices[];
+    vec4 particles[];
 };
 
 // AABBs for particles are already in world space
@@ -55,16 +49,16 @@ void main()
     VertexMap map = vertexMap[id];
     AABB aabb = AABBs[map.sharedIndex];
 
-    mat4 particle = particles[map.vboIndex];
-    
+    // 2 * vec4 per Vertex
+    uint particleIndex = map.vboIndex * 2;
+ 
     // Remapping
-    vec3 position = particle[0].xyz;
-    vec3 velocity = vec3(particle[0].w, particle[1].xy);
-    vec2 lifetimes = particle[2].zw;
-    vec4 color = particle[3];
+    vec4 posXYZvelX = particles[particleIndex];
+    vec4 velYZlifeColor = particles[particleIndex + 1];
 
-    // 3 vec2's per shadow vertex
-    uint shadowParticleIndex = map.vboIndex * 3;
+    vec3 position = vec3(posXYZvelX.xyz);
+    vec3 velocity = vec3(posXYZvelX.w, velYZlifeColor.xy);
+    vec2 lifetimes = vec2(unpackHalf2x16(floatBitsToUint(velYZlifeColor.z)));
 
     vec3 blackHolePos = aabb.center.xyz + aabb.extent.xyz * blackHolePosScale;
     vec3 originalBlackHolePos = blackHolePos;
@@ -97,13 +91,8 @@ void main()
         vec3 respawnDir = normalize(aabb.center.xyz - originalBlackHolePos);
         vec3 resetPos = aabb.center.xyz + respawnDir * innerRadius * 0.80;
 
-        particles[map.vboIndex] = mat4( vec4(resetPos, newVel.x), 
-                                        vec4(newVel.yz, particle[1].zw),
-                                        vec4(particle[2].xy, lifetimes.xx),
-                                        color);
-         
-        // 3 vec4's per shadow vertex
-        shadowVertices[shadowParticleIndex] = vec4(resetPos, newVel.x);
+        particles[particleIndex] = vec4(resetPos, newVel.x);
+        particles[particleIndex + 1] = vec4(newVel.yz, uintBitsToFloat(packHalf2x16(lifetimes.xx)), velYZlifeColor.w);
     }
     else
     { 
@@ -113,11 +102,7 @@ void main()
         vec3 v = velocity + a * dt;
         vec3 p = position + v * dt;
         
-        particles[map.vboIndex] = mat4( vec4(p, v.x), 
-                                        vec4(v.yz, particle[1].zw),
-                                        vec4(particle[2].xy, lifetimes),
-                                        color);
-        
-        shadowVertices[shadowParticleIndex] = vec4(p, v.x);
+        particles[particleIndex] = vec4(p, v.x);
+        particles[particleIndex + 1] = vec4(v.yz, uintBitsToFloat(packHalf2x16(lifetimes)), velYZlifeColor.w);
     }
 }

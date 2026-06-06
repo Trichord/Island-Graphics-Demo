@@ -31,7 +31,6 @@ in vsOut
 {
 	vec2 texCoords;
 	vec3 fragPos;
-	vec4 clipSpace;
 } fsIn;
 
 // Out
@@ -41,7 +40,7 @@ void main()
 {	
 	Metadata meta = metadata[metadataIndex];
 
-	vec3 V = normalize(cameraPosition.xyz - fsIn.fragPos);
+	vec3 V = normalize(fsIn.fragPos - cameraPosition.xyz);
 
 	// Move textures by time
 	float movement = time * waveSpeed;
@@ -68,16 +67,16 @@ void main()
 	N = normalize(vec3(N.x, N.z, -N.y));
 
 	// Fresnel
-	float fresnel = max(0.0, min(1.0, pow(max(1 + 0.85 * dot(-V, N), 0.0), 4.0)));
+	float fresnel = max(0.0, min(1.0, pow(max(1 + 0.85 * dot(V, N), 0.0), 4.0)));
 
 	// Reflection 
-	vec3 reflectDir = reflect(-V, N);
+	vec3 reflectDir = reflect(V, N);
 	vec3 reflection = texture(cubemaps[meta.cubemapArray], vec4(reflectDir, meta.cubemapLayer)).rgb;
 
 	vec3 oceanColor = mix(waterColor, reflection, fresnel);
 
 	// Sample absolute skybox color
-	vec3 skybox = texture(cubemaps[meta.cubemapArray], vec4(-V, meta.cubemapLayer)).rgb;
+	vec3 skybox = texture(cubemaps[meta.cubemapArray], vec4(V, meta.cubemapLayer)).rgb;
 
 	// Blend into distance
 	float dist = length(fsIn.fragPos - sceneCenter);

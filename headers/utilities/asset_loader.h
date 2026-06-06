@@ -23,7 +23,7 @@ struct DeferredTexture
     std::filesystem::path path;
 
     bool textureRepeat{true};
-    std::vector<int> materialIndices;
+    std::vector<std::size_t> materialIndices;
     Material::Type type{Material::Type::albedo};
 };
 

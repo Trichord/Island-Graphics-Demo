@@ -97,11 +97,11 @@ bool TextureManager::allTexturesBuilt() const
 void TextureManager::loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath)
 {
     auto materials = findMaterials(handle);
-    std::vector<int> materialIndices;
+    std::vector<std::size_t> materialIndices;
 
     // Every model gets one cubemap
     materialIndices.resize(materials.size());
-    std::iota(materialIndices.begin(), materialIndices.end(), 0);
+    std::iota(materialIndices.begin(), materialIndices.end(), std::size_t{0});
 
     deferredTextures_.emplace_back(AssetLoader::DeferredTexture{
         .handle = handle,
@@ -272,9 +272,9 @@ void TextureManager::insertTexture(const AssetLoader::DeferredTexture &deferred,
     if (fileCacheIter != filepathCache_.end())
     {
         SamplerArrayIndex other = fileCacheIter->second;
-        for (int idx : deferred.materialIndices)
+        for (std::size_t index : deferred.materialIndices)
         {
-            Material &material{materials[idx]};
+            Material &material{materials[index]};
             material.layers[deferred.type] = other;
         }
 
@@ -292,9 +292,9 @@ void TextureManager::insertTexture(const AssetLoader::DeferredTexture &deferred,
     std::size_t layer{arrayRef.array.insert(texture)};
     SamplerArrayIndex arrayIndex{.array = arrayRef.index, .layer = static_cast<int>(layer)};
 
-    for (int idx : deferred.materialIndices)
+    for (std::size_t index : deferred.materialIndices)
     {
-        Material &material{materials[idx]};
+        Material &material{materials[index]};
         material.layers[deferred.type] = arrayIndex;
     }
 
