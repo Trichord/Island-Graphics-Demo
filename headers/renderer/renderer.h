@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -34,7 +35,6 @@ class Renderer
     void renderScene(Scene &scene, float deltaTime);
 
     std::uint32_t getFrameCount() const;
-    TextureManager &getTextureManager();
 
   private:
     std::uint32_t framesRendered_{0};
@@ -68,9 +68,16 @@ class Renderer
     ComputeShader cullShader_;
     ComputeShader compactionShader_;
     ComputeShader particleShader_;
+
     std::uint32_t cullWorkGroupSize_{0};
     std::uint32_t compactionWorkGroupSize_{0};
     std::uint32_t particleWorkGroupSize_{0};
+
+    // SSBO sizes for rebinding buffer ranges.
+    std::uint32_t drawCommandsSize_{0};
+    std::uint32_t cullResultsSize_{0};
+    std::uint32_t drawCountsSize_{0};
+    std::uint32_t visibleInstancesSize_{0};
 
     // Initialization
     void loadShaders();
@@ -91,15 +98,17 @@ class Renderer
 
     // Drawing
     void renderScene();
-    void cullScene(const glm::mat4 &cullMatrix);
+    void bindBufferRanges(int index);
+    void cullScene(const glm::mat4 &cullMatrix, int bufferSection);
     void renderShadowMaps(Scene &scene, bool lightChanged);
     void shadowPass(GraphicsShader &shader, int cascade, bool alphaTested);
 
     // Updates
+    void updateCameraUBO(Scene &scene);
     void updateTimeUBO(float deltaTime);
     void updateParticles(float deltaTime);
-    void updateCameraUBO(Scene &scene);
     void updateSceneTransforms(Scene &scene);
+    void updateCascades(Scene &scene, bool lightChanged);
     void updateFrustumPlanesUBO(const glm::mat4 &cullMatrix);
     void updateShaderUniforms(Scene &scene, bool lightChanged);
     void updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll);

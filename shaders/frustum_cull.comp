@@ -23,7 +23,7 @@ layout(binding = SSBO_BINDING_MATRICES, std430) restrict readonly buffer matrice
     mat4 matrices[];
 };
 
-layout(binding = SSBO_BINDING_CULL_RESULTS, std430) restrict writeonly buffer cullResultsSSBO
+layout(binding = SSBO_BINDING_CULL_RESULTS, std430) buffer cullResultsSSBO
 {
     uint cullResults[];
 };
@@ -31,11 +31,6 @@ layout(binding = SSBO_BINDING_CULL_RESULTS, std430) restrict writeonly buffer cu
 layout(binding = SSBO_BINDING_VISIBLE_INSTANCES, std430) restrict writeonly buffer visibleInstancesSSBO
 {
     uint visibleInstances[];
-};
-
-layout(binding = SSBO_BINDING_DRAW_COMMANDS_SOURCE, std430) restrict readonly buffer drawCommandsSourceSSBO
-{
-    DrawElementsIndirectCommand commands[];
 };
 
 bool aabbIntersectsFrustum(AABB aabb, mat4 modelMatrix)
@@ -60,7 +55,7 @@ bool aabbIntersectsFrustum(AABB aabb, mat4 modelMatrix)
 
 void main()
 {
-    if (gl_GlobalInvocationID.x >= visibleInstances.length())
+    if (gl_GlobalInvocationID.x >= maps.length())
         return;
 
     BufferMap map = maps[gl_GlobalInvocationID.x];

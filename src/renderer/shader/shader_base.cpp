@@ -9,12 +9,15 @@
 #include <ios>
 #include <iostream>
 #include <iterator>
+#include <span>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 Shader::Shader(Shader &&other) noexcept
 {

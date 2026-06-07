@@ -4,6 +4,8 @@
 #include <glad/glad.h>
 #include <stdexcept>
 
+#include "renderer/shader/shader_base.h"
+
 constexpr GLuint maxTextureUnits{16u};
 
 GLState::GLState()
@@ -92,9 +94,20 @@ void GLState::setDepthFunction(GLenum depthFunction)
 
 void GLState::setVAO(GLint vao)
 {
-    if (vao != currentVAO_)
-    {
-        glBindVertexArray(vao);
-        currentVAO_ = vao;
-    }
+    if (vao == currentVAO_)
+        return;
+
+    glBindVertexArray(vao);
+    currentVAO_ = vao;
+}
+
+void GLState::bindProgram(Shader &shader)
+{
+    const GLuint id{shader.getID()};
+
+    if (id == currentProgram_)
+        return;
+
+    shader.use();
+    currentProgram_ = id;
 }

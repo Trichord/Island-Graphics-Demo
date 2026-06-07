@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_access.hpp>
+#include <string>
 #include <unordered_set>
 #include <vector>
 
@@ -28,9 +29,39 @@ namespace
 // Hardware shadow bias
 constexpr GLfloat polygonFactor{1.11201f};
 constexpr GLfloat polygonUnits{1.0f};
-} // namespace
 
-const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix);
+// Reduce the distance of the camera's far plane by 80% for shadow cascades.
+constexpr float farPlaneReduction{0.2f};
+
+std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
+{
+    auto normalizePlane = [](glm::vec4 &plane) {
+        float length{glm::length(glm::vec3{plane})};
+        plane /= length;
+    };
+
+    const glm::vec4 row0{glm::row(matrix, 0)};
+    const glm::vec4 row1{glm::row(matrix, 1)};
+    const glm::vec4 row2{glm::row(matrix, 2)};
+    const glm::vec4 row3{glm::row(matrix, 3)};
+
+    glm::vec4 left{row3 + row0};
+    glm::vec4 right{row3 - row0};
+    glm::vec4 top{row3 - row1};
+    glm::vec4 bottom{row3 + row1};
+    glm::vec4 near{row3 + row2};
+    glm::vec4 far{row3 - row2};
+
+    normalizePlane(left);
+    normalizePlane(right);
+    normalizePlane(top);
+    normalizePlane(bottom);
+    normalizePlane(near);
+    normalizePlane(far);
+
+    return {left, right, top, bottom, near, far};
+}
+} // namespace
 
 Renderer::Renderer(ThreadPool &threadPool, TextureManager &textureManager, const GraphicsSettings &settings)
     : graphicsSettings_{settings}, threadPool_{threadPool}, textureManager_{textureManager},
@@ -73,7 +104,7 @@ void Renderer::renderScene(Scene &scene, float deltaTime)
     if (cameraUpdated)
         updateCameraUBO(scene);
 
-    cullScene(scene.getCamera().getViewProjectionMatrix());
+    cullScene(scene.getCamera().getViewProjectionMatrix(), 0);
     renderScene();
 
     ++framesRendered_;
@@ -212,61 +243,48 @@ void Renderer::updateSceneTransforms(Scene &scene)
     updatedTransformHandles.clear();
 }
 
+void Renderer::updateCascades(Scene &scene, bool lightChanged)
+{
+    Camera &camera{scene.getCamera()};
+    DirectionalLight &light{scene.getGlobalLight()};
+
+    // Move the far plane closer for tighter cascades
+    const glm::mat4 cameraVP{camera.getResizedViewProjectionMatrix(farPlaneReduction)};
+    float farPlane{camera.getFarPlane() * farPlaneReduction};
+
+    // Recalculate frustum splits and light VP matrices
+    cascadeShadow_.updateCascadeShadows(cameraVP, light, graphicsSettings_.shadowResolution, farPlane);
+
+    // Splits never change, only set on renderer initialization
+    const bool updateFullUBO{framesRendered_ == 0};
+    updateCascadeShadowUBO(cascadeShadow_.getCascades(), lightChanged, updateFullUBO);
+}
+
 std::uint32_t Renderer::getFrameCount() const
 {
     return framesRendered_;
 }
 
-TextureManager &Renderer::getTextureManager()
-{
-    return textureManager_;
-}
-
-void Renderer::cullScene(const glm::mat4 &cullMatrix)
+// Culls a scene agains the cull matrix, building a new compacted list of draw commands and updating the parameter
+// buffer. Changes active shader program.
+void Renderer::cullScene(const glm::mat4 &cullMatrix, int bufferSection)
 {
     constexpr int shaderLocalSize{64};
 
-    glClearNamedBufferData(SSBOs_.drawCounts, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
-    glClearNamedBufferData(SSBOs_.cullResults, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+    glClearNamedBufferSubData(SSBOs_.drawCounts, GL_R32UI, static_cast<GLintptr>(bufferSection * drawCountsSize_),
+                              static_cast<GLsizeiptr>(drawCountsSize_), GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+    glClearNamedBufferSubData(SSBOs_.cullResults, GL_R32UI, static_cast<GLintptr>(bufferSection * cullResultsSize_),
+                              static_cast<GLsizeiptr>(cullResultsSize_), GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
 
     updateFrustumPlanesUBO(cullMatrix);
 
-    cullShader_.use();
+    glState_.bindProgram(cullShader_);
     cullShader_.dispatch((cullWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-    compactionShader_.use();
+    glState_.bindProgram(compactionShader_);
     compactionShader_.dispatch((compactionWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT);
-}
-
-const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
-{
-    auto normalizePlane = [](glm::vec4 &plane) {
-        float length{glm::length(glm::vec3{plane})};
-        plane /= length;
-    };
-
-    const glm::vec4 row0{glm::row(matrix, 0)};
-    const glm::vec4 row1{glm::row(matrix, 1)};
-    const glm::vec4 row2{glm::row(matrix, 2)};
-    const glm::vec4 row3{glm::row(matrix, 3)};
-
-    glm::vec4 left{row3 + row0};
-    glm::vec4 right{row3 - row0};
-    glm::vec4 top{row3 - row1};
-    glm::vec4 bottom{row3 + row1};
-    glm::vec4 near{row3 + row2};
-    glm::vec4 far{row3 - row2};
-
-    normalizePlane(left);
-    normalizePlane(right);
-    normalizePlane(top);
-    normalizePlane(bottom);
-    normalizePlane(near);
-    normalizePlane(far);
-
-    return {left, right, top, bottom, near, far};
 }
 
 void Renderer::updateParticles(float deltaTime)
@@ -276,7 +294,7 @@ void Renderer::updateParticles(float deltaTime)
     if (!particleWorkGroupSize_)
         return;
 
-    particleShader_.use();
+    glState_.bindProgram(particleShader_);
 
     int particleCount{static_cast<int>(particleWorkGroupSize_)};
     particleShader_.dispatch((particleCount + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
