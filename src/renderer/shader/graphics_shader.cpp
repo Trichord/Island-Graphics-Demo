@@ -1,6 +1,10 @@
 #include "renderer/shader/graphics_shader.h"
 
 #include <array>
+#include <filesystem>
+#include <glad/glad.h>
+#include <string>
+#include <vector>
 
 GraphicsShader::GraphicsShader(ShaderType type, const std::filesystem::path &vertexPath,
                                const std::filesystem::path &fragmentPath, const std::vector<std::string> &defines)

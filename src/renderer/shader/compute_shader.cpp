@@ -1,12 +1,16 @@
 #include "renderer/shader/compute_shader.h"
 
 #include <array>
+#include <filesystem>
+#include <glad/glad.h>
+#include <string>
+#include <vector>
 
-ComputeShader::ComputeShader(const std::filesystem::path &path)
+ComputeShader::ComputeShader(const std::filesystem::path &path, const std::vector<std::string> &defines)
 {
     std::array<GLuint, 1> sourceID;
 
-    sourceID[0] = createShaderID(GL_COMPUTE_SHADER, path);
+    sourceID[0] = createShaderID(GL_COMPUTE_SHADER, path, defines);
     linkShader(sourceID, path.stem().string());
 }
 

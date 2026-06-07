@@ -17,6 +17,7 @@
 #include "application/graphics_settings.h"
 #include "application/settings_window.h"
 #include "physics/player_physics.h"
+#include "renderer/buffers.h"
 #include "renderer/renderer.h"
 #include "scene/camera.h"
 #include "scene/island_scene/island_scene.h"
@@ -74,7 +75,7 @@ void Application::run()
     std::cout << "Done" << std::endl;
 
     std::cout << "Loading Models... ";
-    IslandScene islandScene(renderer.getTextureManager(), graphicsSettings, "./res/scenes/island_scene.json");
+    IslandScene islandScene(textureManager, graphicsSettings, "./res/scenes/island_scene.json");
     std::cout << "Done" << std::endl;
 
     // Initialize scene dependent resources
@@ -191,31 +192,31 @@ bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
     glGetIntegerv(GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS, &maxVertexSSBOs);
     glGetIntegerv(GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS, &maxFragmentSSBOs);
 
-    if (maxSSBOs < 16)
+    if (maxSSBOs < MaxSSBO::combinedBlocks)
     {
-        std::cerr << "ERROR: GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS (" << maxSSBOs << ") does not meet required (16)"
-                  << std::endl;
+        std::cerr << "ERROR: GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS (" << maxSSBOs << ") does not meet required ("
+                  << MaxSSBO::combinedBlocks << ")" << std::endl;
         supported = false;
     }
 
-    if (maxSSBObindings < 16)
+    if (maxSSBObindings < MaxSSBO::combinedBindings)
     {
-        std::cerr << "ERROR: GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS (" << maxSSBObindings
-                  << ") does not meet required (16)" << std::endl;
+        std::cerr << "ERROR: GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS (" << maxSSBObindings << ") does not meet required ("
+                  << MaxSSBO::combinedBindings << ")" << std::endl;
         supported = false;
     }
 
-    if (maxVertexSSBOs < 4)
+    if (maxVertexSSBOs < MaxSSBO::vertexBlocks)
     {
-        std::cerr << "ERROR: GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS (" << maxVertexSSBOs << ") does not meet required (4)"
-                  << std::endl;
+        std::cerr << "ERROR: GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS (" << maxVertexSSBOs << ") does not meet required ("
+                  << MaxSSBO::vertexBlocks << ")" << std::endl;
         supported = false;
     }
 
-    if (maxFragmentSSBOs < 4)
+    if (maxFragmentSSBOs < MaxSSBO::fragmentBlocks)
     {
         std::cerr << "ERROR: GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS (" << maxFragmentSSBOs
-                  << ") does not meet required (4)" << std::endl;
+                  << ") does not meet required (" << MaxSSBO::fragmentBlocks << ")" << std::endl;
         supported = false;
     }
 

@@ -2,14 +2,15 @@
 
 #include "renderer/shader/shader_base.h"
 
-#include <cstdint>
 #include <filesystem>
+#include <string>
+#include <vector>
 
 class ComputeShader : public Shader
 {
   public:
     ComputeShader() = default;
-    ComputeShader(const std::filesystem::path &path);
+    ComputeShader(const std::filesystem::path &path, const std::vector<std::string> &defines = {});
     ComputeShader(ComputeShader &&other) = default;
     ComputeShader &operator=(ComputeShader &&other) = default;
 

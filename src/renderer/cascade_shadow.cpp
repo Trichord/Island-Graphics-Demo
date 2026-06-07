@@ -35,6 +35,11 @@ CascadeShadow::CascadeShadow(DirectionalLight &light, AABB worldAABB, float near
     cascades_.back().viewProjection = proj * view;
 }
 
+const Cascades &CascadeShadow::getCascades() const
+{
+    return cascades_;
+}
+
 /* Credit: Rouslan Dimitrov & NVIDIA Corporation
 Computes the near and far distances for every frustum slice in camera eye space - that is, at what distance does a
 slice start and end */
@@ -84,8 +89,8 @@ CascadeShadow::FrustumSphere CascadeShadow::getFrustumSphere(const std::array<gl
 }
 
 // Main technique: Antonio Hernandez Bejarano, texel snapping: Alex Tardiff
-const Cascades &CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraVP, const DirectionalLight &light,
-                                                    int shadowResolution, float farPlane)
+void CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraVP, const DirectionalLight &light, int shadowResolution,
+                                         float farPlane)
 {
     // Pushes the radius for light projection near / far plane to avoid clipping geometry
     constexpr float nearFarMultiplier{2.39019f};
@@ -142,8 +147,6 @@ const Cascades &CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraVP, c
     const glm::vec3 lightPos{worldCenter_ - lightDir * worldRadius_};
     const glm::mat4 view{glm::lookAt(lightPos, worldCenter_, WorldVectors::worldUp)};
     cascades_.back().viewProjection = outerCascadeProjection_ * view;
-
-    return cascades_;
 }
 
 std::array<glm::vec3, 8> CascadeShadow::getFrustumCornersWorldSpace(const glm::mat4 &invViewProjection)

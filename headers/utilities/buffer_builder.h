@@ -21,6 +21,7 @@ class BufferBuilder
         std::size_t drawCounts{0};
         std::size_t cullResults{0};
         std::size_t visibleInstances{0};
+        std::size_t drawCommandsSize{0};
     };
 
     [[nodiscard]] VAOs buildVAO(const std::vector<Primitive::Vertex> &vertices,

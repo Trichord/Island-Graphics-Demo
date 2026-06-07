@@ -11,37 +11,39 @@
  *
  * Visibility Map: Per (primitive × instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
  *      - matricesIndex: index into Matrices buffer
- *      - sharedBaseIndex: index into AABBs/Metadata/DrawCommands (the primitive)
+ *      - sharedBaseIndex: index into AABBs/Metadata/Draw Commands (the primitive)
  *      - drawBucket: which draw bucket this primitive belongs to
  *      - drawCommandsBaseIndex: start of that bucket in DrawCommands
  *      - visibleInstancesBaseIndex: start of the (primitive x instance) in the visibility buffer
  *
  * AABB: Per primitive. Local-space bounding boxes
- * 
+ *
  * Matrices: Per model. World-space transforms (multiple primitives share one range)
- * 
+ *
  * Metadata: Per primitive. Material textures, visibility buffer base index
- * 
+ *
  * Draw Counts: Per draw bucket. Number of surviving draw commands after compaction
- * 
+ *
  * Cull Results: Per primitive. Number of surviving instances after frustum test
- * 
+ *
  * Draw Commands: Per primitive. Compacted each frame from DrawCommandsSource
- * 
+ *
  * Visible Instances: Per (primitive × instance) pair. Indices into Matrices for
  *                   instances that passed the frustum test. Each primitive owns a
  *                   contiguous section sized to its instance count.
- * 
- * Draw Commands Source: Per primitive. Immutable source of truth, set once at load
- * 
- * Vertex Map: Per vertex. Allows any index in map buffer to look up its vertex in the VBO, and its
- * sharedBaseIndex.
- * 
- * Reset Vertices: For anything directly manipulating the main VBO, this is a copy of the original VBO subset. Allows wind effects to not
- * accumulate over time, particles to reset to their original position, etc.
  *
- * 1:1 indexed buffers: AABB[i], Metadata[i], Draw Commands[i], Draw Commands Source[i]. Vertex Map[j], Reset Vertices[j]
- * Flattened buffers: Map[j], VisibleInstances[j] where j spans all (primitive × instance) pairs
+ * Draw Commands Source: Per primitive. Immutable source of truth, set once at load
+ *
+ * Vertex Map: Per vertex (used by particles only). Allows any index in map buffer to look up its vertex in the VBO, and
+ * its sharedBaseIndex.
+ *
+ *
+ * 1:1 indexed buffers: AABB[i], Metadata[i], Draw Commands[i], Draw Commands Source[i]. Vertex Map[j], Reset
+ * Vertices[j] Flattened buffers: Map[j], VisibleInstances[j] where j spans all (primitive × instance) pairs
+ *
+ * Buffers resized for cascade shadows: Draw Commands, Draw Counts, Cull Results, Visible Instances. Allows the main
+ * pass to hold one section of the buffer, and each cascade to have its own section. Total size is sizeof(original
+ * buffer) * (cascade count + 1)
  *
  */
 
@@ -69,8 +71,7 @@ struct SSBOs
           drawCounts{std::exchange(other.drawCounts, 0)}, cullResults{std::exchange(other.cullResults, 0)},
           drawCommands{std::exchange(other.drawCommands, 0)},
           visibleInstances{std::exchange(other.visibleInstances, 0)},
-          drawCommandsSource{std::exchange(other.drawCommandsSource, 0)},
-          vertexMap{std::exchange(other.vertexMap, 0)}
+          drawCommandsSource{std::exchange(other.drawCommandsSource, 0)}, vertexMap{std::exchange(other.vertexMap, 0)}
     {
     }
 
@@ -186,7 +187,7 @@ struct UBOs
     {
         if (this != &other)
         {
-            GLuint buffers[]{camera, frustumPlanes, cascadeShadows};
+            GLuint buffers[]{camera, frustumPlanes, cascadeShadows, time};
             glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
 
             camera = std::exchange(other.camera, 0);
@@ -227,5 +228,16 @@ enum class BindingPointSSBO : unsigned int
     visibleInstances,
     drawCommandsSource,
     vbo,
-    vertexMap
+    vertexMap,
+    shadowDrawCommands,
+    shadowCullResults,
+    shadowDrawCounts
 };
+
+namespace MaxSSBO
+{
+inline constexpr int combinedBlocks{16};
+inline constexpr int combinedBindings{16};
+inline constexpr int vertexBlocks{4};
+inline constexpr int fragmentBlocks{4};
+} // namespace MaxSSBO

@@ -2,9 +2,9 @@
 
 #include <array>
 #include <cstdint>
-#include <fastgltf/types.hpp>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <set>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -47,7 +47,8 @@ void Renderer::initializeResources(Scene &scene)
     BufferBuilder builder;
     UBOs_ = builder.buildUBOs();
 
-    SceneProcessor processor{scene, textureManager_};
+    const bool shadowsEnabled{graphicsSettings_.shadowResolution > 1};
+    SceneProcessor processor{scene, textureManager_, shadowsEnabled};
 
     // Cubemaps. Reserve space up front for any load-time generated cubemaps
     std::size_t numCubemaps{processor.getNumDynamicCubemaps()};
@@ -75,7 +76,7 @@ void Renderer::initializeResources(Scene &scene)
     // Set the light based uniforms and draw shadows
     setSceneShaderUniforms(scene);
 
-    if (graphicsSettings_.shadowResolution > 1)
+    if (graphicsSettings_.shadowResolution)
         renderShadowMaps(scene, true);
 
     // Assign the skybox to any ocean shaders
@@ -88,6 +89,7 @@ void Renderer::initializeResources(Scene &scene)
     processor.updateMetadataCubemaps(SSBOs_.metadata);
 
     // Get ready for first frame
+    bindBufferRanges(0);
     updateCameraUBO(scene);
 }
 
@@ -104,6 +106,11 @@ void Renderer::takeBufferData(SceneProcessor::ProcessedScene &processed)
 {
     drawBuckets_ = std::move(processed.drawBuckets);
     matricesBaseIndex_ = std::move(processed.bufferDescriptor.matricesBaseIndexMap);
+
+    drawCommandsSize_ = static_cast<std::uint32_t>(processed.bufferDescriptor.drawCommandsSize);
+    cullResultsSize_ = static_cast<std::uint32_t>(processed.bufferDescriptor.cullResultsSize);
+    drawCountsSize_ = static_cast<std::uint32_t>(processed.bufferDescriptor.drawCountsSize);
+    visibleInstancesSize_ = static_cast<std::uint32_t>(processed.bufferDescriptor.visibleInstancesSize);
 }
 
 void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &processed)
@@ -248,7 +255,7 @@ void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget 
     auto renderFace = [&](WorldOrientation orientation, Camera &camera) {
         camera.setWorldOrientation(orientation);
         updateCameraUBO(scene);
-        cullScene(camera.getViewProjectionMatrix());
+        cullScene(camera.getViewProjectionMatrix(), 0);
 
         GLuint zero{0};
         glNamedBufferSubData(SSBOs_.drawCounts, static_cast<GLsizeiptr>(parameterBufferIndex * sizeof(std::uint32_t)),

@@ -44,7 +44,6 @@ SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &
 {
     SSBOs buffers;
     std::vector<SimpleAABB> simpleAABBs{simplifyAABBs(aabbs)};
-    std::size_t drawCommandsSize{commands.size() * sizeof(DrawElementsIndirectCommand)};
 
     buildSSBO(&buffers.visibilityMap, sizes.bufferMap, BindingPointSSBO::visibilityMap, false, visibilityMap.data());
     buildSSBO(&buffers.aabb, simpleAABBs.size() * sizeof(SimpleAABB), BindingPointSSBO::aabb, false,
@@ -53,10 +52,10 @@ SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &
     buildSSBO(&buffers.metadata, sizes.metadata, BindingPointSSBO::metadata, true, metadata.data());
     buildSSBO(&buffers.drawCounts, sizes.drawCounts, BindingPointSSBO::drawCounts, true, nullptr);
     buildSSBO(&buffers.cullResults, sizes.cullResults, BindingPointSSBO::cullResults, false, nullptr);
-    buildSSBO(&buffers.drawCommands, drawCommandsSize, BindingPointSSBO::drawCommands, false, nullptr);
+    buildSSBO(&buffers.drawCommands, sizes.drawCommandsSize, BindingPointSSBO::drawCommands, false, nullptr);
     buildSSBO(&buffers.visibleInstances, sizes.visibleInstances, BindingPointSSBO::visibleInstances, false, nullptr);
-    buildSSBO(&buffers.drawCommandsSource, drawCommandsSize, BindingPointSSBO::drawCommandsSource, false,
-              commands.data());
+    buildSSBO(&buffers.drawCommandsSource, commands.size() * sizeof(DrawElementsIndirectCommand),
+              BindingPointSSBO::drawCommandsSource, false, commands.data());
     buildSSBO(&buffers.vertexMap, vertexBufferMap.size() * sizeof(VertexBufferMap), BindingPointSSBO::vertexMap, false,
               vertexBufferMap.data());
 
@@ -139,6 +138,9 @@ VAOs BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices,
 void BufferBuilder::buildSSBO(GLuint *id, std::size_t size, BindingPointSSBO binding, bool dynamic,
                               const void *data) const
 {
+    if (!size)
+        return;
+
     GLenum storageType{static_cast<GLenum>(dynamic ? GL_DYNAMIC_STORAGE_BIT : 0)};
     glCreateBuffers(1, id);
     glNamedBufferStorage(*id, static_cast<GLsizeiptr>(size), data, storageType);
@@ -147,6 +149,9 @@ void BufferBuilder::buildSSBO(GLuint *id, std::size_t size, BindingPointSSBO bin
 
 void BufferBuilder::buildUBO(GLuint *id, std::size_t size, BindingPointUBO binding) const
 {
+    if (!size)
+        return;
+
     glCreateBuffers(1, id);
     glNamedBufferStorage(*id, static_cast<GLsizeiptr>(size), nullptr, GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_UNIFORM_BUFFER, static_cast<GLuint>(binding), *id);
