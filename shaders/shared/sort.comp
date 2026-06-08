@@ -1,0 +1,52 @@
+#version 460 core
+
+// Credit: tgfrerer, from https://poniesandlight.co.uk/reflect/bitonic_merge_sort/
+
+// Attributes
+layout(local_size_x = 512, local_size_y = 1, local_size_z = 1) in;
+
+void localCompareAndSwap(ivec2 idx){
+	if (localValue[idx.x] < localValue[idx.y]) {
+		uint tmp = localValue[idx.x];
+		localValue[idx.x] = localValue[idx.y];
+		localValue[idx.y] = tmp;
+	}
+}
+
+void localFlip(in uint h){
+		uint t = gl_LocalInvocationID.x;
+		barrier();
+
+		uint halfH = h >> 1; // Note: h >> 1 is equivalent to h / 2 
+		ivec2 indices = 
+			ivec2(h * (( 2 * t ) / h)) +
+			ivec2(t % halfH, h - 1 - (t % halfH));
+
+		localCompareAndSwap(indices);
+}
+
+void localDisperse(in uint h){
+	uint t = gl_LocalInvocationID.x;
+	for ( ; h > 1 ; h /= 2 ) {
+		
+		barrier();
+
+		uint halfH = h >> 1; // Note: h >> 1 is equivalent to h / 2 
+		ivec2 indices = 
+			ivec2(h * (( 2 * t ) / h)) +
+			ivec2(t % halfH, halfH + (t % halfH ));
+
+		localCompareAndSwap(indices);
+	}
+}
+
+void localBMS(uint h){
+	uint t = gl_LocalInvocationID.x;
+	for (uint hh = 2; hh <= h; hh <<= 1 ) {  // note:  h <<= 1 is same as h *= 2
+		localFlip(hh);
+		localDisperse(hh / 2);
+	}
+}
+
+shared uint localValue[local_size_x * 2];
+

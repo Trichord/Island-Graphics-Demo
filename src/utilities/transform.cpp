@@ -4,7 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-Transform::Transform(glm::vec3 pos, glm::vec3 sc, float degrees, glm::vec3 axis) : position_{pos}, scale_{sc}
+Transform::Transform(glm::vec3 translation, glm::vec3 scale, float degrees, glm::vec3 axis) : translation_{translation}, scale_{scale}
 {
     glm::vec3 normalizedAxis{glm::normalize(axis)};
     quaternion_ = glm::angleAxis(glm::radians(degrees), normalizedAxis);
@@ -12,9 +12,16 @@ Transform::Transform(glm::vec3 pos, glm::vec3 sc, float degrees, glm::vec3 axis)
     isDirty_ = false;
 };
 
-void Transform::setAbsolutePosition(glm::vec3 absolutePosition)
+Transform::Transform(glm::vec3 translation, glm::vec3 scale, glm::quat quat)
+    : translation_{translation}, scale_{scale}, quaternion_{quat}
 {
-    position_ = absolutePosition;
+    rebuildModelMatrix();
+    isDirty_ = false;
+}
+
+void Transform::setAbsoluteTranslation(glm::vec3 absoluteTranslation)
+{
+    translation_ = absoluteTranslation;
     isDirty_ = true;
 }
 
@@ -24,15 +31,21 @@ void Transform::setAbsoluteRotation(glm::vec3 absoluteRotation)
     isDirty_ = true;
 }
 
+void Transform::setAbsoluteRotation(glm::quat quat)
+{
+    quaternion_ = quat;
+    isDirty_ = true;
+}
+
 void Transform::setAbsoluteScale(float absoluteScale)
 {
     scale_ = glm::vec3(absoluteScale);
     isDirty_ = true;
 }
 
-void Transform::setRelativePosition(glm::vec3 relativePosition)
+void Transform::setRelativeTranslation(glm::vec3 relativeTranslation)
 {
-    position_ += relativePosition;
+    translation_ += relativeTranslation;
     isDirty_ = true;
 }
 
@@ -59,7 +72,7 @@ void Transform::rotateAroundAxis(float degrees, glm::vec3 axis)
 
 const glm::vec3 &Transform::getPosition() const
 {
-    return position_;
+    return translation_;
 }
 
 const glm::vec3 &Transform::getScale() const
@@ -97,7 +110,7 @@ glm::vec3 Transform::getRotation() const
 void Transform::rebuildModelMatrix()
 {
     glm::mat4 newModelMatrix{1.0f};
-    newModelMatrix = glm::translate(newModelMatrix, position_);
+    newModelMatrix = glm::translate(newModelMatrix, translation_);
     newModelMatrix *= glm::mat4_cast(quaternion_);
     newModelMatrix = glm::scale(newModelMatrix, scale_);
 
