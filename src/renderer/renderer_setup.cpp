@@ -123,7 +123,10 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
 void Renderer::setSceneShaderUniforms(Scene &scene)
 {
     const DirectionalLight &light{scene.getGlobalLight()};
-    const float fov{scene.getCamera().getFOV()};
+
+    const Camera &camera{scene.getCamera()};
+    const float fov{camera.getFOV()};
+    const float nearPlane{camera.getNearPlane()};
 
     for (auto &shader : shaders_)
     {
@@ -136,6 +139,8 @@ void Renderer::setSceneShaderUniforms(Scene &scene)
 
         shader.setFloat("fov", fov);
     }
+
+    cullShader_.setFloat("nearPlane", nearPlane);
 }
 
 void Renderer::borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,

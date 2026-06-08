@@ -287,7 +287,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
 
         std::visit(overloaded{
                        [&](const ParticlesEntry &entry) {
-                           Particles particles{entry.position,       entry.extent,   entry.color,
+                           Particles particles{entry.translation,    entry.extent,   entry.color,
                                                entry.colorVariation, entry.lifetime, entry.count};
                            addParticles(handle, particles);
                        },

@@ -49,7 +49,7 @@ struct CubeMappedModelEntry
 
 struct ParticlesEntry
 {
-    glm::vec3 position{0.0f};
+    glm::vec3 translation{0.0f};
     glm::vec3 extent{0.0f};
     glm::vec4 color{0.0f};
     glm::vec4 colorVariation{0.0f};
@@ -107,12 +107,29 @@ inline glm::vec4 parseVec4(const nlohmann::json &j)
 
 inline void from_json(const nlohmann::json &j, Transform &t)
 {
-    t = Transform{j.contains("position") ? parseVec3(j.at("position")) : glm::vec3{0.0f},
-                  j.contains("scale") ? glm::vec3{j.at("scale").get<float>()} : glm::vec3{1.0f}, 0.0f};
+    glm::vec3 translation{j.contains("translation") ? parseVec3(j.at("translation")) : glm::vec3{0.0f}};
+    glm::vec3 scale{j.contains("scale") ? glm::vec3{j.at("scale").get<float>()} : glm::vec3{1.0f}};
 
-    glm::vec3 rotation{j.contains("rotation") ? parseVec3(j.at("rotation")) : glm::vec3{0.0f}};
+    t = {translation, scale};
 
-    t.setAbsoluteRotation(rotation);
+    if (j.contains("rotation"))
+    {
+        auto &rot = j.at("rotation");
+
+        if (rot.size() != 4 && rot.size() != 3)
+            throw nlohmann::json::type_error::create(302, "rotation must be array of size 3 or 4", &rot);
+
+        if (rot.size() == 4)
+        {
+            glm::vec4 quat{parseVec4(rot)};
+            t.setAbsoluteRotation(glm::quat{quat.w, quat.x, quat.y, quat.z});
+        }
+        else
+        {
+            glm::vec3 degrees{parseVec3(rot)};
+            t.setAbsoluteRotation(degrees);
+        };
+    }
 }
 
 inline void from_json(const nlohmann::json &j, ModelEntry &model)
@@ -144,7 +161,7 @@ inline void from_json(const nlohmann::json &j, CubeMappedModelEntry &model)
 
 inline void from_json(const nlohmann::json &j, ParticlesEntry &particle)
 {
-    particle.position = j.contains("position") ? parseVec3(j.at("position")) : glm::vec3{0.0f};
+    particle.translation = j.contains("translation") ? parseVec3(j.at("translation")) : glm::vec3{0.0f};
     particle.extent = j.contains("extent") ? parseVec3(j.at("extent")) : glm::vec3{0.0f};
     particle.color = j.contains("color") ? parseVec4(j.at("color")) : glm::vec4{1.0f};
     particle.colorVariation = j.contains("colorVariation") ? parseVec4(j.at("colorVariation")) : glm::vec4{0.0f};

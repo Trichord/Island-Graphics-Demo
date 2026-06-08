@@ -24,7 +24,7 @@
     {
       "type": "model",
       "transform": {
-        "position": [-220.61097, -6.58, -140.05396],
+        "translation": [-220.61097, -6.58, -140.05396],
         "rotation": [0.0, -65.0, 0.0]
       },
       "modelPath": "./res/models/set_pieces/statue/statue.gltf",
@@ -34,7 +34,7 @@
       "type": "model",
       "name": "boat",
       "transform": {
-        "position": [-256.687, -9.91824, 35.649],
+        "translation": [-256.687, -9.91824, 35.649],
         "rotation": [1.19411, -6.05362, -19.0008],
         "scale": 0.02
       },
@@ -45,7 +45,7 @@
       "type": "cubemapped",
       "name": "spaceModel",
       "transform": {
-        "position": [-21.0, 13.4615, -48.0]
+        "translation": [-21.0, 13.4615, -48.0]
       },
       "modelPath": "./res/models/set_pieces/space_model/space_model.gltf",
       "cubemapPath": "./res/textures/nebula/nebula.ktx2",
@@ -92,27 +92,29 @@
       "shader": "directionalPBR"
     },
     {
-      "type": "instanced",
-      "minScale": 1.2,
-      "maxScale": 1.4,
+      "type": "model",
+      "transform": {
+        "translation": [52.45047378540039, 2.3282833099365234, -121.53543853759766],
+	"rotation":[0.016681792214512825,
+		    -0.7760639190673828,
+		    -0.19478438794612885,
+		     0.5995878577232361
+		   ],
+        "scale": 20.0
+      },
       "modelPath": "./res/models/rocks/rock6/rock6.gltf",
-      "positionsPath": "./res/positions/rock6.txt",
       "shader": "directionalPBR"
     },
     {
-      "type": "instanced",
-      "minScale": 0.9,
-      "maxScale": 1.125,
+      "type": "model",
+      "transform": {
+      "translation":[52.3120231628418,
+		     1.435644268989563,
+		     -116.08223724365234
+		    ],
+        "scale": 10.0
+      },
       "modelPath": "./res/models/rocks/rock7/rock7.gltf",
-      "positionsPath": "./res/positions/rock7.txt",
-      "shader": "directionalPBR"
-    },
-    {
-      "type": "instanced",
-      "minScale": 1.0,
-      "maxScale": 1.25,
-      "modelPath": "./res/models/rocks/rock8/rock8.gltf",
-      "positionsPath": "./res/positions/rock8.txt",
       "shader": "directionalPBR"
     },
     {
@@ -150,7 +152,7 @@
     {
       "type": "model",
       "transform": {
-        "position": [196.18584, -0.93, 154.62890],
+        "translation": [196.18584, -0.93, 154.62890],
         "rotation": [0.0, 45.0, 0.0]
       },
       "modelPath": "./res/models/trees/dead_tree/dead_tree.gltf",
@@ -169,7 +171,7 @@
       "minScale": 0.9,
       "maxScale": 1.1,
       "modelPath": "./res/models/vegetation/whiteflower/whiteflower.gltf",
-      "positionsPath": "./res/positions/whiteflower.txt",
+      "positionsPath": "./res/positions/whiteflowers.txt",
       "shader": "grass"
     },
     {
@@ -177,7 +179,7 @@
       "minScale": 0.9,
       "maxScale": 1.1,
       "modelPath": "./res/models/vegetation/blueflower/blueflower.gltf",
-      "positionsPath": "./res/positions/blueflower.txt",
+      "positionsPath": "./res/positions/blueflowers.txt",
       "shader": "grass"
     },
     {
@@ -185,7 +187,7 @@
       "minScale": 0.9,
       "maxScale": 1.1,
       "modelPath": "./res/models/vegetation/purpleflower/purpleflower.gltf",
-      "positionsPath": "./res/positions/purpleflower.txt",
+      "positionsPath": "./res/positions/purpleflowers.txt",
       "shader": "grass"
     },
     {
@@ -193,7 +195,7 @@
       "minScale": 1.0,
       "maxScale": 1.5,
       "modelPath": "./res/models/vegetation/dandelion/dandelion.gltf",
-      "positionsPath": "./res/positions/dandelion.txt",
+      "positionsPath": "./res/positions/dandelions.txt",
       "shader": "grass"
     },
     {
@@ -201,13 +203,13 @@
       "minScale": 0.8,
       "maxScale": 1.2,
       "modelPath": "./res/models/vegetation/strawberry/strawberry.gltf",
-      "positionsPath": "./res/positions/strawberry.txt",
+      "positionsPath": "./res/positions/strawberries.txt",
       "shader": "grass"
     },
     {
       "type": "model",
       "transform": {
-        "position": [121.80589, -6.22636, 145.36897],
+        "translation": [121.80589, -6.22636, 145.36897],
         "scale": 45.0
       },
       "modelPath": "./res/models/water/pond/pond.gltf",
@@ -216,7 +218,7 @@
     {
       "type": "model",
       "transform": {
-        "position": [102.09975, -0.92979, -67.76979],
+        "translation": [102.09975, -0.92979, -67.76979],
         "scale": 5.0
       },
       "modelPath": "./res/models/water/puddle/puddle.gltf",
@@ -225,7 +227,7 @@
     {
       "type": "model",
       "transform": {
-        "position": [0.0, -10.39, 0.0],
+        "translation": [0.0, -10.39, 0.0],
         "scale": 7.5
       },
       "modelPath": "./res/models/water/ocean/ocean.gltf",
@@ -237,7 +239,7 @@
     },
     {
       "type": "particles",
-      "position": [-29.049316, 4.5, 253.231873],
+      "translation": [-15.049316, 5.0, 283.231873],
       "extent": [13, 13, 13],
       "color": [215.3, 225.625, 217.15, 255.0],
       "colorVariation": [20.0, 23.5, 20.3, 0],

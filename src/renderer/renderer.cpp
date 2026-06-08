@@ -81,6 +81,8 @@ Renderer::Renderer(ThreadPool &threadPool, TextureManager &textureManager, const
     for (auto &shader : shaders_)
         setupShader(shader);
 
+    cullShader_.setInt("screenWidth", settings.screenWidth);
+    cullShader_.setInt("screenHeight", settings.screenHeight);
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getDepthMapTextureID());
     glPolygonOffset(polygonFactor, polygonUnits);
 }
