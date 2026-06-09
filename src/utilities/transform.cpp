@@ -62,10 +62,18 @@ void Transform::setRelativeScale(float relativeScale)
     isDirty_ = true;
 }
 
-void Transform::rotateAroundAxis(float degrees, glm::vec3 axis)
+void Transform::rotateAroundAxisLocal(float degrees, glm::vec3 axis)
 {
     glm::vec3 normalizedAxis{glm::normalize(axis)};
     glm::quat updatedRotation{quaternion_ * glm::angleAxis(glm::radians(degrees), normalizedAxis)};
+    quaternion_ = glm::normalize(updatedRotation);
+    isDirty_ = true;
+}
+
+void Transform::rotateAroundAxisWorld(float degrees, glm::vec3 axis)
+{
+    glm::vec3 normalizedAxis{glm::normalize(axis)};
+    glm::quat updatedRotation{glm::angleAxis(glm::radians(degrees), normalizedAxis) * quaternion_};
     quaternion_ = glm::normalize(updatedRotation);
     isDirty_ = true;
 }

@@ -22,7 +22,8 @@ class Transform
     void setRelativeTranslation(glm::vec3 relativeTranslation);
     void setRelativeRotation(glm::vec3 relativeRotation);
 
-    void rotateAroundAxis(float degrees, glm::vec3 axis);
+    void rotateAroundAxisLocal(float degrees, glm::vec3 axis);
+    void rotateAroundAxisWorld(float degrees, glm::vec3 axis);
 
     glm::mat4 &getModelMatrix();
     glm::mat3 &getNormalMatrix();

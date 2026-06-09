@@ -1,10 +1,10 @@
 #include "physics/player.h"
 
-#include <jolt/Math/Quat.h>
 #include <jolt/Core/Reference.h>
 #include <jolt/Core/TempAllocator.h>
 #include <jolt/Geometry/Plane.h>
 #include <jolt/Math/MathTypes.h>
+#include <jolt/Math/Quat.h>
 #include <jolt/Math/Real.h>
 #include <jolt/Math/Vec3.h>
 #include <jolt/Physics/Body/BodyID.h>
@@ -138,7 +138,7 @@ void Player::handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime)
             speed *= characterCrouchSpeedMultiplier;
 
         // Smooth the player input
-        desiredVelocity_ = 0.25f * direction * speed + 0.75f * desiredVelocity_;
+        desiredVelocity_ = 0.3f * direction * speed + 0.7f * desiredVelocity_;
 
         // True if the player intended to move
         allowSliding_ = !direction.IsNearZero();
@@ -187,6 +187,8 @@ void Player::handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime)
         newVelocity += currentHorizontalVelocity;
     }
 
+    newVelocity = player_->CancelVelocityTowardsSteepSlopes(newVelocity);
+
     // Update character velocity
     player_->SetLinearVelocity(newVelocity);
 }
@@ -211,6 +213,15 @@ void Player::OnContactSolve(const JPH::CharacterVirtual *inCharacter, const JPH:
     // Ignore callbacks for other characters than the player
     if (inCharacter != player_)
         return;
+
+    // Cancel out any vertical component to prevent steep slope jitter
+    if (inCharacter->IsSlopeTooSteep(inContactNormal))
+    {
+        JPH::Vec3 up{inCharacter->GetUp()};
+        float vertical{ioNewCharacterVelocity.Dot(up)};
+        if (vertical > 0.0f)
+            ioNewCharacterVelocity -= vertical * up;
+    }
 
     // Don't allow the player to slide down static not-too-steep surfaces when not actively moving and when not on a
     // moving platform
