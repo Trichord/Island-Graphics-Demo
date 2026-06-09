@@ -81,12 +81,12 @@ std::vector<Transform> InstancedModel::randomizeRotationScale(std::vector<glm::v
     for (std::size_t i{0}; i < positions.size(); i += 2)
     {
         // Rotate the model somewhere in the 360 degree range
-        float instanceRotation{randomFloat(0.0, 360.0f, mt)};
+        float instanceRotation{randomFloat(0.0f, 360.0f, mt)};
         float instanceScale{randomFloat(randomize_.minScale, randomize_.maxScale, mt)};
 
         Transform transform{positions[i]};
 
-        transform.rotateAroundAxis(instanceRotation, WorldVectors::worldUp);
+        transform.rotateAroundAxisLocal(instanceRotation, WorldVectors::worldUp);
         transform.setAbsoluteScale(instanceScale);
 
         glm::vec3 normal{positions[i + 1]};
@@ -95,7 +95,7 @@ std::vector<Transform> InstancedModel::randomizeRotationScale(std::vector<glm::v
         float angle{glm::degrees(glm::acos(surfaceAlignment))};
 
         if (glm::length(axis) > 0.0001f)
-            transform.rotateAroundAxis(angle, axis);
+            transform.rotateAroundAxisWorld(angle, axis);
 
         transforms.emplace_back(std::move(transform));
     }
