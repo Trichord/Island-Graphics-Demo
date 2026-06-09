@@ -229,10 +229,12 @@ void TextureManager::buildAllTextures()
 
     // Bind all units
     for (int i{0}; i < static_cast<int>(arrayTextures_.size()); ++i)
-        arrayTextures_[i].bindTextureUnit(TextureUnit::array2DBase + i);
+        if (arrayTextures_[i].getCurrentSize())
+            arrayTextures_[i].bindTextureUnit(TextureUnit::array2DBase + i);
 
     for (int i{0}; i < static_cast<int>(arrayCubemaps_.size()); ++i)
-        arrayCubemaps_[i].bindTextureUnit(TextureUnit::arrayCubemapBase + i);
+        if (arrayCubemaps_[i].getCurrentSize())
+            arrayCubemaps_[i].bindTextureUnit(TextureUnit::arrayCubemapBase + i);
 
     assignFallbacks();
     filepathCache_.clear();

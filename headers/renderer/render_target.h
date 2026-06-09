@@ -21,7 +21,7 @@ class RenderTarget
         GLenum depthFormat{GL_NONE};
         bool textureArray{false};
         GLsizei textureArrayDepth{1};
-        bool generateMipmaps{false};
+        bool mipmaps{false};
         bool shadowMap{false};
     };
 

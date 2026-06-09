@@ -3,7 +3,6 @@
 #include "binding_points.glsl"
 #include "constants.glsl"
 #include "textures.glsl"
-#include "tone_mapping.glsl"
 #include "types.glsl"
 #include "foliage.glsl"
 #include "ubo.glsl"
@@ -19,8 +18,6 @@ layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadat
 };
 
 // In
-uniform float gamma;
-
 uniform vec3 lightDir;
 uniform vec3 lightColor;
 uniform vec3 ambientLight;
@@ -74,12 +71,6 @@ void main()
     #endif
 
     vec3 color = ambient + diffuseColor;
-
-    // Tone mapping
-    color = ACESFilm(color);
-
-    // Gamma correction
-	color = pow(color, vec3(1.0/gamma)); 
-   
+ 
     fragColor = vec4(color, albedo.a);
 }

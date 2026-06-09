@@ -91,10 +91,10 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
         shadowPass(shadowAlphaShader, i, true);
     }
 
-    shadowPassTarget_.unbind();
     bindBufferRanges(0);
-    glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
     glDisable(GL_POLYGON_OFFSET_FILL);
+    glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
+    frameBuffer_.bind();
 }
 
 void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)

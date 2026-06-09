@@ -97,14 +97,13 @@ void Application::run()
 
         // Update
         islandScene.onUpdate(deltaTime_);
+
+        glfwPollEvents();
         processKeyboard(islandScene, physicsHandler);
 
         // Draw
         renderer.renderScene(islandScene, deltaTime_);
         glfwSwapBuffers(window_);
-
-        // Check for window close
-        glfwPollEvents();
     }
 
     return;
@@ -118,9 +117,7 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
-    glfwWindowHint(GLFW_DEPTH_BITS, 32);
-    glfwWindowHint(GLFW_SAMPLES, graphicsSettings.msaa);
+    glfwWindowHint(GLFW_STENCIL_BITS, 0);
 
 #ifdef _DEBUG
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
@@ -175,6 +172,13 @@ bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+#ifdef _DEBUG
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(glDebugOutput, nullptr);
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+#endif
+
     // If MDI Count not supported
     if (!glMultiDrawElementsIndirectCount)
     {
@@ -186,46 +190,48 @@ bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
     GLint maxSSBObindings{0};
     GLint maxVertexSSBOs{0};
     GLint maxFragmentSSBOs{0};
+    GLint maxImageUnits{0};
 
     glGetIntegerv(GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS, &maxSSBOs);
     glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxSSBObindings);
     glGetIntegerv(GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS, &maxVertexSSBOs);
     glGetIntegerv(GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS, &maxFragmentSSBOs);
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxImageUnits);
 
-    if (maxSSBOs < MaxSSBO::combinedBlocks)
+    if (maxSSBOs < SSBOMinimum::combinedBlocks)
     {
         std::cerr << "ERROR: GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS (" << maxSSBOs << ") does not meet required ("
-                  << MaxSSBO::combinedBlocks << ")" << std::endl;
+                  << SSBOMinimum::combinedBlocks << ")" << std::endl;
         supported = false;
     }
 
-    if (maxSSBObindings < MaxSSBO::combinedBindings)
+    if (maxSSBObindings < SSBOMinimum::combinedBindings)
     {
         std::cerr << "ERROR: GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS (" << maxSSBObindings << ") does not meet required ("
-                  << MaxSSBO::combinedBindings << ")" << std::endl;
+                  << SSBOMinimum::combinedBindings << ")" << std::endl;
         supported = false;
     }
 
-    if (maxVertexSSBOs < MaxSSBO::vertexBlocks)
+    if (maxVertexSSBOs < SSBOMinimum::vertexBlocks)
     {
         std::cerr << "ERROR: GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS (" << maxVertexSSBOs << ") does not meet required ("
-                  << MaxSSBO::vertexBlocks << ")" << std::endl;
+                  << SSBOMinimum::vertexBlocks << ")" << std::endl;
         supported = false;
     }
 
-    if (maxFragmentSSBOs < MaxSSBO::fragmentBlocks)
+    if (maxFragmentSSBOs < SSBOMinimum::fragmentBlocks)
     {
         std::cerr << "ERROR: GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS (" << maxFragmentSSBOs
-                  << ") does not meet required (" << MaxSSBO::fragmentBlocks << ")" << std::endl;
+                  << ") does not meet required (" << SSBOMinimum::fragmentBlocks << ")" << std::endl;
         supported = false;
     }
 
-#ifdef _DEBUG
-    glEnable(GL_DEBUG_OUTPUT);
-    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    glDebugMessageCallback(glDebugOutput, nullptr);
-    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
-#endif // DEBUG
+    if (maxImageUnits < TextureUnit::max)
+    {
+        std::cerr << "ERROR: GGL_MAX_TEXTURE_IMAGE_UNITS (" << maxImageUnits << ") does not meet required ("
+                  << TextureUnit::max << ")" << std::endl;
+        supported = false;
+    }
 
     if (!supported)
         glfwTerminate();

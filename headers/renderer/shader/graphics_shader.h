@@ -21,6 +21,7 @@ enum class ShaderType
     skybox,
     shadowMap,
     shadowMapAlpha,
+    fboResolve,
     count
 };
 

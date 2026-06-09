@@ -88,8 +88,9 @@ void main()
         //Kill off most of the original velocity, leave some for variation
         vec3 newVel = velocity * resetVelocityDamper;
 
-        vec3 respawnDir = normalize(aabb.center.xyz - originalBlackHolePos);
-        vec3 resetPos = aabb.center.xyz + respawnDir * innerRadius * 0.80;
+        vec3 respawnDir = aabb.center.xyz - originalBlackHolePos;
+        respawnDir.x -= sin(time * 0.5) * 0.5;
+        vec3 resetPos = aabb.center.xyz + normalize(respawnDir) * innerRadius * 0.80;
 
         particles[particleIndex] = vec4(resetPos, newVel.x);
         particles[particleIndex + 1] = vec4(newVel.yz, uintBitsToFloat(packHalf2x16(lifetimes.xx)), velYZlifeColor.w);

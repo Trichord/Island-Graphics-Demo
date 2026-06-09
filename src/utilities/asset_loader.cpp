@@ -23,6 +23,7 @@
 
 #include "models/aabb.h"
 #include "models/primitive.h"
+#include "models/skeleton.h"
 #include "renderer/textures.h"
 #include "scene/handle.h"
 
@@ -434,4 +435,11 @@ std::vector<AssetLoader::DeferredTexture> AssetLoader::texturesFromAsset(const f
     }
 
     return deferredTextures;
+}
+
+std::optional<Skeleton> loadSkeleton(const fastgltf::Asset &asset)
+{
+    std::vector<glm::mat4> joints;
+    std::vector<float> weights;
+    return {};
 }
