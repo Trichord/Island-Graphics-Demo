@@ -56,3 +56,14 @@ struct Material
         return layers[t];
     }
 };
+
+// Texture unit bindings
+namespace TextureUnit
+{
+static constexpr int array2DBase{0};
+static constexpr int arrayCubemapBase{11};
+static constexpr int shadow{14};
+static constexpr int frameBuffer{15};
+static constexpr int depthMap{16};
+static constexpr int max{32};
+} // namespace TextureUnit

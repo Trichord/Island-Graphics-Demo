@@ -50,7 +50,7 @@ void RenderTarget::createRenderTarget(int width, int height, const Settings &set
     if (settings.textureArray)
         target = GL_TEXTURE_2D_ARRAY;
 
-    if (settings.generateMipmaps)
+    if (settings.mipmaps)
         mipLevels = TextureUtilities::calculateMipmapLevels(width, height, false);
 
     if (settings.internalFormat != GL_NONE)

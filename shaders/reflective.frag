@@ -12,8 +12,6 @@ layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadat
 };
 
 // In
-uniform float gamma;
-
 in flat int metadataIndex;
 
 in vec3 normal;
@@ -30,7 +28,6 @@ void main()
 	vec3 reflectDir = reflect(viewDir, normalize(normal));
 
 	vec3 color = texture(cubemaps[meta.cubemapArray], vec4(reflectDir, meta.cubemapLayer)).rgb;
-	color = pow(color, vec3(1.0/gamma));
 	
 	fragColor = vec4(color, 1.0); 
 }

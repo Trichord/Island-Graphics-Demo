@@ -24,6 +24,8 @@
 #include "utilities/thread_pool.h"
 #include "utilities/transform.h"
 
+#include <iostream>
+
 namespace
 {
 // Hardware shadow bias
@@ -65,6 +67,14 @@ std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
 
 Renderer::Renderer(ThreadPool &threadPool, TextureManager &textureManager, const GraphicsSettings &settings)
     : graphicsSettings_{settings}, threadPool_{threadPool}, textureManager_{textureManager},
+      frameBuffer_{settings.screenWidth,
+                   settings.screenHeight,
+                   {.msaa = settings.msaa,
+                    .depthType = RenderTarget::DepthType::RBO,
+                    .internalFormat = GL_RGBA16F,
+                    .depthFormat = GL_DEPTH_COMPONENT24,
+                    .mipmaps = true}},
+      msaaResolve_{settings.screenWidth, settings.screenHeight, {.internalFormat = GL_RGBA16F}},
       shadowPassTarget_{settings.shadowResolution ? RenderTarget{settings.shadowResolution,
                                                                  settings.shadowResolution,
                                                                  {
@@ -77,20 +87,19 @@ Renderer::Renderer(ThreadPool &threadPool, TextureManager &textureManager, const
                                                   : RenderTarget{}}
 {
     loadShaders();
-
     for (auto &shader : shaders_)
         setupShader(shader);
 
-    cullShader_.setInt("screenWidth", settings.screenWidth);
-    cullShader_.setInt("screenHeight", settings.screenHeight);
+    glBindTextureUnit(static_cast<GLuint>(TextureUnit::frameBuffer), msaaResolve_.getColorTextureID());
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getDepthMapTextureID());
     glPolygonOffset(polygonFactor, polygonUnits);
+
+    frameBuffer_.bind();
 }
 
 void Renderer::renderScene(Scene &scene, float deltaTime)
 {
-    glClearNamedFramebufferfv(0, GL_COLOR, 0, clearColor_.data());
-    glClearNamedFramebufferfv(0, GL_DEPTH, 0, &depthClear_);
+    frameBuffer_.clear();
 
     const bool lightChanged{scene.getGlobalLight().directionHasUpdated()};
     const bool cameraUpdated{scene.getCamera().hasUpdated()};
@@ -108,6 +117,7 @@ void Renderer::renderScene(Scene &scene, float deltaTime)
 
     cullScene(scene.getCamera().getViewProjectionMatrix(), 0);
     renderScene();
+    blitFrame();
 
     ++framesRendered_;
 }
@@ -137,6 +147,10 @@ void Renderer::loadShaders()
         shaders_[shaderIndex(shadowMapAlpha)] = {shadowMapAlpha, "./shaders/shadow_pass.vert",
                                                  "./shaders/shadow_pass.frag", alphaDefine};
     }
+
+    const std::vector<std::string> resolveDefines{graphicsSettings_.gamma != 1.0f ? "GAMMA_CORRECT" : ""};
+    shaders_[shaderIndex(fboResolve)] = {fboResolve, "./shaders/fbo_resolve.vert", "./shaders/fbo_resolve.frag",
+                                         resolveDefines};
 
     // Compute
     cullShader_ = {"./shaders/frustum_cull.comp"};
@@ -302,4 +316,19 @@ void Renderer::updateParticles(float deltaTime)
     particleShader_.dispatch((particleCount + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
 
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+}
+
+void Renderer::blitFrame()
+{
+    frameBuffer_.blitTo(msaaResolve_);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDisable(GL_DEPTH_TEST);
+
+    shaders_[shaderIndex(ShaderType::fboResolve)].use();
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    glEnable(GL_DEPTH_TEST);
+    frameBuffer_.bind();
 }

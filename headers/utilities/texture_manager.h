@@ -16,14 +16,6 @@
 #include "utilities/ktx_texture.h"
 #include "utilities/thread_pool.h"
 
-// Texture units. Easier to keep it here with the arrays
-namespace TextureUnit
-{
-static constexpr int array2DBase{0};
-static constexpr int arrayCubemapBase{11};
-static constexpr int shadow{14};
-} // namespace TextureUnit
-
 class TextureManager
 {
   public:

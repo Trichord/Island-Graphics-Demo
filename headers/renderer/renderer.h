@@ -38,18 +38,16 @@ class Renderer
 
   private:
     std::uint32_t framesRendered_{0};
-    static constexpr float depthClear_{1.0f};
-    static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
 
-    // Critical members
+    const GraphicsSettings graphicsSettings_;
     ThreadPool &threadPool_;
     TextureManager &textureManager_;
-    const GraphicsSettings graphicsSettings_;
 
-    // Owned objects
+    RenderTarget frameBuffer_;
+    RenderTarget msaaResolve_;
+    RenderTarget shadowPassTarget_;
+
     GLState glState_;
-    std::vector<glm::mat4> updatedMatrices_;
-    std::unordered_map<Handle, std::uint32_t> matricesBaseIndex_;
     std::array<GraphicsShader, static_cast<int>(ShaderType::count)> shaders_;
 
     // GPU Buffers
@@ -57,9 +55,12 @@ class Renderer
     SSBOs SSBOs_;
     VAOs VAOs_;
 
-    // Textures
+    // Scene Updates
+    std::vector<glm::mat4> updatedMatrices_;
+    std::unordered_map<Handle, std::uint32_t> matricesBaseIndex_;
+
+    // Shadows
     CascadeShadow cascadeShadow_;
-    RenderTarget shadowPassTarget_;
 
     // Drawing
     std::vector<MultiDrawBucket> drawBuckets_;
@@ -82,6 +83,7 @@ class Renderer
     // Initialization
     void loadShaders();
     void setupShader(GraphicsShader &shader);
+    GLuint createResolveTexture();
 
     // Setup
     void setSceneShaderUniforms(Scene &scene);
@@ -102,6 +104,7 @@ class Renderer
     void cullScene(const glm::mat4 &cullMatrix, int bufferSection);
     void renderShadowMaps(Scene &scene, bool lightChanged);
     void shadowPass(GraphicsShader &shader, int cascade, bool alphaTested);
+    void blitFrame();
 
     // Updates
     void updateCameraUBO(Scene &scene);

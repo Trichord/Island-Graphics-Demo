@@ -234,7 +234,7 @@ enum class BindingPointSSBO : unsigned int
     shadowDrawCounts
 };
 
-namespace MaxSSBO
+namespace SSBOMinimum
 {
 inline constexpr int combinedBlocks{16};
 inline constexpr int combinedBindings{16};

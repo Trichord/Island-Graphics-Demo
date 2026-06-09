@@ -38,11 +38,12 @@ const std::filesystem::path &Skybox::getPath() const
 void setGeometry(std::vector<Primitive> &primitives, AABB &aabb)
 {
     std::vector<Primitive::Vertex> vertices{
-        {.position = glm::vec3{0.0f, 2.0f, 1.0f}},
-        {.position = glm::vec3{3.0f, -1.0f, 1.0f}},
         {.position = glm::vec3{-3.0f, -1.0f, 1.0f}},
+        {.position = glm::vec3{3.0f, -1.0f, 1.0f}},
+        {.position = glm::vec3{0.0f, 2.0f, 1.0f}},
     };
-    std::vector<std::uint32_t> indices{0u, 2u, 1u};
+
+    std::vector<std::uint32_t> indices{0u, 1u, 2u};
 
     primitives = {Primitive{.vertices = std::move(vertices),
                             .indices = std::move(indices),
