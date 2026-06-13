@@ -48,7 +48,6 @@ struct PrimitiveMetadata
 // Maps an entry in the visibility buffer, so that a compute shader global ID can find its resources
 struct VisibilityBufferMap
 {
-    std::uint32_t matricesIndex{0};
     std::uint32_t sharedIndex{0};
     std::uint32_t drawBucket{0};
     std::uint32_t drawCommandsBaseIndex{0};

@@ -38,7 +38,7 @@ class SceneProcessor
         std::size_t cullResultsSize{0};
         std::size_t drawCountsSize{0};
         std::size_t visibleInstancesSize{0};
-        std::unordered_map<Handle, std::uint32_t> matricesBaseIndexMap;
+        std::vector<std::vector<std::uint32_t>> matricesBaseIndexMap;
         std::vector<std::set<Handle>> drawBucketHandles;
     };
 
@@ -63,7 +63,6 @@ class SceneProcessor
     {
         std::size_t vertices{0};
         std::size_t indices{0};
-        std::size_t matrices{0};
         std::size_t instances{0};
         std::size_t primitives{0};
         std::size_t dynamicCubemaps{0};
@@ -105,7 +104,7 @@ class SceneProcessor
     [[nodiscard]] std::vector<MultiDrawBucket> createDrawBuckets(const std::vector<BucketEntry> &entries);
     [[nodiscard]] std::vector<VertexBufferMap> createVertexBufferMap(const std::vector<BucketEntry> &entries);
     [[nodiscard]] std::vector<DrawElementsIndirectCommand> createDrawCommands(const std::vector<BucketEntry> &entries);
-    [[nodiscard]] std::unordered_map<Handle, std::uint32_t> createMatricesBaseIndexMap(
+    [[nodiscard]] std::vector<std::vector<std::uint32_t>> createMatricesBaseIndexMap(
         const std::vector<BucketEntry> &entries);
 
     // Stage two (multi-vector dependent)
@@ -113,7 +112,7 @@ class SceneProcessor
         const std::vector<BucketEntry> &entries, const std::vector<MultiDrawBucket> &drawBuckets);
     [[nodiscard]] std::vector<VisibilityBufferMap> createVisibilityBufferMap(
         const std::vector<BucketEntry> &entries, const std::vector<PrimitiveMetadata> &metadata,
-        const std::vector<MultiDrawBucket> &buckets, const std::unordered_map<Handle, std::uint32_t> matricesMap);
+        const std::vector<MultiDrawBucket> &buckets);
 
     // GPU data creation
     [[nodiscard]] VAOs createVAO(const std::vector<BucketEntry> &entries);
@@ -125,5 +124,6 @@ class SceneProcessor
                                     BufferBuilder::Sizes sizes);
     // Metadata helpers
     void setMetadataMaterials(const std::vector<BucketEntry> &entries, std::vector<PrimitiveMetadata> &metadata);
-    void setVisibleInstancesBaseIndex(const std::vector<BucketEntry> &entries, std::vector<PrimitiveMetadata> &metadata);
+    void setVisibleInstancesBaseIndex(const std::vector<BucketEntry> &entries,
+                                      std::vector<PrimitiveMetadata> &metadata);
 };

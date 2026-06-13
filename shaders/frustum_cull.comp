@@ -82,10 +82,11 @@ void main()
 {
     if (gl_GlobalInvocationID.x >= maps.length())
         return;
-
+    
+    mat4 modelMatrix = matrices[gl_GlobalInvocationID.x];
     BufferMap map = maps[gl_GlobalInvocationID.x];
+    
     AABB aabb = AABBs[map.sharedBaseIndex];
-    mat4 modelMatrix = matrices[map.matricesIndex];
     uint visibilityBufferBaseIndex = map.visibleInstancesBaseIndex;
 
     // World space AABB
@@ -100,7 +101,7 @@ void main()
     
     vec3 viewCenter = vec3(viewMatrix * vec4(worldCenter, 1.0));
     
-    // Flip the z axis to match the left-hand coordinates expected by projectSphereView
+    // Flip the z axis to match the coordinate system expected by projectSphereView
     viewCenter.z = - viewCenter.z;
     
     float radius = length(worldExtent);
@@ -116,5 +117,5 @@ void main()
     }
     
     uint counter = atomicAdd(cullResults[map.sharedBaseIndex], 1);
-    visibleInstances[visibilityBufferBaseIndex + counter] = map.matricesIndex;        
+    visibleInstances[visibilityBufferBaseIndex + counter] = gl_GlobalInvocationID.x;        
 }

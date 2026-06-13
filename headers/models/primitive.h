@@ -23,6 +23,7 @@ struct Primitive
     std::vector<std::uint32_t> indices;
 
     AABB aabb;
+    glm::mat4 nodeTransform{1.0f};
     std::size_t materialIndex{0};
     fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
 };

@@ -4,7 +4,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-Transform::Transform(glm::vec3 translation, glm::vec3 scale, float degrees, glm::vec3 axis) : translation_{translation}, scale_{scale}
+Transform::Transform(glm::vec3 translation, glm::vec3 scale, float degrees, glm::vec3 axis)
+    : translation_{translation}, scale_{scale}
 {
     glm::vec3 normalizedAxis{glm::normalize(axis)};
     quaternion_ = glm::angleAxis(glm::radians(degrees), normalizedAxis);
