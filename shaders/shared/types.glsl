@@ -23,7 +23,6 @@ struct Metadata
 
 struct BufferMap
 {
-    uint matricesIndex;
     uint sharedBaseIndex;
     uint drawBucket;
     uint drawCommandsBaseIndex;

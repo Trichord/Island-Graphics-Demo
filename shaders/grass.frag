@@ -28,6 +28,7 @@ in VS_OUT
 {
     vec3 normal;
 	vec2 texCoords;
+    float vertexHeight;
 
 #ifdef SHADOWS
 	vec4 viewPos;
@@ -48,9 +49,14 @@ void main()
     vec3 normalizedLightDir = normalize(-lightDir);
 
     // Diffuse
-    float diffuse = dot(normalizedLightDir, normalizedNormal);
-    diffuse = diffuse * 0.5 + 0.5;
+    float NdotL = dot(normalizedLightDir, normalizedNormal);
+    float diffuse = NdotL * 0.5 + 0.5;
     diffuse = diffuse * diffuse;
+    
+    // Brighten up the base of the grass blades
+    float diffuseBoost = (1.0 - smoothstep(0.0, 0.2, fsIn.vertexHeight)) * 0.5;
+    diffuseBoost = diffuseBoost * (1.0 - smoothstep(0.0, 0.2, NdotL));
+    diffuse += diffuseBoost;
 
 	// Scale alpha by mip level 0
     vec2 texSize = vec2(textureSize(textures[meta.albedoArray], 0));
@@ -64,6 +70,7 @@ void main()
 	// Pick shadow cascade off frag depth
 	int layer = calculateCascadeIndex(-fsIn.viewPos.z);
 	float shadow = ShadowContribution(lightMatrices[layer], fsIn.worldPos, layer);
+    shadow = clamp(shadow + 0.1, 0.0, 1.0);
     vec3 diffuseColor = diffuse * lightColor * shadow * albedo.rgb;
     
     #else

@@ -243,17 +243,23 @@ void Renderer::updateSceneTransforms(Scene &scene)
 
     for (Handle handle : updatedTransformHandles)
     {
-        std::uint32_t bufferBaseIndex{matricesBaseIndex_.at(handle)};
-        std::vector<Transform> &transforms{scene.getEntryByHandle(handle).transforms};
+        const std::vector<std::uint32_t> &bufferIndices{matricesBaseIndices_[handle]};
+        Scene::Entry &sceneEntry{scene.getEntryByHandle(handle)};
+        std::vector<Transform> &transforms{sceneEntry.transforms};
 
-        updatedMatrices_.clear();
         updatedMatrices_.reserve(transforms.size());
 
-        for (Transform &transform : transforms)
-            updatedMatrices_.emplace_back(transform.getModelMatrix());
+        for (std::size_t i{0}; i < sceneEntry.primitives.size(); ++i)
+        {
+            updatedMatrices_.clear();
 
-        glNamedBufferSubData(SSBOs_.matrices, static_cast<GLintptr>(bufferBaseIndex * sizeof(glm::mat4)),
-                             static_cast<GLsizeiptr>(transforms.size() * sizeof(glm::mat4)), updatedMatrices_.data());
+            for (Transform &transform : transforms)
+                updatedMatrices_.emplace_back(transform.getModelMatrix() * sceneEntry.primitives[i].nodeTransform);
+
+            glNamedBufferSubData(SSBOs_.matrices, static_cast<GLintptr>(bufferIndices[i] * sizeof(glm::mat4)),
+                                 static_cast<GLsizeiptr>(transforms.size() * sizeof(glm::mat4)),
+                                 updatedMatrices_.data());
+        }
     }
 
     updatedTransformHandles.clear();

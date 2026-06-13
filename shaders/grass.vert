@@ -47,6 +47,7 @@ out VS_OUT
 {
 	vec3 normal;
 	vec2 texCoords;
+	float vertexHeight;
 
 #ifdef SHADOWS
 	vec4 viewPos;
@@ -74,7 +75,8 @@ void main()
 	
 	// Out params
 	metadataIndex = gl_BaseInstance;
-	
+
+	vsOut.vertexHeight = aPos.y;	
 	vsOut.texCoords = aTexCoords;
 	vsOut.normal = normal;
 	#ifdef SHADOWS

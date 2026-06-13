@@ -105,7 +105,7 @@ void Renderer::takeGPUObjects(SceneProcessor::ProcessedScene &processed)
 void Renderer::takeBufferData(SceneProcessor::ProcessedScene &processed)
 {
     drawBuckets_ = std::move(processed.drawBuckets);
-    matricesBaseIndex_ = std::move(processed.bufferDescriptor.matricesBaseIndexMap);
+    matricesBaseIndices_ = std::move(processed.bufferDescriptor.matricesBaseIndexMap);
 
     drawCommandsSize_ = static_cast<std::uint32_t>(processed.bufferDescriptor.drawCommandsSize);
     cullResultsSize_ = static_cast<std::uint32_t>(processed.bufferDescriptor.cullResultsSize);

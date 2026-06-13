@@ -32,7 +32,6 @@
     },
     {
       "type": "model",
-      "name": "boat",
       "transform": {
         "translation": [-256.687, -9.91824, 35.649],
         "rotation": [1.19411, -6.05362, -19.0008],
@@ -227,7 +226,7 @@
     {
       "type": "model",
       "transform": {
-        "translation": [0.0, -10.39, 0.0],
+        "translation": [0.0, -10.2478, 0.0],
         "scale": 7.5
       },
       "modelPath": "./res/models/water/ocean/ocean.gltf",

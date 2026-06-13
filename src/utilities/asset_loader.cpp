@@ -1,3 +1,5 @@
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include "utilities/asset_loader.h"
 
 #include <algorithm>
@@ -11,6 +13,8 @@
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtc/packing.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 #include <glm/packing.hpp>
 #include <iostream>
 #include <limits>
@@ -96,33 +100,140 @@ void calculateAABB(std::vector<Primitive> &primitives)
     }
 }
 
-void applyNodeTransforms(const fastgltf::Asset &asset, std::vector<Primitive> &primitives)
+glm::vec4 toGLMVec4(const fastgltf::math::fvec4 &vec)
 {
+    return glm::vec4{vec.x(), vec.y(), vec.z(), vec.w()};
+};
+
+void getNodeTransforms(const fastgltf::Asset &asset, std::vector<Primitive> &primitives)
+{
+    struct PrimitiveRange
+    {
+        std::size_t start{0};
+        std::size_t count{0};
+    };
+
+    std::vector<PrimitiveRange> meshToPrimitive(primitives.size());
+
+    std::size_t offset{0};
+    for (std::size_t meshIndex{0}; meshIndex < asset.meshes.size(); ++meshIndex)
+    {
+        std::size_t numPrimitives{asset.meshes[meshIndex].primitives.size()};
+        meshToPrimitive[meshIndex].start = offset;
+        meshToPrimitive[meshIndex].count = numPrimitives;
+
+        offset += numPrimitives;
+    }
+
     for (std::size_t i{0}; i < asset.scenes.size(); ++i)
     {
         fastgltf::iterateSceneNodes(
             asset, i, fastgltf::math::fmat4x4(1.0f), [&](const fastgltf::Node &node, fastgltf::math::fmat4x4 matrix) {
                 if (node.meshIndex.has_value())
                 {
-                    for (auto &primitive : primitives)
-                    {
-                        glm::mat4 modelMatrix{0.0f};
-                        memcpy(&modelMatrix, &matrix, 16 * sizeof(matrix[0][0]));
+                    const std::size_t meshIndex{node.meshIndex.value()};
+                    const PrimitiveRange &range{meshToPrimitive[meshIndex]};
+                    const glm::mat4 nodeTransform{toGLMVec4(matrix.col(0)), toGLMVec4(matrix.col(1)),
+                                                  toGLMVec4(matrix.col(2)), toGLMVec4(matrix.col(3))};
 
-                        glm::mat3 normalMatrix{glm::transpose(glm::inverse(modelMatrix))};
-
-                        for (Primitive::Vertex &vertex : primitive.vertices)
-                        {
-                            vertex.position = glm::vec3{modelMatrix * glm::vec4{vertex.position, 1.0f}};
-
-                            glm::vec3 norm{glm::unpackSnorm3x10_1x2(vertex.normal)};
-                            norm = normalMatrix * norm;
-
-                            vertex.normal = glm::packSnorm3x10_1x2(glm::vec4{norm, 0.0f});
-                        }
-                    }
+                    for (std::size_t i{range.start}; i < range.start + range.count; ++i)
+                        primitives[i].nodeTransform = nodeTransform;
                 }
             });
+    }
+}
+
+void loadSkin(const fastgltf::Asset &asset, const fastgltf::Skin &skin, Skeleton &skeleton)
+{
+    for (std::size_t i{0}; i < skin.joints.size(); ++i)
+    {
+        const std::size_t nodeIndex{skin.joints[i]};
+        const auto &node = asset.nodes[nodeIndex];
+
+        if (const auto *trs = std::get_if<fastgltf::TRS>(&node.transform))
+        {
+            auto uniformScale = [](const glm::vec3 &scale) {
+                constexpr float epsilon{0.0001};
+                return std::abs(scale.x - scale.y) < epsilon && std::abs(scale.y - scale.z) < epsilon;
+            };
+
+            const auto &t = trs->translation;
+            glm::vec3 translation{t.x(), t.y(), t.z()};
+            skeleton.localTranslations[i] = translation;
+
+            const auto &r = trs->rotation;
+            const glm::quat rotation{r.w(), r.x(), r.y(), r.z()};
+            skeleton.localRotations[i] = rotation;
+
+            // Only use uniform scale
+            const auto &s = trs->scale;
+            const glm::vec3 scale{s.x(), s.y(), s.z()};
+            if (!uniformScale(scale))
+                std::cerr << "WARNING: Non uniform skeleton scale unsupported" << std::endl;
+
+            skeleton.localScales[i] = scale;
+        }
+        else
+        {
+            const auto &trsMat4 = std::get<fastgltf::math::fmat4x4>(node.transform);
+            const glm::mat4 modelMatrix{toGLMVec4(trsMat4.col(0)), toGLMVec4(trsMat4.col(1)), toGLMVec4(trsMat4.col(2)),
+                                        toGLMVec4(trsMat4.col(3))};
+
+            glm::vec3 scale{1.0f};
+            glm::vec3 translation{0.0f};
+            glm::quat rotation{};
+            glm::vec3 skew{0.0f};
+            glm::vec4 perspective{0.0f};
+
+            glm::decompose(modelMatrix, scale, rotation, translation, skew, perspective);
+
+            skeleton.localTranslations[i] = translation;
+            skeleton.localRotations[i] = rotation;
+            skeleton.localScales[i] = scale;
+        }
+    }
+
+    if (skin.inverseBindMatrices.has_value())
+    {
+        auto &accessor = asset.accessors[*skin.inverseBindMatrices];
+
+        fastgltf::iterateAccessorWithIndex<glm::mat4>(
+            asset, accessor, [&](glm::mat4 mat, std::size_t index) { skeleton.invBindMatrices[index] = mat; });
+    }
+}
+
+void loadWeightsAndIDs(const fastgltf::Asset &asset, const std::vector<Primitive> &primitives, Skeleton &skeleton)
+{
+    std::size_t vertexStart{0};
+    std::size_t primitiveIndex{0};
+    for (const auto &mesh : asset.meshes)
+    {
+        for (const auto &primitive : mesh.primitives)
+        {
+            auto *weightIt = primitive.findAttribute("WEIGHTS_0");
+            auto *jointIt = primitive.findAttribute("JOINTS_0");
+
+            if (jointIt != primitive.attributes.end())
+            {
+                auto &accessor = asset.accessors[jointIt->accessorIndex];
+
+                fastgltf::iterateAccessorWithIndex<glm::uvec4>(
+                    asset, accessor,
+                    [&](glm::uvec4 jointIDs, std::size_t index) { skeleton.boneIDs[vertexStart + index] = jointIDs; });
+            }
+
+            if (weightIt != primitive.attributes.end())
+            {
+                auto &accessor = asset.accessors[weightIt->accessorIndex];
+
+                fastgltf::iterateAccessorWithIndex<glm::vec4>(
+                    asset, accessor,
+                    [&](glm::vec4 weights, std::size_t index) { skeleton.weights[vertexStart + index] = weights; });
+            }
+
+            vertexStart += primitives[primitiveIndex].vertices.size();
+            ++primitiveIndex;
+        }
     }
 }
 
@@ -164,6 +275,7 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
 
     for (const auto &gltfMesh : asset.meshes)
     {
+
         for (const auto &gltfPrimitive : gltfMesh.primitives)
         {
             std::vector<Primitive::Vertex> vertices;
@@ -285,7 +397,7 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
         }
     }
 
-    applyNodeTransforms(asset, primitives);
+    getNodeTransforms(asset, primitives);
     calculateAABB(primitives);
 
     return primitives;
@@ -437,9 +549,44 @@ std::vector<AssetLoader::DeferredTexture> AssetLoader::texturesFromAsset(const f
     return deferredTextures;
 }
 
-std::optional<Skeleton> loadSkeleton(const fastgltf::Asset &asset)
+std::optional<Skeleton> AssetLoader::loadSkeleton(const fastgltf::Asset &asset, std::vector<Primitive> &primitives)
 {
-    std::vector<glm::mat4> joints;
-    std::vector<float> weights;
-    return {};
+    if (asset.skins.empty())
+        return {};
+
+    if (asset.skins.size() > 1)
+        std::cerr << "WARNING: Multiple skins not supported" << std::endl;
+
+    const auto &skin = asset.skins.front();
+    std::size_t numJoints{skin.joints.size()};
+
+    std::size_t numVertices{0};
+    for (const Primitive &primitive : primitives)
+        numVertices += primitive.vertices.size();
+
+    Skeleton skeleton(numJoints, numVertices);
+
+    loadSkin(asset, skin, skeleton);
+    loadWeightsAndIDs(asset, primitives, skeleton);
+
+    std::vector<int> nodeToJoint(asset.nodes.size(), -1);
+    for (std::size_t i{0}; i < numJoints; ++i)
+        nodeToJoint[skin.joints[i]] = static_cast<int>(i);
+
+    for (std::size_t i{0}; i < numJoints; ++i)
+    {
+        const auto &node = asset.nodes[skin.joints[i]];
+
+        for (std::size_t childIndex : node.children)
+        {
+            int jointIndex{nodeToJoint[childIndex]};
+
+            if (jointIndex != -1)
+                skeleton.parents[jointIndex] = static_cast<int>(i);
+        }
+    }
+
+    // Todo: Sort (BFS) parents array and remap the other structures, so parents always come before children. i.e.
+    // return sorted(skeleton);
+    return skeleton;
 }
