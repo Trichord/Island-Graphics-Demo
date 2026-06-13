@@ -32,9 +32,11 @@ void iterateVertices(physicsUtilities::CollisionMesh &collisionMesh, const std::
             glm::vec3 b{vertices[indices[i + 1]].position};
             glm::vec3 c{vertices[indices[i + 2]].position};
 
-            a = glm::vec3{modelMatrix * glm::vec4{a, 1.0}};
-            b = glm::vec3{modelMatrix * glm::vec4{b, 1.0}};
-            c = glm::vec3{modelMatrix * glm::vec4{c, 1.0}};
+            glm::mat4 trs{modelMatrix * primitive.nodeTransform};
+
+            a = glm::vec3{trs * glm::vec4{a, 1.0}};
+            b = glm::vec3{trs * glm::vec4{b, 1.0}};
+            c = glm::vec3{trs * glm::vec4{c, 1.0}};
 
             collisionMesh.minimumHeight = std::min({collisionMesh.minimumHeight, a.y, b.y, c.y});
 
