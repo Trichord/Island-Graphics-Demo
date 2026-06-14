@@ -109,7 +109,7 @@ set(HEADERS
     headers/utilities/world_vectors.h
 )
 
-add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} "headers/models/skeleton.h" "src/models/skeleton.cpp")
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} "headers/models/skeleton.h" "src/models/skeleton.cpp" "headers/models/animation.h")
 
 # Include directories
 

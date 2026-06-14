@@ -7,6 +7,13 @@
 
 #include "models/aabb.h"
 
+enum class AlphaMode : std::uint8_t
+{
+    Opaque,
+    Mask,
+    Blend
+};
+
 struct Primitive
 {
     struct Vertex
@@ -25,5 +32,5 @@ struct Primitive
     AABB aabb;
     glm::mat4 nodeTransform{1.0f};
     std::size_t materialIndex{0};
-    fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
+    AlphaMode alphaMode{AlphaMode::Opaque};
 };

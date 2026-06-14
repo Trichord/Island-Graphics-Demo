@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <fastgltf/types.hpp>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <set>
@@ -77,7 +76,7 @@ class SceneProcessor
         std::span<Transform> transforms;
 
         ShaderType shaderType{ShaderType::directionalPBR};
-        fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
+        AlphaMode alphaMode{AlphaMode::Opaque};
     };
 
     bool shadows_{false};

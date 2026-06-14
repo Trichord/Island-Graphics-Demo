@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <fastgltf/types.hpp>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <iostream>
@@ -268,12 +267,12 @@ std::vector<DrawElementsIndirectCommand> SceneProcessor::createDrawCommands(cons
 std::vector<MultiDrawBucket> SceneProcessor::createDrawBuckets(const std::vector<BucketEntry> &entries)
 {
     using enum ShaderType;
-    using enum fastgltf::AlphaMode;
+    using enum AlphaMode;
 
     std::vector<MultiDrawBucket> buckets;
 
     ShaderType currentShaderType{entries.front().shaderType};
-    fastgltf::AlphaMode currentAlphaMode{entries.front().alphaMode};
+    AlphaMode currentAlphaMode{entries.front().alphaMode};
 
     std::uint32_t start{0};
     std::uint32_t end{0};

@@ -2,13 +2,9 @@
 
 #include <cstdint>
 #include <glm/glm.hpp>
-
-#pragma warning(push)
-#pragma warning(disable : 5260)
-#include <fastgltf/types.hpp>
 #include <nlohmann/json.hpp>
-#pragma warning(pop)
 
+#include "models/primitive.h"
 #include "renderer/cascade_shadow.h"
 #include "renderer/shader/graphics_shader.h"
 
@@ -28,7 +24,7 @@ struct MultiDrawBucket
     std::uint32_t maxDrawCalls{0};
     std::uint32_t drawCommandsBaseIndex{0};
     ShaderType shaderType{ShaderType::directionalPBR};
-    fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
+    AlphaMode alphaMode{AlphaMode::Opaque};
 };
 
 // GPU resident metadata for texture and buffer indexing

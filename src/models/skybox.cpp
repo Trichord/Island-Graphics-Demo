@@ -1,7 +1,6 @@
 #include "models/skybox.h"
 
 #include <cstdint>
-#include <fastgltf/types.hpp>
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <utility>
@@ -49,5 +48,5 @@ void setGeometry(std::vector<Primitive> &primitives, AABB &aabb)
                             .indices = std::move(indices),
                             .aabb = aabb,
                             .materialIndex = std::size_t{0},
-                            .alphaMode = fastgltf::AlphaMode::Opaque}};
+                            .alphaMode = AlphaMode::Opaque}};
 }
