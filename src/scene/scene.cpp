@@ -29,7 +29,7 @@ namespace
 void validateSceneEntry(Scene::Entry &entry)
 {
     using enum ShaderType;
-    using enum fastgltf::AlphaMode;
+    using enum AlphaMode;
 
     if (entry.shaderType == ocean)
     {

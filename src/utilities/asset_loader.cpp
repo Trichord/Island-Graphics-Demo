@@ -237,6 +237,21 @@ void loadWeightsAndIDs(const fastgltf::Asset &asset, const std::vector<Primitive
     }
 }
 
+AlphaMode fastgltfToAlphaMode(fastgltf::AlphaMode mode)
+{
+    switch (mode)
+    {
+    case fastgltf::AlphaMode::Opaque:
+        return AlphaMode::Opaque;
+    case fastgltf::AlphaMode::Mask:
+        return AlphaMode::Mask;
+    case fastgltf::AlphaMode::Blend:
+        return AlphaMode::Blend;
+    default:
+        return AlphaMode::Opaque;
+    }
+}
+
 } // namespace
 
 fastgltf::Asset AssetLoader::loadAsset(const std::filesystem::path &path)
@@ -393,7 +408,7 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
             primitives.emplace_back(Primitive{.vertices = std::move(vertices),
                                               .indices = std::move(indices),
                                               .materialIndex = materialIndex,
-                                              .alphaMode = alphaMode});
+                                              .alphaMode = fastgltfToAlphaMode(alphaMode)});
         }
     }
 
@@ -569,24 +584,9 @@ std::optional<Skeleton> AssetLoader::loadSkeleton(const fastgltf::Asset &asset, 
     loadSkin(asset, skin, skeleton);
     loadWeightsAndIDs(asset, primitives, skeleton);
 
-    std::vector<int> nodeToJoint(asset.nodes.size(), -1);
-    for (std::size_t i{0}; i < numJoints; ++i)
-        nodeToJoint[skin.joints[i]] = static_cast<int>(i);
+    for (std::size_t i{0}; i < asset.nodes.size(); ++i)
+        for (std::size_t childIndex : asset.nodes[i].children)
+            skeleton.parents[childIndex] = static_cast<int>(i);
 
-    for (std::size_t i{0}; i < numJoints; ++i)
-    {
-        const auto &node = asset.nodes[skin.joints[i]];
-
-        for (std::size_t childIndex : node.children)
-        {
-            int jointIndex{nodeToJoint[childIndex]};
-
-            if (jointIndex != -1)
-                skeleton.parents[jointIndex] = static_cast<int>(i);
-        }
-    }
-
-    // Todo: Sort (BFS) parents array and remap the other structures, so parents always come before children. i.e.
-    // return sorted(skeleton);
     return skeleton;
 }

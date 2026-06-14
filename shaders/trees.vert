@@ -6,11 +6,6 @@
 #include "ubo.glsl"
 #include "wind.glsl"
 
-// Constants
-const float swaySpeed = 0.75;
-const float minVertexHeight = 0.1;
-const float maxVertexHeight = 25.0;
-
 // Attributes
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec4 aNormal;

@@ -52,7 +52,7 @@ std::vector<Primitive> Particles::generateParticles(const glm::vec3 &position, c
 
     Primitive &primitive{primitives.front()};
     primitive.aabb = aabb_;
-    primitive.alphaMode = fastgltf::AlphaMode::Mask;
+    primitive.alphaMode = AlphaMode::Mask;
     primitive.indices.resize(numParticles);
     std::iota(primitive.indices.begin(), primitive.indices.end(), 0);
     primitive.vertices.resize(numParticles);

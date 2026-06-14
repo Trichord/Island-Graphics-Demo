@@ -7,10 +7,6 @@
 #include "wind.glsl"
 
 // Constants
-const float swaySpeed = 0.75;
-const float maxVertexHeight = 1.0;
-const float minVertexHeight = 0.001;
-const float windScale = 0.1;
 const vec3 worldUp = vec3(0.0, 1.0, 0.0);
 
 // Attributes

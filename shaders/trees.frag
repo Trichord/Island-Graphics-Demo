@@ -49,7 +49,7 @@ void main()
 	float metallic = ARM.b;
 
 	// Scale alpha by mip level
-    vec2 texSize = vec2(2048, 2048);
+    vec2 texSize = textureSize(textures[meta.albedoArray], 0).xy;
     albedo.a *= 1 + max(0, calcMipLevel(texCoords * texSize)) * mipScale;
 
 	// Rescale alpha by partial derivative. Credit: Ben Golus

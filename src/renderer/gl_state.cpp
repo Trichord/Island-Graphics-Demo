@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include "renderer/shader/shader_base.h"
+#include "models/primitive.h"
 
 constexpr GLuint maxTextureUnits{16u};
 
@@ -25,9 +26,8 @@ void GLState::bindTexture(GLuint unit, GLuint id)
     textureUnits_[unit] = id;
 }
 
-void GLState::setAlphaMode(fastgltf::AlphaMode mode)
+void GLState::setAlphaMode(AlphaMode mode)
 {
-    using namespace fastgltf;
     using enum AlphaMode;
 
     if (mode == Blend && blendEnabled_)

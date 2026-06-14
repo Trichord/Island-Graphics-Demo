@@ -4,6 +4,7 @@
 #include <glad/glad.h>
 #include <vector>
 
+#include "models/primitive.h"
 #include "renderer/shader/shader_base.h"
 
 class GLState
@@ -13,7 +14,7 @@ class GLState
 
     void bindProgram(Shader &shader);
     void bindTexture(GLuint unit, GLuint id);
-    void setAlphaMode(fastgltf::AlphaMode mode);
+    void setAlphaMode(AlphaMode mode);
     void setDepthFunction(GLenum depthFunction);
     void setVAO(GLint vao);
 

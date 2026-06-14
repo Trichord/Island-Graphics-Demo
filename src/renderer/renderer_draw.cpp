@@ -1,11 +1,11 @@
 #include "renderer/renderer.h"
 
 #include <cstdint>
-#include <fastgltf/types.hpp>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <vector>
 
+#include "models/primitive.h"
 #include "renderer/cascade_shadow.h"
 #include "renderer/renderer_types.h"
 #include "renderer/shader/graphics_shader.h"
@@ -44,7 +44,6 @@ void Renderer::renderScene()
 void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
 {
     glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
-    glEnable(GL_POLYGON_OFFSET_FILL);
     shadowPassTarget_.bind();
 
     updateCascades(scene, lightChanged);
@@ -65,8 +64,9 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
 
     // Opaque geometry first (positions only)
     GraphicsShader &shadowShader{shaders_[shaderIndex(ShaderType::shadowMap)]};
-    shadowShader.use();
+    glState_.bindProgram(shadowShader);
     glState_.setVAO(VAOs_.shadowVAO);
+    glCullFace(GL_FRONT);
 
     for (int i{0}; i < cascadeCount; ++i)
     {
@@ -81,8 +81,10 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
 
     // Alpha tested geometry (needs vertex paint, uvs, etc)
     GraphicsShader &shadowAlphaShader{shaders_[shaderIndex(ShaderType::shadowMapAlpha)]};
-    shadowAlphaShader.use();
+    glState_.bindProgram(shadowAlphaShader);
     glState_.setVAO(VAOs_.vao);
+    glCullFace(GL_BACK);
+    glEnable(GL_POLYGON_OFFSET_FILL);
 
     for (int i{0}; i < cascadeCount; ++i)
     {
@@ -105,7 +107,7 @@ void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)
     for (std::size_t i{0}; i < drawBuckets_.size(); ++i)
     {
         using enum ShaderType;
-        using enum fastgltf::AlphaMode;
+        using enum AlphaMode;
 
         MultiDrawBucket &mdb{drawBuckets_[i]};
 
