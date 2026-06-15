@@ -24,7 +24,7 @@ struct MultiDrawBucket
     std::uint32_t maxDrawCalls{0};
     std::uint32_t drawCommandsBaseIndex{0};
     ShaderType shaderType{ShaderType::directionalPBR};
-    AlphaMode alphaMode{AlphaMode::Opaque};
+    AlphaMode alphaMode{AlphaMode::opaque};
 };
 
 // GPU resident metadata for texture and buffer indexing

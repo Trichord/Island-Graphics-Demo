@@ -109,7 +109,7 @@ class Renderer
     // Updates
     void updateCameraUBO(Scene &scene);
     void updateTimeUBO(float deltaTime);
-    void updateParticles(float deltaTime);
+    void updateParticles();
     void updateSceneTransforms(Scene &scene);
     void updateCascades(Scene &scene, bool lightChanged);
     void updateFrustumPlanesUBO(const glm::mat4 &cullMatrix);

@@ -35,7 +35,7 @@ struct Texture
 
 struct Material
 {
-    enum Type
+    enum Type : std::uint8_t
     {
         albedo,
         ARM,

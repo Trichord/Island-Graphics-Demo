@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <fastgltf/types.hpp>
 #include <glm/glm.hpp>
 #include <vector>
 
@@ -9,9 +8,9 @@
 
 enum class AlphaMode : std::uint8_t
 {
-    Opaque,
-    Mask,
-    Blend
+    opaque,
+    mask,
+    blend
 };
 
 struct Primitive
@@ -32,5 +31,5 @@ struct Primitive
     AABB aabb;
     glm::mat4 nodeTransform{1.0f};
     std::size_t materialIndex{0};
-    AlphaMode alphaMode{AlphaMode::Opaque};
+    AlphaMode alphaMode{AlphaMode::opaque};
 };
