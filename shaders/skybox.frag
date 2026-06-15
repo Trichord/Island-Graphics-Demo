@@ -24,7 +24,7 @@ void main()
 	Metadata meta = metadata[metadataIndex];
 
 	vec3 skyboxCoords = texCoords.xyz / texCoords.w;
-	vec3 color = texture(cubemaps[meta.cubemapArray], vec4(skyboxCoords, meta.cubemapLayer)).rgb;
+	vec3 color = textureLod(cubemaps[meta.cubemapArray], vec4(skyboxCoords, meta.cubemapLayer), 0).rgb;
 	
 	fragColor = vec4(color, 1.0); 
 }

@@ -30,16 +30,16 @@ void GLState::setAlphaMode(AlphaMode mode)
 {
     using enum AlphaMode;
 
-    if (mode == Blend && blendEnabled_)
+    if (mode == blend && blendEnabled_)
         return;
-    else if (mode == Mask && a2cEnabled_)
+    else if (mode == mask && a2cEnabled_)
         return;
-    else if (mode == Opaque && !(blendEnabled_ || a2cEnabled_))
+    else if (mode == opaque && !(blendEnabled_ || a2cEnabled_))
         return;
 
     switch (mode)
     {
-    case Opaque:
+    case opaque:
         glEnable(GL_CULL_FACE);
 
         if (a2cEnabled_)
@@ -53,7 +53,7 @@ void GLState::setAlphaMode(AlphaMode mode)
         blendEnabled_ = false;
         break;
 
-    case Mask:
+    case mask:
         glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
         if (cullFaceEnabled_)
@@ -67,7 +67,7 @@ void GLState::setAlphaMode(AlphaMode mode)
         blendEnabled_ = false;
         break;
 
-    case Blend:
+    case blend:
         glEnable(GL_BLEND);
 
         if (cullFaceEnabled_)

@@ -107,7 +107,7 @@ void Renderer::renderScene(Scene &scene, float deltaTime)
     updateSceneTransforms(scene);
     updateShaderUniforms(scene, lightChanged);
     updateTimeUBO(deltaTime);
-    updateParticles(deltaTime);
+    updateParticles();
 
     if (graphicsSettings_.shadowResolution && (framesRendered_ % 2u || lightChanged))
         renderShadowMaps(scene, lightChanged);
@@ -309,7 +309,7 @@ void Renderer::cullScene(const glm::mat4 &cullMatrix, int bufferSection)
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT);
 }
 
-void Renderer::updateParticles(float deltaTime)
+void Renderer::updateParticles()
 {
     constexpr int shaderLocalSize{64};
 

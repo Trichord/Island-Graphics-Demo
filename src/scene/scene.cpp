@@ -33,31 +33,31 @@ void validateSceneEntry(Scene::Entry &entry)
 
     if (entry.shaderType == ocean)
     {
-        if (entry.primitives.front().alphaMode == Opaque)
+        if (entry.primitives.front().alphaMode == opaque)
             return;
 
         for (Primitive &primitive : entry.primitives)
         {
-            if (primitive.alphaMode == Opaque)
+            if (primitive.alphaMode == opaque)
                 continue;
 
-            std::cerr << "WARNING: Overriding ocean shader primitive alpha mode wtih Opaque" << std::endl;
-            primitive.alphaMode = Opaque;
+            std::cerr << "WARNING: Overriding ocean shader primitive alpha mode with Opaque" << std::endl;
+            primitive.alphaMode = opaque;
         }
     }
 
     if (entry.shaderType == water)
     {
-        if (entry.primitives.front().alphaMode == Blend)
+        if (entry.primitives.front().alphaMode == blend)
             return;
 
         for (Primitive &primitive : entry.primitives)
         {
-            if (primitive.alphaMode == Blend)
+            if (primitive.alphaMode == blend)
                 continue;
 
-            std::cerr << "WARNING: Overriding water shader primitive alpha mode wtih Blend" << std::endl;
-            primitive.alphaMode = Blend;
+            std::cerr << "WARNING: Overriding water shader primitive alpha mode with Blend" << std::endl;
+            primitive.alphaMode = blend;
         }
     }
 }

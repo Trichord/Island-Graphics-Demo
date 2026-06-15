@@ -117,7 +117,7 @@ void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)
         if (mdb.shaderType == particles && cascade == shadowCascadeCount - 1)
             continue;
 
-        const bool a2c{mdb.alphaMode == Mask};
+        const bool a2c{mdb.alphaMode == mask};
 
         if (a2c != alphaTested)
             continue;

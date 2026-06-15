@@ -48,5 +48,5 @@ void setGeometry(std::vector<Primitive> &primitives, AABB &aabb)
                             .indices = std::move(indices),
                             .aabb = aabb,
                             .materialIndex = std::size_t{0},
-                            .alphaMode = AlphaMode::Opaque}};
+                            .alphaMode = AlphaMode::opaque}};
 }

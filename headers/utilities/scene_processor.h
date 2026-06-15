@@ -76,7 +76,7 @@ class SceneProcessor
         std::span<Transform> transforms;
 
         ShaderType shaderType{ShaderType::directionalPBR};
-        AlphaMode alphaMode{AlphaMode::Opaque};
+        AlphaMode alphaMode{AlphaMode::opaque};
     };
 
     bool shadows_{false};
