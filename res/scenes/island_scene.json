@@ -238,7 +238,7 @@
     },
     {
       "type": "particles",
-      "translation": [-15.049316, 5.0, 283.231873],
+      "translation": [-23.049316, 5.0, 266.231873],
       "extent": [14, 14, 14],
       "color": [119, 10, 0, 255.0],
       "colorVariation": [50, 10, 2, 0],

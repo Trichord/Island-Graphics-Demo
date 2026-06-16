@@ -12,6 +12,8 @@ const float fogEnd = 2186.0;
 const float waveSpeed = 0.01;
 const float tileFactor = 100.0;
 const float dudvStrength = 0.025;
+const float R0 = 0.0203732;
+const float oneMinusR0 = (1.0 - R0);
 
 const vec3 sceneCenter = vec3(0.0);
 const vec3 waterColor = vec3(0.0, 0.08, 0.18);
@@ -40,7 +42,7 @@ void main()
 {	
 	Metadata meta = metadata[metadataIndex];
 
-	vec3 V = normalize(fsIn.fragPos - cameraPosition.xyz);
+	vec3 V = normalize(cameraPosition.xyz - fsIn.fragPos);
 
 	// Move textures by time
 	float movement = time * waveSpeed;
@@ -67,22 +69,22 @@ void main()
 	N = normalize(vec3(N.x, N.z, -N.y));
 
 	// Fresnel
-	float fresnel = max(0.0, min(1.0, pow(max(1 + 0.85 * dot(V, N), 0.0), 4.0)));
+	float NdotV = max(dot(N, V), 0.0);
+	float fresnel = R0 + oneMinusR0 * pow(1.0 - NdotV, 5);
 
 	// Reflection 
-	vec3 reflectDir = reflect(V, N);
+	vec3 reflectDir = reflect(-V, N);
 	vec3 reflection = texture(cubemaps[meta.cubemapArray], vec4(reflectDir, meta.cubemapLayer)).rgb;
 
-	vec3 oceanColor = mix(waterColor, reflection, fresnel);
-
 	// Sample absolute skybox color
-	vec3 skybox = texture(cubemaps[meta.cubemapArray], vec4(V, meta.cubemapLayer)).rgb;
+	vec3 skybox = texture(cubemaps[meta.cubemapArray], vec4(-V, meta.cubemapLayer)).rgb;
 
 	// Blend into distance
 	float dist = length(fsIn.fragPos - sceneCenter);
 	float alpha = (fogEnd - dist) / (fogEnd - fogStart);
 	alpha = 1.0 - clamp(alpha, 0.0, 1.0);
 
+	vec3 oceanColor = mix(waterColor, reflection, fresnel);
 	oceanColor = mix(oceanColor, skybox, alpha);
 
 	fragColor = vec4(oceanColor, 1.0);

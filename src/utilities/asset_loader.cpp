@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "models/aabb.h"
+#include "models/animation.h"
 #include "models/primitive.h"
 #include "models/skeleton.h"
 #include "renderer/textures.h"
@@ -145,9 +146,9 @@ void getNodeTransforms(const fastgltf::Asset &asset, std::vector<Primitive> &pri
 
 void loadSkin(const fastgltf::Asset &asset, const fastgltf::Skin &skin, Skeleton &skeleton)
 {
-    for (std::size_t i{0}; i < skin.joints.size(); ++i)
+    for (std::size_t jointIndex : skin.joints)
     {
-        const std::size_t nodeIndex{skin.joints[i]};
+        const std::size_t nodeIndex{skin.joints[jointIndex]};
         const auto &node = asset.nodes[nodeIndex];
 
         if (const auto *trs = std::get_if<fastgltf::TRS>(&node.transform))
@@ -159,11 +160,11 @@ void loadSkin(const fastgltf::Asset &asset, const fastgltf::Skin &skin, Skeleton
 
             const auto &t = trs->translation;
             glm::vec3 translation{t.x(), t.y(), t.z()};
-            skeleton.localTranslations[i] = translation;
+            skeleton.localTranslations[nodeIndex] = translation;
 
             const auto &r = trs->rotation;
             const glm::quat rotation{r.w(), r.x(), r.y(), r.z()};
-            skeleton.localRotations[i] = rotation;
+            skeleton.localRotations[nodeIndex] = rotation;
 
             // Only use uniform scale
             const auto &s = trs->scale;
@@ -171,7 +172,7 @@ void loadSkin(const fastgltf::Asset &asset, const fastgltf::Skin &skin, Skeleton
             if (!uniformScale(scale))
                 std::cerr << "WARNING: Non uniform skeleton scale unsupported" << std::endl;
 
-            skeleton.localScales[i] = scale;
+            skeleton.localScales[nodeIndex] = scale;
         }
         else
         {
@@ -187,9 +188,9 @@ void loadSkin(const fastgltf::Asset &asset, const fastgltf::Skin &skin, Skeleton
 
             glm::decompose(modelMatrix, scale, rotation, translation, skew, perspective);
 
-            skeleton.localTranslations[i] = translation;
-            skeleton.localRotations[i] = rotation;
-            skeleton.localScales[i] = scale;
+            skeleton.localTranslations[nodeIndex] = translation;
+            skeleton.localRotations[nodeIndex] = rotation;
+            skeleton.localScales[nodeIndex] = scale;
         }
     }
 
@@ -242,13 +243,37 @@ AlphaMode fastgltfToAlphaMode(fastgltf::AlphaMode mode)
     switch (mode)
     {
     case fastgltf::AlphaMode::Opaque:
-        return AlphaMode::Opaque;
+        return AlphaMode::opaque;
     case fastgltf::AlphaMode::Mask:
-        return AlphaMode::Mask;
+        return AlphaMode::mask;
     case fastgltf::AlphaMode::Blend:
-        return AlphaMode::Blend;
+        return AlphaMode::blend;
     default:
-        return AlphaMode::Opaque;
+        return AlphaMode::opaque;
+    }
+}
+
+AnimationPath fastgltfToAnimationPath(fastgltf::AnimationPath path)
+{
+    switch (path)
+    {
+    case fastgltf::AnimationPath::Rotation:
+        return AnimationPath::rotation;
+    case fastgltf::AnimationPath::Scale:
+        return AnimationPath::scale;
+    case fastgltf::AnimationPath::Translation:
+        return AnimationPath::translation;
+    }
+}
+
+AnimationInterpolation fastgltfToAnimationInterpolation(fastgltf::AnimationInterpolation interpolation)
+{
+    switch (interpolation)
+    {
+    case fastgltf::AnimationInterpolation::Linear:
+        return AnimationInterpolation::linear;
+    case fastgltf::AnimationInterpolation::Step:
+        return AnimationInterpolation::step;
     }
 }
 
@@ -579,7 +604,7 @@ std::optional<Skeleton> AssetLoader::loadSkeleton(const fastgltf::Asset &asset, 
     for (const Primitive &primitive : primitives)
         numVertices += primitive.vertices.size();
 
-    Skeleton skeleton(numJoints, numVertices);
+    Skeleton skeleton(asset.nodes.size(), numJoints, numVertices);
 
     loadSkin(asset, skin, skeleton);
     loadWeightsAndIDs(asset, primitives, skeleton);
@@ -589,4 +614,35 @@ std::optional<Skeleton> AssetLoader::loadSkeleton(const fastgltf::Asset &asset, 
             skeleton.parents[childIndex] = static_cast<int>(i);
 
     return skeleton;
+}
+
+std::vector<Animation> AssetLoader::loadAnimation(const fastgltf::Asset &asset)
+{
+    std::vector<Animation> animations(asset.animations.size());
+
+    for (std::size_t i{0}; i < asset.animations.size(); ++i)
+    {
+        const fastgltf::Animation &animation{asset.animations[i]};
+        animations[i].name = animation.name;
+
+        // Samplers
+        animations[i].samplers.resize(animation.samplers.size());
+
+        for (std::size_t j{0}; j < animation.samplers.size(); ++j)
+        {
+            const fastgltf::AnimationSampler &sourceSampler{animation.samplers[j]};
+            AnimationSampler &destSampler{animations[i].samplers[j]};
+            
+            if (sourceSampler.interpolation == fastgltf::AnimationInterpolation::CubicSpline)
+            {
+                std::cerr << "ERROR: Cubic spline interpolation not supported" << std::endl;
+                throw std::runtime_error("Unsupported animation interpolation");
+            }
+
+            destSampler.interpolation = fastgltfToAnimationInterpolation(sourceSampler.interpolation);
+
+        }
+    }
+
+    return animations;
 }

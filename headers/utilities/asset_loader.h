@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <vector>
 
+#include "models/animation.h"
 #include "models/primitive.h"
 #include "models/skeleton.h"
 #include "renderer/textures.h"
@@ -35,4 +36,5 @@ TextureDescriptor getTextureInfo(const fastgltf::Asset &asset, const fastgltf::T
 std::vector<DeferredTexture> texturesFromAsset(const fastgltf::Asset &asset, const std::filesystem::path &parentPath,
                                                Handle handle);
 std::optional<Skeleton> loadSkeleton(const fastgltf::Asset &asset, std::vector<Primitive> &primitives);
+std::vector<Animation> loadAnimation(const fastgltf::Asset &asset);
 } // namespace AssetLoader
