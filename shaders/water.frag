@@ -74,7 +74,7 @@ void main()
 	vec3 specHighlight = lightColor * specular * specularDamper;
 
 	// Fresnel
-	float fresnel = 1.0 - dot(N, V);
+	float fresnel = 1.0 - max(dot(N, V), 0.0);
 	fresnel = pow(fresnel, 5.0);
 
 	// Reflection 

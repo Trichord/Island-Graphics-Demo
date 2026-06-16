@@ -18,20 +18,21 @@ struct Skeleton
     std::vector<glm::uvec4> boneIDs;
 
     // Recalculate each frame from animation changes
-    std::vector<glm::mat4> globalJointTransforms;
+    std::vector<glm::mat4> globalTransforms;
 
     // Pass to shaders
     std::vector<glm::mat4> jointMatrices;
 
     Skeleton() = default;
-    Skeleton(std::size_t numJoints, std::size_t numVertices)
+    Skeleton(std::size_t numNodes, std::size_t numJoints, std::size_t numVertices)
     {
-        parents.resize(numJoints, -1);
+        parents.resize(numNodes, -1);
+        localTranslations.resize(numNodes);
+        localRotations.resize(numNodes);
+        localScales.resize(numNodes);
+        globalTransforms.resize(numNodes);
+
         invBindMatrices.resize(numJoints, glm::mat4{1.0f});
-        localTranslations.resize(numJoints);
-        localRotations.resize(numJoints);
-        localScales.resize(numJoints);
-        globalJointTransforms.resize(numJoints);
         jointMatrices.resize(numJoints);
 
         weights.resize(numVertices);
