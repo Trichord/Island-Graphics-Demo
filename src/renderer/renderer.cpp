@@ -101,19 +101,20 @@ void Renderer::renderScene(Scene &scene, float deltaTime)
 {
     frameBuffer_.clear();
 
-    const bool lightChanged{scene.getGlobalLight().directionHasUpdated()};
-    const bool cameraUpdated{scene.getCamera().hasUpdated()};
-
     updateSceneTransforms(scene);
-    updateShaderUniforms(scene, lightChanged);
     updateTimeUBO(deltaTime);
     updateParticles();
+
+    const bool lightChanged{scene.getGlobalLight().directionHasUpdated()};
+    updateShaderUniforms(scene, lightChanged);
 
     if (graphicsSettings_.shadowResolution && (framesRendered_ % 2u || lightChanged))
         renderShadowMaps(scene, lightChanged);
 
-    if (cameraUpdated)
-        updateCameraUBO(scene);
+    Camera &camera{scene.getCamera()};
+
+    if (camera.hasUpdated())
+        updateCameraUBO(camera);
 
     cullScene(scene.getCamera().getViewProjectionMatrix(), 0);
     renderScene();
@@ -166,11 +167,10 @@ void Renderer::setupShader(GraphicsShader &shader)
     shader.setInt("screenWidth", graphicsSettings_.screenWidth);
 }
 
-void Renderer::updateCameraUBO(Scene &scene)
+void Renderer::updateCameraUBO(Camera &camera)
 {
     PackedCameraUniforms uniforms;
 
-    Camera &camera{scene.getCamera()};
     uniforms.viewMatrix = camera.getViewMatrix();
     uniforms.projectionMatrix = camera.getProjectionMatrix();
     uniforms.viewProjectionMatrix = camera.getViewProjectionMatrix();
@@ -245,19 +245,19 @@ void Renderer::updateSceneTransforms(Scene &scene)
     {
         const std::vector<std::uint32_t> &bufferIndices{matricesBaseIndices_[handle]};
         Scene::Entry &sceneEntry{scene.getEntryByHandle(handle)};
-        std::vector<Transform> &transforms{sceneEntry.transforms};
+        std::vector<Transform> &worldTransforms{sceneEntry.worldTransforms};
 
-        updatedMatrices_.reserve(transforms.size());
+        updatedMatrices_.reserve(worldTransforms.size());
 
         for (std::size_t i{0}; i < sceneEntry.primitives.size(); ++i)
         {
             updatedMatrices_.clear();
 
-            for (Transform &transform : transforms)
-                updatedMatrices_.emplace_back(transform.getModelMatrix() * sceneEntry.primitives[i].nodeTransform);
+            for (Transform &transform : worldTransforms)
+                updatedMatrices_.emplace_back(transform.getModelMatrix() * sceneEntry.primitives[i].modelSpaceTransform);
 
             glNamedBufferSubData(SSBOs_.matrices, static_cast<GLintptr>(bufferIndices[i] * sizeof(glm::mat4)),
-                                 static_cast<GLsizeiptr>(transforms.size() * sizeof(glm::mat4)),
+                                 static_cast<GLsizeiptr>(worldTransforms.size() * sizeof(glm::mat4)),
                                  updatedMatrices_.data());
         }
     }

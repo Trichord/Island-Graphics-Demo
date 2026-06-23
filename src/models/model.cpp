@@ -20,6 +20,7 @@
 
 Model::Model(const std::filesystem::path &path)
     : asset_{AssetLoader::loadAsset(path)}, filePath_{path}, primitives_{AssetLoader::loadMeshes(asset_)},
+      skeleton_{AssetLoader::loadSkeleton(asset_)}, animations_{AssetLoader::loadAnimations(asset_)},
       aabb_{calculateAABB()}
 {
 }
@@ -42,6 +43,16 @@ const fastgltf::Asset &Model::getAsset() const
 const std::filesystem::path &Model::getPath() const
 {
     return filePath_;
+}
+
+const std::optional<std::vector<Animation>> &Model::getAnimations() const
+{
+    return animations_;
+}
+
+const std::optional<Skeleton> &Model::getSkeleton() const
+{
+    return skeleton_;
 }
 
 AABB Model::calculateAABB() const

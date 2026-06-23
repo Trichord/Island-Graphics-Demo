@@ -2,9 +2,12 @@
 
 #include <cstdint>
 #include <glm/glm.hpp>
+#include <optional>
 #include <vector>
 
 #include "models/aabb.h"
+#include "models/animation.h"
+#include "models/skeleton.h"
 
 enum class AlphaMode : std::uint8_t
 {
@@ -25,11 +28,18 @@ struct Primitive
         std::uint32_t color{};
     };
 
+    struct VertexSkinning
+    {
+        std::vector<glm::vec4> weights;
+        std::vector<glm::uvec4> boneIDs;
+    };
+
     std::vector<Vertex> vertices;
     std::vector<std::uint32_t> indices;
+    std::optional<VertexSkinning> skinning;
 
     AABB aabb;
-    glm::mat4 nodeTransform{1.0f};
+    glm::mat4 modelSpaceTransform{1.0f};
     std::size_t materialIndex{0};
     AlphaMode alphaMode{AlphaMode::opaque};
 };

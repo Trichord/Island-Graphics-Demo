@@ -90,7 +90,7 @@ void Renderer::initializeResources(Scene &scene)
 
     // Get ready for first frame
     bindBufferRanges(0);
-    updateCameraUBO(scene);
+    updateCameraUBO(scene.getCamera());
 }
 
 void Renderer::takeGPUObjects(SceneProcessor::ProcessedScene &processed)
@@ -185,15 +185,8 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &
             break;
         }
 
-    // Save camera settings before we make it bounce around the scene
-    Camera &camera{scene.getCamera()};
-    const glm::vec3 originalPos{camera.getPosition()};
-    const float originalPitch{camera.getPitch()};
-    const float originalYaw{camera.getYaw()};
-    const float originalFOV{camera.getFOV()};
-    const float originalAspect{camera.getAspectRatio()};
-
     // 90 degrees for cubemap
+    Camera camera;
     camera.setFOV(90.0f);
     camera.setAspectRatio(1.0f);
 
@@ -225,11 +218,11 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &
         if (entry.shaderType != water)
             continue;
 
-        Transform &transform{entry.transforms.front()};
+        Transform &transform{entry.worldTransforms.front()};
 
         // Set the camera in the center of the water plane
         camera.setPosition(transform.getPosition());
-        renderCubeFaces(scene, cubeFaces, blitTarget, parameterBufferIndex);
+        renderCubeFaces(camera, cubeFaces, blitTarget, parameterBufferIndex);
 
         // Assign the texture
         std::vector<int> materialIndices;
@@ -241,19 +234,11 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &
         textureManager_.setCubemap(entry.handle, materialIndices, blitTarget);
     }
 
-    // Reset
-    camera.setFOV(originalFOV);
-    camera.setAspectRatio(originalAspect);
-    camera.setPosition(originalPos);
-    camera.setPitch(originalPitch);
-    camera.setYaw(originalYaw);
-    updateCameraUBO(scene);
-
     cubeFaces.unbind();
     glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
 }
 
-void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget,
+void Renderer::renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarget &blitTarget,
                                std::size_t parameterBufferIndex)
 {
     constexpr std::array<WorldOrientation, 6> faces{WorldOrientation::RIGHT, WorldOrientation::LEFT,
@@ -262,7 +247,9 @@ void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget 
 
     auto renderFace = [&](WorldOrientation orientation, Camera &camera) {
         camera.setWorldOrientation(orientation);
-        updateCameraUBO(scene);
+        updateCameraUBO(camera);
+
+        // Use buffer section 0 since its a main render pass
         cullScene(camera.getViewProjectionMatrix(), 0);
 
         GLuint zero{0};
@@ -272,7 +259,6 @@ void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget 
         renderScene();
     };
 
-    Camera &camera{scene.getCamera()};
     for (int i{0}; i < 6; ++i)
     {
         target.setTextureLayer(i);

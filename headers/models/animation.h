@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <limits>
 #include <string>
 #include <variant>
 #include <vector>
@@ -22,9 +23,10 @@ enum class AnimationInterpolation : std::uint8_t
 
 struct AnimationSampler
 {
+    int currentIndex{0};
     std::vector<float> times;
     std::vector<std::variant<glm::vec3, glm::quat>> values;
-    AnimationInterpolation interpolation;
+    AnimationInterpolation interpolation{AnimationInterpolation::linear};
 };
 
 struct AnimationChannel
@@ -39,5 +41,6 @@ struct Animation
     std::string name;
     std::vector<AnimationSampler> samplers;
     std::vector<AnimationChannel> channels;
-    float duration{0.0f};
+    float start{std::numeric_limits<float>::infinity()};
+    float end{-std::numeric_limits<float>::infinity()};
 };

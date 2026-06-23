@@ -16,6 +16,7 @@
 #include "renderer/renderer_types.h"
 #include "renderer/shader/compute_shader.h"
 #include "renderer/shader/graphics_shader.h"
+#include "scene/camera.h"
 #include "scene/handle.h"
 #include "scene/scene.h"
 #include "utilities/scene_processor.h"
@@ -95,7 +96,7 @@ class Renderer
     void borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
                       const std::vector<std::set<Handle>> &bucketHandles);
     void createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets);
-    void renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget,
+    void renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarget &blitTarget,
                          std::size_t parameterBufferIndex);
 
     // Drawing
@@ -107,7 +108,7 @@ class Renderer
     void blitFrame();
 
     // Updates
-    void updateCameraUBO(Scene &scene);
+    void updateCameraUBO(Camera &camera);
     void updateTimeUBO(float deltaTime);
     void updateParticles();
     void updateSceneTransforms(Scene &scene);
