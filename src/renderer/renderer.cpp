@@ -239,7 +239,7 @@ void Renderer::updateShaderUniforms(Scene &scene, bool lightChanged)
 
 void Renderer::updateSceneTransforms(Scene &scene)
 {
-    std::unordered_set<Handle> &updatedTransformHandles{scene.getUpdatedModels()};
+    std::unordered_set<Handle> &updatedTransformHandles{scene.getUpdatedHandles()};
 
     for (Handle handle : updatedTransformHandles)
     {

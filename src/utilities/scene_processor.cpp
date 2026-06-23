@@ -61,7 +61,7 @@ AABB getSceneBounds(Scene &scene)
 
 SceneProcessor::SceneProcessor(Scene &scene, TextureManager &textureManager, bool shadowsEnabled)
     : shadows_{shadowsEnabled}, sceneAABB_{getSceneBounds(scene)}, totals_{getSceneTotals(scene)},
-      bucketEntries_{createDrawEntries(scene)}, textureManager_{textureManager}
+      bucketEntries_{createBucketEntries(scene)}, textureManager_{textureManager}
 {
 }
 
@@ -80,7 +80,7 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
     }
 
     // Staging
-    auto VAO = createVAO(bucketEntries_);
+    auto metadataBridge = createMetadataBridge(bucketEntries_);
     auto matricesMap = createMatricesBaseIndexMap(bucketEntries_);
     auto commands = createDrawCommands(bucketEntries_);
     auto buckets = createDrawBuckets(bucketEntries_);
@@ -88,16 +88,14 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
     auto vertexMap = createVertexBufferMap(bucketEntries_);
     auto matrices = createMatrices(bucketEntries_);
     auto metadata = createMetadata(bucketEntries_);
-
     auto drawBucketHandles = createDrawBucketHandles(bucketEntries_, buckets);
     auto visibilityMap = createVisibilityBufferMap(bucketEntries_, metadata, buckets);
+    auto processedVertices = createVertexSkinData(bucketEntries_, createVertices(bucketEntries_));
 
     // GPU data upload
     auto bufferSizes = calculateBufferSizes(commands, buckets);
+    auto VAO = createVAO(bucketEntries_, processedVertices);
     auto SSBOs = createSSBOs(commands, matrices, metadata, visibilityMap, vertexMap, AABBs, bufferSizes);
-
-    // Only store this so the metadata cubemaps can be updated later
-    metadata_ = std::move(metadata);
 
     return {.VAOs = std::move(VAO),
             .SSBOs = std::move(SSBOs),
@@ -115,8 +113,9 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
                     .cullResultsSize = bufferSizes.cullResults,
                     .drawCountsSize = bufferSizes.drawCounts,
                     .visibleInstancesSize = bufferSizes.visibleInstances,
-                    .matricesBaseIndexMap = std::move(matricesMap),
+                    .metadataBridge = std::move(metadataBridge),
                     .drawBucketHandles = std::move(drawBucketHandles),
+                    .matricesBaseIndexMap = std::move(matricesMap),
                 },
             .drawBuckets = std::move(buckets)};
 }
@@ -150,30 +149,43 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene)
 }
 
 // Build up all scene entries by shader type
-std::vector<SceneProcessor::BucketEntry> SceneProcessor::createDrawEntries(Scene &scene)
+std::vector<SceneProcessor::BucketEntry> SceneProcessor::createBucketEntries(Scene &scene)
 {
-    std::vector<BucketEntry> drawEntries;
-    drawEntries.reserve(totals_.primitives);
+    std::vector<BucketEntry> bucketEntries;
+    bucketEntries.reserve(totals_.primitives);
 
+    std::size_t originalIndex{0};
     for (Scene::Entry &entry : scene.getAllSceneEntries())
     {
         for (Primitive &primitive : entry.primitives)
         {
             using enum fastgltf::AlphaMode;
 
-            drawEntries.emplace_back(BucketEntry{.handle = entry.handle,
-                                                 .primitive = &primitive,
-                                                 .transforms = entry.worldTransforms,
-                                                 .shaderType = entry.shaderType,
-                                                 .alphaMode = primitive.alphaMode});
+            bucketEntries.emplace_back(BucketEntry{.handle = entry.handle,
+                                                   .primitive = &primitive,
+                                                   .transforms = entry.worldTransforms,
+                                                   .animation = entry.animation,
+                                                   .shaderType = entry.shaderType,
+                                                   .alphaMode = primitive.alphaMode,
+                                                   .originalIndex = originalIndex++});
         }
     }
 
-    std::ranges::sort(drawEntries, [](const BucketEntry &a, const BucketEntry &b) {
+    std::ranges::sort(bucketEntries, [](const BucketEntry &a, const BucketEntry &b) {
         return std::tie(a.shaderType, a.alphaMode) < std::tie(b.shaderType, b.alphaMode);
     });
 
-    return drawEntries;
+    return bucketEntries;
+}
+
+std::vector<Primitive::Vertex> SceneProcessor::createVertices(const std::vector<BucketEntry> &entries)
+{
+    std::vector<Primitive::Vertex> vertices;
+
+    for (const BucketEntry &entry : entries)
+        vertices.insert(vertices.end(), entry.primitive->vertices.begin(), entry.primitive->vertices.end());
+
+    return vertices;
 }
 
 BufferBuilder::Sizes SceneProcessor::calculateBufferSizes(const std::vector<DrawElementsIndirectCommand> &commands,
@@ -323,22 +335,16 @@ std::vector<std::vector<std::uint32_t>> SceneProcessor::createMatricesBaseIndexM
     return baseIndices;
 }
 
-VAOs SceneProcessor::createVAO(const std::vector<BucketEntry> &entries)
+VAOs SceneProcessor::createVAO(const std::vector<BucketEntry> &entries, const ProcessedVertices &processedVertices)
 {
-    std::vector<Primitive::Vertex> vertices;
     std::vector<std::uint32_t> indices;
-
-    vertices.reserve(totals_.vertices);
     indices.reserve(totals_.indices);
 
     for (const BucketEntry &entry : entries)
-    {
-        std::copy(entry.primitive->vertices.begin(), entry.primitive->vertices.end(), std::back_inserter(vertices));
         std::copy(entry.primitive->indices.begin(), entry.primitive->indices.end(), std::back_inserter(indices));
-    }
 
     BufferBuilder builder;
-    return builder.buildVAO(vertices, indices);
+    return builder.buildVAO(processedVertices.vertices, indices);
 }
 
 SSBOs SceneProcessor::createSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
@@ -424,17 +430,10 @@ void SceneProcessor::setMetadataMaterials(const std::vector<BucketEntry> &entrie
         const SamplerArrayIndex &normal{material.layers[Material::normal]};
         const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
 
-        metaEntry.albedoArray = albedo.array;
-        metaEntry.albedoLayer = albedo.layer;
-
-        metaEntry.armArray = ARM.array;
-        metaEntry.armLayer = ARM.layer;
-
-        metaEntry.normalArray = normal.array;
-        metaEntry.normalLayer = normal.layer;
-
-        metaEntry.cubemapArray = cubemap.array;
-        metaEntry.cubemapLayer = cubemap.layer;
+        metaEntry.albedo = albedo;
+        metaEntry.ARM = ARM;
+        metaEntry.normal = normal;
+        metaEntry.cubemap = cubemap;
     }
 }
 
@@ -501,27 +500,45 @@ std::vector<VertexBufferMap> SceneProcessor::createVertexBufferMap(const std::ve
     return vertexBufferMap;
 }
 
-void SceneProcessor::updateMetadataCubemaps(GLuint metadataBufferID)
+std::vector<std::uint32_t> SceneProcessor::createMetadataBridge(const std::vector<BucketEntry> &entries)
 {
-    for (std::size_t i{0}; i < bucketEntries_.size(); ++i)
+    std::vector<std::uint32_t> bridge(entries.size());
+
+    for (std::size_t i{0}; i < entries.size(); ++i)
+        bridge[entries[i].originalIndex] = static_cast<std::uint32_t>(i);
+
+    return bridge;
+}
+
+SceneProcessor::ProcessedVertices SceneProcessor::createVertexSkinData(const std::vector<BucketEntry> &entries,
+                                                                       std::vector<Primitive::Vertex> &&vertices)
+{
+    ProcessedVertices skinData;
+    skinData.vertices = std::move(vertices);
+
+    std::size_t vertexIndex{0};
+    std::size_t skinDataIndex{0};
+
+    for (const BucketEntry &entry : entries)
     {
-        using enum ShaderType;
+        std::size_t numVertices{entry.primitive->vertices.size()};
 
-        if (bucketEntries_[i].shaderType != water && bucketEntries_[i].shaderType != ocean)
+        if (!entry.primitive->vertexSkins.has_value())
+        {
+            vertexIndex += numVertices;
             continue;
+        }
 
-        PrimitiveMetadata &metaEntry{metadata_[i]};
+        const std::vector<Primitive::VertexSkin> &vertexSkins{entry.primitive->vertexSkins.value()};
 
-        const Handle handle{bucketEntries_[i].handle};
-        const Primitive &primitive{*bucketEntries_[i].primitive};
-        std::span<const Material> materials{textureManager_.getMaterials(handle)};
-        const Material &material{materials[primitive.materialIndex]};
+        for (std::size_t i{0}; i < numVertices; ++i)
+        {
+            skinData.vertices[vertexIndex + i].boneDataIndex = skinDataIndex++;
+            skinData.vertexSkins.push_back({vertexSkins[i]});
+        }
 
-        const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
-        metaEntry.cubemapArray = cubemap.array;
-        metaEntry.cubemapLayer = cubemap.layer;
-
-        glNamedBufferSubData(metadataBufferID, static_cast<GLintptr>(i * sizeof(PrimitiveMetadata)),
-                             static_cast<GLsizeiptr>(sizeof(PrimitiveMetadata)), &metaEntry);
+        vertexIndex += numVertices;
     }
+
+    return skinData;
 }

@@ -14,7 +14,7 @@ class Animator
     Animator() = default;
     Animator(std::size_t numNodes, std::size_t numJoints);
 
-    void play(std::vector<Primitive> &primitives, const Skeleton &skeleton, Animation &animation, float deltaTime);
+    void play(Animation &animation, const Skeleton &skeleton, std::vector<Primitive> &primitives, float deltaTime);
 
     void reset(Animation &animation);
 

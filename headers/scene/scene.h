@@ -10,12 +10,12 @@
 
 #include "application/graphics_settings.h"
 #include "models/aabb.h"
+#include "models/animator.h"
 #include "models/instanced_model.h"
 #include "models/model.h"
 #include "models/particles.h"
 #include "models/primitive.h"
 #include "models/skybox.h"
-#include "models/animator.h"
 #include "renderer/shader/graphics_shader.h"
 #include "scene/camera.h"
 #include "scene/directional_light.h"
@@ -36,7 +36,7 @@ class Scene
     struct Entry
     {
         AABB aabb;
-        Handle handle{0};    
+        Handle handle{0};
         ShaderType shaderType{ShaderType::directionalPBR};
 
         std::vector<Primitive> primitives;
@@ -67,12 +67,20 @@ class Scene
     Entry &getEntryByHandle(Handle handle);
 
     // Per-frame Update
-    std::unordered_set<Handle> &getUpdatedModels();
+    std::unordered_set<Handle> &getUpdatedHandles();
 
     // Mutators
     void setAmbientLight(const glm::vec3 &ambient);
 
   protected:
+    // For updating existing transforms. Do not add or remove them.
+    virtual void onUpdate(float deltaTime) = 0;
+
+    void playAllAnimations(Entry &entry, float deltaTime);
+    void playAnimation(Entry &entry, const std::string &name, float deltaTime);
+    void updateHandle(Handle handle);
+
+  private:
     Camera camera_;
     TextureManager &textureManager_;
 
@@ -93,9 +101,6 @@ class Scene
     std::unordered_map<std::string, std::size_t> entriesByName_;
 
     void setupScene(const std::filesystem::path &jsonFile, const GraphicsSettings &graphicsSettings);
-
-    // For updating existing transforms. Do not add or remove them.
-    virtual void onUpdate(float deltaTime) = 0;
 
     void loadGLTFTextures(Handle handle, const Model &model);
 

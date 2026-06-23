@@ -98,6 +98,7 @@ class Renderer
     void createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets);
     void renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarget &blitTarget,
                          std::size_t parameterBufferIndex);
+    void updateMetadataCubemaps(Scene &scene, const std::vector<std::uint32_t> &metadataBridge);
 
     // Drawing
     void renderScene();

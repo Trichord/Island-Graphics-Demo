@@ -59,7 +59,7 @@ Animator::Animator(std::size_t numNodes, std::size_t numJoints)
 {
 }
 
-void Animator::play(std::vector<Primitive> &primitives, const Skeleton &skeleton, Animation &animation, float deltaTime)
+void Animator::play(Animation &animation, const Skeleton &skeleton, std::vector<Primitive> &primitives, float deltaTime)
 {
     time_ += deltaTime;
 
@@ -121,6 +121,13 @@ void Animator::play(std::vector<Primitive> &primitives, const Skeleton &skeleton
             primitives[index].modelSpaceTransform = globalTransforms_[nodeIndex];
 
     // Update skinned joints for the SSBO
+    if (!skeleton.skin.has_value())
+        return;
+
+    const Skeleton::Skin &skin{skeleton.skin.value()};
+
+    for (std::size_t i{0}; i < skin.jointNodes.size(); ++i)
+        jointMatrices_[i] = globalTransforms_[skin.jointNodes[i]] * skin.invBindMatrices[i];
 }
 
 void Animator::reset(Animation &animation)

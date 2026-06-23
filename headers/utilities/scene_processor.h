@@ -37,8 +37,9 @@ class SceneProcessor
         std::size_t cullResultsSize{0};
         std::size_t drawCountsSize{0};
         std::size_t visibleInstancesSize{0};
-        std::vector<std::vector<std::uint32_t>> matricesBaseIndexMap;
+        std::vector<std::uint32_t> metadataBridge;
         std::vector<std::set<Handle>> drawBucketHandles;
+        std::vector<std::vector<std::uint32_t>> matricesBaseIndexMap;
     };
 
     struct ProcessedScene
@@ -54,7 +55,6 @@ class SceneProcessor
 
     std::size_t getNumDynamicCubemaps() const;
     [[nodiscard]] ProcessedScene processScene();
-    void updateMetadataCubemaps(GLuint metadataBufferID);
 
   private:
     // For counting and reserving scene related sizes
@@ -74,31 +74,41 @@ class SceneProcessor
         Handle handle;
         Primitive *primitive;
         std::span<Transform> transforms;
+        std::optional<Scene::EntryAnimation> animation;
 
         ShaderType shaderType{ShaderType::directionalPBR};
         AlphaMode alphaMode{AlphaMode::opaque};
+
+        std::size_t originalIndex{0};
+    };
+
+    struct ProcessedVertices
+    {
+        std::vector<Primitive::Vertex> vertices;
+        std::vector<Primitive::VertexSkin> vertexSkins;
     };
 
     bool shadows_{false};
     AABB sceneAABB_;
     SceneTotals totals_;
     std::vector<BucketEntry> bucketEntries_;
-    std::vector<PrimitiveMetadata> metadata_;
     std::unordered_map<Handle, std::uint32_t> matricesBaseIndex_;
 
     TextureManager &textureManager_;
 
     // Setup
     SceneTotals getSceneTotals(Scene &scene);
-    std::vector<BucketEntry> createDrawEntries(Scene &scene);
+    std::vector<BucketEntry> createBucketEntries(Scene &scene);
 
     // Counting
     [[nodiscard]] BufferBuilder::Sizes calculateBufferSizes(const std::vector<DrawElementsIndirectCommand> &commands,
                                                             const std::vector<MultiDrawBucket> &buckets);
 
-    // Stage One (draw entry only)
+    // Stage One (bucket entries only)
+    [[nodiscard]] std::vector<std::uint32_t> createMetadataBridge(const std::vector<BucketEntry> &entries);
     [[nodiscard]] std::vector<AABB> createAABBs(const std::vector<BucketEntry> &entries);
     [[nodiscard]] std::vector<glm::mat4> createMatrices(const std::vector<BucketEntry> &entries);
+    [[nodiscard]] std::vector<Primitive::Vertex> createVertices(const std::vector<BucketEntry> &entries);
     [[nodiscard]] std::vector<PrimitiveMetadata> createMetadata(const std::vector<BucketEntry> &entries);
     [[nodiscard]] std::vector<MultiDrawBucket> createDrawBuckets(const std::vector<BucketEntry> &entries);
     [[nodiscard]] std::vector<VertexBufferMap> createVertexBufferMap(const std::vector<BucketEntry> &entries);
@@ -112,9 +122,10 @@ class SceneProcessor
     [[nodiscard]] std::vector<VisibilityBufferMap> createVisibilityBufferMap(
         const std::vector<BucketEntry> &entries, const std::vector<PrimitiveMetadata> &metadata,
         const std::vector<MultiDrawBucket> &buckets);
+    [[nodiscard]] ProcessedVertices createVertexSkinData(const std::vector<BucketEntry> &entries,
+                                                         std::vector<Primitive::Vertex> &&vertices);
 
-    // GPU data creation
-    [[nodiscard]] VAOs createVAO(const std::vector<BucketEntry> &entries);
+    [[nodiscard]] VAOs createVAO(const std::vector<BucketEntry> &entries, const ProcessedVertices &vertices);
     [[nodiscard]] SSBOs createSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
                                     const std::vector<glm::mat4> &matrices,
                                     const std::vector<PrimitiveMetadata> &metadata,

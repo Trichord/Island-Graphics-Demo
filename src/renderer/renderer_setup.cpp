@@ -37,6 +37,7 @@ std::pair<std::size_t, bool> findBucket(const std::vector<MultiDrawBucket> &buck
 
     return std::pair<std::size_t, bool>{0, false};
 }
+
 } // namespace
 
 void Renderer::initializeResources(Scene &scene)
@@ -65,6 +66,7 @@ void Renderer::initializeResources(Scene &scene)
     // Extract temporaries
     AABB sceneAABB{processed.sceneDescriptor.worldAABB};
     std::vector<std::set<Handle>> bucketHandles{std::move(processed.bufferDescriptor.drawBucketHandles)};
+    std::vector<std::uint32_t> metadataBridge{std::move(processed.bufferDescriptor.metadataBridge)};
 
     setupComputeShaders(processed);
 
@@ -86,7 +88,7 @@ void Renderer::initializeResources(Scene &scene)
     createCubemaps(scene, drawBuckets_);
 
     // Update the GPU metadata buffers for the freshly created cubemaps
-    processor.updateMetadataCubemaps(SSBOs_.metadata);
+    updateMetadataCubemaps(scene, metadataBridge);
 
     // Get ready for first frame
     bindBufferRanges(0);
@@ -268,5 +270,43 @@ void Renderer::renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarge
         renderFace(faces[i], camera);
 
         target.blitTo(blitTarget);
+    }
+}
+
+void Renderer::updateMetadataCubemaps(Scene &scene, const std::vector<std::uint32_t> &metadataBridge)
+{
+    // Verify data layout before sparse updates of the metadata struct
+    static_assert(std::is_standard_layout_v<SamplerArrayIndex>);
+
+    std::size_t primitiveOffset{0};
+
+    for (Scene::Entry &entry : scene.getAllSceneEntries())
+    {
+        using enum ShaderType;
+
+        std::size_t numPrimitives{entry.primitives.size()};
+
+        if (entry.shaderType != ocean && entry.shaderType != water)
+        {
+            primitiveOffset += numPrimitives;
+            continue;
+        }
+
+        std::span<const Material> materials{textureManager_.getMaterials(entry.handle)};
+
+        for (std::size_t i{0}; i < entry.primitives.size(); ++i)
+        {
+            const Material &material{materials[entry.primitives[i].materialIndex]};
+            const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
+
+            std::uint32_t bufferIndex{metadataBridge[primitiveOffset + i]};
+            std::size_t bufferOffset{offsetof(PrimitiveMetadata, cubemap)};
+
+            glNamedBufferSubData(SSBOs_.metadata,
+                                 static_cast<GLintptr>(bufferIndex * sizeof(PrimitiveMetadata) + bufferOffset),
+                                 sizeof(SamplerArrayIndex), &cubemap);
+        }
+
+        primitiveOffset += numPrimitives;
     }
 }
