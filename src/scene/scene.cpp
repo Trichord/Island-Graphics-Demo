@@ -73,7 +73,7 @@ void validateSceneEntry(Scene::Entry &entry)
     }
 }
 
-std::optional<Scene::EntryAnimation> getModelAnimation(const Model &model)
+std::optional<Scene::EntryAnimation> createEntryAnimation(const Model &model)
 {
     auto &animations = model.getAnimations();
 
@@ -165,7 +165,7 @@ float Scene::getWindStrength() const
     return windStrength_;
 }
 
-std::unordered_set<Handle> &Scene::getUpdatedModels()
+std::unordered_set<Handle> &Scene::getUpdatedHandles()
 {
     return updatedModels_;
 }
@@ -223,7 +223,7 @@ void Scene::addModel(Handle handle, const Model &model, const Transform &transfo
         .shaderType = shaderType,
         .primitives = model.getPrimitives(),
         .worldTransforms = {transform},
-        .animation = getModelAnimation(model),
+        .animation = createEntryAnimation(model),
         .modelPath = model.getPath(),
     });
 }
@@ -243,6 +243,7 @@ void Scene::addCubemappedModel(Handle handle, const Model &model, const std::fil
         .shaderType = shaderType,
         .primitives = model.getPrimitives(),
         .worldTransforms = {transform},
+        .animation = createEntryAnimation(model),
         .modelPath = model.getPath(),
     });
 }
@@ -263,6 +264,7 @@ void Scene::addInstancedModel(Handle handle, const InstancedModel &model, Shader
         .shaderType = shaderType,
         .primitives = model.getPrimitives(),
         .worldTransforms = std::move(transforms),
+        .animation = createEntryAnimation(model),
         .modelPath = model.getPath(),
     });
 }
@@ -345,4 +347,34 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
         validateSceneEntry(entries_.back());
         entriesByHandle_[handle] = entryIndex;
     }
+}
+
+void Scene::playAllAnimations(Scene::Entry &entry, float deltaTime)
+{
+    if (!entry.animation.has_value())
+        return;
+
+    Scene::EntryAnimation &entryAnimation{entry.animation.value()};
+    const Skeleton &skeleton{entryAnimation.skeleton};
+
+    for (Animation &animation : entryAnimation.animations)
+        entryAnimation.animator.play(animation, skeleton, entry.primitives, deltaTime);
+}
+
+void Scene::playAnimation(Scene::Entry &entry, const std::string &name, float deltaTime)
+{
+    if (!entry.animation.has_value())
+        return;
+
+    Scene::EntryAnimation &entryAnimation{entry.animation.value()};
+    const Skeleton &skeleton{entryAnimation.skeleton};
+
+    for (Animation &animation : entryAnimation.animations)
+        if (animation.name == name)
+            entryAnimation.animator.play(animation, skeleton, entry.primitives, deltaTime);
+}
+
+void Scene::updateHandle(Handle handle)
+{
+    updatedModels_.insert(handle);
 }

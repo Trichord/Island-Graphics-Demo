@@ -299,8 +299,7 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
         {
             std::vector<Primitive::Vertex> vertices;
             std::vector<std::uint32_t> indices;
-            std::vector<glm::vec4> weights;
-            std::vector<glm::uvec4> boneIDs;
+            std::vector<Primitive::VertexSkin> vertexSkins;
 
             auto *positionIt = gltfPrimitive.findAttribute("POSITION");
             auto *normalIt = gltfPrimitive.findAttribute("NORMAL");
@@ -310,7 +309,7 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
             auto *weightIt = gltfPrimitive.findAttribute("WEIGHTS_0");
             auto *jointIt = gltfPrimitive.findAttribute("JOINTS_0");
 
-            if (!positionIt)
+            if (positionIt == gltfPrimitive.attributes.end())
                 throw std::runtime_error{"fastGLTF loading error: Model has no position accessor"};
 
             auto &positionAccessor = asset.accessors[positionIt->accessorIndex];
@@ -392,19 +391,20 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
             if (jointIt != gltfPrimitive.attributes.end())
             {
                 auto &accessor = asset.accessors[jointIt->accessorIndex];
-                boneIDs.resize(accessor.count);
+                vertexSkins.resize(accessor.count);
 
                 fastgltf::iterateAccessorWithIndex<glm::uvec4>(
-                    asset, accessor, [&](glm::uvec4 jointIDs, std::size_t index) { boneIDs[index] = jointIDs; });
+                    asset, accessor,
+                    [&](glm::uvec4 jointIDs, std::size_t index) { vertexSkins[index].boneIDs = jointIDs; });
             }
 
             if (weightIt != gltfPrimitive.attributes.end())
             {
                 auto &accessor = asset.accessors[weightIt->accessorIndex];
-                weights.resize(accessor.count);
+                vertexSkins.resize(accessor.count);
 
                 fastgltf::iterateAccessorWithIndex<glm::vec4>(
-                    asset, accessor, [&](glm::vec4 weight, std::size_t index) { weights[index] = weight; });
+                    asset, accessor, [&](glm::vec4 weight, std::size_t index) { vertexSkins[index].weight = weight; });
             }
 
             // Indices
@@ -435,8 +435,8 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
             primitives.emplace_back(Primitive{
                 .vertices = std::move(vertices),
                 .indices = std::move(indices),
-                .skinning = !weights.empty() && !boneIDs.empty()
-                                ? std::optional{Primitive::VertexSkinning{std::move(weights), std::move(boneIDs)}}
+                .vertexSkins = !vertexSkins.empty()
+                                ? std::optional{std::vector<Primitive::VertexSkin>{std::move(vertexSkins)}}
                                 : std::nullopt,
                 .materialIndex = materialIndex,
                 .alphaMode = fastgltfToAlphaMode(alphaMode),

@@ -28,15 +28,15 @@ struct Primitive
         std::uint32_t color{};
     };
 
-    struct VertexSkinning
+    struct VertexSkin
     {
-        std::vector<glm::vec4> weights;
-        std::vector<glm::uvec4> boneIDs;
+        glm::vec4 weight{0.0f};
+        glm::uvec4 boneIDs{0u};
     };
 
     std::vector<Vertex> vertices;
     std::vector<std::uint32_t> indices;
-    std::optional<VertexSkinning> skinning;
+    std::optional<std::vector<VertexSkin>> vertexSkins;
 
     AABB aabb;
     glm::mat4 modelSpaceTransform{1.0f};

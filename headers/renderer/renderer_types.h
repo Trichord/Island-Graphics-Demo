@@ -7,6 +7,7 @@
 #include "models/primitive.h"
 #include "renderer/cascade_shadow.h"
 #include "renderer/shader/graphics_shader.h"
+#include "renderer/textures.h"
 
 // Struct for MultiDrawElements
 struct DrawElementsIndirectCommand
@@ -30,14 +31,10 @@ struct MultiDrawBucket
 // GPU resident metadata for texture and buffer indexing
 struct PrimitiveMetadata
 {
-    int albedoArray{0};
-    int albedoLayer{0};
-    int armArray{0};
-    int armLayer{0};
-    int normalArray{0};
-    int normalLayer{0};
-    int cubemapArray{0};
-    int cubemapLayer{0};
+    SamplerArrayIndex albedo;
+    SamplerArrayIndex ARM;
+    SamplerArrayIndex normal;
+    SamplerArrayIndex cubemap;
     std::uint32_t visibleInstancesBaseIndex{0};
 };
 

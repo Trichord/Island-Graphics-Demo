@@ -32,5 +32,5 @@ void IslandScene::onUpdate(float deltaTime)
         spaceModel.worldTransforms[i].rotateAroundAxisLocal(degrees * deltaTime, oddAxisAngle2);
     }
 
-    updatedModels_.insert(spaceModel.handle);
+    updateHandle(spaceModel.handle);
 }
