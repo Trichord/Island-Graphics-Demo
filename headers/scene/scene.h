@@ -15,6 +15,7 @@
 #include "models/particles.h"
 #include "models/primitive.h"
 #include "models/skybox.h"
+#include "models/animator.h"
 #include "renderer/shader/graphics_shader.h"
 #include "scene/camera.h"
 #include "scene/directional_light.h"
@@ -25,16 +26,24 @@
 class Scene
 {
   public:
+    struct EntryAnimation
+    {
+        Skeleton skeleton;
+        std::vector<Animation> animations;
+        Animator animator;
+    };
+
     struct Entry
     {
-        Handle handle{0};
         AABB aabb;
+        Handle handle{0};    
+        ShaderType shaderType{ShaderType::directionalPBR};
 
         std::vector<Primitive> primitives;
-        std::vector<Transform> transforms;
+        std::vector<Transform> worldTransforms;
+        std::optional<EntryAnimation> animation;
 
-        std::optional<std::filesystem::path> filePath;
-        ShaderType shaderType{ShaderType::directionalPBR};
+        std::optional<std::filesystem::path> modelPath;
     };
 
     Scene(TextureManager &_textureManager, const GraphicsSettings &graphicsSettings,

@@ -43,7 +43,7 @@ AABB getSceneBounds(Scene &scene)
         if (entry.shaderType == ocean || entry.shaderType == skybox)
             continue;
 
-        for (Transform &transform : entry.transforms)
+        for (Transform &transform : entry.worldTransforms)
         {
             const AABB worldAABB{entry.aabb.transform(transform.getModelMatrix())};
 
@@ -127,7 +127,7 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene)
 
     for (Scene::Entry &entry : scene.getAllSceneEntries())
     {
-        std::size_t numTransforms{entry.transforms.size()};
+        std::size_t numTransforms{entry.worldTransforms.size()};
         std::size_t numPrimitives{entry.primitives.size()};
 
         if (entry.shaderType == ShaderType::water)
@@ -163,7 +163,7 @@ std::vector<SceneProcessor::BucketEntry> SceneProcessor::createDrawEntries(Scene
 
             drawEntries.emplace_back(BucketEntry{.handle = entry.handle,
                                                  .primitive = &primitive,
-                                                 .transforms = entry.transforms,
+                                                 .transforms = entry.worldTransforms,
                                                  .shaderType = entry.shaderType,
                                                  .alphaMode = primitive.alphaMode});
         }
@@ -372,7 +372,7 @@ std::vector<glm::mat4> SceneProcessor::createMatrices(const std::vector<BucketEn
 
     for (const BucketEntry &entry : entries)
         for (Transform &transform : entry.transforms)
-            matrices.emplace_back(transform.getModelMatrix() * entry.primitive->nodeTransform);
+            matrices.emplace_back(transform.getModelMatrix() * entry.primitive->modelSpaceTransform);
 
     return matrices;
 }

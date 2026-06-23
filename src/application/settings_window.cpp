@@ -114,8 +114,10 @@ void SettingsWindow::setupImGui()
 
     // Enable Keyboard Controls
     ImGuiIO &io = ImGui::GetIO();
-    (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+    // Disable .ini drop
+    io.IniFilename = nullptr;
 
     // Configure backend rendering
     ImGui_ImplGlfw_InitForOpenGL(window, true);

@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "application/graphics_settings.h"
+#include "models/animation.h"
+#include "models/animator.h"
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
@@ -24,10 +26,10 @@ void IslandScene::onUpdate(float deltaTime)
     // Rotate the fancy space model
     Entry &spaceModel{getEntryByName("spaceModel")};
 
-    for (std::size_t i{0}; i < spaceModel.transforms.size(); ++i)
-    { 
-        spaceModel.transforms[i].rotateAroundAxisLocal(degrees * deltaTime, oddAxisAngle);
-        spaceModel.transforms[i].rotateAroundAxisLocal(degrees * deltaTime, oddAxisAngle2);
+    for (std::size_t i{0}; i < spaceModel.worldTransforms.size(); ++i)
+    {
+        spaceModel.worldTransforms[i].rotateAroundAxisLocal(degrees * deltaTime, oddAxisAngle);
+        spaceModel.worldTransforms[i].rotateAroundAxisLocal(degrees * deltaTime, oddAxisAngle2);
     }
 
     updatedModels_.insert(spaceModel.handle);

@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -13,8 +14,11 @@
 #include <vector>
 
 #include "application/graphics_settings.h"
+#include "models/animator.h"
 #include "models/instanced_model.h"
 #include "models/model.h"
+#include "models/particles.h"
+#include "models/primitive.h"
 #include "models/skybox.h"
 #include "renderer/shader/graphics_shader.h"
 #include "scene/camera.h"
@@ -26,6 +30,13 @@
 
 namespace
 {
+
+// Helper for the visitor pattern
+template <class... Ts> struct overloaded : Ts...
+{
+    using Ts::operator()...;
+};
+
 void validateSceneEntry(Scene::Entry &entry)
 {
     using enum ShaderType;
@@ -61,6 +72,29 @@ void validateSceneEntry(Scene::Entry &entry)
         }
     }
 }
+
+std::optional<Scene::EntryAnimation> getModelAnimation(const Model &model)
+{
+    auto &animations = model.getAnimations();
+
+    if (!animations.has_value())
+        return {};
+
+    auto &skeleton = model.getSkeleton();
+
+    if (!skeleton.has_value())
+    {
+        std::cerr << "ERROR: model " << model.getPath() << " has animations with no skeleton" << std::endl;
+        throw std::runtime_error("Animated model with no skeleton");
+    }
+
+    auto &skin = skeleton.value().skin;
+
+    return Scene::EntryAnimation{
+        skeleton.value(), animations.value(),
+        Animator{skeleton.value().parents.size(), skin.has_value() ? skin.value().invBindMatrices.size() : 0}};
+}
+
 } // namespace
 
 Scene::Scene(TextureManager &textureManager, const GraphicsSettings &graphicsSettings,
@@ -151,11 +185,11 @@ void Scene::addParticles(Handle handle, const Particles &particles)
     textureManager_.addDefaultMaterial(handle);
 
     entries_.emplace_back(Entry{
-        .handle = handle,
         .aabb = particles.getAABB(),
-        .primitives = particles.getPrimitives(),
-        .transforms = {{}},
+        .handle = handle,
         .shaderType = ShaderType::particles,
+        .primitives = particles.getPrimitives(),
+        .worldTransforms = {{}},
     });
 }
 
@@ -167,11 +201,11 @@ void Scene::addSkybox(Handle handle, const Skybox &skybox)
     textureManager_.loadCubemapTextures(handle, image);
 
     entries_.emplace_back(Entry{
-        .handle = handle,
         .aabb = skybox.getAABB(),
-        .primitives = skybox.getPrimitives(),
-        .transforms = {{}},
+        .handle = handle,
         .shaderType = ShaderType::skybox,
+        .primitives = skybox.getPrimitives(),
+        .worldTransforms = {{}},
     });
 }
 
@@ -184,12 +218,13 @@ void Scene::addModel(Handle handle, const Model &model, const Transform &transfo
     loadGLTFTextures(handle, model);
 
     entries_.emplace_back(Entry{
-        .handle = handle,
         .aabb = model.getAABB(),
-        .primitives = model.getPrimitives(),
-        .transforms = {transform},
-        .filePath = model.getPath(),
+        .handle = handle,
         .shaderType = shaderType,
+        .primitives = model.getPrimitives(),
+        .worldTransforms = {transform},
+        .animation = getModelAnimation(model),
+        .modelPath = model.getPath(),
     });
 }
 
@@ -203,12 +238,12 @@ void Scene::addCubemappedModel(Handle handle, const Model &model, const std::fil
     textureManager_.loadCubemapTextures(handle, imagePath);
 
     entries_.emplace_back(Entry{
-        .handle = handle,
         .aabb = model.getAABB(),
-        .primitives = model.getPrimitives(),
-        .transforms = {transform},
-        .filePath = model.getPath(),
+        .handle = handle,
         .shaderType = shaderType,
+        .primitives = model.getPrimitives(),
+        .worldTransforms = {transform},
+        .modelPath = model.getPath(),
     });
 }
 
@@ -223,20 +258,14 @@ void Scene::addInstancedModel(Handle handle, const InstancedModel &model, Shader
     std::vector<Transform> transforms{model.loadInstancedTransforms()};
 
     entries_.emplace_back(Entry{
-        .handle = handle,
         .aabb = model.getAABB(),
-        .primitives = model.getPrimitives(),
-        .transforms = std::move(transforms),
-        .filePath = model.getPath(),
+        .handle = handle,
         .shaderType = shaderType,
+        .primitives = model.getPrimitives(),
+        .worldTransforms = std::move(transforms),
+        .modelPath = model.getPath(),
     });
 }
-
-// Helper for the visitor pattern
-template <class... Ts> struct overloaded : Ts...
-{
-    using Ts::operator()...;
-};
 
 void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSettings &graphicsSettings)
 {
