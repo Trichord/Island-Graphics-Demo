@@ -62,9 +62,9 @@ class Scene
 
     // Accessors
     Camera &getCamera();
-    std::vector<Entry> &getAllSceneEntries();
-    Entry &getEntryByName(const std::string &key);
-    Entry &getEntryByHandle(Handle handle);
+    const std::vector<Entry> &getAllSceneEntries() const;
+    const Entry &getEntryByName(const std::string &key) const;
+    const Entry &getEntryByHandle(Handle handle) const;
 
     // Per-frame Update
     std::unordered_set<Handle> &getUpdatedHandles();
@@ -73,8 +73,10 @@ class Scene
     void setAmbientLight(const glm::vec3 &ambient);
 
   protected:
-    // For updating existing transforms. Do not add or remove them.
     virtual void onUpdate(float deltaTime) = 0;
+
+    Entry &getEntry(const std::string &name);
+    Entry &getEntry(const Handle handle);
 
     void playAllAnimations(Entry &entry, float deltaTime);
     void playAnimation(Entry &entry, const std::string &name, float deltaTime);
@@ -112,4 +114,7 @@ class Scene
                            const std::string &name = {});
     void addCubemappedModel(Handle handle, const Model &model, const std::filesystem::path &imagePath,
                             const Transform &transform, ShaderType shaderType, const std::string &name = {});
+
+    std::size_t findHandle(Handle handle) const;
+    std::size_t findName(const std::string &name) const;
 };

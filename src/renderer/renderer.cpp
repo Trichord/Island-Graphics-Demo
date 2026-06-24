@@ -244,8 +244,8 @@ void Renderer::updateSceneTransforms(Scene &scene)
     for (Handle handle : updatedTransformHandles)
     {
         const std::vector<std::uint32_t> &bufferIndices{matricesBaseIndices_[handle]};
-        Scene::Entry &sceneEntry{scene.getEntryByHandle(handle)};
-        std::vector<Transform> &worldTransforms{sceneEntry.worldTransforms};
+        const Scene::Entry &sceneEntry{scene.getEntryByHandle(handle)};
+        const std::vector<Transform> &worldTransforms{sceneEntry.worldTransforms};
 
         updatedMatrices_.reserve(worldTransforms.size());
 
@@ -253,7 +253,7 @@ void Renderer::updateSceneTransforms(Scene &scene)
         {
             updatedMatrices_.clear();
 
-            for (Transform &transform : worldTransforms)
+            for (const Transform &transform : worldTransforms)
                 updatedMatrices_.emplace_back(transform.getModelMatrix() * sceneEntry.primitives[i].modelSpaceTransform);
 
             glNamedBufferSubData(SSBOs_.matrices, static_cast<GLintptr>(bufferIndices[i] * sizeof(glm::mat4)),

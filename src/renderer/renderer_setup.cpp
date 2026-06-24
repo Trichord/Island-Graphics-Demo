@@ -215,12 +215,12 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &
 
     // Water should not be instanced, limit one cubemap per model. By walking the scene instead of draw entries,
     // we ensure each model gets one cubemap
-    for (Scene::Entry &entry : scene.getAllSceneEntries())
+    for (const Scene::Entry &entry : scene.getAllSceneEntries())
     {
         if (entry.shaderType != water)
             continue;
 
-        Transform &transform{entry.worldTransforms.front()};
+        const Transform &transform{entry.worldTransforms.front()};
 
         // Set the camera in the center of the water plane
         camera.setPosition(transform.getPosition());
@@ -230,7 +230,7 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &
         std::vector<int> materialIndices;
         materialIndices.reserve(entry.primitives.size());
 
-        for (Primitive &primitive : entry.primitives)
+        for (const Primitive &primitive : entry.primitives)
             materialIndices.push_back(primitive.materialIndex);
 
         textureManager_.setCubemap(entry.handle, materialIndices, blitTarget);
@@ -280,11 +280,11 @@ void Renderer::updateMetadataCubemaps(Scene &scene, const std::vector<std::uint3
 
     std::size_t primitiveOffset{0};
 
-    for (Scene::Entry &entry : scene.getAllSceneEntries())
+    for (const Scene::Entry &entry : scene.getAllSceneEntries())
     {
         using enum ShaderType;
 
-        std::size_t numPrimitives{entry.primitives.size()};
+        const std::size_t numPrimitives{entry.primitives.size()};
 
         if (entry.shaderType != ocean && entry.shaderType != water)
         {
@@ -299,8 +299,8 @@ void Renderer::updateMetadataCubemaps(Scene &scene, const std::vector<std::uint3
             const Material &material{materials[entry.primitives[i].materialIndex]};
             const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
 
-            std::uint32_t bufferIndex{metadataBridge[primitiveOffset + i]};
-            std::size_t bufferOffset{offsetof(PrimitiveMetadata, cubemap)};
+            const std::uint32_t bufferIndex{metadataBridge[primitiveOffset + i]};
+            const std::size_t bufferOffset{offsetof(PrimitiveMetadata, cubemap)};
 
             glNamedBufferSubData(SSBOs_.metadata,
                                  static_cast<GLintptr>(bufferIndex * sizeof(PrimitiveMetadata) + bufferOffset),

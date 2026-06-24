@@ -25,20 +25,20 @@ class Transform
     void rotateAroundAxisLocal(float degrees, glm::vec3 axis);
     void rotateAroundAxisWorld(float degrees, glm::vec3 axis);
 
-    glm::mat4 &getModelMatrix();
-    glm::mat3 &getNormalMatrix();
+    const glm::mat4 &getModelMatrix() const;
+    const glm::mat3 &getNormalMatrix() const;
     glm::vec3 getRotation() const;
     const glm::vec3 &getScale() const;
     const glm::vec3 &getPosition() const;
 
   private:
-    glm::vec3 translation_{1.0f};
+    glm::vec3 translation_{0.0f};
+    glm::quat quaternion_{};
     glm::vec3 scale_{1.0f};
-    glm::mat4 modelMatrix_{1.0f};
-    glm::mat3 normalMatrix_{1.0f};
-    glm::quat quaternion_{1.0f, 0.0f, 0.0f, 0.0f};
 
-    bool isDirty_{true};
+    mutable glm::mat4 modelMatrix_{1.0f};
+    mutable glm::mat3 normalMatrix_{1.0f};
+    mutable bool isDirty_{true};
 
-    void rebuildModelMatrix();
+    void rebuildModelMatrix() const;
 };

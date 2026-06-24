@@ -14,7 +14,7 @@ Transform::Transform(glm::vec3 translation, glm::vec3 scale, float degrees, glm:
 };
 
 Transform::Transform(glm::vec3 translation, glm::vec3 scale, glm::quat quat)
-    : translation_{translation}, scale_{scale}, quaternion_{quat}
+    : translation_{translation}, quaternion_{quat}, scale_{scale}
 {
     rebuildModelMatrix();
     isDirty_ = false;
@@ -89,7 +89,7 @@ const glm::vec3 &Transform::getScale() const
     return scale_;
 }
 
-glm::mat4 &Transform::getModelMatrix()
+const glm::mat4 &Transform::getModelMatrix() const
 {
     if (isDirty_)
     {
@@ -100,7 +100,7 @@ glm::mat4 &Transform::getModelMatrix()
     return modelMatrix_;
 }
 
-glm::mat3 &Transform::getNormalMatrix()
+const glm::mat3 &Transform::getNormalMatrix() const
 {
     if (isDirty_)
     {
@@ -116,7 +116,7 @@ glm::vec3 Transform::getRotation() const
     return glm::degrees(glm::eulerAngles(quaternion_));
 }
 
-void Transform::rebuildModelMatrix()
+void Transform::rebuildModelMatrix() const
 {
     glm::mat4 newModelMatrix{1.0f};
     newModelMatrix = glm::translate(newModelMatrix, translation_);

@@ -72,8 +72,8 @@ class SceneProcessor
     struct BucketEntry
     {
         Handle handle;
-        Primitive *primitive;
-        std::span<Transform> transforms;
+        const Primitive *primitive;
+        std::span<const Transform> transforms;
         std::optional<Scene::EntryAnimation> animation;
 
         ShaderType shaderType{ShaderType::directionalPBR};

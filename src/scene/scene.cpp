@@ -104,25 +104,12 @@ Scene::Scene(TextureManager &textureManager, const GraphicsSettings &graphicsSet
     setupScene(jsonFile, graphicsSettings);
 }
 
-std::vector<Scene::Entry> &Scene::getAllSceneEntries()
+const std::vector<Scene::Entry> &Scene::getAllSceneEntries() const
 {
     return entries_;
 }
 
-Scene::Entry &Scene::getEntryByName(const std::string &key)
-{
-    auto iter = entriesByName_.find(key);
-
-    if (iter == entriesByName_.end() || iter->second >= entries_.size())
-    {
-        std::cerr << "ERROR: Cannot find named scene entry " << key << std::endl;
-        throw std::runtime_error("Invalid key");
-    }
-
-    return entries_[iter->second];
-}
-
-Scene::Entry &Scene::getEntryByHandle(Handle handle)
+std::size_t Scene::findHandle(Handle handle) const
 {
     auto iter = entriesByHandle_.find(handle);
 
@@ -132,7 +119,40 @@ Scene::Entry &Scene::getEntryByHandle(Handle handle)
         throw std::runtime_error("Invalid key");
     }
 
-    return entries_[iter->second];
+    return iter->second;
+}
+
+std::size_t Scene::findName(const std::string &name) const
+{
+    auto iter = entriesByName_.find(name);
+
+    if (iter == entriesByName_.end() || iter->second >= entries_.size())
+    {
+        std::cerr << "ERROR: Cannot find named scene entry " << name << std::endl;
+        throw std::runtime_error("Invalid key");
+    }
+
+    return iter->second;
+}
+
+const Scene::Entry &Scene::getEntryByName(const std::string &name) const
+{
+    return entries_[findName(name)];
+}
+
+const Scene::Entry &Scene::getEntryByHandle(Handle handle) const
+{
+    return entries_[findHandle(handle)];
+}
+
+Scene::Entry &Scene::getEntry(const std::string &name)
+{
+    return entries_[findName(name)];
+}
+
+Scene::Entry &Scene::getEntry(const Handle handle)
+{
+    return entries_[findHandle(handle)];
 }
 
 DirectionalLight &Scene::getGlobalLight()
