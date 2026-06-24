@@ -36,14 +36,14 @@ AABB getSceneBounds(Scene &scene)
     glm::vec3 min{std::numeric_limits<float>::infinity()};
     glm::vec3 max{-std::numeric_limits<float>::infinity()};
 
-    for (Scene::Entry &entry : scene.getAllSceneEntries())
+    for (const Scene::Entry &entry : scene.getAllSceneEntries())
     {
         using enum ShaderType;
 
         if (entry.shaderType == ocean || entry.shaderType == skybox)
             continue;
 
-        for (Transform &transform : entry.worldTransforms)
+        for (const Transform &transform : entry.worldTransforms)
         {
             const AABB worldAABB{entry.aabb.transform(transform.getModelMatrix())};
 
@@ -124,7 +124,7 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene)
 {
     SceneTotals totals;
 
-    for (Scene::Entry &entry : scene.getAllSceneEntries())
+    for (const Scene::Entry &entry : scene.getAllSceneEntries())
     {
         std::size_t numTransforms{entry.worldTransforms.size()};
         std::size_t numPrimitives{entry.primitives.size()};
@@ -135,7 +135,7 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene)
         totals.primitives += numPrimitives;
         totals.instances += numTransforms * numPrimitives;
 
-        for (Primitive &primitive : entry.primitives)
+        for (const Primitive &primitive : entry.primitives)
         {
             totals.indices += primitive.indices.size();
             totals.vertices += primitive.vertices.size();
@@ -155,9 +155,9 @@ std::vector<SceneProcessor::BucketEntry> SceneProcessor::createBucketEntries(Sce
     bucketEntries.reserve(totals_.primitives);
 
     std::size_t originalIndex{0};
-    for (Scene::Entry &entry : scene.getAllSceneEntries())
+    for (const Scene::Entry &entry : scene.getAllSceneEntries())
     {
-        for (Primitive &primitive : entry.primitives)
+        for (const Primitive &primitive : entry.primitives)
         {
             using enum fastgltf::AlphaMode;
 
@@ -377,7 +377,7 @@ std::vector<glm::mat4> SceneProcessor::createMatrices(const std::vector<BucketEn
     matrices.reserve(totals_.instances);
 
     for (const BucketEntry &entry : entries)
-        for (Transform &transform : entry.transforms)
+        for (const Transform &transform : entry.transforms)
             matrices.emplace_back(transform.getModelMatrix() * entry.primitive->modelSpaceTransform);
 
     return matrices;
@@ -452,7 +452,7 @@ std::vector<VisibilityBufferMap> SceneProcessor::createVisibilityBufferMap(
         {
             const Handle handle{entries[j].handle};
             const PrimitiveMetadata &metaEntry{metadata[j]};
-            const std::span<Transform> transforms{entries[j].transforms};
+            std::span<const Transform> transforms{entries[j].transforms};
 
             const std::uint32_t visibleInstancesBufferBaseIndex{metaEntry.visibleInstancesBaseIndex};
             const std::uint32_t currentBucket{static_cast<std::uint32_t>(i)};

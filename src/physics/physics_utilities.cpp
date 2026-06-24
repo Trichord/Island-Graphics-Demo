@@ -49,7 +49,7 @@ physicsUtilities::CollisionMesh physicsUtilities::buildCollisionMesh(Scene &scen
 {
     physicsUtilities::CollisionMesh collisionMesh;
 
-    for (Scene::Entry &entry : scene.getAllSceneEntries())
+    for (const Scene::Entry &entry : scene.getAllSceneEntries())
     {
         if (!entry.modelPath.has_value())
             continue;
@@ -75,7 +75,7 @@ physicsUtilities::CollisionMesh physicsUtilities::buildCollisionMesh(Scene &scen
         else
             continue;
 
-        for (Transform &transform : entry.worldTransforms)
+        for (const Transform &transform : entry.worldTransforms)
             iterateVertices(collisionMesh, collisionPrimitives, transform.getModelMatrix());
     }
 
