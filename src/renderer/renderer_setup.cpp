@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <iostream>
 #include <set>
 #include <unordered_map>
 #include <utility>
@@ -68,15 +69,22 @@ void Renderer::initializeResources(Scene &scene)
     std::vector<std::set<Handle>> bucketHandles{std::move(processed.bufferDescriptors.drawBucketHandles)};
     std::vector<std::uint32_t> metadataBridge{std::move(processed.bufferDescriptors.metadataBridge)};
 
-    setupComputeShaders(processed);
-
     // Setup for cascade shadow maps
     float nearPlane{scene.getCamera().getNearPlane()};
     DirectionalLight &light{scene.getGlobalLight()};
-    cascadeShadow_ = CascadeShadow(light, sceneAABB, nearPlane);
+    cascadeShadow_ = {light, sceneAABB, nearPlane};
+
+    // Deferred shader loading so we can test the scene for animated models
+    std::cerr << "Loading Shaders... ";
+    loadShaders();
+    std::cerr << "Done" << std::endl;
+
+    for (auto &shader : shaders_)
+        setupShader(shader);
 
     // Set the light based uniforms and draw shadows
     setSceneShaderUniforms(scene);
+    setupComputeShaders(processed);
 
     if (graphicsSettings_.shadowResolution)
         renderShadowMaps(scene, true);

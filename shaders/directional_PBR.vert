@@ -27,6 +27,8 @@ layout(binding = SSBO_BINDING_VISIBLE_INSTANCES, std430) restrict readonly buffe
    uint instances[];
 };
 
+#ifdef SKINNED
+
 layout(binding = SSBO_BINDING_BONE_TRANSFORMS, std430) restrict readonly buffer boneTransformsSSBO
 {
 	mat4 boneTransforms[];
@@ -36,6 +38,8 @@ layout(binding = SSBO_BINDING_VERTEX_BONE_DATA, std430) restrict readonly buffer
 {
 	VertexSkin vertexSkins[];
 };
+
+#endif
 
 // In
 uniform vec3 lightDir;
@@ -71,6 +75,8 @@ void main()
 
 	vec4 position = vec4(aPos, 1.0);
 
+	#ifdef SKINNED
+
 	if (aBoneDataIndex != 0xFFFFFFFF)
 	{
 		VertexSkin skin = vertexSkins[aBoneDataIndex];
@@ -85,6 +91,8 @@ void main()
 		position = acc;
 	}
 	
+	#endif
+
 	vOut.worldFragPos = modelMatrix * position;
 	vOut.viewFragPos = viewMatrix * vOut.worldFragPos;
 	vOut.tangentFragPos = TBN * vOut.worldFragPos.xyz;

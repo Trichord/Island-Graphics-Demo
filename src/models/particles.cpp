@@ -12,14 +12,9 @@
 
 Particles::Particles(const glm::vec3 &position, const glm::vec3 &extent, const glm::vec4 &color,
                      const glm::vec4 colorVariation, float lifeTime, int numParticles)
-    : aabb_{position - extent, position + extent},
-      primitives_{generateParticles(position, extent, color, colorVariation, std::min(lifeTime, 65504.0f), numParticles)}
+    : primitives_{
+          generateParticles(position, extent, color, colorVariation, std::min(lifeTime, 65504.0f), numParticles)}
 {
-}
-
-const AABB &Particles::getAABB() const
-{
-    return aabb_;
 }
 
 const std::vector<Primitive> &Particles::getPrimitives() const
@@ -51,7 +46,7 @@ std::vector<Primitive> Particles::generateParticles(const glm::vec3 &position, c
     primitives.resize(1);
 
     Primitive &primitive{primitives.front()};
-    primitive.aabb = aabb_;
+    primitive.aabb = {position - extent, position + extent};
     primitive.alphaMode = AlphaMode::mask;
     primitive.indices.resize(numParticles);
     std::iota(primitive.indices.begin(), primitive.indices.end(), 0);

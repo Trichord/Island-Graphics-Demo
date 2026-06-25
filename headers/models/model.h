@@ -15,7 +15,6 @@ class Model
   public:
     Model(const std::filesystem::path &path);
 
-    const AABB &getAABB() const;
     const std::filesystem::path &getPath() const;
     const fastgltf::Asset &getAsset() const;
     const std::vector<Primitive> &getPrimitives() const;
@@ -28,7 +27,6 @@ class Model
     std::vector<Primitive> primitives_;
     std::optional<Skeleton> skeleton_;
     std::optional<std::vector<Animation>> animations_;
-    AABB aabb_;
 
-    AABB calculateAABB() const;
+    void recalculateAnimatedAABBs();
 };

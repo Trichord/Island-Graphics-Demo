@@ -205,7 +205,6 @@ void Scene::addParticles(Handle handle, const Particles &particles)
     textureManager_.addDefaultMaterial(handle);
 
     entries_.emplace_back(Entry{
-        .aabb = particles.getAABB(),
         .handle = handle,
         .shaderType = ShaderType::particles,
         .primitives = particles.getPrimitives(),
@@ -221,7 +220,6 @@ void Scene::addSkybox(Handle handle, const Skybox &skybox)
     textureManager_.loadCubemapTextures(handle, image);
 
     entries_.emplace_back(Entry{
-        .aabb = skybox.getAABB(),
         .handle = handle,
         .shaderType = ShaderType::skybox,
         .primitives = skybox.getPrimitives(),
@@ -238,7 +236,6 @@ void Scene::addModel(Handle handle, const Model &model, const Transform &transfo
     loadGLTFTextures(handle, model);
 
     entries_.emplace_back(Entry{
-        .aabb = model.getAABB(),
         .handle = handle,
         .shaderType = shaderType,
         .primitives = model.getPrimitives(),
@@ -258,7 +255,6 @@ void Scene::addCubemappedModel(Handle handle, const Model &model, const std::fil
     textureManager_.loadCubemapTextures(handle, imagePath);
 
     entries_.emplace_back(Entry{
-        .aabb = model.getAABB(),
         .handle = handle,
         .shaderType = shaderType,
         .primitives = model.getPrimitives(),
@@ -279,7 +275,6 @@ void Scene::addInstancedModel(Handle handle, const InstancedModel &model, Shader
     std::vector<Transform> transforms{model.loadInstancedTransforms()};
 
     entries_.emplace_back(Entry{
-        .aabb = model.getAABB(),
         .handle = handle,
         .shaderType = shaderType,
         .primitives = model.getPrimitives(),

@@ -7,7 +7,7 @@
 #include "foliage.glsl"
 #include "ubo.glsl"
 
-#ifdef SHADOWS
+#ifdef ALPHA_TESTED_SHADOWS
 #include "shadows.glsl"
 #endif
 
@@ -30,7 +30,7 @@ in VS_OUT
 	vec2 texCoords;
     float vertexHeight;
 
-#ifdef SHADOWS
+#ifdef ALPHA_TESTED_SHADOWS
 	vec4 viewPos;
 	vec4 worldPos;
 #endif
@@ -66,7 +66,7 @@ void main()
     // Ambient
     vec3 ambient = ambientLight * lightColor * albedo.rgb;
     
-    #ifdef SHADOWS
+    #ifdef ALPHA_TESTED_SHADOWS
 	// Pick shadow cascade off frag depth
 	int layer = calculateCascadeIndex(-fsIn.viewPos.z);
 	float shadow = ShadowContribution(lightMatrices[layer], fsIn.worldPos, layer);

@@ -26,7 +26,7 @@
 class Renderer
 {
   public:
-    Renderer(ThreadPool &threadPool, TextureManager &textureManager, const GraphicsSettings &settings);
+    Renderer(TextureManager &textureManager, const GraphicsSettings &settings);
     Renderer(const Renderer &) = delete;
     Renderer &operator=(const Renderer &) = delete;
     Renderer(Renderer &&other) = delete;
@@ -41,7 +41,6 @@ class Renderer
     std::uint32_t framesRendered_{0};
 
     const GraphicsSettings graphicsSettings_;
-    ThreadPool &threadPool_;
     TextureManager &textureManager_;
 
     RenderTarget frameBuffer_;

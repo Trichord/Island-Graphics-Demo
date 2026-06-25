@@ -1,6 +1,6 @@
 #version 460 core
 
-#ifdef ALPHA_TESTED
+#ifdef ALPHA_TESTED_SHADOWS
 #include "binding_points.glsl"
 #include "textures.glsl"
 #include "types.glsl"
@@ -18,7 +18,7 @@ in flat int metadataIndex;
 
 void main()
 {	
-	#ifdef ALPHA_TESTED
+	#ifdef ALPHA_TESTED_SHADOWS
 	Metadata meta = metadata[metadataIndex];
 	int albedoArray = meta.albedoArray;
 	int albedoLayer = meta.albedoLayer;

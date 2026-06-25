@@ -43,15 +43,17 @@ AABB getSceneBounds(Scene &scene)
         if (entry.shaderType == ocean || entry.shaderType == skybox)
             continue;
 
-        for (const Transform &transform : entry.worldTransforms)
+        for (const Primitive &primitive : entry.primitives)
         {
-            const AABB worldAABB{entry.aabb.transform(transform.getModelMatrix())};
+            for (const Transform &transform : entry.worldTransforms)
+            {
+                const AABB worldAABB{primitive.aabb.transform(transform.getModelMatrix())};
+                const glm::vec3 aabbMin{worldAABB.getMin()};
+                const glm::vec3 aabbMax{worldAABB.getMax()};
 
-            const glm::vec3 aabbMin{worldAABB.getMin()};
-            const glm::vec3 aabbMax{worldAABB.getMax()};
-
-            min = glm::min(min, aabbMin);
-            max = glm::max(max, aabbMax);
+                min = glm::min(min, aabbMin);
+                max = glm::max(max, aabbMax);
+            }
         }
     }
 

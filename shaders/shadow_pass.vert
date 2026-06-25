@@ -9,7 +9,7 @@
 // Attributes
 layout (location = 0) in vec3 aPos;
 
-#ifdef ALPHA_TESTED
+#ifdef ALPHA_TESTED_SHADOWS
 layout (location = 1) in vec4 aNormal;
 layout (location = 2) in vec4 aTangent;
 layout (location = 3) in vec2 aTexCoords;
@@ -35,7 +35,7 @@ layout(binding = SSBO_BINDING_VISIBLE_INSTANCES, std430) restrict readonly buffe
 // In
 uniform int cascade;
 
-#ifdef ALPHA_TESTED
+#ifdef ALPHA_TESTED_SHADOWS
 uniform float windStrength;
 uniform vec3 windDirection;
 uniform vec3 lightDir;
@@ -54,7 +54,7 @@ void main()
 	mat4 modelMatrix = matrices[matrixIndex];
 	vec4 worldPosition = modelMatrix * vec4(aPos, 1.0);
 	
-#ifdef ALPHA_TESTED
+#ifdef ALPHA_TESTED_SHADOWS
 	mat3 normalMatrix = mat3(modelMatrix);
 	vec3 normal = normalize(normalMatrix * aNormal.xyz);
 	
