@@ -64,9 +64,9 @@ void Renderer::initializeResources(Scene &scene)
     takeBufferData(processed);
 
     // Extract temporaries
-    AABB sceneAABB{processed.sceneDescriptor.worldAABB};
-    std::vector<std::set<Handle>> bucketHandles{std::move(processed.bufferDescriptor.drawBucketHandles)};
-    std::vector<std::uint32_t> metadataBridge{std::move(processed.bufferDescriptor.metadataBridge)};
+    AABB sceneAABB{processed.sceneDescriptors.worldAABB};
+    std::vector<std::set<Handle>> bucketHandles{std::move(processed.bufferDescriptors.drawBucketHandles)};
+    std::vector<std::uint32_t> metadataBridge{std::move(processed.bufferDescriptors.metadataBridge)};
 
     setupComputeShaders(processed);
 
@@ -107,19 +107,20 @@ void Renderer::takeGPUObjects(SceneProcessor::ProcessedScene &processed)
 void Renderer::takeBufferData(SceneProcessor::ProcessedScene &processed)
 {
     drawBuckets_ = std::move(processed.drawBuckets);
-    matricesBaseIndices_ = std::move(processed.bufferDescriptor.matricesBaseIndexMap);
+    matricesBaseIndices_ = std::move(processed.bufferDescriptors.matricesBaseIndexMap);
+    boneTransformsBaseIndexMap_ = std::move(processed.bufferDescriptors.boneTransformsBaseIndexMap);
 
-    drawCommandsSize_ = static_cast<std::uint32_t>(processed.bufferDescriptor.drawCommandsSize);
-    cullResultsSize_ = static_cast<std::uint32_t>(processed.bufferDescriptor.cullResultsSize);
-    drawCountsSize_ = static_cast<std::uint32_t>(processed.bufferDescriptor.drawCountsSize);
-    visibleInstancesSize_ = static_cast<std::uint32_t>(processed.bufferDescriptor.visibleInstancesSize);
+    drawCommandsSize_ = static_cast<std::uint32_t>(processed.bufferDescriptors.drawCommandsSize);
+    cullResultsSize_ = static_cast<std::uint32_t>(processed.bufferDescriptors.cullResultsSize);
+    drawCountsSize_ = static_cast<std::uint32_t>(processed.bufferDescriptors.drawCountsSize);
+    visibleInstancesSize_ = static_cast<std::uint32_t>(processed.bufferDescriptors.visibleInstancesSize);
 }
 
 void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &processed)
 {
-    cullWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptor.numInstances);
-    compactionWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptor.numPrimitives);
-    particleWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptor.numParticles);
+    cullWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numInstances);
+    compactionWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numPrimitives);
+    particleWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numParticles);
 
     cullShader_.setInt("screenWidth", graphicsSettings_.screenWidth);
     cullShader_.setInt("screenHeight", graphicsSettings_.screenHeight);

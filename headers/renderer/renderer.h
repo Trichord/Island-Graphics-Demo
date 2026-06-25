@@ -59,6 +59,7 @@ class Renderer
     // Scene Updates
     std::vector<glm::mat4> updatedMatrices_;
     std::vector<std::vector<std::uint32_t>> matricesBaseIndices_;
+    std::unordered_map<Handle, std::uint32_t> boneTransformsBaseIndexMap_;
 
     // Shadows
     CascadeShadow cascadeShadow_;

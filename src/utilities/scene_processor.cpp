@@ -61,7 +61,7 @@ AABB getSceneBounds(Scene &scene)
 
 SceneProcessor::SceneProcessor(Scene &scene, TextureManager &textureManager, bool shadowsEnabled)
     : shadows_{shadowsEnabled}, sceneAABB_{getSceneBounds(scene)}, totals_{getSceneTotals(scene)},
-      bucketEntries_{createBucketEntries(scene)}, textureManager_{textureManager}
+      bucketEntries_{createBucketEntries(scene, totals_)}, textureManager_{textureManager}
 {
 }
 
@@ -70,7 +70,7 @@ std::size_t SceneProcessor::getNumDynamicCubemaps() const
     return totals_.dynamicCubemaps;
 }
 
-SceneProcessor::ProcessedScene SceneProcessor::processScene()
+SceneProcessor::ProcessedScene SceneProcessor::processScene() const
 {
     if (!textureManager_.allTexturesBuilt())
     {
@@ -90,16 +90,18 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
     auto metadata = createMetadata(bucketEntries_);
     auto drawBucketHandles = createDrawBucketHandles(bucketEntries_, buckets);
     auto visibilityMap = createVisibilityBufferMap(bucketEntries_, metadata, buckets);
-    auto processedVertices = createVertexSkinData(bucketEntries_, createVertices(bucketEntries_));
+    auto boneTransformMap = createBoneTransformMap(bucketEntries_);
+    auto processedVertices = createVertexSkinData(bucketEntries_, boneTransformMap, createVertices(bucketEntries_));
 
     // GPU data upload
     auto bufferSizes = calculateBufferSizes(commands, buckets);
     auto VAO = createVAO(bucketEntries_, processedVertices);
-    auto SSBOs = createSSBOs(commands, matrices, metadata, visibilityMap, vertexMap, AABBs, bufferSizes);
+    auto SSBOs = createSSBOs(commands, matrices, metadata, processedVertices.vertexSkins, visibilityMap, vertexMap,
+                             AABBs, bufferSizes);
 
     return {.VAOs = std::move(VAO),
             .SSBOs = std::move(SSBOs),
-            .sceneDescriptor =
+            .sceneDescriptors =
                 {
                     .worldAABB = std::move(sceneAABB_),
                     .numInstances = totals_.instances,
@@ -107,20 +109,21 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene()
                     .numPrimitives = totals_.primitives,
                     .numParticles = totals_.particles,
                 },
-            .bufferDescriptor =
+            .bufferDescriptors =
                 {
-                    .drawCommandsSize = bufferSizes.drawCommandsSize,
+                    .drawCommandsSize = bufferSizes.drawCommands,
                     .cullResultsSize = bufferSizes.cullResults,
                     .drawCountsSize = bufferSizes.drawCounts,
                     .visibleInstancesSize = bufferSizes.visibleInstances,
                     .metadataBridge = std::move(metadataBridge),
                     .drawBucketHandles = std::move(drawBucketHandles),
                     .matricesBaseIndexMap = std::move(matricesMap),
+                    .boneTransformsBaseIndexMap = std::move(boneTransformMap),
                 },
             .drawBuckets = std::move(buckets)};
 }
 
-SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene)
+SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene) const
 {
     SceneTotals totals;
 
@@ -143,16 +146,26 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene)
             if (entry.shaderType == ShaderType::particles)
                 totals.particles += primitive.vertices.size();
         }
+
+        // Skeletal animation only
+        if (!entry.animation.has_value())
+            continue;
+
+        if (!entry.animation->skeleton.skin.has_value())
+            continue;
+
+        totals.boneTransforms += entry.animation->skeleton.skin->invBindMatrices.size();
     }
 
     return totals;
 }
 
 // Build up all scene entries by shader type
-std::vector<SceneProcessor::BucketEntry> SceneProcessor::createBucketEntries(Scene &scene)
+std::vector<SceneProcessor::BucketEntry> SceneProcessor::createBucketEntries(Scene &scene,
+                                                                             const SceneTotals &totals) const
 {
     std::vector<BucketEntry> bucketEntries;
-    bucketEntries.reserve(totals_.primitives);
+    bucketEntries.reserve(totals.primitives);
 
     std::size_t originalIndex{0};
     for (const Scene::Entry &entry : scene.getAllSceneEntries())
@@ -178,7 +191,7 @@ std::vector<SceneProcessor::BucketEntry> SceneProcessor::createBucketEntries(Sce
     return bucketEntries;
 }
 
-std::vector<Primitive::Vertex> SceneProcessor::createVertices(const std::vector<BucketEntry> &entries)
+std::vector<Primitive::Vertex> SceneProcessor::createVertices(const std::vector<BucketEntry> &entries) const
 {
     std::vector<Primitive::Vertex> vertices;
 
@@ -189,7 +202,7 @@ std::vector<Primitive::Vertex> SceneProcessor::createVertices(const std::vector<
 }
 
 BufferBuilder::Sizes SceneProcessor::calculateBufferSizes(const std::vector<DrawElementsIndirectCommand> &commands,
-                                                          const std::vector<MultiDrawBucket> &buckets)
+                                                          const std::vector<MultiDrawBucket> &buckets) const
 {
     auto alignSSBO = [](const std::size_t buffer, const GLint alignment) {
         std::size_t align{static_cast<std::size_t>(alignment)};
@@ -212,11 +225,12 @@ BufferBuilder::Sizes SceneProcessor::calculateBufferSizes(const std::vector<Draw
         .drawCounts = shadows_ ? alignSSBO(drawCounts, alignment) : drawCounts,
         .cullResults = shadows_ ? alignSSBO(cullResults, alignment) : cullResults,
         .visibleInstances = shadows_ ? alignSSBO(visibleInstances, alignment) : visibleInstances,
-        .drawCommandsSize = shadows_ ? alignSSBO(drawCommands, alignment) : drawCommands,
+        .drawCommands = shadows_ ? alignSSBO(drawCommands, alignment) : drawCommands,
+        .boneTransforms = totals_.boneTransforms * sizeof(glm::mat4),
     };
 }
 
-std::vector<AABB> SceneProcessor::createAABBs(const std::vector<BucketEntry> &entries)
+std::vector<AABB> SceneProcessor::createAABBs(const std::vector<BucketEntry> &entries) const
 {
     std::vector<AABB> AABBs;
     AABBs.reserve(totals_.primitives);
@@ -230,8 +244,8 @@ std::vector<AABB> SceneProcessor::createAABBs(const std::vector<BucketEntry> &en
     return AABBs;
 }
 
-std::vector<std::set<Handle>> SceneProcessor::createDrawBucketHandles(const std::vector<BucketEntry> &entries,
-                                                                      const std::vector<MultiDrawBucket> &drawBuckets)
+std::vector<std::set<Handle>> SceneProcessor::createDrawBucketHandles(
+    const std::vector<BucketEntry> &entries, const std::vector<MultiDrawBucket> &drawBuckets) const
 {
     std::vector<std::set<Handle>> handles;
     handles.resize(drawBuckets.size());
@@ -248,7 +262,8 @@ std::vector<std::set<Handle>> SceneProcessor::createDrawBucketHandles(const std:
     return handles;
 }
 
-std::vector<DrawElementsIndirectCommand> SceneProcessor::createDrawCommands(const std::vector<BucketEntry> &entries)
+std::vector<DrawElementsIndirectCommand> SceneProcessor::createDrawCommands(
+    const std::vector<BucketEntry> &entries) const
 {
     std::vector<DrawElementsIndirectCommand> commands;
     commands.reserve(totals_.primitives);
@@ -276,10 +291,13 @@ std::vector<DrawElementsIndirectCommand> SceneProcessor::createDrawCommands(cons
     return commands;
 }
 
-std::vector<MultiDrawBucket> SceneProcessor::createDrawBuckets(const std::vector<BucketEntry> &entries)
+std::vector<MultiDrawBucket> SceneProcessor::createDrawBuckets(const std::vector<BucketEntry> &entries) const
 {
     using enum ShaderType;
     using enum AlphaMode;
+
+    if (entries.empty())
+        return {};
 
     std::vector<MultiDrawBucket> buckets;
 
@@ -318,7 +336,7 @@ std::vector<MultiDrawBucket> SceneProcessor::createDrawBuckets(const std::vector
 }
 
 std::vector<std::vector<std::uint32_t>> SceneProcessor::createMatricesBaseIndexMap(
-    const std::vector<BucketEntry> &entries)
+    const std::vector<BucketEntry> &entries) const
 {
     std::uint32_t matricesIndex{0};
     std::vector<std::vector<std::uint32_t>> baseIndices;
@@ -335,13 +353,14 @@ std::vector<std::vector<std::uint32_t>> SceneProcessor::createMatricesBaseIndexM
     return baseIndices;
 }
 
-VAOs SceneProcessor::createVAO(const std::vector<BucketEntry> &entries, const ProcessedVertices &processedVertices)
+VAOs SceneProcessor::createVAO(const std::vector<BucketEntry> &entries,
+                               const ProcessedVertices &processedVertices) const
 {
     std::vector<std::uint32_t> indices;
     indices.reserve(totals_.indices);
 
     for (const BucketEntry &entry : entries)
-        std::copy(entry.primitive->indices.begin(), entry.primitive->indices.end(), std::back_inserter(indices));
+        indices.insert(indices.end(), entry.primitive->indices.begin(), entry.primitive->indices.end());
 
     BufferBuilder builder;
     return builder.buildVAO(processedVertices.vertices, indices);
@@ -350,9 +369,10 @@ VAOs SceneProcessor::createVAO(const std::vector<BucketEntry> &entries, const Pr
 SSBOs SceneProcessor::createSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
                                   const std::vector<glm::mat4> &matrices,
                                   const std::vector<PrimitiveMetadata> &metadata,
+                                  const std::vector<Primitive::VertexSkin> &vertexSkins,
                                   const std::vector<VisibilityBufferMap> &visibilityMap,
                                   const std::vector<VertexBufferMap> &vertexBufferMap, const std::vector<AABB> &aabbs,
-                                  BufferBuilder::Sizes alignedSizes)
+                                  BufferBuilder::Sizes alignedSizes) const
 {
     BufferBuilder builder;
 
@@ -365,13 +385,14 @@ SSBOs SceneProcessor::createSSBOs(const std::vector<DrawElementsIndirectCommand>
         .drawCounts = alignedSizes.drawCounts * cascadeSized,
         .cullResults = alignedSizes.cullResults * cascadeSized,
         .visibleInstances = alignedSizes.visibleInstances * cascadeSized,
-        .drawCommandsSize = alignedSizes.drawCommandsSize * cascadeSized,
+        .drawCommands = alignedSizes.drawCommands * cascadeSized,
+        .boneTransforms = alignedSizes.boneTransforms,
     };
 
-    return builder.buildSSBOs(commands, matrices, metadata, visibilityMap, vertexBufferMap, aabbs, sizes);
+    return builder.buildSSBOs(commands, matrices, metadata, vertexSkins, visibilityMap, vertexBufferMap, aabbs, sizes);
 }
 
-std::vector<glm::mat4> SceneProcessor::createMatrices(const std::vector<BucketEntry> &entries)
+std::vector<glm::mat4> SceneProcessor::createMatrices(const std::vector<BucketEntry> &entries) const
 {
     std::vector<glm::mat4> matrices;
     matrices.reserve(totals_.instances);
@@ -383,7 +404,7 @@ std::vector<glm::mat4> SceneProcessor::createMatrices(const std::vector<BucketEn
     return matrices;
 }
 
-std::vector<PrimitiveMetadata> SceneProcessor::createMetadata(const std::vector<BucketEntry> &entries)
+std::vector<PrimitiveMetadata> SceneProcessor::createMetadata(const std::vector<BucketEntry> &entries) const
 {
     std::vector<PrimitiveMetadata> metadata;
     metadata.resize(entries.size());
@@ -394,7 +415,7 @@ std::vector<PrimitiveMetadata> SceneProcessor::createMetadata(const std::vector<
 }
 
 void SceneProcessor::setVisibleInstancesBaseIndex(const std::vector<BucketEntry> &entries,
-                                                  std::vector<PrimitiveMetadata> &metadata)
+                                                  std::vector<PrimitiveMetadata> &metadata) const
 {
     std::uint32_t visibleIndex{0};
 
@@ -408,7 +429,7 @@ void SceneProcessor::setVisibleInstancesBaseIndex(const std::vector<BucketEntry>
 }
 
 void SceneProcessor::setMetadataMaterials(const std::vector<BucketEntry> &entries,
-                                          std::vector<PrimitiveMetadata> &metadata)
+                                          std::vector<PrimitiveMetadata> &metadata) const
 {
     for (std::size_t i{0}; i < entries.size(); ++i)
     {
@@ -439,7 +460,7 @@ void SceneProcessor::setMetadataMaterials(const std::vector<BucketEntry> &entrie
 
 std::vector<VisibilityBufferMap> SceneProcessor::createVisibilityBufferMap(
     const std::vector<SceneProcessor::BucketEntry> &entries, const std::vector<PrimitiveMetadata> &metadata,
-    const std::vector<MultiDrawBucket> &buckets)
+    const std::vector<MultiDrawBucket> &buckets) const
 {
     std::vector<VisibilityBufferMap> map;
     map.reserve(totals_.instances);
@@ -457,7 +478,7 @@ std::vector<VisibilityBufferMap> SceneProcessor::createVisibilityBufferMap(
             const std::uint32_t visibleInstancesBufferBaseIndex{metaEntry.visibleInstancesBaseIndex};
             const std::uint32_t currentBucket{static_cast<std::uint32_t>(i)};
 
-            for (std::size_t k{0}; k < transforms.size(); ++k)
+            for (const Transform &transform : transforms)
             {
                 map.emplace_back(VisibilityBufferMap{
                     .sharedIndex = j,
@@ -472,7 +493,7 @@ std::vector<VisibilityBufferMap> SceneProcessor::createVisibilityBufferMap(
     return map;
 }
 
-std::vector<VertexBufferMap> SceneProcessor::createVertexBufferMap(const std::vector<BucketEntry> &entries)
+std::vector<VertexBufferMap> SceneProcessor::createVertexBufferMap(const std::vector<BucketEntry> &entries) const
 {
     std::size_t currentVertex{0};
     std::vector<VertexBufferMap> vertexBufferMap;
@@ -500,7 +521,34 @@ std::vector<VertexBufferMap> SceneProcessor::createVertexBufferMap(const std::ve
     return vertexBufferMap;
 }
 
-std::vector<std::uint32_t> SceneProcessor::createMetadataBridge(const std::vector<BucketEntry> &entries)
+std::unordered_map<Handle, std::uint32_t> SceneProcessor::createBoneTransformMap(
+    const std::vector<BucketEntry> &entries) const
+{
+    std::unordered_map<Handle, std::uint32_t> boneTransformsMap;
+    std::uint32_t boneBufferOffset{0};
+
+    for (const BucketEntry &entry : entries)
+    {
+        std::size_t numVertices{entry.primitive->vertices.size()};
+
+        if (!entry.primitive->vertexSkins.has_value())
+            continue;
+
+        // Per model - global transforms for bones (bone IDs)
+        auto [iter, inserted] = boneTransformsMap.try_emplace(entry.handle, boneBufferOffset);
+
+        if (inserted)
+        {
+            std::uint32_t numBoneTransforms{
+                static_cast<std::uint32_t>(entry.animation->skeleton.skin->invBindMatrices.size())};
+            boneBufferOffset += numBoneTransforms;
+        }
+    }
+
+    return boneTransformsMap;
+}
+
+std::vector<std::uint32_t> SceneProcessor::createMetadataBridge(const std::vector<BucketEntry> &entries) const
 {
     std::vector<std::uint32_t> bridge(entries.size());
 
@@ -510,8 +558,9 @@ std::vector<std::uint32_t> SceneProcessor::createMetadataBridge(const std::vecto
     return bridge;
 }
 
-SceneProcessor::ProcessedVertices SceneProcessor::createVertexSkinData(const std::vector<BucketEntry> &entries,
-                                                                       std::vector<Primitive::Vertex> &&vertices)
+SceneProcessor::ProcessedVertices SceneProcessor::createVertexSkinData(
+    const std::vector<BucketEntry> &entries, const std::unordered_map<Handle, std::uint32_t> &boneTransformMap,
+    std::vector<Primitive::Vertex> &&vertices) const
 {
     ProcessedVertices skinData;
     skinData.vertices = std::move(vertices);
@@ -529,12 +578,29 @@ SceneProcessor::ProcessedVertices SceneProcessor::createVertexSkinData(const std
             continue;
         }
 
+        // Per-vertex - each vertex gets a direct index into an SSBO with weights and IDs
         const std::vector<Primitive::VertexSkin> &vertexSkins{entry.primitive->vertexSkins.value()};
+
+        auto iter = boneTransformMap.find(entry.handle);
+        if (iter == boneTransformMap.end())
+        {
+            std::cerr << "ERROR: Handle " << entry.handle << " missing from bone transform map" << std::endl;
+            throw std::runtime_error("Missing handle from bone transforms");
+        }
+
+        std::size_t offset{iter->second};
 
         for (std::size_t i{0}; i < numVertices; ++i)
         {
             skinData.vertices[vertexIndex + i].boneDataIndex = skinDataIndex++;
-            skinData.vertexSkins.push_back({vertexSkins[i]});
+
+            glm::uvec4 boneIDs{vertexSkins[i].boneIDs};
+
+            for (std::size_t j{0}; j < 4; ++j)
+                if (vertexSkins[i].weights[j] > 0.0f)
+                    boneIDs[j] += offset;
+
+            skinData.vertexSkins.push_back({vertexSkins[i].weights, boneIDs});
         }
 
         vertexIndex += numVertices;

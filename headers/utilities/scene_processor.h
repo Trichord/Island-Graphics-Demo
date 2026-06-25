@@ -40,21 +40,22 @@ class SceneProcessor
         std::vector<std::uint32_t> metadataBridge;
         std::vector<std::set<Handle>> drawBucketHandles;
         std::vector<std::vector<std::uint32_t>> matricesBaseIndexMap;
+        std::unordered_map<Handle, std::uint32_t> boneTransformsBaseIndexMap;
     };
 
     struct ProcessedScene
     {
         VAOs VAOs;
         SSBOs SSBOs;
-        SceneDescriptor sceneDescriptor;
-        BufferDescriptor bufferDescriptor;
+        SceneDescriptor sceneDescriptors;
+        BufferDescriptor bufferDescriptors;
         std::vector<MultiDrawBucket> drawBuckets;
     };
 
     SceneProcessor(Scene &scene, TextureManager &textureManager, bool shadowsEnabled);
 
     std::size_t getNumDynamicCubemaps() const;
-    [[nodiscard]] ProcessedScene processScene();
+    [[nodiscard]] ProcessedScene processScene() const;
 
   private:
     // For counting and reserving scene related sizes
@@ -66,6 +67,7 @@ class SceneProcessor
         std::size_t primitives{0};
         std::size_t dynamicCubemaps{0};
         std::size_t particles{0};
+        std::size_t boneTransforms{0};
     };
 
     // Intermediate step in building the final Draw Commands
@@ -92,48 +94,52 @@ class SceneProcessor
     AABB sceneAABB_;
     SceneTotals totals_;
     std::vector<BucketEntry> bucketEntries_;
-    std::unordered_map<Handle, std::uint32_t> matricesBaseIndex_;
 
     TextureManager &textureManager_;
 
     // Setup
-    SceneTotals getSceneTotals(Scene &scene);
-    std::vector<BucketEntry> createBucketEntries(Scene &scene);
+    SceneTotals getSceneTotals(Scene &scene) const;
+    std::vector<BucketEntry> createBucketEntries(Scene &scene, const SceneTotals &totals) const;
 
     // Counting
     [[nodiscard]] BufferBuilder::Sizes calculateBufferSizes(const std::vector<DrawElementsIndirectCommand> &commands,
-                                                            const std::vector<MultiDrawBucket> &buckets);
+                                                            const std::vector<MultiDrawBucket> &buckets) const;
 
     // Stage One (bucket entries only)
-    [[nodiscard]] std::vector<std::uint32_t> createMetadataBridge(const std::vector<BucketEntry> &entries);
-    [[nodiscard]] std::vector<AABB> createAABBs(const std::vector<BucketEntry> &entries);
-    [[nodiscard]] std::vector<glm::mat4> createMatrices(const std::vector<BucketEntry> &entries);
-    [[nodiscard]] std::vector<Primitive::Vertex> createVertices(const std::vector<BucketEntry> &entries);
-    [[nodiscard]] std::vector<PrimitiveMetadata> createMetadata(const std::vector<BucketEntry> &entries);
-    [[nodiscard]] std::vector<MultiDrawBucket> createDrawBuckets(const std::vector<BucketEntry> &entries);
-    [[nodiscard]] std::vector<VertexBufferMap> createVertexBufferMap(const std::vector<BucketEntry> &entries);
-    [[nodiscard]] std::vector<DrawElementsIndirectCommand> createDrawCommands(const std::vector<BucketEntry> &entries);
+    [[nodiscard]] std::vector<std::uint32_t> createMetadataBridge(const std::vector<BucketEntry> &entries) const;
+    [[nodiscard]] std::vector<AABB> createAABBs(const std::vector<BucketEntry> &entries) const;
+    [[nodiscard]] std::vector<glm::mat4> createMatrices(const std::vector<BucketEntry> &entries) const;
+    [[nodiscard]] std::vector<Primitive::Vertex> createVertices(const std::vector<BucketEntry> &entries) const;
+    [[nodiscard]] std::vector<PrimitiveMetadata> createMetadata(const std::vector<BucketEntry> &entries) const;
+    [[nodiscard]] std::vector<MultiDrawBucket> createDrawBuckets(const std::vector<BucketEntry> &entries) const;
+    [[nodiscard]] std::vector<VertexBufferMap> createVertexBufferMap(const std::vector<BucketEntry> &entries) const;
+    [[nodiscard]] std::vector<DrawElementsIndirectCommand> createDrawCommands(
+        const std::vector<BucketEntry> &entries) const;
     [[nodiscard]] std::vector<std::vector<std::uint32_t>> createMatricesBaseIndexMap(
-        const std::vector<BucketEntry> &entries);
+        const std::vector<BucketEntry> &entries) const;
+    [[nodiscard]] std::unordered_map<Handle, std::uint32_t> createBoneTransformMap(
+        const std::vector<BucketEntry> &entries) const;
 
     // Stage two (multi-vector dependent)
     [[nodiscard]] std::vector<std::set<Handle>> createDrawBucketHandles(
-        const std::vector<BucketEntry> &entries, const std::vector<MultiDrawBucket> &drawBuckets);
+        const std::vector<BucketEntry> &entries, const std::vector<MultiDrawBucket> &drawBuckets) const;
     [[nodiscard]] std::vector<VisibilityBufferMap> createVisibilityBufferMap(
         const std::vector<BucketEntry> &entries, const std::vector<PrimitiveMetadata> &metadata,
-        const std::vector<MultiDrawBucket> &buckets);
-    [[nodiscard]] ProcessedVertices createVertexSkinData(const std::vector<BucketEntry> &entries,
-                                                         std::vector<Primitive::Vertex> &&vertices);
+        const std::vector<MultiDrawBucket> &buckets) const;
+    [[nodiscard]] ProcessedVertices createVertexSkinData(
+        const std::vector<BucketEntry> &entries, const std::unordered_map<Handle, std::uint32_t> &boneTransformMap,
+        std::vector<Primitive::Vertex> &&vertices) const;
 
-    [[nodiscard]] VAOs createVAO(const std::vector<BucketEntry> &entries, const ProcessedVertices &vertices);
+    [[nodiscard]] VAOs createVAO(const std::vector<BucketEntry> &entries, const ProcessedVertices &vertices) const;
     [[nodiscard]] SSBOs createSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
                                     const std::vector<glm::mat4> &matrices,
                                     const std::vector<PrimitiveMetadata> &metadata,
+                                    const std::vector<Primitive::VertexSkin> &vertexSkins,
                                     const std::vector<VisibilityBufferMap> &visibilityMap,
-                                    const std::vector<VertexBufferMap> &vertexMap, const std::vector<AABB> &aabbs,
-                                    BufferBuilder::Sizes sizes);
+                                    const std::vector<VertexBufferMap> &vertexBufferMap, const std::vector<AABB> &aabbs,
+                                    BufferBuilder::Sizes alignedSizes) const;
     // Metadata helpers
-    void setMetadataMaterials(const std::vector<BucketEntry> &entries, std::vector<PrimitiveMetadata> &metadata);
+    void setMetadataMaterials(const std::vector<BucketEntry> &entries, std::vector<PrimitiveMetadata> &metadata) const;
     void setVisibleInstancesBaseIndex(const std::vector<BucketEntry> &entries,
-                                      std::vector<PrimitiveMetadata> &metadata);
+                                      std::vector<PrimitiveMetadata> &metadata) const;
 };

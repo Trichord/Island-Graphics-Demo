@@ -38,6 +38,7 @@ std::vector<SimpleAABB> simplifyAABBs(const std::vector<AABB> &aabbs)
 
 SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
                                 const std::vector<glm::mat4> &matrices, const std::vector<PrimitiveMetadata> &metadata,
+                                const std::vector<Primitive::VertexSkin> &vertexSkins,
                                 const std::vector<VisibilityBufferMap> &visibilityMap,
                                 const std::vector<VertexBufferMap> &vertexBufferMap, const std::vector<AABB> &aabbs,
                                 BufferBuilder::Sizes sizes) const
@@ -52,12 +53,15 @@ SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &
     buildSSBO(&buffers.metadata, sizes.metadata, BindingPointSSBO::metadata, true, metadata.data());
     buildSSBO(&buffers.drawCounts, sizes.drawCounts, BindingPointSSBO::drawCounts, true, nullptr);
     buildSSBO(&buffers.cullResults, sizes.cullResults, BindingPointSSBO::cullResults, false, nullptr);
-    buildSSBO(&buffers.drawCommands, sizes.drawCommandsSize, BindingPointSSBO::drawCommands, false, nullptr);
+    buildSSBO(&buffers.drawCommands, sizes.drawCommands, BindingPointSSBO::drawCommands, false, nullptr);
     buildSSBO(&buffers.visibleInstances, sizes.visibleInstances, BindingPointSSBO::visibleInstances, false, nullptr);
     buildSSBO(&buffers.drawCommandsSource, commands.size() * sizeof(DrawElementsIndirectCommand),
               BindingPointSSBO::drawCommandsSource, false, commands.data());
     buildSSBO(&buffers.vertexMap, vertexBufferMap.size() * sizeof(VertexBufferMap), BindingPointSSBO::vertexMap, false,
               vertexBufferMap.data());
+    buildSSBO(&buffers.boneTransforms, sizes.boneTransforms, BindingPointSSBO::boneTransforms, true, nullptr);
+    buildSSBO(&buffers.vertexBoneData, vertexSkins.size() * sizeof(Primitive::VertexSkin),
+              BindingPointSSBO::vertexBoneData, false, vertexSkins.data());
 
     return buffers;
 }

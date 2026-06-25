@@ -254,12 +254,25 @@ void Renderer::updateSceneTransforms(Scene &scene)
             updatedMatrices_.clear();
 
             for (const Transform &transform : worldTransforms)
-                updatedMatrices_.emplace_back(transform.getModelMatrix() * sceneEntry.primitives[i].modelSpaceTransform);
+                updatedMatrices_.emplace_back(transform.getModelMatrix() *
+                                              sceneEntry.primitives[i].modelSpaceTransform);
 
             glNamedBufferSubData(SSBOs_.matrices, static_cast<GLintptr>(bufferIndices[i] * sizeof(glm::mat4)),
                                  static_cast<GLsizeiptr>(worldTransforms.size() * sizeof(glm::mat4)),
                                  updatedMatrices_.data());
         }
+
+        auto boneIter = boneTransformsBaseIndexMap_.find(handle);
+
+        if (boneIter == boneTransformsBaseIndexMap_.end())
+            continue;
+
+        std::uint32_t boneTransformsOffset{boneIter->second};
+        const std::vector<glm::mat4> &jointMatrices{sceneEntry.animation->animator.getJointMatrices()};
+        
+        glNamedBufferSubData(SSBOs_.boneTransforms, static_cast<GLintptr>(boneTransformsOffset * sizeof(glm::mat4)),
+                             static_cast<GLsizeiptr>(jointMatrices.size() * sizeof(glm::mat4)),
+                             jointMatrices.data());
     }
 
     updatedTransformHandles.clear();

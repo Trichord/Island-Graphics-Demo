@@ -30,7 +30,7 @@ struct Primitive
 
     struct VertexSkin
     {
-        glm::vec4 weight{0.0f};
+        glm::vec4 weights{0.0f};
         glm::uvec4 boneIDs{0u};
     };
 
