@@ -7,7 +7,7 @@
 #include "types.glsl"
 #include "ubo.glsl"
 
-#ifdef SHADOWS
+#ifdef ALPHA_TESTED_SHADOWS
 #include "shadows.glsl"
 #endif
 
@@ -95,7 +95,7 @@ void main()
 	vec3 Lo = (diffuse + specular) * lightColor * NdotL;
 	vec3 ambient = ambientLight * albedo.rgb * ao;
 
-	#ifdef SHADOWS
+	#ifdef ALPHA_TESTED_SHADOWS
 	// Pick shadow cascade off frag depth
 	int layer = calculateCascadeIndex(-fsIn.viewFragPos.z);
 

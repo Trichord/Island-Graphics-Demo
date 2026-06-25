@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "application/graphics_settings.h"
-#include "models/aabb.h"
 #include "models/animator.h"
 #include "models/instanced_model.h"
 #include "models/model.h"
@@ -35,7 +34,6 @@ class Scene
 
     struct Entry
     {
-        AABB aabb;
         Handle handle{0};
         ShaderType shaderType{ShaderType::directionalPBR};
 

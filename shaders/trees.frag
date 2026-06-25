@@ -8,7 +8,7 @@
 #include "types.glsl"
 #include "ubo.glsl"
 
-#ifdef SHADOWS
+#ifdef ALPHA_TESTED_SHADOWS
 #include "shadows.glsl"
 #endif
 
@@ -28,7 +28,7 @@ flat in int metadataIndex;
 in vec4 worldPos;
 in vec3 normal;
 in vec2 texCoords;
-#ifdef SHADOWS
+#ifdef ALPHA_TESTED_SHADOWS
 in vec4 viewPos;
 #endif
 
@@ -75,7 +75,7 @@ void main()
 	float burleyFactor = burleyDiffuseFactor(FD90, NdotL, NdotV);
 	vec3 diffuse = kD * albedo.rgb * inversePi * burleyFactor;
 
-	#ifdef SHADOWS
+	#ifdef ALPHA_TESTED_SHADOWS
 	int layer = calculateCascadeIndex(-viewPos.z);
 	float shadow = ShadowContribution(lightMatrices[layer], worldPos, layer);
 	vec3 accumulatedLight = diffuse * lightColor * shadow * NdotL;

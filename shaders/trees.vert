@@ -40,7 +40,7 @@ out vec4 worldPos;
 out vec3 normal;
 out vec2 texCoords;
 
-#ifdef SHADOWS
+#ifdef ALPHA_TESTED_SHADOWS
 out vec4 viewPos;
 #endif
 
@@ -67,7 +67,7 @@ void main()
 	texCoords = aTexCoords;
 	worldPos = worldPosition;
 
-	#ifdef SHADOWS
+	#ifdef ALPHA_TESTED_SHADOWS
 	viewPos = viewMatrix * worldPosition;
 	#endif
 

@@ -69,10 +69,7 @@ void Application::run()
     // Create resources
     ThreadPool threadPool{std::max(2u, std::thread::hardware_concurrency() / 2u)};
     TextureManager textureManager{threadPool, graphicsSettings};
-
-    std::cout << "Compiling Shaders... ";
-    Renderer renderer(threadPool, textureManager, graphicsSettings);
-    std::cout << "Done" << std::endl;
+    Renderer renderer(textureManager, graphicsSettings);
 
     std::cout << "Loading Models... ";
     IslandScene islandScene(textureManager, graphicsSettings, "./res/scenes/island_scene.json");

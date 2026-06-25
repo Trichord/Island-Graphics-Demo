@@ -24,8 +24,6 @@
 #include "utilities/thread_pool.h"
 #include "utilities/transform.h"
 
-#include <iostream>
-
 namespace
 {
 // Hardware shadow bias
@@ -65,8 +63,8 @@ std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
 }
 } // namespace
 
-Renderer::Renderer(ThreadPool &threadPool, TextureManager &textureManager, const GraphicsSettings &settings)
-    : graphicsSettings_{settings}, threadPool_{threadPool}, textureManager_{textureManager},
+Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &settings)
+    : graphicsSettings_{settings}, textureManager_{textureManager},
       frameBuffer_{settings.screenWidth,
                    settings.screenHeight,
                    {.msaa = settings.msaa,
@@ -86,10 +84,6 @@ Renderer::Renderer(ThreadPool &threadPool, TextureManager &textureManager, const
                                                                  }}
                                                   : RenderTarget{}}
 {
-    loadShaders();
-    for (auto &shader : shaders_)
-        setupShader(shader);
-
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::frameBuffer), msaaResolve_.getColorTextureID());
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getDepthMapTextureID());
     glPolygonOffset(polygonFactor, polygonUnits);
@@ -127,7 +121,9 @@ void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    const std::vector<std::string> defines{graphicsSettings_.shadowResolution ? "SHADOWS" : ""};
+    const std::vector<std::string> defines{graphicsSettings_.shadowResolution ? "ALPHA_TESTED_SHADOWS" : "",
+                                           !boneTransformsBaseIndexMap_.empty() ? "SKINNED" : "",
+                                           graphicsSettings_.gamma != 1.0f ? "GAMMA_CORRECT" : ""};
 
     shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR.vert",
                                              "./shaders/directional_PBR.frag", defines};
@@ -142,16 +138,13 @@ void Renderer::loadShaders()
     // Internal use only shaders
     if (graphicsSettings_.shadowResolution)
     {
-        const std::vector<std::string> alphaDefine{"ALPHA_TESTED"};
-
         shaders_[shaderIndex(shadowMap)] = {shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
         shaders_[shaderIndex(shadowMapAlpha)] = {shadowMapAlpha, "./shaders/shadow_pass.vert",
-                                                 "./shaders/shadow_pass.frag", alphaDefine};
+                                                 "./shaders/shadow_pass.frag", defines};
     }
 
-    const std::vector<std::string> resolveDefines{graphicsSettings_.gamma != 1.0f ? "GAMMA_CORRECT" : ""};
     shaders_[shaderIndex(fboResolve)] = {fboResolve, "./shaders/fbo_resolve.vert", "./shaders/fbo_resolve.frag",
-                                         resolveDefines};
+                                         defines};
 
     // Compute
     cullShader_ = {"./shaders/frustum_cull.comp"};
@@ -269,10 +262,9 @@ void Renderer::updateSceneTransforms(Scene &scene)
 
         std::uint32_t boneTransformsOffset{boneIter->second};
         const std::vector<glm::mat4> &jointMatrices{sceneEntry.animation->animator.getJointMatrices()};
-        
+
         glNamedBufferSubData(SSBOs_.boneTransforms, static_cast<GLintptr>(boneTransformsOffset * sizeof(glm::mat4)),
-                             static_cast<GLsizeiptr>(jointMatrices.size() * sizeof(glm::mat4)),
-                             jointMatrices.data());
+                             static_cast<GLsizeiptr>(jointMatrices.size() * sizeof(glm::mat4)), jointMatrices.data());
     }
 
     updatedTransformHandles.clear();
