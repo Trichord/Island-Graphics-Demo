@@ -404,7 +404,7 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
                 vertexSkins.resize(accessor.count);
 
                 fastgltf::iterateAccessorWithIndex<glm::vec4>(
-                    asset, accessor, [&](glm::vec4 weight, std::size_t index) { vertexSkins[index].weight = weight; });
+                    asset, accessor, [&](glm::vec4 weight, std::size_t index) { vertexSkins[index].weights = weight; });
             }
 
             // Indices

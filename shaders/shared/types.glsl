@@ -40,3 +40,9 @@ struct AABB
     vec4 center;
     vec4 extent;
 };
+
+struct VertexSkin
+{
+    vec4 weights;
+    uvec4 boneIDs;
+};

@@ -236,9 +236,6 @@ enum class BindingPointSSBO : unsigned int
     drawCommandsSource,
     vbo,
     vertexMap,
-    shadowDrawCommands,
-    shadowCullResults,
-    shadowDrawCounts,
     boneTransforms,
     vertexBoneData
 };
@@ -247,6 +244,6 @@ namespace SSBOMinimum
 {
 inline constexpr int combinedBlocks{16};
 inline constexpr int combinedBindings{16};
-inline constexpr int vertexBlocks{4};
-inline constexpr int fragmentBlocks{4};
+inline constexpr int vertexBlocks{8};
+inline constexpr int fragmentBlocks{8};
 } // namespace SSBOMinimum

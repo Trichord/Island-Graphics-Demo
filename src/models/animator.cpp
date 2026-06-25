@@ -185,3 +185,8 @@ std::variant<glm::vec3, glm::quat> Animator::interpolateSampler(AnimationSampler
 
     return interpolate(sampler.interpolation, currentValue, nextValue, t);
 }
+
+const std::vector<glm::mat4> Animator::getJointMatrices() const
+{
+    return jointMatrices_;
+}
