@@ -5,8 +5,6 @@
 #include <vector>
 
 #include "application/graphics_settings.h"
-#include "models/animation.h"
-#include "models/animator.h"
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"

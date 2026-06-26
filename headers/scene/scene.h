@@ -9,7 +9,8 @@
 #include <vector>
 
 #include "application/graphics_settings.h"
-#include "models/animator.h"
+#include "models/animation/animator.h"
+#include "models/animation/skeletal_animation.h"
 #include "models/instanced_model.h"
 #include "models/model.h"
 #include "models/particles.h"
@@ -27,8 +28,7 @@ class Scene
   public:
     struct EntryAnimation
     {
-        Skeleton skeleton;
-        std::vector<Animation> animations;
+        SkeletalAnimation skeletalAnimation;
         Animator animator;
     };
 
@@ -39,7 +39,7 @@ class Scene
 
         std::vector<Primitive> primitives;
         std::vector<Transform> worldTransforms;
-        std::optional<EntryAnimation> animation;
+        std::optional<EntryAnimation> entryAnimation;
 
         std::optional<std::filesystem::path> modelPath;
     };

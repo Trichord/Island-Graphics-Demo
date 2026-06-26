@@ -5,9 +5,8 @@
 #include <optional>
 #include <vector>
 
-#include "models/animation.h"
+#include "models/animation/skeletal_animation.h"
 #include "models/primitive.h"
-#include "models/skeleton.h"
 #include "renderer/textures.h"
 #include "scene/handle.h"
 
@@ -36,6 +35,5 @@ std::vector<std::filesystem::path> getURIs(const fastgltf::Asset &asset, const s
 TextureDescriptor getTextureInfo(const fastgltf::Asset &asset, const fastgltf::TextureInfo &texInfo);
 std::vector<DeferredTexture> texturesFromAsset(const fastgltf::Asset &asset, const std::filesystem::path &parentPath,
                                                Handle handle);
-std::optional<Skeleton> loadSkeleton(const fastgltf::Asset &asset);
-std::optional<std::vector<Animation>> loadAnimations(const fastgltf::Asset &asset);
+std::optional<SkeletalAnimation> loadSkeletalAnimation(const fastgltf::Asset &asset);
 } // namespace AssetLoader

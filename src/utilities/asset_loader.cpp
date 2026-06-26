@@ -26,9 +26,10 @@
 #include <vector>
 
 #include "models/aabb.h"
-#include "models/animation.h"
+#include "models/animation/animation.h"
+#include "models/animation/skeletal_animation.h"
+#include "models/animation/skeleton.h"
 #include "models/primitive.h"
-#include "models/skeleton.h"
 #include "renderer/textures.h"
 #include "scene/handle.h"
 
@@ -39,45 +40,6 @@ struct PrimitiveRange
     std::size_t start{0};
     std::size_t count{0};
 };
-
-std::string fastgltfToErrorString(fastgltf::Error error)
-{
-    switch (error)
-    {
-    case fastgltf::Error::None:
-        return "No error.";
-    case fastgltf::Error::InvalidPath:
-        return "Invalid glTF path.";
-    case fastgltf::Error::MissingExtensions:
-        return "Required extensions not enabled.";
-    case fastgltf::Error::UnknownRequiredExtension:
-        return "Unsupported required extension.";
-    case fastgltf::Error::InvalidJson:
-        return "JSON parsing error.";
-    case fastgltf::Error::InvalidGltf:
-        return "Invalid or incomplete glTF structure.";
-    case fastgltf::Error::InvalidOrMissingAssetField:
-        return "Missing or invalid asset field.";
-    case fastgltf::Error::InvalidGLB:
-        return "Invalid GLB container.";
-    case fastgltf::Error::MissingField:
-        return "Missing field in JSON (internal use).";
-    case fastgltf::Error::MissingExternalBuffer:
-        return "External buffer not found.";
-    case fastgltf::Error::UnsupportedVersion:
-        return "Unsupported glTF version.";
-    case fastgltf::Error::InvalidURI:
-        return "Failed to parse URI.";
-    case fastgltf::Error::InvalidFileData:
-        return "Invalid file data or unknown file type.";
-    case fastgltf::Error::FailedWritingFiles:
-        return "Failed to write buffers/images to disk.";
-    case fastgltf::Error::FileBufferAllocationFailed:
-        return "Failed to allocate buffer for file.";
-    default:
-        return "Unknown FastGLTF error.";
-    }
-}
 
 AlphaMode fastgltfToAlphaMode(fastgltf::AlphaMode mode)
 {
@@ -259,6 +221,182 @@ void loadTRS(const fastgltf::Asset &asset, Skeleton &skeleton)
         }
     }
 }
+
+std::vector<Animation> loadAnimations(const fastgltf::Asset &asset)
+{
+    std::vector<Animation> animations(asset.animations.size());
+
+    for (std::size_t i{0}; i < asset.animations.size(); ++i)
+    {
+        const fastgltf::Animation &animation{asset.animations[i]};
+        animations[i].name = animation.name;
+
+        animations[i].samplers.resize(animation.samplers.size());
+        animations[i].channels.resize(animation.channels.size());
+
+        // Samplers
+        for (std::size_t j{0}; j < animation.samplers.size(); ++j)
+        {
+            const fastgltf::AnimationSampler &srcSampler{animation.samplers[j]};
+            AnimationSampler &dstSampler{animations[i].samplers[j]};
+
+            if (srcSampler.interpolation == fastgltf::AnimationInterpolation::CubicSpline)
+            {
+                std::cerr << "ERROR: Cubic spline interpolation not supported" << std::endl;
+                throw std::runtime_error("Unsupported animation interpolation");
+            }
+
+            dstSampler.interpolation = fastgltfToAnimationInterpolation(srcSampler.interpolation);
+
+            const auto &inputAccessor = asset.accessors[srcSampler.inputAccessor];
+            dstSampler.times.resize(inputAccessor.count);
+
+            fastgltf::iterateAccessorWithIndex<float>(
+                asset, inputAccessor, [&dstSampler](float time, std::size_t index) { dstSampler.times[index] = time; });
+        }
+
+        // Channels
+        for (std::size_t j{0}; j < animation.channels.size(); ++j)
+        {
+            const fastgltf::AnimationChannel srcChannel{animation.channels[j]};
+
+            std::size_t srcAccessorIndex{animation.samplers[srcChannel.samplerIndex].outputAccessor};
+            const auto &channelAccessor = asset.accessors[srcAccessorIndex];
+            AnimationSampler &dstSampler{animations[i].samplers[srcChannel.samplerIndex]};
+
+            dstSampler.values.resize(channelAccessor.count);
+
+            switch (srcChannel.path)
+            {
+            case fastgltf::AnimationPath::Translation:
+            case fastgltf::AnimationPath::Scale:
+                fastgltf::iterateAccessorWithIndex<glm::vec3>(
+                    asset, channelAccessor,
+                    [&dstSampler](glm::vec3 rOrS, std::size_t index) { dstSampler.values[index] = rOrS; });
+
+                break;
+
+            case fastgltf::AnimationPath::Rotation:
+                fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(
+                    asset, channelAccessor, [&dstSampler](fastgltf::math::fvec4 vec, std::size_t index) {
+                        dstSampler.values[index] = glm::quat{vec.w(), vec.x(), vec.y(), vec.z()};
+                    });
+                break;
+
+            default:
+                std::cerr << "WARNING: Unsupported gltf animation path" << std::endl;
+            }
+
+            AnimationChannel &dstChannel{animations[i].channels[j]};
+            dstChannel.path = fastgltfToAnimationPath(srcChannel.path);
+            dstChannel.samplerIndex = srcChannel.samplerIndex;
+
+            if (!srcChannel.nodeIndex.has_value())
+            {
+                std::cerr << "ERROR: No node target for animation channel" << std::endl;
+                throw std::runtime_error("Empty animation channel target node");
+            }
+
+            dstChannel.targetNode = srcChannel.nodeIndex.value();
+        }
+
+        // Find global start and end animation time
+        for (const AnimationSampler &sampler : animations[i].samplers)
+        {
+            float &globalStart{animations[i].start};
+            float &globalEnd{animations[i].end};
+            float samplerStart{sampler.times.front()};
+            float samplerEnd{sampler.times.back()};
+
+            if (samplerStart < globalStart)
+                globalStart = samplerStart;
+
+            if (samplerEnd > globalEnd)
+                globalEnd = samplerEnd;
+        }
+    }
+
+    return animations;
+}
+
+// Reorder parents array so that parents always come before children
+std::vector<size_t> reorderParents(const std::vector<int> &parents)
+{
+    std::vector<size_t> reordered;
+    reordered.reserve(parents.size());
+    std::vector<bool> seen(parents.size());
+
+    for (std::size_t i{0}; i < parents.size(); ++i)
+    {
+        if (seen[i])
+            continue;
+
+        std::size_t current{i};
+        std::vector<std::size_t> nodes;
+
+        while (!seen[current])
+        {
+            nodes.push_back(current);
+            seen[current] = true;
+
+            if (parents[current] < 0)
+                break;
+
+            current = static_cast<std::size_t>(parents[current]);
+        }
+
+        std::reverse(nodes.begin(), nodes.end());
+
+        for (std::size_t n : nodes)
+            reordered.push_back(n);
+    }
+
+    return reordered;
+}
+
+void reorderSkeleton(Skeleton &skeleton, const std::vector<size_t> &orderedParents,
+                     const std::vector<std::size_t> nodeMapping)
+{
+    const auto tOriginal = skeleton.restTranslations;
+    const auto rOriginal = skeleton.restRotations;
+    const auto sOriginal = skeleton.restScales;
+    const auto pOriginal = skeleton.parents;
+
+    for (std::size_t i{0}; i < skeleton.restTranslations.size(); ++i)
+    {
+        skeleton.restTranslations[i] = tOriginal[orderedParents[i]];
+        skeleton.restRotations[i] = rOriginal[orderedParents[i]];
+        skeleton.restScales[i] = sOriginal[orderedParents[i]];
+
+        skeleton.parents[i] = pOriginal[orderedParents[i]];
+
+        if (skeleton.parents[i] >= 0)
+            skeleton.parents[i] = static_cast<int>(nodeMapping[skeleton.parents[i]]);
+    }
+
+    std::unordered_map<std::size_t, std::vector<std::size_t>> remappedNodeToPrimitive;
+
+    for (auto &[nodeIndex, primitiveIndices] : skeleton.nodeToPrimitives)
+        remappedNodeToPrimitive[nodeMapping[nodeIndex]] = primitiveIndices;
+
+    skeleton.nodeToPrimitives = remappedNodeToPrimitive;
+
+    if (!skeleton.skin.has_value())
+        return;
+
+    const auto jOriginal = skeleton.skin->jointNodes;
+
+    for (std::size_t i{0}; i < skeleton.skin->jointNodes.size(); ++i)
+        skeleton.skin->jointNodes[i] = nodeMapping[jOriginal[i]];
+}
+
+void reorderAnimations(std::vector<Animation> &animations, const std::vector<std::size_t> nodeMapping)
+{
+    for (Animation &animation : animations)
+        for (AnimationChannel &channel : animation.channels)
+            channel.targetNode = nodeMapping[channel.targetNode];
+}
+
 } // namespace
 
 fastgltf::Asset AssetLoader::loadAsset(const std::filesystem::path &path)
@@ -268,8 +406,7 @@ fastgltf::Asset AssetLoader::loadAsset(const std::filesystem::path &path)
 
     if (data.error() != fastgltf::Error::None)
     {
-        std::cerr << "FastGLTF error loading from " << path << std::endl
-                  << fastgltfToErrorString(data.error()) << std::endl;
+        std::cerr << "Error loading: " << path << std::endl << fastgltf::getErrorMessage(data.error()) << std::endl;
         throw std::runtime_error("Failed to load asset");
     }
 
@@ -277,8 +414,12 @@ fastgltf::Asset AssetLoader::loadAsset(const std::filesystem::path &path)
         parser.loadGltfJson(data.get(), path.parent_path(),
                             fastgltf::Options::GenerateMeshIndices | fastgltf::Options::LoadExternalBuffers);
 
-    if (auto error = assetResult.error(); error != fastgltf::Error::None)
-        std::cerr << "fastgltf error while loading: " << path << std::endl;
+    if (assetResult.error() != fastgltf::Error::None)
+    {
+        std::cerr << "Error parsing: " << path << std::endl
+                  << fastgltf::getErrorMessage(assetResult.error()) << std::endl;
+        throw std::runtime_error("Failed to parse asset");
+    }
 
     return std::move(assetResult.get());
 }
@@ -436,8 +577,8 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
                 .vertices = std::move(vertices),
                 .indices = std::move(indices),
                 .vertexSkins = !vertexSkins.empty()
-                                ? std::optional{std::vector<Primitive::VertexSkin>{std::move(vertexSkins)}}
-                                : std::nullopt,
+                                   ? std::optional{std::vector<Primitive::VertexSkin>{std::move(vertexSkins)}}
+                                   : std::nullopt,
                 .materialIndex = materialIndex,
                 .alphaMode = fastgltfToAlphaMode(alphaMode),
             });
@@ -596,7 +737,7 @@ std::vector<AssetLoader::DeferredTexture> AssetLoader::texturesFromAsset(const f
     return deferredTextures;
 }
 
-std::optional<Skeleton> AssetLoader::loadSkeleton(const fastgltf::Asset &asset)
+std::optional<SkeletalAnimation> AssetLoader::loadSkeletalAnimation(const fastgltf::Asset &asset)
 {
     if (asset.animations.empty())
         return {};
@@ -629,7 +770,7 @@ std::optional<Skeleton> AssetLoader::loadSkeleton(const fastgltf::Asset &asset)
             continue;
 
         const PrimitiveRange &range{ranges[meshIndex.value()]};
-        std::vector<size_t> &indices{skeleton.nodeToPrimitive[i]};
+        std::vector<size_t> &indices{skeleton.nodeToPrimitives[i]};
 
         indices.reserve(range.count);
 
@@ -637,105 +778,16 @@ std::optional<Skeleton> AssetLoader::loadSkeleton(const fastgltf::Asset &asset)
             indices.push_back(j);
     }
 
-    return skeleton;
-}
+    std::vector<Animation> animations{loadAnimations(asset)};
 
-std::optional<std::vector<Animation>> AssetLoader::loadAnimations(const fastgltf::Asset &asset)
-{
-    if (asset.animations.empty())
-        return {};
+    std::vector<std::size_t> reorderedParents{reorderParents(skeleton.parents)};
+    std::vector<size_t> remappedNodes(reorderedParents.size());
 
-    std::vector<Animation> animations(asset.animations.size());
+    for (std::size_t i{0}; i < reorderedParents.size(); ++i)
+        remappedNodes[reorderedParents[i]] = i;
 
-    for (std::size_t i{0}; i < asset.animations.size(); ++i)
-    {
-        const fastgltf::Animation &animation{asset.animations[i]};
-        animations[i].name = animation.name;
+    reorderSkeleton(skeleton, reorderedParents, remappedNodes);
+    reorderAnimations(animations, remappedNodes);
 
-        animations[i].samplers.resize(animation.samplers.size());
-        animations[i].channels.resize(animation.channels.size());
-
-        // Samplers
-        for (std::size_t j{0}; j < animation.samplers.size(); ++j)
-        {
-            const fastgltf::AnimationSampler &srcSampler{animation.samplers[j]};
-            AnimationSampler &dstSampler{animations[i].samplers[j]};
-
-            if (srcSampler.interpolation == fastgltf::AnimationInterpolation::CubicSpline)
-            {
-                std::cerr << "ERROR: Cubic spline interpolation not supported" << std::endl;
-                throw std::runtime_error("Unsupported animation interpolation");
-            }
-
-            dstSampler.interpolation = fastgltfToAnimationInterpolation(srcSampler.interpolation);
-
-            const auto &inputAccessor = asset.accessors[srcSampler.inputAccessor];
-            dstSampler.times.resize(inputAccessor.count);
-
-            fastgltf::iterateAccessorWithIndex<float>(
-                asset, inputAccessor, [&dstSampler](float time, std::size_t index) { dstSampler.times[index] = time; });
-        }
-
-        // Channels
-        for (std::size_t j{0}; j < animation.channels.size(); ++j)
-        {
-            const fastgltf::AnimationChannel srcChannel{animation.channels[j]};
-
-            std::size_t srcAccessorIndex{animation.samplers[srcChannel.samplerIndex].outputAccessor};
-            const auto &channelAccessor = asset.accessors[srcAccessorIndex];
-            AnimationSampler &dstSampler{animations[i].samplers[srcChannel.samplerIndex]};
-
-            dstSampler.values.resize(channelAccessor.count);
-
-            switch (srcChannel.path)
-            {
-            case fastgltf::AnimationPath::Translation:
-            case fastgltf::AnimationPath::Scale:
-                fastgltf::iterateAccessorWithIndex<glm::vec3>(
-                    asset, channelAccessor,
-                    [&dstSampler](glm::vec3 rOrS, std::size_t index) { dstSampler.values[index] = rOrS; });
-
-                break;
-
-            case fastgltf::AnimationPath::Rotation:
-                fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(
-                    asset, channelAccessor, [&dstSampler](fastgltf::math::fvec4 vec, std::size_t index) {
-                        dstSampler.values[index] = glm::quat{vec.w(), vec.x(), vec.y(), vec.z()};
-                    });
-                break;
-
-            default:
-                std::cerr << "WARNING: Unsupported gltf animation path" << std::endl;
-            }
-
-            AnimationChannel &dstChannel{animations[i].channels[j]};
-            dstChannel.path = fastgltfToAnimationPath(srcChannel.path);
-            dstChannel.samplerIndex = srcChannel.samplerIndex;
-
-            if (!srcChannel.nodeIndex.has_value())
-            {
-                std::cerr << "ERROR: No node target for animation channel" << std::endl;
-                throw std::runtime_error("Empty animation channel target node");
-            }
-
-            dstChannel.targetNode = srcChannel.nodeIndex.value();
-        }
-
-        // Find global start and end animation time
-        for (const AnimationSampler &sampler : animations[i].samplers)
-        {
-            float &globalStart{animations[i].start};
-            float &globalEnd{animations[i].end};
-            float samplerStart{sampler.times.front()};
-            float samplerEnd{sampler.times.back()};
-
-            if (samplerStart < globalStart)
-                globalStart = samplerStart;
-
-            if (samplerEnd > globalEnd)
-                globalEnd = samplerEnd;
-        }
-    }
-
-    return animations;
+    return SkeletalAnimation{skeleton, animations};
 }

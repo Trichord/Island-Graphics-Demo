@@ -261,7 +261,7 @@ void Renderer::updateSceneTransforms(Scene &scene)
             continue;
 
         std::uint32_t boneTransformsOffset{boneIter->second};
-        const std::vector<glm::mat4> &jointMatrices{sceneEntry.animation->animator.getJointMatrices()};
+        const std::vector<glm::mat4> &jointMatrices{sceneEntry.entryAnimation->animator.getJointMatrices()};
 
         glNamedBufferSubData(SSBOs_.boneTransforms, static_cast<GLintptr>(boneTransformsOffset * sizeof(glm::mat4)),
                              static_cast<GLsizeiptr>(jointMatrices.size() * sizeof(glm::mat4)), jointMatrices.data());

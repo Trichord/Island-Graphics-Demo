@@ -3,8 +3,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <optional>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 struct Skeleton
 {
@@ -21,7 +21,7 @@ struct Skeleton
     };
 
     std::vector<int> parents;
-    std::unordered_map<std::size_t, std::vector<size_t>> nodeToPrimitive;
+    std::unordered_map<std::size_t, std::vector<size_t>> nodeToPrimitives;
 
     std::vector<glm::vec3> restTranslations;
     std::vector<glm::quat> restRotations;
@@ -42,6 +42,6 @@ struct Skeleton
 
     Skeleton(std::size_t numNodes, std::size_t numJoints) : Skeleton(numNodes)
     {
-        skin = {numJoints};       
+        skin = {numJoints};
     }
 };

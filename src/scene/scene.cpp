@@ -14,7 +14,7 @@
 #include <vector>
 
 #include "application/graphics_settings.h"
-#include "models/animator.h"
+#include "models/animation/animator.h"
 #include "models/instanced_model.h"
 #include "models/model.h"
 #include "models/particles.h"
@@ -75,24 +75,16 @@ void validateSceneEntry(Scene::Entry &entry)
 
 std::optional<Scene::EntryAnimation> createEntryAnimation(const Model &model)
 {
-    auto &animations = model.getAnimations();
+    const auto &skeletalAnimation = model.getSkeletalAnimation();
 
-    if (!animations.has_value())
+    if (!skeletalAnimation.has_value())
         return {};
 
-    auto &skeleton = model.getSkeleton();
+    auto &skin = skeletalAnimation->skeleton.skin;
 
-    if (!skeleton.has_value())
-    {
-        std::cerr << "ERROR: model " << model.getPath() << " has animations with no skeleton" << std::endl;
-        throw std::runtime_error("Animated model with no skeleton");
-    }
-
-    auto &skin = skeleton.value().skin;
-
-    return Scene::EntryAnimation{
-        skeleton.value(), animations.value(),
-        Animator{skeleton.value().parents.size(), skin.has_value() ? skin.value().invBindMatrices.size() : 0}};
+    return Scene::EntryAnimation{skeletalAnimation.value(),
+                                 Animator{skeletalAnimation->skeleton.parents.size(),
+                                          skin.has_value() ? skin.value().invBindMatrices.size() : 0}};
 }
 
 } // namespace
@@ -240,7 +232,7 @@ void Scene::addModel(Handle handle, const Model &model, const Transform &transfo
         .shaderType = shaderType,
         .primitives = model.getPrimitives(),
         .worldTransforms = {transform},
-        .animation = createEntryAnimation(model),
+        .entryAnimation = createEntryAnimation(model),
         .modelPath = model.getPath(),
     });
 }
@@ -259,7 +251,7 @@ void Scene::addCubemappedModel(Handle handle, const Model &model, const std::fil
         .shaderType = shaderType,
         .primitives = model.getPrimitives(),
         .worldTransforms = {transform},
-        .animation = createEntryAnimation(model),
+        .entryAnimation = createEntryAnimation(model),
         .modelPath = model.getPath(),
     });
 }
@@ -279,7 +271,7 @@ void Scene::addInstancedModel(Handle handle, const InstancedModel &model, Shader
         .shaderType = shaderType,
         .primitives = model.getPrimitives(),
         .worldTransforms = std::move(transforms),
-        .animation = createEntryAnimation(model),
+        .entryAnimation = createEntryAnimation(model),
         .modelPath = model.getPath(),
     });
 }
@@ -366,25 +358,25 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
 
 void Scene::playAllAnimations(Scene::Entry &entry, float deltaTime)
 {
-    if (!entry.animation.has_value())
+    if (!entry.entryAnimation.has_value())
         return;
 
-    Scene::EntryAnimation &entryAnimation{entry.animation.value()};
-    const Skeleton &skeleton{entryAnimation.skeleton};
+    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
+    const Skeleton &skeleton{entryAnimation.skeletalAnimation.skeleton};
 
-    for (Animation &animation : entryAnimation.animations)
+    for (Animation &animation : entryAnimation.skeletalAnimation.animations)
         entryAnimation.animator.play(animation, skeleton, entry.primitives, deltaTime);
 }
 
 void Scene::playAnimation(Scene::Entry &entry, const std::string &name, float deltaTime)
 {
-    if (!entry.animation.has_value())
+    if (!entry.entryAnimation.has_value())
         return;
 
-    Scene::EntryAnimation &entryAnimation{entry.animation.value()};
-    const Skeleton &skeleton{entryAnimation.skeleton};
+    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
+    const Skeleton &skeleton{entryAnimation.skeletalAnimation.skeleton};
 
-    for (Animation &animation : entryAnimation.animations)
+    for (Animation &animation : entryAnimation.skeletalAnimation.animations)
         if (animation.name == name)
             entryAnimation.animator.play(animation, skeleton, entry.primitives, deltaTime);
 }

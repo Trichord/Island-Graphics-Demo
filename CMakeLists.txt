@@ -24,6 +24,7 @@ set(SOURCES
     src/application/glfw_callbacks.cpp
     src/application/settings_window.cpp
     src/models/aabb.cpp
+    src/models/animator.cpp
     src/models/instanced_model.cpp
     src/models/model.cpp
     src/models/particles.cpp
@@ -71,6 +72,10 @@ set(HEADERS
     headers/models/particles.h
     headers/models/primitive.h
     headers/models/skybox.h
+    headers/models/animation/animation.h
+    headers/models/animation/animator.h
+    headers/models/animation/skeletal_animation.h
+    headers/models/animation/skeleton.h
     headers/physics/jolt_impl.h
     headers/physics/physics_utilities.h
     headers/physics/player.h
@@ -109,7 +114,7 @@ set(HEADERS
     headers/utilities/world_vectors.h
 )
 
-add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} "headers/models/skeleton.h"  "headers/models/animation.h" "headers/models/animator.h" "src/models/animator.cpp")
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 # Include directories
 
