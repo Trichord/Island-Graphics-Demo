@@ -4,9 +4,9 @@
 #include <variant>
 #include <vector>
 
-#include "models/animation.h"
+#include "models/animation/animation.h"
+#include "models/animation/skeleton.h"
 #include "models/primitive.h"
-#include "models/skeleton.h"
 
 class Animator
 {

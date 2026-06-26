@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "models/aabb.h"
-#include "models/animation.h"
-#include "models/skeleton.h"
+#include "models/animation/animation.h"
+#include "models/animation/skeleton.h"
 
 enum class AlphaMode : std::uint8_t
 {

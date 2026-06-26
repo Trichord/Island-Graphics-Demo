@@ -150,13 +150,15 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene) const
         }
 
         // Skeletal animation only
-        if (!entry.animation.has_value())
+        if (!entry.entryAnimation.has_value())
             continue;
 
-        if (!entry.animation->skeleton.skin.has_value())
+        const auto &skin = entry.entryAnimation->skeletalAnimation.skeleton.skin;
+
+        if (!skin.has_value())
             continue;
 
-        totals.boneTransforms += entry.animation->skeleton.skin->invBindMatrices.size();
+        totals.boneTransforms += skin.value().invBindMatrices.size();
     }
 
     return totals;
@@ -179,7 +181,7 @@ std::vector<SceneProcessor::BucketEntry> SceneProcessor::createBucketEntries(Sce
             bucketEntries.emplace_back(BucketEntry{.handle = entry.handle,
                                                    .primitive = &primitive,
                                                    .transforms = entry.worldTransforms,
-                                                   .animation = entry.animation,
+                                                   .animation = entry.entryAnimation,
                                                    .shaderType = entry.shaderType,
                                                    .alphaMode = primitive.alphaMode,
                                                    .originalIndex = originalIndex++});
@@ -541,8 +543,9 @@ std::unordered_map<Handle, std::uint32_t> SceneProcessor::createBoneTransformMap
 
         if (inserted)
         {
-            std::uint32_t numBoneTransforms{
-                static_cast<std::uint32_t>(entry.animation->skeleton.skin->invBindMatrices.size())};
+            const auto &skin = entry.animation->skeletalAnimation.skeleton.skin;
+
+            std::uint32_t numBoneTransforms{static_cast<std::uint32_t>(skin->invBindMatrices.size())};
             boneBufferOffset += numBoneTransforms;
         }
     }

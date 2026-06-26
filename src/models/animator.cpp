@@ -1,4 +1,4 @@
-#include "models/animator.h"
+#include "models/animation/animator.h"
 
 #include <algorithm>
 #include <cmath>
@@ -6,45 +6,12 @@
 #include <variant>
 #include <vector>
 
-#include "models/animation.h"
+#include "models/animation/animation.h"
+#include "models/animation/skeleton.h"
 #include "models/primitive.h"
-#include "models/skeleton.h"
 
 namespace
 {
-std::vector<size_t> sortParents(const std::vector<int> &parents)
-{
-    std::vector<size_t> sorted;
-    sorted.reserve(parents.size());
-    std::vector<bool> seen(parents.size());
-
-    for (std::size_t i{0}; i < parents.size(); ++i)
-    {
-        if (seen[i])
-            continue;
-
-        std::size_t current{i};
-        std::vector<std::size_t> nodes;
-
-        while (!seen[current])
-        {
-            nodes.push_back(current);
-            seen[current] = true;
-
-            if (parents[current] < 0)
-                break;
-
-            current = static_cast<std::size_t>(parents[current]);
-        }
-
-        std::reverse(nodes.begin(), nodes.end());
-
-        for (std::size_t n : nodes)
-            sorted.push_back(n);
-    }
-
-    return sorted;
-}
 
 glm::mat4 composeTRS(const glm::vec3 &t, const glm::quat &r, const glm::vec3 s)
 {
@@ -101,11 +68,8 @@ void Animator::play(Animation &animation, const Skeleton &skeleton, std::vector<
         }
     }
 
-    // Note: this is just for testing CPU side. After verifying the whole pipeline, the parents array will be sorted and
-    // all node indices remapped at skeleton load time.
-    std::vector<size_t> sortedParents{sortParents(skeleton.parents)};
-
-    for (std::size_t i : sortedParents)
+    // Pre-sorted so parents always come before children
+    for (std::size_t i{0}; i < skeleton.parents.size(); ++i)
     {
         glm::mat4 localTRS{composeTRS(localTranslations_[i], localRotations_[i], localScales_[i])};
 
@@ -116,7 +80,7 @@ void Animator::play(Animation &animation, const Skeleton &skeleton, std::vector<
     }
 
     // Write any non skeletal transforms back to the primitive's model space transform
-    for (auto &[nodeIndex, primitiveIndices] : skeleton.nodeToPrimitive)
+    for (auto &[nodeIndex, primitiveIndices] : skeleton.nodeToPrimitives)
         for (std::size_t index : primitiveIndices)
             primitives[index].modelSpaceTransform = globalTransforms_[nodeIndex];
 
