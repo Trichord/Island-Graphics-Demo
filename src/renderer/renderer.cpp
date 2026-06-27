@@ -239,6 +239,7 @@ void Renderer::updateSceneTransforms(Scene &scene)
         const std::vector<std::uint32_t> &bufferIndices{matricesBaseIndices_[handle]};
         const Scene::Entry &sceneEntry{scene.getEntryByHandle(handle)};
         const std::vector<Transform> &worldTransforms{sceneEntry.worldTransforms};
+        auto boneIter = boneTransformsBaseIndexMap_.find(handle);
 
         updatedMatrices_.reserve(worldTransforms.size());
 
@@ -246,16 +247,24 @@ void Renderer::updateSceneTransforms(Scene &scene)
         {
             updatedMatrices_.clear();
 
+            const Primitive &primitive{sceneEntry.primitives[i]};
+
             for (const Transform &transform : worldTransforms)
-                updatedMatrices_.emplace_back(transform.getModelMatrix() *
-                                              sceneEntry.primitives[i].modelSpaceTransform);
+            {
+                const glm::mat4 &modelMatrix{transform.getModelMatrix()};
+
+                // Don't double apply model space transforms if skinned
+                const glm::mat4 worldTransform{boneIter == boneTransformsBaseIndexMap_.end()
+                                                   ? modelMatrix * primitive.modelSpaceTransform
+                                                   : modelMatrix};
+
+                updatedMatrices_.emplace_back(worldTransform);
+            }
 
             glNamedBufferSubData(SSBOs_.matrices, static_cast<GLintptr>(bufferIndices[i] * sizeof(glm::mat4)),
                                  static_cast<GLsizeiptr>(worldTransforms.size() * sizeof(glm::mat4)),
                                  updatedMatrices_.data());
         }
-
-        auto boneIter = boneTransformsBaseIndexMap_.find(handle);
 
         if (boneIter == boneTransformsBaseIndexMap_.end())
             continue;
