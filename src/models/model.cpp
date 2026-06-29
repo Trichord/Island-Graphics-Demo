@@ -86,10 +86,10 @@ void Model::recalculateAnimatedAABBs()
 
                     glm::vec4 acc{0.0f};
 
-                    for (std::size_t i{0}; i < 4; ++i)
+                    for (std::size_t j{0}; j < 4; ++j)
                     {
                         if (weights[i] > 0.0f)
-                            acc += weights[i] * jointMatrices[boneIDs[i]] * glm::vec4(position, 1.0f);
+                            acc += weights[j] * jointMatrices[boneIDs[j]] * glm::vec4(position, 1.0f);
                     }
 
                     min = glm::min(min, glm::vec3{acc});

@@ -21,8 +21,6 @@ class TextureManager
   public:
     TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings);
 
-    Handle assignHandle();
-
     // Add a gLTF model
     void loadModelTextures(const Handle handle, const fastgltf::Asset &asset, const std::filesystem::path &parentPath);
     void loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath);
@@ -80,7 +78,7 @@ class TextureManager
 
     // Private helper for material lookups. Mirrors the public API, except its not const
     std::span<Material> findMaterials(Handle handle);
-    void addMaterials(Handle handle, std::size_t size);
+    void addMaterials(Handle handle, std::size_t numMaterials);
 
     void validateState();
     void assignFallbacks();

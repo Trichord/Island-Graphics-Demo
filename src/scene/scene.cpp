@@ -96,6 +96,19 @@ Scene::Scene(TextureManager &textureManager, const GraphicsSettings &graphicsSet
     setupScene(jsonFile, graphicsSettings);
 }
 
+Handle Scene::assignHandle()
+{
+    static Handle nextHandle{1};
+    Handle handle{nextHandle++};
+
+    return handle;
+}
+
+void Scene::updateHandle(Handle handle)
+{
+    updatedModels_.insert(handle);
+}
+
 const std::vector<Scene::Entry> &Scene::getAllSceneEntries() const
 {
     return entries_;
@@ -321,7 +334,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
     {
         // Names are optional, entries by handle is not
         std::size_t entryIndex{entries_.size()};
-        Handle handle{textureManager_.assignHandle()};
+        Handle handle{assignHandle()};
 
         std::visit(overloaded{
                        [&](const ParticlesEntry &entry) {
@@ -379,9 +392,4 @@ void Scene::playAnimation(Scene::Entry &entry, const std::string &name, float de
     for (Animation &animation : entryAnimation.skeletalAnimation.animations)
         if (animation.name == name)
             entryAnimation.animator.play(animation, skeleton, entry.primitives, deltaTime);
-}
-
-void Scene::updateHandle(Handle handle)
-{
-    updatedModels_.insert(handle);
 }
