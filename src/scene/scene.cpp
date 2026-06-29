@@ -96,14 +96,6 @@ Scene::Scene(TextureManager &textureManager, const GraphicsSettings &graphicsSet
     setupScene(jsonFile, graphicsSettings);
 }
 
-Handle Scene::assignHandle()
-{
-    static Handle nextHandle{1};
-    Handle handle{nextHandle++};
-
-    return handle;
-}
-
 void Scene::updateHandle(Handle handle)
 {
     updatedModels_.insert(handle);
@@ -334,7 +326,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
     {
         // Names are optional, entries by handle is not
         std::size_t entryIndex{entries_.size()};
-        Handle handle{assignHandle()};
+        Handle handle{nextHandle_++};
 
         std::visit(overloaded{
                        [&](const ParticlesEntry &entry) {

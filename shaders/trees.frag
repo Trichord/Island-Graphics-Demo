@@ -1,15 +1,15 @@
 #version 460 core
 
-#include "binding_points.glsl"
-#include "constants.glsl"
-#include "foliage.glsl"
-#include "pbr.glsl"
-#include "textures.glsl"
-#include "types.glsl"
-#include "ubo.glsl"
+#include "shared/binding_points.glsl"
+#include "shared/constants.glsl"
+#include "shared/foliage.glsl"
+#include "shared/pbr.glsl"
+#include "shared/textures.glsl"
+#include "shared/types.glsl"
+#include "shared/ubo.glsl"
 
 #ifdef ALPHA_TESTED_SHADOWS
-#include "shadows.glsl"
+#include "shared/shadows.glsl"
 #endif
 
 // SSBOs

@@ -1,9 +1,9 @@
 #version 460 core
 
-#include "binding_points.glsl"
-#include "textures.glsl"
-#include "types.glsl"
-#include "ubo.glsl"
+#include "shared/binding_points.glsl"
+#include "shared/textures.glsl"
+#include "shared/types.glsl"
+#include "shared/ubo.glsl"
 
 // Constants
 const float waveSpeed = 0.05;

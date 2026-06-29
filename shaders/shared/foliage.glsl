@@ -1,6 +1,7 @@
 // Functions for rendering trees, grass, flowers, etc.
 
-#include "constants.glsl"
+// Constants
+const float alphaCutoff = 0.425;
 
 // Credit: Ben Golus "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage"
 float calcMipLevel(vec2 textureCoords)

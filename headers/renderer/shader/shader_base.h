@@ -32,7 +32,7 @@ class Shader
     void setMat4(const std::string &name, const glm::mat4 &value);
 
   protected:
-    static constexpr std::string_view shaderBasePath_{"./shaders/shared/"};
+    static constexpr std::string_view shaderBasePath_{"./shaders/"};
 
     Shader() = default;
     Shader(const Shader &) = delete;

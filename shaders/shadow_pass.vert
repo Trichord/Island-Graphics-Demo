@@ -1,10 +1,10 @@
 #version 460 core
 
-#include "binding_points.glsl"
-#include "textures.glsl"
-#include "types.glsl"
-#include "ubo.glsl"
-#include "wind.glsl"
+#include "shared/binding_points.glsl"
+#include "shared/textures.glsl"
+#include "shared/types.glsl"
+#include "shared/ubo.glsl"
+#include "shared/wind.glsl"
 
 // Attributes
 layout (location = 0) in vec3 aPos;
