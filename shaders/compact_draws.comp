@@ -1,7 +1,7 @@
 #version 460 core
 
-#include "binding_points.glsl"
-#include "types.glsl"
+#include "shared/binding_points.glsl"
+#include "shared/types.glsl"
 
 // Attributes
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;

@@ -1,9 +1,9 @@
 #version 460 core
 
 #ifdef ALPHA_TESTED_SHADOWS
-#include "binding_points.glsl"
-#include "textures.glsl"
-#include "types.glsl"
+#include "shared/binding_points.glsl"
+#include "shared/textures.glsl"
+#include "shared/types.glsl"
 
 // SSBOs
 layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO

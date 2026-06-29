@@ -1,6 +1,6 @@
 // Functions for Cook-Torrance BRDF
 
-#include "constants.glsl"
+#include "shared/constants.glsl"
 
 // Trowbridge-Reitz GGX for normal distribution function
 float distributionGGX(float NdotH, float roughness)

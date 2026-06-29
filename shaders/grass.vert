@@ -1,10 +1,10 @@
 #version 460 core
 
-#include "binding_points.glsl"
-#include "textures.glsl"
-#include "types.glsl"
-#include "ubo.glsl"
-#include "wind.glsl"
+#include "shared/binding_points.glsl"
+#include "shared/textures.glsl"
+#include "shared/types.glsl"
+#include "shared/ubo.glsl"
+#include "shared/wind.glsl"
 
 // Constants
 const vec3 worldUp = vec3(0.0, 1.0, 0.0);
