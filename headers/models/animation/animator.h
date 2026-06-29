@@ -18,7 +18,7 @@ class Animator
 
     void reset(Animation &animation);
 
-    const std::vector<glm::mat4> getJointMatrices() const;
+    const std::vector<glm::mat4>& getJointMatrices() const;
 
   private:
     float time_{0.0f};

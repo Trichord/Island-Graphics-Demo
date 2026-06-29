@@ -100,6 +100,7 @@ class Scene
     std::unordered_map<Handle, std::size_t> entriesByHandle_;
     std::unordered_map<std::string, std::size_t> entriesByName_;
 
+    Handle assignHandle();
     void setupScene(const std::filesystem::path &jsonFile, const GraphicsSettings &graphicsSettings);
 
     void loadGLTFTextures(Handle handle, const Model &model);

@@ -64,17 +64,6 @@ TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &s
                                              DynamicCubemaps::internalFormat, true});
 }
 
-Handle TextureManager::assignHandle()
-{
-    static Handle nextHandle{1};
-
-    Handle handle{nextHandle++};
-
-    materialLookup_[handle];
-
-    return handle;
-}
-
 void TextureManager::addDefaultMaterial(const Handle handle)
 {
     addMaterials(handle, 1);
@@ -355,22 +344,21 @@ void TextureManager::validateState()
     }
 }
 
-void TextureManager::addMaterials(Handle handle, std::size_t size)
+void TextureManager::addMaterials(Handle handle, std::size_t numMaterials)
 {
-    auto rangeIter = materialLookup_.find(handle);
+    const std::size_t currentSize{materials_.size()};
+    const std::size_t newSize{currentSize + numMaterials};
+    const MaterialRange range{currentSize, newSize};
 
-    if (rangeIter == materialLookup_.end())
-        missingHandleError(handle);
+    auto [rangeIter, inserted] = materialLookup_.try_emplace(handle, range);
 
-    auto &[_, range] = *rangeIter;
+    if (!inserted)
+    {
+        auto &[_, oldRange] = *rangeIter;
+        oldRange = range;
+    }
 
-    std::size_t begin{materials_.size()};
-    std::size_t end{begin + size};
-
-    range.begin = begin;
-    range.end = end;
-
-    materials_.resize(materials_.size() + size);
+    materials_.resize(newSize);
 }
 
 std::span<Material> TextureManager::findMaterials(Handle handle)

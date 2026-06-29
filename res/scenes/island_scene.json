@@ -1,7 +1,7 @@
 {
   "environment": {
-    "lightColor": [1.0, 0.95, 0.9],
-    "ambientLight": [0.168754, 0.168754, 0.168754],
+    "lightColor": [1.2, 1.15, 1.1],
+    "ambientLight": [0.22, 0.22, 0.22],
     "sunDirection": [-0.36669, -0.731219, -0.575202]
   },
   "wind": {
