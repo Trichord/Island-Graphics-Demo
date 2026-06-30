@@ -88,7 +88,7 @@ void Model::recalculateAnimatedAABBs()
 
                     for (std::size_t j{0}; j < 4; ++j)
                     {
-                        if (weights[i] > 0.0f)
+                        if (weights[j] > 0.0f)
                             acc += weights[j] * jointMatrices[boneIDs[j]] * glm::vec4(position, 1.0f);
                     }
 
