@@ -31,12 +31,10 @@
       "shader": "directionalPBR"
     },
     {
-      "type": "model",
+      "type": "instanced",
       "name": "butterfly",
-      "transform": {
-        "translation": [124.6624, 0.5, -62.8179]
-      },
       "modelPath": "./res/models/animated/butterfly/butterfly.gltf",
+      "positionsPath": "./res/positions/butterflies.txt",
       "shader": "baseColor"
     },
     {

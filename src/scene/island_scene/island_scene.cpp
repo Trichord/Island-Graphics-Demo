@@ -36,34 +36,42 @@ void IslandScene::onUpdate(float time, float deltaTime)
     }
 
     // Update butterfly positions and animations
-    constexpr float butterflySpeed{4.0f};
-    constexpr float heightMultiplier{0.075f};
+    constexpr float butterflySpeed{5.0f};
+    constexpr float heightMultiplier{0.04f};
     constexpr float bobSpeed{79.6227f};
     constexpr float radius{8.0f};
     constexpr float largeHeightWave{0.65f};
 
     Entry &butterfly{getEntry("butterfly")};
 
-    // Negative to move the butterfly "forward"
-    const float angle{-glm::radians(time * butterflySpeed)};
+    // Negative to orient the model properly
+    float baseAngle{-glm::radians(time * butterflySpeed)};
 
     for (std::size_t i{0}; i < butterfly.worldTransforms.size(); ++i)
     {
-        Transform &transform{butterfly.worldTransforms[i]};
-
         const glm::vec3 originalPos{butterflyOriginalPos_[i]};
-        const glm::vec3 newPos{glm::sin(angle) * radius, glm::sin(angle * bobSpeed) * heightMultiplier,
-                               glm::cos(angle) * radius};
+        const bool reversePattern{static_cast<int>(originalPos.x) % 2 == 0};
+        const float angle{reversePattern ? -baseAngle : baseAngle};
 
-        const glm::vec3 heightModifier{0.0f, glm::cos(angle) * largeHeightWave, 0.0f};
+        const float sinTheta{glm::sin(angle)};
+        const float cosTheta{glm::cos(angle)};
 
+        // Figure 8 (Lemniscate of Gerono)
+        const glm::vec3 newPos{radius * sinTheta, glm::sin(angle * bobSpeed) * heightMultiplier,
+                               radius * (sinTheta * cosTheta)};
+        const glm::vec3 heightModifier{0.0f, cosTheta * largeHeightWave, 0.0f};
+
+        Transform &transform{butterfly.worldTransforms[i]};
         transform.setAbsoluteTranslation(originalPos + newPos + heightModifier);
 
-        float yaw{glm::degrees(glm::atan(glm::cos(angle), -glm::sin(angle)))};
-        transform.setAbsoluteRotation(glm::vec3{0.0f, yaw + 180.0f, 0.0f});
+        // Rotate to match new position
+        const float modelFlip{reversePattern ? 0.0f : 180.0f};
+
+        float yaw{glm::degrees(glm::atan(cosTheta, glm::cos(2.0f * angle)))};
+        transform.setAbsoluteRotation(glm::vec3{0.0f, yaw + modelFlip, 0.0f});
     }
 
-    playAnimation(butterfly, "fly", deltaTime * 0.25f);
+    playAnimation(butterfly, "fly", deltaTime * 0.75f);
 
     // Flag updated models
     updateHandle(spaceModel.handle);
