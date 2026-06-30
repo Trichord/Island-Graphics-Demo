@@ -9,7 +9,7 @@
 const float waveSpeed = 0.05;
 const float dudvStrength = 0.01;
 const float specularDamper = 0.2;
-const float waterTransparency = 0.35;
+const float waterTransparency = 0.45;
 const vec4 waterColor = vec4(0.01, 0.48, 0.68, 0.0) * 0.2;
 
 // SSBOs
