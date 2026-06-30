@@ -157,7 +157,7 @@ DirectionalLight &Scene::getGlobalLight()
     return globalLightSource_;
 }
 
-glm::vec3 Scene::getAmbientLight() const
+const glm::vec3 &Scene::getAmbientLight() const
 {
     return ambientLight_;
 }

@@ -125,6 +125,7 @@ void Renderer::loadShaders()
                                            !boneTransformsBaseIndexMap_.empty() ? "SKINNED" : "",
                                            graphicsSettings_.gamma != 1.0f ? "GAMMA_CORRECT" : ""};
 
+    shaders_[shaderIndex(baseColor)] = {baseColor, "./shaders/base_color.vert", "./shaders/base_color.frag", defines};
     shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR.vert",
                                              "./shaders/directional_PBR.frag", defines};
     shaders_[shaderIndex(grass)] = {grass, "./shaders/grass.vert", "./shaders/grass.frag", defines};

@@ -54,7 +54,7 @@ class Scene
 
     // Environment
     float getWindStrength() const;
-    glm::vec3 getAmbientLight() const;
+    const glm::vec3 &getAmbientLight() const;
     DirectionalLight &getGlobalLight();
     const glm::vec3 &getWindDirection() const;
 
@@ -71,7 +71,7 @@ class Scene
     void setAmbientLight(const glm::vec3 &ambient);
 
   protected:
-    virtual void onUpdate(float deltaTime) = 0;
+    virtual void onUpdate(float time, float deltaTime) = 0;
 
     Entry &getEntry(const std::string &name);
     Entry &getEntry(const Handle handle);

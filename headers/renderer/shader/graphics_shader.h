@@ -11,6 +11,7 @@
 
 enum class ShaderType
 {
+    baseColor,
     directionalPBR,
     reflective,
     trees,
