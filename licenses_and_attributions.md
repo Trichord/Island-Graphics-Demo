@@ -420,7 +420,7 @@ This work is based on "Set of Modular Rocks" (https://sketchfab.com/3d-models/se
 </details>
 
 
-<h2> Wooden Boat</h2>
+<h2>Wooden Boat</h2>
 
 <details>
 <summary>By o0ozexo0o</summary>
@@ -438,3 +438,24 @@ Model License:
 
 If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
 This work is based on "Wooden Boat" (https://sketchfab.com/3d-models/wooden-boat-55118b23a5494e4b81eed831b9f8c871) by o0ozexo0o (https://sketchfab.com/dadndan0091) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+</details>
+
+<h2>Butterfly</h2>
+
+
+<details>
+<summary>By SR_Spark</summary>
+
+Model Information:
+* title:	Butterflies - Poster 2
+* source:	https://sketchfab.com/3d-models/butterflies-poster-2-444a930949e44c3abaa085fbb5a63e0c
+* author:	SR_Spark (https://sketchfab.com/SR_Spark)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Butterflies - Poster 2" (https://sketchfab.com/3d-models/butterflies-poster-2-444a930949e44c3abaa085fbb5a63e0c) by SR_Spark (https://sketchfab.com/SR_Spark) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+	
+</details>
