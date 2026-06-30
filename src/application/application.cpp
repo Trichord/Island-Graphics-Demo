@@ -93,7 +93,7 @@ void Application::run()
         lastFrame_ = currentFrame_;
 
         // Update
-        islandScene.onUpdate(deltaTime_);
+        islandScene.onUpdate(currentFrame_, deltaTime_);
 
         glfwPollEvents();
         processKeyboard(islandScene, physicsHandler);

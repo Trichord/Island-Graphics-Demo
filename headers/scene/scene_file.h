@@ -11,7 +11,8 @@
 #include "renderer/shader/graphics_shader.h"
 #include "utilities/transform.h"
 
-NLOHMANN_JSON_SERIALIZE_ENUM(ShaderType, {{ShaderType::directionalPBR, "directionalPBR"},
+NLOHMANN_JSON_SERIALIZE_ENUM(ShaderType, {{ShaderType::baseColor, "baseColor"},
+                                          {ShaderType::directionalPBR, "directionalPBR"},
                                           {ShaderType::reflective, "reflective"},
                                           {ShaderType::trees, "trees"},
                                           {ShaderType::grass, "grass"},
@@ -25,7 +26,7 @@ struct ModelEntry
     std::string name;
     Transform transform;
     std::filesystem::path modelPath;
-    ShaderType shader{ShaderType::directionalPBR};
+    ShaderType shader{ShaderType::baseColor};
 };
 
 struct InstancedModelEntry
@@ -35,7 +36,7 @@ struct InstancedModelEntry
     float maxScale{0.0f};
     std::filesystem::path modelPath;
     std::filesystem::path positionsPath;
-    ShaderType shader{ShaderType::directionalPBR};
+    ShaderType shader{ShaderType::baseColor};
 };
 
 struct CubeMappedModelEntry
@@ -44,7 +45,7 @@ struct CubeMappedModelEntry
     Transform transform;
     std::filesystem::path modelPath;
     std::filesystem::path cubemapPath;
-    ShaderType shader{ShaderType::directionalPBR};
+    ShaderType shader{ShaderType::baseColor};
 };
 
 struct ParticlesEntry
