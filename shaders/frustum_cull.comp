@@ -80,11 +80,13 @@ uniform float nearPlane;
 
 void main()
 {
-    if (gl_GlobalInvocationID.x >= maps.length())
+    uint instance = gl_GlobalInvocationID.x;
+
+    if (instance >= maps.length())
         return;
     
-    mat4 modelMatrix = matrices[gl_GlobalInvocationID.x];
-    BufferMap map = maps[gl_GlobalInvocationID.x];
+    mat4 modelMatrix = matrices[instance];
+    BufferMap map = maps[instance];
     
     AABB aabb = AABBs[map.sharedBaseIndex];
     uint visibilityBufferBaseIndex = map.visibleInstancesBaseIndex;
@@ -117,5 +119,5 @@ void main()
     }
     
     uint counter = atomicAdd(cullResults[map.sharedBaseIndex], 1);
-    visibleInstances[visibilityBufferBaseIndex + counter] = gl_GlobalInvocationID.x;        
+    visibleInstances[visibilityBufferBaseIndex + counter] = instance;        
 }

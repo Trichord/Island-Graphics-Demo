@@ -24,8 +24,8 @@ struct Primitive
         std::uint32_t normal{0};
         std::uint32_t tangent{0};
         std::uint32_t texCoords{0};
-        std::uint32_t boneDataIndex{0xFFFFFFFF};
-        std::uint32_t color{};
+        std::uint32_t vboIndex{0};
+        std::uint32_t color{0};
     };
 
     struct VertexSkin

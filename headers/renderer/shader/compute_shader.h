@@ -14,5 +14,5 @@ class ComputeShader : public Shader
     ComputeShader(ComputeShader &&other) = default;
     ComputeShader &operator=(ComputeShader &&other) = default;
 
-    void dispatch(int x, int y, int z);
+    void dispatch(std::uint32_t x, std::uint32_t y, std::uint32_t z);
 };

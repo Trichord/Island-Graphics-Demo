@@ -70,10 +70,12 @@ class Renderer
     ComputeShader cullShader_;
     ComputeShader compactionShader_;
     ComputeShader particleShader_;
+    ComputeShader skinningShader_;
 
     std::uint32_t cullWorkGroupSize_{0};
     std::uint32_t compactionWorkGroupSize_{0};
     std::uint32_t particleWorkGroupSize_{0};
+    std::uint32_t skinnedVertexGroupSize_{0};
 
     // SSBO sizes for rebinding buffer ranges.
     std::uint32_t drawCommandsSize_{0};
@@ -112,6 +114,7 @@ class Renderer
     void updateCameraUBO(Camera &camera);
     void updateTimeUBO(float deltaTime);
     void updateParticles();
+    void updateSkinnedVertices();
     void updateSceneTransforms(Scene &scene);
     void updateCascades(Scene &scene, bool lightChanged);
     void updateFrustumPlanesUBO(const glm::mat4 &cullMatrix);

@@ -39,6 +39,7 @@ std::vector<SimpleAABB> simplifyAABBs(const std::vector<AABB> &aabbs)
 SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
                                 const std::vector<glm::mat4> &matrices, const std::vector<PrimitiveMetadata> &metadata,
                                 const std::vector<Primitive::VertexSkin> &vertexSkins,
+                                const std::vector<Primitive::Vertex> &originalSkinnedVerts,
                                 const std::vector<VisibilityBufferMap> &visibilityMap,
                                 const std::vector<VertexBufferMap> &vertexBufferMap, const std::vector<AABB> &aabbs,
                                 BufferBuilder::Sizes sizes) const
@@ -59,9 +60,13 @@ SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &
               BindingPointSSBO::drawCommandsSource, false, commands.data());
     buildSSBO(&buffers.vertexMap, vertexBufferMap.size() * sizeof(VertexBufferMap), BindingPointSSBO::vertexMap, false,
               vertexBufferMap.data());
+
+    // Animation related SSBOs
     buildSSBO(&buffers.boneTransforms, sizes.boneTransforms, BindingPointSSBO::boneTransforms, true, nullptr);
     buildSSBO(&buffers.vertexBoneData, vertexSkins.size() * sizeof(Primitive::VertexSkin),
               BindingPointSSBO::vertexBoneData, false, vertexSkins.data());
+    buildSSBO(&buffers.skinnedVertexSource, originalSkinnedVerts.size() * sizeof(Primitive::Vertex),
+              BindingPointSSBO::skinnedVertexSource, false, originalSkinnedVerts.data());
 
     return buffers;
 }
@@ -105,7 +110,7 @@ VAOs BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices,
     glVertexArrayAttribFormat(vao.vao, 1, 4, GL_INT_2_10_10_10_REV, GL_TRUE, offsetof(Primitive::Vertex, normal));
     glVertexArrayAttribFormat(vao.vao, 2, 4, GL_INT_2_10_10_10_REV, GL_TRUE, offsetof(Primitive::Vertex, tangent));
     glVertexArrayAttribFormat(vao.vao, 3, 2, GL_HALF_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, texCoords));
-    glVertexArrayAttribIFormat(vao.vao, 4, 1, GL_UNSIGNED_INT, offsetof(Primitive::Vertex, boneDataIndex));
+    glVertexArrayAttribIFormat(vao.vao, 4, 1, GL_UNSIGNED_INT, offsetof(Primitive::Vertex, vboIndex));
     glVertexArrayAttribFormat(vao.vao, 5, 4, GL_UNSIGNED_BYTE, GL_TRUE, offsetof(Primitive::Vertex, color));
 
     glVertexArrayAttribBinding(vao.vao, 0, 0);
@@ -117,24 +122,26 @@ VAOs BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices,
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::vbo), vao.vbo);
 
-    std::vector<glm::vec3> shadowVerts;
+    std::vector<glm::vec4> shadowVerts;
     shadowVerts.reserve(vertices.size());
 
     for (const Primitive::Vertex &vertex : vertices)
-        shadowVerts.emplace_back(vertex.position);
+        shadowVerts.emplace_back(glm::vec4(vertex.position, 1.0));
 
     glCreateVertexArrays(1, &vao.shadowVAO);
 
     glEnableVertexArrayAttrib(vao.shadowVAO, 0);
 
     glCreateBuffers(1, &vao.shadowVBO);
-    glNamedBufferStorage(vao.shadowVBO, vertices.size() * sizeof(glm::vec3), shadowVerts.data(), 0);
+    glNamedBufferStorage(vao.shadowVBO, vertices.size() * sizeof(glm::vec4), shadowVerts.data(), 0);
 
-    glVertexArrayVertexBuffer(vao.shadowVAO, 0, vao.shadowVBO, 0, sizeof(glm::vec3));
+    glVertexArrayVertexBuffer(vao.shadowVAO, 0, vao.shadowVBO, 0, sizeof(glm::vec4));
     glVertexArrayElementBuffer(vao.shadowVAO, vao.ebo);
 
-    glVertexArrayAttribFormat(vao.shadowVAO, 0, 3, GL_FLOAT, GL_FALSE, 0);
+    glVertexArrayAttribFormat(vao.shadowVAO, 0, 4, GL_FLOAT, GL_FALSE, 0);
     glVertexArrayAttribBinding(vao.shadowVAO, 0, 0);
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::positionVBO), vao.shadowVBO);
 
     return vao;
 }

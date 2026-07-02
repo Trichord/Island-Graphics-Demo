@@ -39,15 +39,17 @@ layout(binding = SSBO_BINDING_DRAW_COMMANDS_SOURCE, std430) restrict readonly bu
 
 void main()
 {
-    if (gl_GlobalInvocationID.x >= commandsSource.length())
+    uint sharedIndex = gl_GlobalInvocationID.x;
+
+    if (sharedIndex >= commandsSource.length())
         return;
 
-    uint cullResult = cullResults[gl_GlobalInvocationID.x];
+    uint cullResult = cullResults[sharedIndex];
 
     if (cullResult == 0)
         return;
 
-    uint mapIndex = metadata[gl_GlobalInvocationID.x].visibleInstancesBaseIndex;
+    uint mapIndex = metadata[sharedIndex].visibleInstancesBaseIndex;
     BufferMap map = maps[mapIndex];
 
     // Use the MDI drawcount as a write index. As we write draw commands, the final number for the draw call
@@ -55,6 +57,6 @@ void main()
     uint writeOffset = atomicAdd(drawCounts[map.drawBucket], 1);
     uint writeIndex = map.drawCommandsBaseIndex + writeOffset;
 
-    commandsDestination[writeIndex] = commandsSource[gl_GlobalInvocationID.x];
+    commandsDestination[writeIndex] = commandsSource[sharedIndex];
     commandsDestination[writeIndex].instanceCount = cullResult;
 }

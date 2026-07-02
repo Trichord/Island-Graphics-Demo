@@ -95,12 +95,16 @@ void Renderer::renderScene(Scene &scene, float deltaTime)
 {
     frameBuffer_.clear();
 
+    // Updates from scene first
     updateSceneTransforms(scene);
     updateTimeUBO(deltaTime);
-    updateParticles();
 
     const bool lightChanged{scene.getGlobalLight().directionHasUpdated()};
     updateShaderUniforms(scene, lightChanged);
+
+    // Give driver as much time as possible to process the scene transforms (needed in skinned vertices compute shader)
+    updateParticles();
+    updateSkinnedVertices();
 
     if (graphicsSettings_.shadowResolution && (framesRendered_ % 2u || lightChanged))
         renderShadowMaps(scene, lightChanged);
@@ -151,6 +155,7 @@ void Renderer::loadShaders()
     cullShader_ = {"./shaders/frustum_cull.comp"};
     compactionShader_ = {"./shaders/compact_draws.comp"};
     particleShader_ = {"./shaders/particles.comp"};
+    skinningShader_ = {"./shaders/vertex_skinning.comp"};
 }
 
 void Renderer::setupShader(GraphicsShader &shader)
@@ -332,11 +337,22 @@ void Renderer::updateParticles()
         return;
 
     glState_.bindProgram(particleShader_);
+    particleShader_.dispatch((particleWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
 
-    int particleCount{static_cast<int>(particleWorkGroupSize_)};
-    particleShader_.dispatch((particleCount + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
+    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+}
 
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+void Renderer::updateSkinnedVertices()
+{
+    constexpr int shaderLocalSize{64};
+
+    if (!skinnedVertexGroupSize_)
+        return;
+
+    glState_.bindProgram(skinningShader_);
+    skinningShader_.dispatch((skinnedVertexGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
+
+    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 }
 
 void Renderer::blitFrame()

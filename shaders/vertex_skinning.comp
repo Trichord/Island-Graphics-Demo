@@ -1,0 +1,111 @@
+#version 460 core
+
+#include "shared/binding_points.glsl"
+#include "shared/types.glsl"
+
+// Attributes
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = SSBO_BINDING_BONE_TRANSFORMS, std430) restrict readonly buffer boneTransformsSSBO
+{
+	mat4 boneTransforms[];
+};
+
+layout(binding = SSBO_BINDING_VERTEX_BONE_DATA, std430) restrict readonly buffer vertexBoneDataSSBO
+{
+	VertexSkin vertexSkins[];
+};
+
+// Aliased 32 byte VBO
+layout(binding = SSBO_BINDING_VBO, std430) restrict writeonly buffer VBO
+{
+    vec4 vertices[];
+};
+
+layout(binding = SSBO_BINDING_SKINNED_VERTEX_SOURCE, std430) restrict readonly buffer skinnedSource
+{
+	vec4 sourceVertices[];
+};
+
+layout(binding = SSBO_BINDING_POSITION_VBO, std430) restrict writeonly buffer shadowVertices
+{
+	vec4 shadowVerts[];
+};
+
+vec4 unpackSnorm3x10_1x2(uint p)
+{
+	int x = bitfieldExtract(int(p), 0, 10);
+	int y = bitfieldExtract(int(p), 10, 10);
+	int z = bitfieldExtract(int(p), 20, 10);
+	int w = bitfieldExtract(int(p), 30, 2);
+
+	vec4 unpacked = vec4(x, y, z, w) / vec4(511.0, 511.0, 511.0, 1.0);
+
+	return clamp(unpacked, -1.0, 1.0);
+}
+
+uint packSnorm3x10_1x2(vec4 vec)
+{
+	vec = clamp(vec, -1.0, 1.0);
+	ivec4 ivec = ivec4(round(vec * vec4(511.0, 511.0, 511.0, 1.0)));
+
+	uint pked = 0u;
+
+	pked = bitfieldInsert(pked, uint(ivec.x), 0, 10);
+	pked = bitfieldInsert(pked, uint(ivec.y), 10, 10);
+	pked = bitfieldInsert(pked, uint(ivec.z), 20, 10);
+	pked = bitfieldInsert(pked, uint(ivec.w), 30, 2);
+
+	return pked;
+}
+
+void main()
+{
+	uint vertexIndex = gl_GlobalInvocationID.x;
+
+	// 2 vec4's per vertex
+	if (vertexIndex >= sourceVertices.length() / 2)
+		return;
+	
+	uint bufferIndex = vertexIndex * 2;
+	vec4 data = sourceVertices[bufferIndex];
+	vec4 data2 = sourceVertices[bufferIndex + 1];
+
+	vec3 position = data.xyz;
+	vec4 normal = unpackSnorm3x10_1x2(floatBitsToUint(data.w));
+	vec4 tangent = unpackSnorm3x10_1x2(floatBitsToUint(data2.x));
+	uint vboIndex = floatBitsToUint(data2.z);
+
+	// Vertex skinning
+	VertexSkin skin = vertexSkins[vertexIndex];
+	vec4 posAcc = vec4(0.0);
+	vec3 normAcc = vec3(0.0);
+	vec3 tangAcc = vec3(0.0);
+
+	for (int i = 0; i < 4; i++)
+	{	
+		mat4 boneTransform = boneTransforms[skin.boneIDs[i]];
+		float weight = skin.weights[i];
+
+		posAcc += weight * boneTransform * vec4(position, 1.0);
+		normAcc += weight * mat3(boneTransform) * normal.xyz;
+		tangAcc += weight * mat3(boneTransform) * tangent.xyz;
+	}
+
+	position = posAcc.xyz;
+	normal = vec4(normalize(normAcc), 0.0);
+	tangent = vec4(normalize(tangAcc), tangent.w);
+
+	// Write back
+	uint packedNorm = packSnorm3x10_1x2(normal);
+	uint packedTang = packSnorm3x10_1x2(tangent);
+
+	// Same vec4 aliasing
+	uint writeBufferIndex = vboIndex * 2;
+
+	vertices[writeBufferIndex] = vec4(position, uintBitsToFloat(packedNorm));
+	vertices[writeBufferIndex + 1] = vec4(uintBitsToFloat(packedTang), data2.yzw);
+
+	// Update position only shadow VBO for free skinned shadows
+	shadowVerts[vboIndex] = vec4(position, 1.0);
+}

@@ -27,6 +27,7 @@ class SceneProcessor
         AABB worldAABB;
         std::size_t numInstances{0};
         std::size_t numVertices{0};
+        std::size_t numSkinnedVertices{0};
         std::size_t numPrimitives{0};
         std::size_t numParticles{0};
     };
@@ -68,6 +69,7 @@ class SceneProcessor
         std::size_t dynamicCubemaps{0};
         std::size_t particles{0};
         std::size_t boneTransforms{0};
+        std::size_t skinnedVertices{0};
     };
 
     // Intermediate step in building the final Draw Commands
@@ -87,7 +89,7 @@ class SceneProcessor
     struct ProcessedVertices
     {
         std::vector<Primitive::Vertex> vertices;
-        std::vector<Primitive::VertexSkin> vertexSkins;
+        std::vector<Primitive::Vertex> skinnedVertices;
     };
 
     bool shadows_{false};
@@ -106,12 +108,13 @@ class SceneProcessor
                                                             const std::vector<MultiDrawBucket> &buckets) const;
 
     // Stage One (bucket entries only)
-    [[nodiscard]] std::vector<std::uint32_t> createMetadataBridge(const std::vector<BucketEntry> &entries) const;
+
     [[nodiscard]] std::vector<AABB> createAABBs(const std::vector<BucketEntry> &entries) const;
     [[nodiscard]] std::vector<glm::mat4> createMatrices(const std::vector<BucketEntry> &entries) const;
-    [[nodiscard]] std::vector<Primitive::Vertex> createVertices(const std::vector<BucketEntry> &entries) const;
+    [[nodiscard]] ProcessedVertices createProcessedVertices(const std::vector<BucketEntry> &entries) const;
     [[nodiscard]] std::vector<PrimitiveMetadata> createMetadata(const std::vector<BucketEntry> &entries) const;
     [[nodiscard]] std::vector<MultiDrawBucket> createDrawBuckets(const std::vector<BucketEntry> &entries) const;
+    [[nodiscard]] std::vector<std::uint32_t> createMetadataBridge(const std::vector<BucketEntry> &entries) const;
     [[nodiscard]] std::vector<VertexBufferMap> createVertexBufferMap(const std::vector<BucketEntry> &entries) const;
     [[nodiscard]] std::vector<DrawElementsIndirectCommand> createDrawCommands(
         const std::vector<BucketEntry> &entries) const;
@@ -121,20 +124,22 @@ class SceneProcessor
         const std::vector<BucketEntry> &entries) const;
 
     // Stage two (multi-vector dependent)
+    [[nodiscard]] std::vector<Primitive::VertexSkin> createVertexSkins(
+        const std::vector<BucketEntry> &entries,
+        const std::unordered_map<Handle, std::uint32_t> &boneTransformMap) const;
     [[nodiscard]] std::vector<std::set<Handle>> createDrawBucketHandles(
         const std::vector<BucketEntry> &entries, const std::vector<MultiDrawBucket> &drawBuckets) const;
     [[nodiscard]] std::vector<VisibilityBufferMap> createVisibilityBufferMap(
         const std::vector<BucketEntry> &entries, const std::vector<PrimitiveMetadata> &metadata,
         const std::vector<MultiDrawBucket> &buckets) const;
-    [[nodiscard]] ProcessedVertices createVertexSkinData(
-        const std::vector<BucketEntry> &entries, const std::unordered_map<Handle, std::uint32_t> &boneTransformMap,
-        std::vector<Primitive::Vertex> &&vertices) const;
 
-    [[nodiscard]] VAOs createVAO(const std::vector<BucketEntry> &entries, const ProcessedVertices &vertices) const;
+    [[nodiscard]] VAOs createVAO(const std::vector<BucketEntry> &entries,
+                                 const std::vector<Primitive::Vertex> &vertices) const;
     [[nodiscard]] SSBOs createSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
                                     const std::vector<glm::mat4> &matrices,
                                     const std::vector<PrimitiveMetadata> &metadata,
                                     const std::vector<Primitive::VertexSkin> &vertexSkins,
+                                    const std::vector<Primitive::Vertex> &originalSkinnedVerts,
                                     const std::vector<VisibilityBufferMap> &visibilityMap,
                                     const std::vector<VertexBufferMap> &vertexBufferMap, const std::vector<AABB> &aabbs,
                                     BufferBuilder::Sizes alignedSizes) const;
