@@ -39,6 +39,16 @@ std::pair<std::size_t, bool> findBucket(const std::vector<MultiDrawBucket> &buck
     return std::pair<std::size_t, bool>{0, false};
 }
 
+std::size_t getNumDynamicCubemaps(const Scene &scene)
+{
+    std::size_t cubemaps{0};
+
+    for (const Scene::Entry &entry : scene.getAllSceneEntries())
+        if (entry.shaderType == ShaderType::water)
+            ++cubemaps;
+
+    return cubemaps;
+}
 } // namespace
 
 void Renderer::initializeResources(Scene &scene)
@@ -50,15 +60,15 @@ void Renderer::initializeResources(Scene &scene)
     UBOs_ = builder.buildUBOs();
 
     const bool shadowsEnabled{graphicsSettings_.shadowResolution > 1};
-    SceneProcessor processor{scene, textureManager_, shadowsEnabled};
 
     // Cubemaps. Reserve space up front for any load-time generated cubemaps
-    std::size_t numCubemaps{processor.getNumDynamicCubemaps()};
+    std::size_t numCubemaps{getNumDynamicCubemaps(scene)};
     GLenum colorFormat{DynamicCubemaps::internalFormat};
     textureManager_.reserveCubemaps(numCubemaps, graphicsSettings_.reflectionResolution, colorFormat);
 
     textureManager_.buildAllTextures();
-    SceneProcessor::ProcessedScene processed{processor.processScene()};
+
+    SceneProcessor::ProcessedScene processed{SceneProcessor::processScene(scene, textureManager_, shadowsEnabled)};
 
     // Take ownership of everything before shadow map draw call
     takeGPUObjects(processed);
