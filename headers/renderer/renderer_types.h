@@ -41,17 +41,10 @@ struct PrimitiveMetadata
 // Maps an entry in the visibility buffer, so that a compute shader global ID can find its resources
 struct VisibilityBufferMap
 {
-    std::uint32_t sharedIndex{0};
+    std::uint32_t sharedBufferIndex{0};
     std::uint32_t drawBucket{0};
     std::uint32_t drawCommandsBaseIndex{0};
     std::uint32_t visibleInstancesBaseIndex{0};
-};
-
-// Maps a particle back to the VBO and shared index.
-struct VertexBufferMap
-{
-    std::uint32_t vboIndex{0};
-    std::uint32_t sharedIndex{0};
 };
 
 // Packs all uniforms for sharing across shaders

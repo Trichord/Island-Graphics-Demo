@@ -41,7 +41,7 @@ SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &
                                 const std::vector<Primitive::VertexSkin> &vertexSkins,
                                 const std::vector<Primitive::Vertex> &originalSkinnedVerts,
                                 const std::vector<VisibilityBufferMap> &visibilityMap,
-                                const std::vector<VertexBufferMap> &vertexBufferMap, const std::vector<AABB> &aabbs,
+                                const std::vector<std::uint32_t> &particleMap, const std::vector<AABB> &aabbs,
                                 BufferBuilder::Sizes sizes) const
 {
     SSBOs buffers;
@@ -58,8 +58,8 @@ SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &
     buildSSBO(&buffers.visibleInstances, sizes.visibleInstances, BindingPointSSBO::visibleInstances, false, nullptr);
     buildSSBO(&buffers.drawCommandsSource, commands.size() * sizeof(DrawElementsIndirectCommand),
               BindingPointSSBO::drawCommandsSource, false, commands.data());
-    buildSSBO(&buffers.vertexMap, vertexBufferMap.size() * sizeof(VertexBufferMap), BindingPointSSBO::vertexMap, false,
-              vertexBufferMap.data());
+    buildSSBO(&buffers.particleMap, particleMap.size() * sizeof(std::uint32_t), BindingPointSSBO::particleMap, false,
+              particleMap.data());
 
     // Animation related SSBOs
     buildSSBO(&buffers.boneTransforms, sizes.boneTransforms, BindingPointSSBO::boneTransforms, true, nullptr);

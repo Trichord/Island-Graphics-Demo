@@ -29,7 +29,7 @@ layout(binding = SSBO_BINDING_DRAW_COMMANDS_SOURCE, std430) restrict readonly bu
 
 layout(binding = SSBO_BINDING_VERTEX_MAP, std430) restrict readonly buffer VertexMapSSBO
 {
-    VertexMap vertexMap[];
+    uint particleMap[];
 };
 
 // Aliased 32 byte Vertex
@@ -38,23 +38,27 @@ layout(binding = SSBO_BINDING_VBO, std430) buffer VBO
     vec4 particles[];
 };
 
+// In
+uniform uint vboBaseIndex;
+
 // AABBs for particles are already in world space
 void main()
 {
     uint mapIndex = gl_GlobalInvocationID.x;
 
-    if (mapIndex >= vertexMap.length())
+    if (mapIndex >= particleMap.length())
         return;
     
-    VertexMap map = vertexMap[mapIndex];
-    AABB aabb = AABBs[map.sharedIndex];
+    uint sharedBufferIndex = particleMap[mapIndex];
+
+    AABB aabb = AABBs[sharedBufferIndex];
 
     // 2 * vec4 per Vertex
-    uint particleIndex = map.vboIndex * 2;
+    uint vboIndex = (vboBaseIndex + mapIndex) * 2;
  
     // Remapping
-    vec4 posXYZvelX = particles[particleIndex];
-    vec4 velYZlifeColor = particles[particleIndex + 1];
+    vec4 posXYZvelX = particles[vboIndex];
+    vec4 velYZlifeColor = particles[vboIndex + 1];
 
     vec3 position = vec3(posXYZvelX.xyz);
     vec3 velocity = vec3(posXYZvelX.w, velYZlifeColor.xy);
@@ -92,8 +96,8 @@ void main()
         respawnDir.x -= sin(time * 0.5) * 0.5;
         vec3 resetPos = aabb.center.xyz + normalize(respawnDir) * innerRadius * 0.80;
 
-        particles[particleIndex] = vec4(resetPos, newVel.x);
-        particles[particleIndex + 1] = vec4(newVel.yz, uintBitsToFloat(packHalf2x16(lifetimes.xx)), velYZlifeColor.w);
+        particles[vboIndex] = vec4(resetPos, newVel.x);
+        particles[vboIndex + 1] = vec4(newVel.yz, uintBitsToFloat(packHalf2x16(lifetimes.xx)), velYZlifeColor.w);
     }
     else
     { 
@@ -103,7 +107,7 @@ void main()
         vec3 v = velocity + a * dt;
         vec3 p = position + v * dt;
         
-        particles[particleIndex] = vec4(p, v.x);
-        particles[particleIndex + 1] = vec4(v.yz, uintBitsToFloat(packHalf2x16(lifetimes)), velYZlifeColor.w);
+        particles[vboIndex] = vec4(p, v.x);
+        particles[vboIndex + 1] = vec4(v.yz, uintBitsToFloat(packHalf2x16(lifetimes)), velYZlifeColor.w);
     }
 }

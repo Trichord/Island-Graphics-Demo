@@ -38,6 +38,7 @@ class SceneProcessor
         std::size_t cullResultsSize{0};
         std::size_t drawCountsSize{0};
         std::size_t visibleInstancesSize{0};
+        std::size_t particleBaseVBOIndex{0};
         std::vector<std::uint32_t> metadataBridge;
         std::vector<std::set<Handle>> drawBucketHandles;
         std::vector<std::vector<std::uint32_t>> matricesBaseIndexMap;
@@ -103,19 +104,15 @@ class SceneProcessor
     SceneTotals getSceneTotals(Scene &scene) const;
     std::vector<BucketEntry> createBucketEntries(Scene &scene, const SceneTotals &totals) const;
 
-    // Counting
-    [[nodiscard]] BufferBuilder::Sizes calculateBufferSizes(const std::vector<DrawElementsIndirectCommand> &commands,
-                                                            const std::vector<MultiDrawBucket> &buckets) const;
-
-    // Stage One (bucket entries only)
-
+    // Bucket Entry only
     [[nodiscard]] std::vector<AABB> createAABBs(const std::vector<BucketEntry> &entries) const;
+    [[nodiscard]] std::size_t getParticleBucketStart(const std::vector<BucketEntry> &entries) const;
     [[nodiscard]] std::vector<glm::mat4> createMatrices(const std::vector<BucketEntry> &entries) const;
     [[nodiscard]] ProcessedVertices createProcessedVertices(const std::vector<BucketEntry> &entries) const;
+    [[nodiscard]] std::vector<std::uint32_t> createParticleMap(const std::vector<BucketEntry> &entries) const;
     [[nodiscard]] std::vector<PrimitiveMetadata> createMetadata(const std::vector<BucketEntry> &entries) const;
     [[nodiscard]] std::vector<MultiDrawBucket> createDrawBuckets(const std::vector<BucketEntry> &entries) const;
     [[nodiscard]] std::vector<std::uint32_t> createMetadataBridge(const std::vector<BucketEntry> &entries) const;
-    [[nodiscard]] std::vector<VertexBufferMap> createVertexBufferMap(const std::vector<BucketEntry> &entries) const;
     [[nodiscard]] std::vector<DrawElementsIndirectCommand> createDrawCommands(
         const std::vector<BucketEntry> &entries) const;
     [[nodiscard]] std::vector<std::vector<std::uint32_t>> createMatricesBaseIndexMap(
@@ -123,7 +120,7 @@ class SceneProcessor
     [[nodiscard]] std::unordered_map<Handle, std::uint32_t> createBoneTransformMap(
         const std::vector<BucketEntry> &entries) const;
 
-    // Stage two (multi-vector dependent)
+    // Multi vector
     [[nodiscard]] std::vector<Primitive::VertexSkin> createVertexSkins(
         const std::vector<BucketEntry> &entries,
         const std::unordered_map<Handle, std::uint32_t> &boneTransformMap) const;
@@ -132,7 +129,10 @@ class SceneProcessor
     [[nodiscard]] std::vector<VisibilityBufferMap> createVisibilityBufferMap(
         const std::vector<BucketEntry> &entries, const std::vector<PrimitiveMetadata> &metadata,
         const std::vector<MultiDrawBucket> &buckets) const;
+    [[nodiscard]] BufferBuilder::Sizes calculateBufferSizes(const std::vector<DrawElementsIndirectCommand> &commands,
+                                                            const std::vector<MultiDrawBucket> &buckets) const;
 
+    // GPU upload
     [[nodiscard]] VAOs createVAO(const std::vector<BucketEntry> &entries,
                                  const std::vector<Primitive::Vertex> &vertices) const;
     [[nodiscard]] SSBOs createSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
@@ -141,7 +141,7 @@ class SceneProcessor
                                     const std::vector<Primitive::VertexSkin> &vertexSkins,
                                     const std::vector<Primitive::Vertex> &originalSkinnedVerts,
                                     const std::vector<VisibilityBufferMap> &visibilityMap,
-                                    const std::vector<VertexBufferMap> &vertexBufferMap, const std::vector<AABB> &aabbs,
+                                    const std::vector<std::uint32_t> &particleMap, const std::vector<AABB> &aabbs,
                                     BufferBuilder::Sizes alignedSizes) const;
     // Metadata helpers
     void setMetadataMaterials(const std::vector<BucketEntry> &entries, std::vector<PrimitiveMetadata> &metadata) const;

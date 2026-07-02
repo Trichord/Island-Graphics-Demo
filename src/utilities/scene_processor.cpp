@@ -81,28 +81,29 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene() const
         throw std::logic_error("SceneProcessor::processScene() called before TextureManager::buildAllTextures()");
     }
 
-    // Staging
+    // Stage One (bucket entries only)
     auto metadataBridge = createMetadataBridge(bucketEntries_);
     auto matricesMap = createMatricesBaseIndexMap(bucketEntries_);
     auto commands = createDrawCommands(bucketEntries_);
     auto buckets = createDrawBuckets(bucketEntries_);
     auto AABBs = createAABBs(bucketEntries_);
-
-    // This should get fixed - skinning changed the vertex to carry a VBO index
-    auto vertexMap = createVertexBufferMap(bucketEntries_);
+    auto particleMap = createParticleMap(bucketEntries_);
     auto matrices = createMatrices(bucketEntries_);
     auto metadata = createMetadata(bucketEntries_);
-    auto drawBucketHandles = createDrawBucketHandles(bucketEntries_, buckets);
-    auto visibilityMap = createVisibilityBufferMap(bucketEntries_, metadata, buckets);
     auto boneTransformMap = createBoneTransformMap(bucketEntries_);
     auto processedVertices = createProcessedVertices(bucketEntries_);
+    auto particleBucketStart = getParticleBucketStart(bucketEntries_);
+
+    // Stage two (multi-vector dependent)
+    auto drawBucketHandles = createDrawBucketHandles(bucketEntries_, buckets);
+    auto visibilityMap = createVisibilityBufferMap(bucketEntries_, metadata, buckets);
     auto vertexSkins = createVertexSkins(bucketEntries_, boneTransformMap);
+    auto bufferSizes = calculateBufferSizes(commands, buckets);
 
     // GPU data upload
-    auto bufferSizes = calculateBufferSizes(commands, buckets);
     auto VAO = createVAO(bucketEntries_, processedVertices.vertices);
     auto SSBOs = createSSBOs(commands, matrices, metadata, vertexSkins, processedVertices.skinnedVertices,
-                             visibilityMap, vertexMap, AABBs, bufferSizes);
+                             visibilityMap, particleMap, AABBs, bufferSizes);
 
     return {.VAOs = std::move(VAO),
             .SSBOs = std::move(SSBOs),
@@ -121,6 +122,7 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene() const
                     .cullResultsSize = bufferSizes.cullResults,
                     .drawCountsSize = bufferSizes.drawCounts,
                     .visibleInstancesSize = bufferSizes.visibleInstances,
+                    .particleBaseVBOIndex = particleBucketStart,
                     .metadataBridge = std::move(metadataBridge),
                     .drawBucketHandles = std::move(drawBucketHandles),
                     .matricesBaseIndexMap = std::move(matricesMap),
@@ -209,6 +211,9 @@ SceneProcessor::ProcessedVertices SceneProcessor::createProcessedVertices(const 
 
     for (const BucketEntry &entry : entries)
     {
+        // Particles hijack the vertex, don't overwrite
+        const bool update{entry.shaderType != ShaderType::particles};
+
         const bool hasSkin{entry.primitive->vertexSkins.has_value()};
 
         for (std::size_t i{0}; i < entry.primitive->vertices.size(); ++i)
@@ -222,7 +227,10 @@ SceneProcessor::ProcessedVertices SceneProcessor::createProcessedVertices(const 
                                                   .vboIndex = currentVertex,
                                                   .color = vertex.color};
 
-            processed.vertices[currentVertex] = updatedVertex;
+            if (update)
+                processed.vertices[currentVertex] = updatedVertex;
+            else
+                processed.vertices[currentVertex] = vertex;
 
             if (hasSkin)
                 processed.skinnedVertices.emplace_back(updatedVertex);
@@ -405,7 +413,7 @@ SSBOs SceneProcessor::createSSBOs(const std::vector<DrawElementsIndirectCommand>
                                   const std::vector<Primitive::VertexSkin> &vertexSkins,
                                   const std::vector<Primitive::Vertex> &originalSkinnedVerts,
                                   const std::vector<VisibilityBufferMap> &visibilityMap,
-                                  const std::vector<VertexBufferMap> &vertexBufferMap, const std::vector<AABB> &aabbs,
+                                  const std::vector<std::uint32_t> &particleMap, const std::vector<AABB> &aabbs,
                                   BufferBuilder::Sizes alignedSizes) const
 {
     BufferBuilder builder;
@@ -424,7 +432,7 @@ SSBOs SceneProcessor::createSSBOs(const std::vector<DrawElementsIndirectCommand>
     };
 
     return builder.buildSSBOs(commands, matrices, metadata, vertexSkins, originalSkinnedVerts, visibilityMap,
-                              vertexBufferMap, aabbs, sizes);
+                              particleMap, aabbs, sizes);
 }
 
 std::vector<glm::mat4> SceneProcessor::createMatrices(const std::vector<BucketEntry> &entries) const
@@ -461,6 +469,19 @@ void SceneProcessor::setVisibleInstancesBaseIndex(const std::vector<BucketEntry>
         metadata[i].visibleInstancesBaseIndex = visibleIndex;
         visibleIndex += static_cast<std::uint32_t>(numTransforms);
     }
+}
+
+std::size_t SceneProcessor::getParticleBucketStart(const std::vector<BucketEntry> &entries) const
+{
+    std::uint32_t vboIndex{0};
+
+    for (const BucketEntry &entry : entries)
+        if (entry.shaderType == ShaderType::particles)
+            break;
+        else
+            vboIndex += entry.primitive->vertices.size();
+
+    return vboIndex;
 }
 
 void SceneProcessor::setMetadataMaterials(const std::vector<BucketEntry> &entries,
@@ -516,7 +537,7 @@ std::vector<VisibilityBufferMap> SceneProcessor::createVisibilityBufferMap(
             for (const Transform &transform : transforms)
             {
                 map.emplace_back(VisibilityBufferMap{
-                    .sharedIndex = j,
+                    .sharedBufferIndex = j,
                     .drawBucket = currentBucket,
                     .drawCommandsBaseIndex = bucket.drawCommandsBaseIndex,
                     .visibleInstancesBaseIndex = visibleInstancesBufferBaseIndex,
@@ -528,32 +549,20 @@ std::vector<VisibilityBufferMap> SceneProcessor::createVisibilityBufferMap(
     return map;
 }
 
-std::vector<VertexBufferMap> SceneProcessor::createVertexBufferMap(const std::vector<BucketEntry> &entries) const
+std::vector<std::uint32_t> SceneProcessor::createParticleMap(const std::vector<BucketEntry> &entries) const
 {
-    std::size_t currentVertex{0};
-    std::vector<VertexBufferMap> vertexBufferMap;
+    std::vector<std::uint32_t> particleMap;
 
     for (std::size_t i{0}; i < entries.size(); ++i)
     {
-        using enum ShaderType;
+        if (entries[i].shaderType != ShaderType::particles)
+            continue;
 
-        ShaderType type{entries[i].shaderType};
-
-        if (type == particles)
-        {
-            for (std::size_t j{0}; j < entries[i].primitive->vertices.size(); ++j)
-            {
-                std::uint32_t vboIndex{static_cast<std::uint32_t>(currentVertex + j)};
-                std::uint32_t sharedIndex{static_cast<std::uint32_t>(i)};
-
-                vertexBufferMap.emplace_back(VertexBufferMap{.vboIndex = vboIndex, .sharedIndex = sharedIndex});
-            }
-        }
-
-        currentVertex += entries[i].primitive->vertices.size();
+        for (std::size_t j{0}; j < entries[i].primitive->vertices.size(); ++j)
+            particleMap.emplace_back(static_cast<std::uint32_t>(i));
     }
 
-    return vertexBufferMap;
+    return particleMap;
 }
 
 std::unordered_map<Handle, std::uint32_t> SceneProcessor::createBoneTransformMap(
@@ -564,8 +573,6 @@ std::unordered_map<Handle, std::uint32_t> SceneProcessor::createBoneTransformMap
 
     for (const BucketEntry &entry : entries)
     {
-        std::size_t numVertices{entry.primitive->vertices.size()};
-
         if (!entry.primitive->vertexSkins.has_value())
             continue;
 

@@ -131,8 +131,11 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
     particleWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numParticles);
     skinnedVertexGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numSkinnedVertices);
 
+    std::uint32_t baseVBOIndex{static_cast<std::uint32_t>(processed.bufferDescriptors.particleBaseVBOIndex)};
+
     cullShader_.setInt("screenWidth", graphicsSettings_.screenWidth);
     cullShader_.setInt("screenHeight", graphicsSettings_.screenHeight);
+    particleShader_.setIntU("vboBaseIndex", baseVBOIndex);
 }
 
 void Renderer::setSceneShaderUniforms(Scene &scene)
