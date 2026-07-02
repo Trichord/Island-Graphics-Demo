@@ -41,12 +41,12 @@ layout(binding = SSBO_BINDING_VBO, std430) buffer VBO
 // AABBs for particles are already in world space
 void main()
 {
-    uint id = gl_GlobalInvocationID.x;
+    uint mapIndex = gl_GlobalInvocationID.x;
 
-    if (id >= vertexMap.length())
+    if (mapIndex >= vertexMap.length())
         return;
     
-    VertexMap map = vertexMap[id];
+    VertexMap map = vertexMap[mapIndex];
     AABB aabb = AABBs[map.sharedIndex];
 
     // 2 * vec4 per Vertex

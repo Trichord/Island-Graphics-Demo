@@ -14,7 +14,7 @@ ComputeShader::ComputeShader(const std::filesystem::path &path, const std::vecto
     linkShader(sourceID, path.stem().string());
 }
 
-void ComputeShader::dispatch(int x, int y, int z)
+void ComputeShader::dispatch(std::uint32_t x, std::uint32_t y, std::uint32_t z)
 {
     glDispatchCompute(static_cast<GLuint>(x), static_cast<GLuint>(y), static_cast<GLuint>(z));
 }

@@ -361,18 +361,6 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
     }
 }
 
-void Scene::playAllAnimations(Scene::Entry &entry, float deltaTime)
-{
-    if (!entry.entryAnimation.has_value())
-        return;
-
-    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
-    const Skeleton &skeleton{entryAnimation.skeletalAnimation.skeleton};
-
-    for (Animation &animation : entryAnimation.skeletalAnimation.animations)
-        entryAnimation.animator.play(animation, skeleton, entry.primitives, deltaTime);
-}
-
 void Scene::playAnimation(Scene::Entry &entry, const std::string &name, float deltaTime)
 {
     if (!entry.entryAnimation.has_value())
@@ -384,4 +372,20 @@ void Scene::playAnimation(Scene::Entry &entry, const std::string &name, float de
     for (Animation &animation : entryAnimation.skeletalAnimation.animations)
         if (animation.name == name)
             entryAnimation.animator.play(animation, skeleton, entry.primitives, deltaTime);
+}
+
+void Scene::playAnimation(Scene::Entry &entry, int index, float deltaTime)
+{
+    if (!entry.entryAnimation.has_value())
+        return;
+
+    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
+    std::vector<Animation> &animations{entryAnimation.skeletalAnimation.animations};
+
+    if (index >= static_cast<int>(animations.size()))
+        return;
+
+    const Skeleton &skeleton{entryAnimation.skeletalAnimation.skeleton};
+
+    entryAnimation.animator.play(animations[index], skeleton, entry.primitives, deltaTime);
 }

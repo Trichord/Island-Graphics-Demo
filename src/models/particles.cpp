@@ -90,7 +90,7 @@ std::vector<Primitive> Particles::generateParticles(const glm::vec3 &position, c
 
         // Lifetime (max life time, current life remaining)
         glm::vec2 life{lifetime, randomFloat(lifetime * minLifetimePercent, lifetime, mt)};
-        vertex.boneDataIndex = glm::packHalf2x16(life);
+        vertex.vboIndex = glm::packHalf2x16(life);
     }
 
     return primitives;

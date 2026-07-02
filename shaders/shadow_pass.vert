@@ -7,7 +7,7 @@
 #include "shared/wind.glsl"
 
 // Attributes
-layout (location = 0) in vec3 aPos;
+layout (location = 0) in vec4 aPos;
 
 #ifdef ALPHA_TESTED_SHADOWS
 layout (location = 1) in vec4 aNormal;
@@ -52,7 +52,7 @@ void main()
 	uint matrixIndex = instances[meta.visibleInstancesBaseIndex + gl_InstanceID];
 
 	mat4 modelMatrix = matrices[matrixIndex];
-	vec4 worldPosition = modelMatrix * vec4(aPos, 1.0);
+	vec4 worldPosition = modelMatrix * aPos;
 	
 #ifdef ALPHA_TESTED_SHADOWS
 	mat3 normalMatrix = mat3(modelMatrix);

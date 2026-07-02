@@ -129,6 +129,7 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
     cullWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numInstances);
     compactionWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numPrimitives);
     particleWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numParticles);
+    skinnedVertexGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numSkinnedVertices);
 
     cullShader_.setInt("screenWidth", graphicsSettings_.screenWidth);
     cullShader_.setInt("screenHeight", graphicsSettings_.screenHeight);

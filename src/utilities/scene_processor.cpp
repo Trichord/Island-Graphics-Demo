@@ -87,19 +87,22 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene() const
     auto commands = createDrawCommands(bucketEntries_);
     auto buckets = createDrawBuckets(bucketEntries_);
     auto AABBs = createAABBs(bucketEntries_);
+
+    // This should get fixed - skinning changed the vertex to carry a VBO index
     auto vertexMap = createVertexBufferMap(bucketEntries_);
     auto matrices = createMatrices(bucketEntries_);
     auto metadata = createMetadata(bucketEntries_);
     auto drawBucketHandles = createDrawBucketHandles(bucketEntries_, buckets);
     auto visibilityMap = createVisibilityBufferMap(bucketEntries_, metadata, buckets);
     auto boneTransformMap = createBoneTransformMap(bucketEntries_);
-    auto processedVertices = createVertexSkinData(bucketEntries_, boneTransformMap, createVertices(bucketEntries_));
+    auto processedVertices = createProcessedVertices(bucketEntries_);
+    auto vertexSkins = createVertexSkins(bucketEntries_, boneTransformMap);
 
     // GPU data upload
     auto bufferSizes = calculateBufferSizes(commands, buckets);
-    auto VAO = createVAO(bucketEntries_, processedVertices);
-    auto SSBOs = createSSBOs(commands, matrices, metadata, processedVertices.vertexSkins, visibilityMap, vertexMap,
-                             AABBs, bufferSizes);
+    auto VAO = createVAO(bucketEntries_, processedVertices.vertices);
+    auto SSBOs = createSSBOs(commands, matrices, metadata, vertexSkins, processedVertices.skinnedVertices,
+                             visibilityMap, vertexMap, AABBs, bufferSizes);
 
     return {.VAOs = std::move(VAO),
             .SSBOs = std::move(SSBOs),
@@ -108,6 +111,7 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene() const
                     .worldAABB = std::move(sceneAABB_),
                     .numInstances = totals_.instances,
                     .numVertices = totals_.vertices,
+                    .numSkinnedVertices = totals_.skinnedVertices,
                     .numPrimitives = totals_.primitives,
                     .numParticles = totals_.particles,
                 },
@@ -140,6 +144,9 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene) const
         totals.primitives += numPrimitives;
         totals.instances += numTransforms * numPrimitives;
 
+        const bool hasAnimation{entry.entryAnimation.has_value()};
+        const bool hasSkin{hasAnimation && entry.entryAnimation->skeletalAnimation.skeleton.skin.has_value()};
+
         for (const Primitive &primitive : entry.primitives)
         {
             totals.indices += primitive.indices.size();
@@ -147,18 +154,16 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene) const
 
             if (entry.shaderType == ShaderType::particles)
                 totals.particles += primitive.vertices.size();
+
+            if (hasSkin)
+                totals.skinnedVertices += primitive.vertices.size();
         }
 
-        // Skeletal animation only
-        if (!entry.entryAnimation.has_value())
+        if (!hasSkin)
             continue;
 
-        const auto &skin = entry.entryAnimation->skeletalAnimation.skeleton.skin;
-
-        if (!skin.has_value())
-            continue;
-
-        totals.boneTransforms += skin.value().invBindMatrices.size();
+        const Skeleton::Skin &skin = entry.entryAnimation->skeletalAnimation.skeleton.skin.value();
+        totals.boneTransforms += skin.invBindMatrices.size();
     }
 
     return totals;
@@ -195,14 +200,38 @@ std::vector<SceneProcessor::BucketEntry> SceneProcessor::createBucketEntries(Sce
     return bucketEntries;
 }
 
-std::vector<Primitive::Vertex> SceneProcessor::createVertices(const std::vector<BucketEntry> &entries) const
+SceneProcessor::ProcessedVertices SceneProcessor::createProcessedVertices(const std::vector<BucketEntry> &entries) const
 {
-    std::vector<Primitive::Vertex> vertices;
+    ProcessedVertices processed;
+    processed.vertices.resize(totals_.vertices);
+
+    std::uint32_t currentVertex{0};
 
     for (const BucketEntry &entry : entries)
-        vertices.insert(vertices.end(), entry.primitive->vertices.begin(), entry.primitive->vertices.end());
+    {
+        const bool hasSkin{entry.primitive->vertexSkins.has_value()};
 
-    return vertices;
+        for (std::size_t i{0}; i < entry.primitive->vertices.size(); ++i)
+        {
+            const Primitive::Vertex &vertex{entry.primitive->vertices[i]};
+
+            const Primitive::Vertex updatedVertex{.position = vertex.position,
+                                                  .normal = vertex.normal,
+                                                  .tangent = vertex.tangent,
+                                                  .texCoords = vertex.texCoords,
+                                                  .vboIndex = currentVertex,
+                                                  .color = vertex.color};
+
+            processed.vertices[currentVertex] = updatedVertex;
+
+            if (hasSkin)
+                processed.skinnedVertices.emplace_back(updatedVertex);
+
+            ++currentVertex;
+        }
+    }
+
+    return processed;
 }
 
 BufferBuilder::Sizes SceneProcessor::calculateBufferSizes(const std::vector<DrawElementsIndirectCommand> &commands,
@@ -358,7 +387,7 @@ std::vector<std::vector<std::uint32_t>> SceneProcessor::createMatricesBaseIndexM
 }
 
 VAOs SceneProcessor::createVAO(const std::vector<BucketEntry> &entries,
-                               const ProcessedVertices &processedVertices) const
+                               const std::vector<Primitive::Vertex> &vertices) const
 {
     std::vector<std::uint32_t> indices;
     indices.reserve(totals_.indices);
@@ -367,13 +396,14 @@ VAOs SceneProcessor::createVAO(const std::vector<BucketEntry> &entries,
         indices.insert(indices.end(), entry.primitive->indices.begin(), entry.primitive->indices.end());
 
     BufferBuilder builder;
-    return builder.buildVAO(processedVertices.vertices, indices);
+    return builder.buildVAO(vertices, indices);
 }
 
 SSBOs SceneProcessor::createSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
                                   const std::vector<glm::mat4> &matrices,
                                   const std::vector<PrimitiveMetadata> &metadata,
                                   const std::vector<Primitive::VertexSkin> &vertexSkins,
+                                  const std::vector<Primitive::Vertex> &originalSkinnedVerts,
                                   const std::vector<VisibilityBufferMap> &visibilityMap,
                                   const std::vector<VertexBufferMap> &vertexBufferMap, const std::vector<AABB> &aabbs,
                                   BufferBuilder::Sizes alignedSizes) const
@@ -393,7 +423,8 @@ SSBOs SceneProcessor::createSSBOs(const std::vector<DrawElementsIndirectCommand>
         .boneTransforms = alignedSizes.boneTransforms,
     };
 
-    return builder.buildSSBOs(commands, matrices, metadata, vertexSkins, visibilityMap, vertexBufferMap, aabbs, sizes);
+    return builder.buildSSBOs(commands, matrices, metadata, vertexSkins, originalSkinnedVerts, visibilityMap,
+                              vertexBufferMap, aabbs, sizes);
 }
 
 std::vector<glm::mat4> SceneProcessor::createMatrices(const std::vector<BucketEntry> &entries) const
@@ -563,27 +594,18 @@ std::vector<std::uint32_t> SceneProcessor::createMetadataBridge(const std::vecto
     return bridge;
 }
 
-SceneProcessor::ProcessedVertices SceneProcessor::createVertexSkinData(
-    const std::vector<BucketEntry> &entries, const std::unordered_map<Handle, std::uint32_t> &boneTransformMap,
-    std::vector<Primitive::Vertex> &&vertices) const
+std::vector<Primitive::VertexSkin> SceneProcessor::createVertexSkins(
+    const std::vector<BucketEntry> &entries, const std::unordered_map<Handle, std::uint32_t> &boneTransformMap) const
 {
-    ProcessedVertices skinData;
-    skinData.vertices = std::move(vertices);
-
-    std::size_t vertexIndex{0};
-    std::size_t skinDataIndex{0};
+    std::vector<Primitive::VertexSkin> skinData;
 
     for (const BucketEntry &entry : entries)
     {
         std::size_t numVertices{entry.primitive->vertices.size()};
 
         if (!entry.primitive->vertexSkins.has_value())
-        {
-            vertexIndex += numVertices;
             continue;
-        }
 
-        // Per-vertex - each vertex gets a direct index into an SSBO with weights and IDs
         const std::vector<Primitive::VertexSkin> &vertexSkins{entry.primitive->vertexSkins.value()};
 
         auto iter = boneTransformMap.find(entry.handle);
@@ -593,22 +615,19 @@ SceneProcessor::ProcessedVertices SceneProcessor::createVertexSkinData(
             throw std::runtime_error("Missing handle from bone transforms");
         }
 
-        std::size_t offset{iter->second};
+        // Update each vertex's bone ID's to match the global offset in the SSBO (bone transform map gives base index)
+        std::size_t bufferOffset{iter->second};
 
         for (std::size_t i{0}; i < numVertices; ++i)
         {
-            skinData.vertices[vertexIndex + i].boneDataIndex = skinDataIndex++;
-
             glm::uvec4 boneIDs{vertexSkins[i].boneIDs};
 
             for (std::size_t j{0}; j < 4; ++j)
                 if (vertexSkins[i].weights[j] > 0.0f)
-                    boneIDs[j] += offset;
+                    boneIDs[j] += bufferOffset;
 
-            skinData.vertexSkins.push_back({vertexSkins[i].weights, boneIDs});
+            skinData.push_back({vertexSkins[i].weights, boneIDs});
         }
-
-        vertexIndex += numVertices;
     }
 
     return skinData;

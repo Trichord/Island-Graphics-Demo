@@ -78,6 +78,7 @@ class Scene
 
     void playAllAnimations(Entry &entry, float deltaTime);
     void playAnimation(Entry &entry, const std::string &name, float deltaTime);
+    void playAnimation(Scene::Entry &entry, int index, float deltaTime);
     void updateHandle(Handle handle);
 
   private:

@@ -5,7 +5,8 @@
 #include <utility>
 
 /* Shader Storage Buffer Objects
- *
+ * -----------------------------
+ * 
  * Visibility Map: Per (primitive × instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
  *      - sharedBaseIndex: index into AABBs/Metadata/Draw Commands/Model Matrix (the primitive)
  *      - drawBucket: which draw bucket this primitive belongs to
@@ -33,13 +34,20 @@
  * Vertex Map: Per vertex (used by particles only). Allows any index in map buffer to look up its vertex in the VBO, and
  * its sharedBaseIndex.
  *
- * Bone Transforms: Per skinned model. Each model gets a dedicated sectionl, allowing for skeletal animation.
+ * Bone Transforms: Per skinned model. Each model gets a dedicated section, allowing for skeletal animation.
  *
  * Vertex Bone Data: Per skinned vertex. Each skinned vertex gets a direct index into this buffer. Golds weights and
  * bone IDs, keeping the vertex struct at 32 bytes.
+ * 
+ * Skinned Vertex Source: Original skinned vertex. Immutable source of truth for compute shader vertex skinning.
  *
+ * 
+ * Implementation Notes
+ * --------------------
+ * 
  * 1:1 indexed buffers: Draw Commands Source[i], AABB[i], Metadata[i]
  * Matrices[j], Visibility Map[j], Visible Instances[j] where j spans all (primitive × instance) pairs
+ * Vertex Bone Data[k], Skinned Vertex Source[k]
  *
  * Buffers resized for cascade shadows: Draw Commands, Draw Counts, Cull Results, Visible Instances. Allows the main
  * render pass to own one section of the buffer, and each cascade owns its own section. Total size is sizeof(original
@@ -62,6 +70,7 @@ struct SSBOs
     GLuint vertexMap{0};
     GLuint boneTransforms{0};
     GLuint vertexBoneData{0};
+    GLuint skinnedVertexSource{0};
 
     SSBOs() = default;
     SSBOs(const SSBOs &other) = delete;
@@ -74,7 +83,9 @@ struct SSBOs
           drawCommands{std::exchange(other.drawCommands, 0)},
           visibleInstances{std::exchange(other.visibleInstances, 0)},
           drawCommandsSource{std::exchange(other.drawCommandsSource, 0)}, vertexMap{std::exchange(other.vertexMap, 0)},
-          boneTransforms{std::exchange(other.boneTransforms, 0)}, vertexBoneData{std::exchange(other.vertexBoneData, 0)}
+          boneTransforms{std::exchange(other.boneTransforms, 0)},
+          vertexBoneData{std::exchange(other.vertexBoneData, 0)},
+          skinnedVertexSource{std::exchange(other.skinnedVertexSource, 0)}
     {
     }
 
@@ -82,9 +93,9 @@ struct SSBOs
     {
         if (this != &other)
         {
-            GLuint buffers[]{visibilityMap,      aabb,        matrices,       metadata,
-                             drawCounts,         cullResults, drawCommands,   visibleInstances,
-                             drawCommandsSource, vertexMap,   boneTransforms, vertexBoneData};
+            GLuint buffers[]{visibilityMap,  aabb,           matrices,           metadata,           drawCounts,
+                             cullResults,    drawCommands,   visibleInstances,   drawCommandsSource, vertexMap,
+                             boneTransforms, vertexBoneData, skinnedVertexSource};
             glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
 
             visibilityMap = std::exchange(other.visibilityMap, 0);
@@ -99,6 +110,7 @@ struct SSBOs
             vertexMap = std::exchange(other.vertexMap, 0);
             boneTransforms = std::exchange(other.boneTransforms, 0);
             vertexBoneData = std::exchange(other.vertexBoneData, 0);
+            skinnedVertexSource = std::exchange(other.skinnedVertexSource, 0);
         }
 
         return *this;
@@ -106,9 +118,9 @@ struct SSBOs
 
     ~SSBOs()
     {
-        GLuint buffers[]{visibilityMap,      aabb,        matrices,       metadata,
-                         drawCounts,         cullResults, drawCommands,   visibleInstances,
-                         drawCommandsSource, vertexMap,   boneTransforms, vertexBoneData};
+        GLuint buffers[]{visibilityMap,  aabb,           matrices,           metadata,           drawCounts,
+                         cullResults,    drawCommands,   visibleInstances,   drawCommandsSource, vertexMap,
+                         boneTransforms, vertexBoneData, skinnedVertexSource};
         glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
     }
 };
@@ -237,7 +249,9 @@ enum class BindingPointSSBO : unsigned int
     vbo,
     vertexMap,
     boneTransforms,
-    vertexBoneData
+    vertexBoneData,
+    skinnedVertexSource,
+    positionVBO
 };
 
 namespace SSBOMinimum

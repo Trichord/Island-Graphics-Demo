@@ -32,6 +32,7 @@ class BufferBuilder
                                    const std::vector<glm::mat4> &matrices,
                                    const std::vector<PrimitiveMetadata> &metadata,
                                    const std::vector<Primitive::VertexSkin> &vertexSkins,
+                                   const std::vector<Primitive::Vertex> &originalSkinnedVerts,
                                    const std::vector<VisibilityBufferMap> &visibilityMap,
                                    const std::vector<VertexBufferMap> &vertexBufferMap, const std::vector<AABB> &aabbs,
                                    BufferBuilder::Sizes sizes) const;
