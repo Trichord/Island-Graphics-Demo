@@ -30,6 +30,7 @@ class Scene
     {
         SkeletalAnimation skeletalAnimation;
         Animator animator;
+        std::unordered_map<std::string, std::size_t> animationMap;
     };
 
     struct Entry

@@ -29,12 +29,6 @@ struct BufferMap
     uint visibleInstancesBaseIndex;
 };
 
-struct VertexMap
-{
-    uint vboIndex;
-    uint sharedIndex;
-};
-
 struct AABB
 {
     vec4 center;

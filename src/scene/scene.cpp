@@ -82,9 +82,20 @@ std::optional<Scene::EntryAnimation> createEntryAnimation(const Model &model)
 
     auto &skin = skeletalAnimation->skeleton.skin;
 
+    std::unordered_map<std::string, std::size_t> map;
+
+    for (std::size_t i{0}; i < skeletalAnimation->animations.size(); ++i)
+    {
+        const auto &animation = skeletalAnimation->animations[i];
+
+        if (!animation.name.empty())
+            map.emplace(animation.name, i);
+    }
+
+    std::size_t numJoints{skin.has_value() ? skin.value().invBindMatrices.size() : 0};
+
     return Scene::EntryAnimation{skeletalAnimation.value(),
-                                 Animator{skeletalAnimation->skeleton.parents.size(),
-                                          skin.has_value() ? skin.value().invBindMatrices.size() : 0}};
+                                 Animator{skeletalAnimation->skeleton.parents.size(), numJoints}, map};
 }
 
 } // namespace
@@ -366,12 +377,21 @@ void Scene::playAnimation(Scene::Entry &entry, const std::string &name, float de
     if (!entry.entryAnimation.has_value())
         return;
 
+    std::unordered_map<std::string, std::size_t> &map{entry.entryAnimation->animationMap};
+
+    auto nameIter = map.find(name);
+
+    if (nameIter == map.end())
+    {
+        std::cerr << "WARNING: Animation " << name << " not found" << std::endl;
+        return;
+    }
+
     Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
     const Skeleton &skeleton{entryAnimation.skeletalAnimation.skeleton};
 
-    for (Animation &animation : entryAnimation.skeletalAnimation.animations)
-        if (animation.name == name)
-            entryAnimation.animator.play(animation, skeleton, entry.primitives, deltaTime);
+    entryAnimation.animator.play(entryAnimation.skeletalAnimation.animations[nameIter->second], skeleton,
+                                 entry.primitives, deltaTime);
 }
 
 void Scene::playAnimation(Scene::Entry &entry, int index, float deltaTime)

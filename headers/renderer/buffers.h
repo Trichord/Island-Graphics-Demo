@@ -6,52 +6,51 @@
 
 /* Shader Storage Buffer Objects
  * -----------------------------
- * 
+ *
  * Visibility Map: Per (primitive × instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
  *      - sharedBaseIndex: index into AABBs/Metadata/Draw Commands/Model Matrix (the primitive)
  *      - drawBucket: which draw bucket this primitive belongs to
  *      - drawCommandsBaseIndex: start of that bucket in DrawCommands
  *      - visibleInstancesBaseIndex: start of the (primitive x instance) in the visibility buffer
  *
- * AABB: Per primitive. Local-space bounding boxes
+ * AABB: Per primitive. Local-space bounding boxes.
  *
- * Matrices: Per primitive. World-space transforms
+ * Matrices: Per primitive. World-space transforms.
  *
- * Metadata: Per primitive. Material textures, visibility buffer base index
+ * Metadata: Per primitive. Material textures, visibility buffer base index.
  *
- * Draw Counts: Per draw bucket. Number of surviving draw commands after compaction
+ * Draw Counts: Per draw bucket. Number of surviving draw commands after compaction.
  *
- * Cull Results: Per primitive. Number of surviving instances after frustum test
+ * Cull Results: Per primitive. Number of surviving instances after frustum test.
  *
- * Draw Commands: Per primitive. Compacted each frame from DrawCommandsSource
+ * Draw Commands: Per primitive. Compacted each frame from DrawCommandsSource.
  *
  * Visible Instances: Per (primitive × instance) pair. Indices into Matrices buffer for
  *                   instances that passed the frustum test. Each primitive owns a
  *                   contiguous section sized to its instance count.
  *
- * Draw Commands Source: Per primitive. Immutable source of truth, set once at load
+ * Draw Commands Source: Per primitive. Immutable source of truth, set once at load.
  *
- * Vertex Map: Per vertex (used by particles only). Allows any index in map buffer to look up its vertex in the VBO, and
- * its sharedBaseIndex.
+ * Particle Map: Per particle vertex. Allows any index in map buffer to look up its shared index (aabb, metadata, etc).
  *
  * Bone Transforms: Per skinned model. Each model gets a dedicated section, allowing for skeletal animation.
  *
  * Vertex Bone Data: Per skinned vertex. Each skinned vertex gets a direct index into this buffer. Golds weights and
  * bone IDs, keeping the vertex struct at 32 bytes.
- * 
+ *
  * Skinned Vertex Source: Original skinned vertex. Immutable source of truth for compute shader vertex skinning.
  *
- * 
+ *
  * Implementation Notes
  * --------------------
- * 
+ *
  * 1:1 indexed buffers: Draw Commands Source[i], AABB[i], Metadata[i]
  * Matrices[j], Visibility Map[j], Visible Instances[j] where j spans all (primitive × instance) pairs
  * Vertex Bone Data[k], Skinned Vertex Source[k]
  *
  * Buffers resized for cascade shadows: Draw Commands, Draw Counts, Cull Results, Visible Instances. Allows the main
  * render pass to own one section of the buffer, and each cascade owns its own section. Total size is sizeof(original
- * buffer) * (cascade count + 1)
+ * buffer) * (cascade count + 1).
  *
  */
 
@@ -67,7 +66,7 @@ struct SSBOs
     GLuint drawCommands{0};
     GLuint visibleInstances{0};
     GLuint drawCommandsSource{0};
-    GLuint vertexMap{0};
+    GLuint particleMap{0};
     GLuint boneTransforms{0};
     GLuint vertexBoneData{0};
     GLuint skinnedVertexSource{0};
@@ -82,8 +81,8 @@ struct SSBOs
           drawCounts{std::exchange(other.drawCounts, 0)}, cullResults{std::exchange(other.cullResults, 0)},
           drawCommands{std::exchange(other.drawCommands, 0)},
           visibleInstances{std::exchange(other.visibleInstances, 0)},
-          drawCommandsSource{std::exchange(other.drawCommandsSource, 0)}, vertexMap{std::exchange(other.vertexMap, 0)},
-          boneTransforms{std::exchange(other.boneTransforms, 0)},
+          drawCommandsSource{std::exchange(other.drawCommandsSource, 0)},
+          particleMap{std::exchange(other.particleMap, 0)}, boneTransforms{std::exchange(other.boneTransforms, 0)},
           vertexBoneData{std::exchange(other.vertexBoneData, 0)},
           skinnedVertexSource{std::exchange(other.skinnedVertexSource, 0)}
     {
@@ -94,7 +93,7 @@ struct SSBOs
         if (this != &other)
         {
             GLuint buffers[]{visibilityMap,  aabb,           matrices,           metadata,           drawCounts,
-                             cullResults,    drawCommands,   visibleInstances,   drawCommandsSource, vertexMap,
+                             cullResults,    drawCommands,   visibleInstances,   drawCommandsSource, particleMap,
                              boneTransforms, vertexBoneData, skinnedVertexSource};
             glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
 
@@ -107,7 +106,7 @@ struct SSBOs
             drawCommands = std::exchange(other.drawCommands, 0);
             visibleInstances = std::exchange(other.visibleInstances, 0);
             drawCommandsSource = std::exchange(other.drawCommandsSource, 0);
-            vertexMap = std::exchange(other.vertexMap, 0);
+            particleMap = std::exchange(other.particleMap, 0);
             boneTransforms = std::exchange(other.boneTransforms, 0);
             vertexBoneData = std::exchange(other.vertexBoneData, 0);
             skinnedVertexSource = std::exchange(other.skinnedVertexSource, 0);
@@ -119,7 +118,7 @@ struct SSBOs
     ~SSBOs()
     {
         GLuint buffers[]{visibilityMap,  aabb,           matrices,           metadata,           drawCounts,
-                         cullResults,    drawCommands,   visibleInstances,   drawCommandsSource, vertexMap,
+                         cullResults,    drawCommands,   visibleInstances,   drawCommandsSource, particleMap,
                          boneTransforms, vertexBoneData, skinnedVertexSource};
         glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
     }
@@ -247,7 +246,7 @@ enum class BindingPointSSBO : unsigned int
     visibleInstances,
     drawCommandsSource,
     vbo,
-    vertexMap,
+    particleMap,
     boneTransforms,
     vertexBoneData,
     skinnedVertexSource,
