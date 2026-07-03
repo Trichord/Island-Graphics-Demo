@@ -52,6 +52,7 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
     // Only update outer cascade if the light changed
     int cascadeCount{lightChanged ? shadowCascadeCount : shadowCascadeCount - 1};
 
+    // Cull and fill buffers so that both passes have the correct draw commands
     for (int i{0}; i < cascadeCount; ++i)
     {
         const glm::mat4 lightVP{cascades[i].viewProjection};
