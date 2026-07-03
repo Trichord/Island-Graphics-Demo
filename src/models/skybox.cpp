@@ -11,7 +11,7 @@
 
 constexpr float skyboxSize{1e18f};
 
-Skybox::Skybox(const std::filesystem::path &imagePath) : image_{imagePath}
+Skybox::Skybox(const std::filesystem::path &imagePath) : imagePath_{imagePath}
 {
     // Make the skybox have a massive AABB so it never gets culled
     AABB aabb{glm::vec3{-skyboxSize}, glm::vec3{skyboxSize}};
@@ -38,5 +38,5 @@ const std::vector<Primitive> &Skybox::getPrimitives() const
 
 const std::filesystem::path &Skybox::getPath() const
 {
-    return image_;
+    return imagePath_;
 }

@@ -64,7 +64,7 @@ AABB getSceneBounds(Scene &scene)
     if (hasGeometry)
         return {min, max};
 
-    // Ocean + skybox only combo would have infinite bounds. No shadow recievers
+    // Ocean + skybox only combo would have infinite bounds. No shadow receivers
     return {glm::vec3{-1.0f}, glm::vec3{1.0f}};
 }
 } // namespace
@@ -543,7 +543,7 @@ std::vector<VisibilityBufferMap> SceneProcessor::createVisibilityBufferMap(
             const std::uint32_t visibleInstancesBufferBaseIndex{metaEntry.visibleInstancesBaseIndex};
             const std::uint32_t currentBucket{static_cast<std::uint32_t>(i)};
 
-            for (std::size_t i{0}; i < transforms.size(); ++i)
+            for (std::size_t k{0}; k < transforms.size(); ++k)
             {
                 map.emplace_back(VisibilityBufferMap{
                     .sharedBufferIndex = j,
@@ -642,7 +642,7 @@ std::vector<Primitive::VertexSkin> SceneProcessor::createVertexSkins(
 
             for (std::size_t j{0}; j < 4; ++j)
                 if (vertexSkins[i].weights[j] > 0.0f)
-                    boneIDs[j] += bufferOffset;
+                    boneIDs[j] += static_cast<unsigned int>(bufferOffset);
 
             skinData.push_back({vertexSkins[i].weights, boneIDs});
         }
