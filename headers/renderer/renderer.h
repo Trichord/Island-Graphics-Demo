@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -15,17 +16,17 @@
 #include "renderer/renderer_types.h"
 #include "renderer/shader/compute_shader.h"
 #include "renderer/shader/graphics_shader.h"
+#include "scene/camera.h"
 #include "scene/handle.h"
 #include "scene/scene.h"
 #include "utilities/scene_processor.h"
-#include "utilities/shader_bucket_hash.h"
 #include "utilities/texture_manager.h"
 #include "utilities/thread_pool.h"
 
 class Renderer
 {
   public:
-    Renderer(ThreadPool &threadPool, TextureManager &textureManager, const GraphicsSettings &settings);
+    Renderer(TextureManager &textureManager, const GraphicsSettings &settings);
     Renderer(const Renderer &) = delete;
     Renderer &operator=(const Renderer &) = delete;
     Renderer(Renderer &&other) = delete;
@@ -35,35 +36,32 @@ class Renderer
     void renderScene(Scene &scene, float deltaTime);
 
     std::uint32_t getFrameCount() const;
-    TextureManager &getTextureManager();
 
   private:
-    using BucketMap = std::unordered_map<ShaderBucket, SceneProcessor::BucketData, ShaderBucketHash>;
-
     std::uint32_t framesRendered_{0};
-    static constexpr float depthClear_{1.0f};
-    static constexpr std::array<float, 4> clearColor_{0.0f, 0.0f, 0.0f, 1.0f};
 
-    // Critical members
-    ThreadPool &threadPool_;
-    TextureManager &textureManager_;
     const GraphicsSettings graphicsSettings_;
+    TextureManager &textureManager_;
 
-    // Owned objects
+    RenderTarget frameBuffer_;
+    RenderTarget msaaResolve_;
+    RenderTarget shadowPassTarget_;
+
     GLState glState_;
-    std::vector<glm::mat4> updatedMatrices_;
-    std::unordered_map<Handle, std::uint32_t> matricesBaseIndex_;
     std::array<GraphicsShader, static_cast<int>(ShaderType::count)> shaders_;
 
     // GPU Buffers
     UBOs UBOs_;
     SSBOs SSBOs_;
-    GlobalVAO VAO_;
+    VAOs VAOs_;
 
-    // Textures
+    // Scene Updates
+    std::vector<glm::mat4> updatedMatrices_;
+    std::vector<std::vector<std::uint32_t>> matricesBaseIndices_;
+    std::unordered_map<Handle, std::uint32_t> boneTransformsBaseIndexMap_;
+
+    // Shadows
     CascadeShadow cascadeShadow_;
-    RenderTarget msaaShadowTarget_;
-    RenderTarget shadowPassTarget_;
 
     // Drawing
     std::vector<MultiDrawBucket> drawBuckets_;
@@ -72,39 +70,53 @@ class Renderer
     ComputeShader cullShader_;
     ComputeShader compactionShader_;
     ComputeShader particleShader_;
+    ComputeShader skinningShader_;
+
     std::uint32_t cullWorkGroupSize_{0};
     std::uint32_t compactionWorkGroupSize_{0};
     std::uint32_t particleWorkGroupSize_{0};
+    std::uint32_t skinnedVertexGroupSize_{0};
+
+    // SSBO sizes for rebinding buffer ranges.
+    std::uint32_t drawCommandsSize_{0};
+    std::uint32_t cullResultsSize_{0};
+    std::uint32_t drawCountsSize_{0};
+    std::uint32_t visibleInstancesSize_{0};
 
     // Initialization
     void loadShaders();
     void setupShader(GraphicsShader &shader);
+    GLuint createResolveTexture();
 
     // Setup
     void setSceneShaderUniforms(Scene &scene);
     void takeBufferData(SceneProcessor::ProcessedScene &processed);
     void takeGPUObjects(SceneProcessor::ProcessedScene &processed);
-    void setLocalGroupSizes(const SceneProcessor::ProcessedScene &processed,
-                            const std::vector<DrawElementsIndirectCommand> &commands,
-                            const std::vector<std::size_t> vertexCounts, const BucketMap &bucketMap);
+    void setupComputeShaders(const SceneProcessor::ProcessedScene &processed);
 
     // Cubemap Generation
-    void borrowSkybox(const BucketMap &bucketMap);
-    void createCubemaps(Scene &scene, const std::vector<DrawElementsIndirectCommand> &commandsSource,
-                        const BucketMap &bucketMap);
-    void renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget);
+    void borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
+                      const std::vector<std::set<Handle>> &bucketHandles);
+    void createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets);
+    void renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarget &blitTarget,
+                         std::size_t parameterBufferIndex);
+    void updateMetadataCubemaps(Scene &scene, const std::vector<std::uint32_t> &metadataBridge);
 
     // Drawing
     void renderScene();
-    void cullScene(const glm::mat4 &cullMatrix);
+    void bindBufferRanges(int index);
+    void cullScene(const glm::mat4 &cullMatrix, int bufferSection);
     void renderShadowMaps(Scene &scene, bool lightChanged);
     void shadowPass(GraphicsShader &shader, int cascade, bool alphaTested);
+    void blitFrame();
 
     // Updates
+    void updateCameraUBO(Camera &camera);
     void updateTimeUBO(float deltaTime);
-    void updateParticles(float deltaTime);
-    void updateCameraUBO(Scene &scene);
+    void updateParticles();
+    void updateSkinnedVertices();
     void updateSceneTransforms(Scene &scene);
+    void updateCascades(Scene &scene, bool lightChanged);
     void updateFrustumPlanesUBO(const glm::mat4 &cullMatrix);
     void updateShaderUniforms(Scene &scene, bool lightChanged);
     void updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll);

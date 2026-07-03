@@ -4,7 +4,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-Transform::Transform(glm::vec3 pos, glm::vec3 sc, float degrees, glm::vec3 axis) : position_{pos}, scale_{sc}
+Transform::Transform(glm::vec3 translation, glm::vec3 scale, float degrees, glm::vec3 axis)
+    : translation_{translation}, scale_{scale}
 {
     glm::vec3 normalizedAxis{glm::normalize(axis)};
     quaternion_ = glm::angleAxis(glm::radians(degrees), normalizedAxis);
@@ -12,9 +13,16 @@ Transform::Transform(glm::vec3 pos, glm::vec3 sc, float degrees, glm::vec3 axis)
     isDirty_ = false;
 };
 
-void Transform::setAbsolutePosition(glm::vec3 absolutePosition)
+Transform::Transform(glm::vec3 translation, glm::vec3 scale, glm::quat quat)
+    : translation_{translation}, quaternion_{quat}, scale_{scale}
 {
-    position_ = absolutePosition;
+    rebuildModelMatrix();
+    isDirty_ = false;
+}
+
+void Transform::setAbsoluteTranslation(glm::vec3 absoluteTranslation)
+{
+    translation_ = absoluteTranslation;
     isDirty_ = true;
 }
 
@@ -24,15 +32,21 @@ void Transform::setAbsoluteRotation(glm::vec3 absoluteRotation)
     isDirty_ = true;
 }
 
+void Transform::setAbsoluteRotation(glm::quat quat)
+{
+    quaternion_ = quat;
+    isDirty_ = true;
+}
+
 void Transform::setAbsoluteScale(float absoluteScale)
 {
     scale_ = glm::vec3(absoluteScale);
     isDirty_ = true;
 }
 
-void Transform::setRelativePosition(glm::vec3 relativePosition)
+void Transform::setRelativeTranslation(glm::vec3 relativeTranslation)
 {
-    position_ += relativePosition;
+    translation_ += relativeTranslation;
     isDirty_ = true;
 }
 
@@ -49,7 +63,7 @@ void Transform::setRelativeScale(float relativeScale)
     isDirty_ = true;
 }
 
-void Transform::rotateAroundAxis(float degrees, glm::vec3 axis)
+void Transform::rotateAroundAxisLocal(float degrees, glm::vec3 axis)
 {
     glm::vec3 normalizedAxis{glm::normalize(axis)};
     glm::quat updatedRotation{quaternion_ * glm::angleAxis(glm::radians(degrees), normalizedAxis)};
@@ -57,9 +71,17 @@ void Transform::rotateAroundAxis(float degrees, glm::vec3 axis)
     isDirty_ = true;
 }
 
+void Transform::rotateAroundAxisWorld(float degrees, glm::vec3 axis)
+{
+    glm::vec3 normalizedAxis{glm::normalize(axis)};
+    glm::quat updatedRotation{glm::angleAxis(glm::radians(degrees), normalizedAxis) * quaternion_};
+    quaternion_ = glm::normalize(updatedRotation);
+    isDirty_ = true;
+}
+
 const glm::vec3 &Transform::getPosition() const
 {
-    return position_;
+    return translation_;
 }
 
 const glm::vec3 &Transform::getScale() const
@@ -67,7 +89,7 @@ const glm::vec3 &Transform::getScale() const
     return scale_;
 }
 
-glm::mat4 &Transform::getModelMatrix()
+const glm::mat4 &Transform::getModelMatrix() const
 {
     if (isDirty_)
     {
@@ -78,7 +100,7 @@ glm::mat4 &Transform::getModelMatrix()
     return modelMatrix_;
 }
 
-glm::mat3 &Transform::getNormalMatrix()
+const glm::mat3 &Transform::getNormalMatrix() const
 {
     if (isDirty_)
     {
@@ -94,10 +116,10 @@ glm::vec3 Transform::getRotation() const
     return glm::degrees(glm::eulerAngles(quaternion_));
 }
 
-void Transform::rebuildModelMatrix()
+void Transform::rebuildModelMatrix() const
 {
     glm::mat4 newModelMatrix{1.0f};
-    newModelMatrix = glm::translate(newModelMatrix, position_);
+    newModelMatrix = glm::translate(newModelMatrix, translation_);
     newModelMatrix *= glm::mat4_cast(quaternion_);
     newModelMatrix = glm::scale(newModelMatrix, scale_);
 

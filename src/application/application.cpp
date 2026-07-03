@@ -17,6 +17,7 @@
 #include "application/graphics_settings.h"
 #include "application/settings_window.h"
 #include "physics/player_physics.h"
+#include "renderer/buffers.h"
 #include "renderer/renderer.h"
 #include "scene/camera.h"
 #include "scene/island_scene/island_scene.h"
@@ -68,13 +69,10 @@ void Application::run()
     // Create resources
     ThreadPool threadPool{std::max(2u, std::thread::hardware_concurrency() / 2u)};
     TextureManager textureManager{threadPool, graphicsSettings};
-
-    std::cout << "Compiling Shaders... ";
-    Renderer renderer(threadPool, textureManager, graphicsSettings);
-    std::cout << "Done" << std::endl;
+    Renderer renderer(textureManager, graphicsSettings);
 
     std::cout << "Loading Models... ";
-    IslandScene islandScene(renderer.getTextureManager(), graphicsSettings, "./res/scenes/island_scene.json");
+    IslandScene islandScene(textureManager, graphicsSettings, "./res/scenes/island_scene.json");
     std::cout << "Done" << std::endl;
 
     // Initialize scene dependent resources
@@ -87,30 +85,24 @@ void Application::run()
     threadPool.stopAllThreads();
     addGlfwUserParam(islandScene);
 
-    // Average FPS
-    float totalTime{0};
-
     while (!glfwWindowShouldClose(window_))
     {
         // Delta Time
         currentFrame_ = (float)glfwGetTime();
         deltaTime_ = currentFrame_ - lastFrame_;
         lastFrame_ = currentFrame_;
-        totalTime += deltaTime_;
 
         // Update
-        islandScene.onUpdate(deltaTime_);
+        islandScene.onUpdate(currentFrame_, deltaTime_);
+
+        glfwPollEvents();
         processKeyboard(islandScene, physicsHandler);
 
         // Draw
         renderer.renderScene(islandScene, deltaTime_);
         glfwSwapBuffers(window_);
-
-        // Check for window close
-        glfwPollEvents();
     }
 
-    std::cout << "Average FPS: " << renderer.getFrameCount() / totalTime << std::endl;
     return;
 }
 
@@ -122,9 +114,9 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_STENCIL_BITS, 0);
+    glfwWindowHint(GLFW_DEPTH_BITS, 0);
     glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
-    glfwWindowHint(GLFW_DEPTH_BITS, 32);
-    glfwWindowHint(GLFW_SAMPLES, graphicsSettings.msaa);
 
 #ifdef _DEBUG
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
@@ -179,12 +171,14 @@ bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // If MDI Count not supported
-    if (!glMultiDrawElementsIndirectCount)
-        glMultiDrawElementsIndirectCount =
-            (PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTPROC)glfwGetProcAddress("glMultiDrawElementsIndirectCountARB");
+#ifdef _DEBUG
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(glDebugOutput, nullptr);
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+#endif
 
-    // If ARB version fails too, just exit
+    // If MDI Count not supported
     if (!glMultiDrawElementsIndirectCount)
     {
         std::cerr << "GPU does not support required OpenGL features: MultiDrawElementsIndirectCount" << std::endl;
@@ -195,46 +189,48 @@ bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
     GLint maxSSBObindings{0};
     GLint maxVertexSSBOs{0};
     GLint maxFragmentSSBOs{0};
+    GLint maxImageUnits{0};
 
     glGetIntegerv(GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS, &maxSSBOs);
     glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxSSBObindings);
     glGetIntegerv(GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS, &maxVertexSSBOs);
     glGetIntegerv(GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS, &maxFragmentSSBOs);
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxImageUnits);
 
-    if (maxSSBOs < 16)
+    if (maxSSBOs < SSBOMinimum::combinedBlocks)
     {
-        std::cerr << "ERROR: GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS (" << maxSSBOs << ") does not meet required (16)"
-                  << std::endl;
+        std::cerr << "ERROR: GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS (" << maxSSBOs << ") does not meet required ("
+                  << SSBOMinimum::combinedBlocks << ")" << std::endl;
         supported = false;
     }
 
-    if (maxSSBObindings < 16)
+    if (maxSSBObindings < SSBOMinimum::combinedBindings)
     {
-        std::cerr << "ERROR: GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS (" << maxSSBObindings
-                  << ") does not meet required (16)" << std::endl;
+        std::cerr << "ERROR: GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS (" << maxSSBObindings << ") does not meet required ("
+                  << SSBOMinimum::combinedBindings << ")" << std::endl;
         supported = false;
     }
 
-    if (maxVertexSSBOs < 4)
+    if (maxVertexSSBOs < SSBOMinimum::vertexBlocks)
     {
-        std::cerr << "ERROR: GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS (" << maxVertexSSBOs << ") does not meet required (4)"
-                  << std::endl;
+        std::cerr << "ERROR: GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS (" << maxVertexSSBOs << ") does not meet required ("
+                  << SSBOMinimum::vertexBlocks << ")" << std::endl;
         supported = false;
     }
 
-    if (maxFragmentSSBOs < 4)
+    if (maxFragmentSSBOs < SSBOMinimum::fragmentBlocks)
     {
         std::cerr << "ERROR: GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS (" << maxFragmentSSBOs
-                  << ") does not meet required (4)" << std::endl;
+                  << ") does not meet required (" << SSBOMinimum::fragmentBlocks << ")" << std::endl;
         supported = false;
     }
 
-#ifdef _DEBUG
-    glEnable(GL_DEBUG_OUTPUT);
-    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    glDebugMessageCallback(glDebugOutput, nullptr);
-    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
-#endif // DEBUG
+    if (maxImageUnits < TextureUnit::max)
+    {
+        std::cerr << "ERROR: GGL_MAX_TEXTURE_IMAGE_UNITS (" << maxImageUnits << ") does not meet required ("
+                  << TextureUnit::max << ")" << std::endl;
+        supported = false;
+    }
 
     if (!supported)
         glfwTerminate();
@@ -292,41 +288,6 @@ void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
     glm::vec3 interpolatedPos{glm::mix(previousPos, physicsHandler.getPosition(), alpha)};
 
     camera.setPosition(interpolatedPos);
-
-    /*
-    //****************************************
-    // Object Positioning - For Testing Only *
-    //****************************************
-    constexpr float objectSpeed{0.0005f};
-
-    //SceneEntry &spaceModel{scene.getEntryByName("spaceModel")};
-    //Transform &transform{spaceModel.transforms.front()};
-    DirectionalLight &light{scene.getGlobalLight()};
-    glm::vec3 dir{light.getDirection()};
-
-    if (glfwGetKey(window_, GLFW_KEY_KP_8) == GLFW_PRESS)
-        light.setDirection(glm::vec3{dir.x, dir.y + objectSpeed, dir.z});
-
-    if (glfwGetKey(window_, GLFW_KEY_KP_5) == GLFW_PRESS)
-        light.setDirection(glm::vec3{dir.x, dir.y - objectSpeed, dir.z});
-
-    if (glfwGetKey(window_, GLFW_KEY_KP_4) == GLFW_PRESS)
-        light.setDirection(glm::vec3{dir.x + objectSpeed, dir.y, dir.z});
-
-    if (glfwGetKey(window_, GLFW_KEY_KP_6) == GLFW_PRESS)
-        light.setDirection(glm::vec3{dir.x - objectSpeed, dir.y, dir.z});
-
-    if (glfwGetKey(window_, GLFW_KEY_KP_7) == GLFW_PRESS)
-        light.setDirection(glm::vec3{dir.x, dir.y, dir.z + objectSpeed});
-
-    if (glfwGetKey(window_, GLFW_KEY_KP_9) == GLFW_PRESS)
-        light.setDirection(glm::vec3{dir.x, dir.y, dir.z - objectSpeed});
-
-    if (glfwGetKey(window_, GLFW_KEY_P) == GLFW_PRESS)
-    {
-        // Print stuff
-    }
-    */
 }
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)

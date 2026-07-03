@@ -1,21 +1,31 @@
 #version 460 core
 
-// Constants
-const float lightBleedReduction = 0.2f;
+#ifdef ALPHA_TESTED_SHADOWS
+#include "shared/binding_points.glsl"
+#include "shared/textures.glsl"
+#include "shared/types.glsl"
 
-// Out
-out vec2 fragColor;
-
-//Credit: Andrew Lauritzen
-vec2 computeMoments(float depth)
+// SSBOs
+layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
 {
-  vec2 moments;
-  moments.x = depth;
-  moments.y = depth * depth;
-  return moments;
-}
+	Metadata metadata[];
+};
+
+// In
+in vec2 texCoords;
+in flat int metadataIndex;
+#endif
 
 void main()
 {	
-	fragColor = computeMoments(gl_FragCoord.z);
+	#ifdef ALPHA_TESTED_SHADOWS
+	Metadata meta = metadata[metadataIndex];
+	int albedoArray = meta.albedoArray;
+	int albedoLayer = meta.albedoLayer;
+
+	float alpha = texture(textures[albedoArray], vec3(texCoords, albedoLayer)).a;
+
+	if (alpha < 0.1)
+		discard;
+	#endif
 }

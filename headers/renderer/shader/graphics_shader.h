@@ -1,6 +1,8 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
+#include <vector>
 
 #include "renderer/shader/shader_base.h"
 
@@ -9,16 +11,18 @@
 
 enum class ShaderType
 {
+    baseColor,
     directionalPBR,
     reflective,
     trees,
     grass,
+    particles,
     water,
     ocean,
-    particles,
     skybox,
     shadowMap,
     shadowMapAlpha,
+    fboResolve,
     count
 };
 
@@ -31,7 +35,8 @@ class GraphicsShader : public Shader
 {
   public:
     GraphicsShader() = default;
-    GraphicsShader(ShaderType type, const std::filesystem::path &vertexPath, const std::filesystem::path &fragmentPath);
+    GraphicsShader(ShaderType type, const std::filesystem::path &vertexPath, const std::filesystem::path &fragmentPath,
+                   const std::vector<std::string> &defines = {});
     GraphicsShader(GraphicsShader &&other) = default;
     GraphicsShader &operator=(GraphicsShader &&other) = default;
 

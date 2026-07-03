@@ -1,18 +1,9 @@
 #version 460 core
 
-// Types
-struct Metadata
-{
-	int albedoArray;
-	int albedoLayer;
-	int armArray;
-	int armLayer;
-	int normalArray;
-	int normalLayer;
-	int cubemapArray;
-	int cubemapLayer;
-	uint visibleInstancesBaseIndex;
-};
+#include "shared/binding_points.glsl"
+#include "shared/textures.glsl"
+#include "shared/types.glsl"
+#include "shared/ubo.glsl"
 
 // Constants
 const float fogStart = 1142.0;
@@ -21,32 +12,14 @@ const float fogEnd = 2186.0;
 const float waveSpeed = 0.01;
 const float tileFactor = 100.0;
 const float dudvStrength = 0.025;
+const float R0 = 0.0203732;
+const float oneMinusR0 = (1.0 - R0);
 
 const vec3 sceneCenter = vec3(0.0);
 const vec3 waterColor = vec3(0.0, 0.08, 0.18);
 
-// Samplers
-layout(binding = 0) uniform sampler2DArray textures[10];
-layout(binding = 10) uniform samplerCubeArray cubemaps[3];
-
-// UBOs
-layout (std140, binding = 0) uniform cameraData
-{
-	layout (offset = 0) mat4 viewMatrix;
-	layout (offset = 64) mat4 projectionMatrix;
-	layout (offset = 128) mat4 projectionViewMatrix;
-	layout (offset = 192) mat4 inverseViewProjectMatrix;
-	layout (offset = 256) vec4 cameraPosition;
-};
-
-layout (std140, binding = 3) uniform packedTime
-{
-	layout (offset = 0) float deltaTime;
-	layout (offset = 4) float time;
-};
-
 // SSBOs
-layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
 {
 	Metadata metadata[];
 };
@@ -60,7 +33,6 @@ in vsOut
 {
 	vec2 texCoords;
 	vec3 fragPos;
-	vec4 clipSpace;
 } fsIn;
 
 // Out
@@ -97,13 +69,12 @@ void main()
 	N = normalize(vec3(N.x, N.z, -N.y));
 
 	// Fresnel
-	float fresnel = max(0.0, min(1.0, pow(max(1 + 0.85 * dot(-V, N), 0.0), 4.0)));
+	float NdotV = max(dot(N, V), 0.0);
+	float fresnel = R0 + oneMinusR0 * pow(1.0 - NdotV, 5);
 
 	// Reflection 
 	vec3 reflectDir = reflect(-V, N);
 	vec3 reflection = texture(cubemaps[meta.cubemapArray], vec4(reflectDir, meta.cubemapLayer)).rgb;
-
-	vec3 oceanColor = mix(waterColor, reflection, fresnel);
 
 	// Sample absolute skybox color
 	vec3 skybox = texture(cubemaps[meta.cubemapArray], vec4(-V, meta.cubemapLayer)).rgb;
@@ -113,6 +84,7 @@ void main()
 	float alpha = (fogEnd - dist) / (fogEnd - fogStart);
 	alpha = 1.0 - clamp(alpha, 0.0, 1.0);
 
+	vec3 oceanColor = mix(waterColor, reflection, fresnel);
 	oceanColor = mix(oceanColor, skybox, alpha);
 
 	fragColor = vec4(oceanColor, 1.0);

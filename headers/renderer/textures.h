@@ -4,6 +4,11 @@
 #include <cstdint>
 #include <glad/glad.h>
 
+namespace DynamicCubemaps
+{
+constexpr GLenum internalFormat{GL_SRGB8_ALPHA8};
+}
+
 struct Sampler
 {
     std::uint16_t magFilter{GL_LINEAR};
@@ -30,7 +35,7 @@ struct Texture
 
 struct Material
 {
-    enum Type
+    enum Type : std::uint8_t
     {
         albedo,
         ARM,
@@ -51,3 +56,14 @@ struct Material
         return layers[t];
     }
 };
+
+// Texture unit bindings
+namespace TextureUnit
+{
+static constexpr int array2DBase{0};
+static constexpr int arrayCubemapBase{12};
+static constexpr int shadow{15};
+static constexpr int frameBuffer{16};
+static constexpr int depthMap{17};
+static constexpr int max{32};
+} // namespace TextureUnit

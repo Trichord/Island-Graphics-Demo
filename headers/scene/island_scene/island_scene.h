@@ -6,13 +6,14 @@
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
 
-/* Concrete implementation of a scene */
-
 class IslandScene : public Scene
 {
   public:
     IslandScene(TextureManager &textureManager, const GraphicsSettings &graphicsSettings,
                 const std::filesystem::path &jsonFile);
 
-    void onUpdate(float deltaTime) override;
+    void onUpdate(float time, float deltaTime) override;
+
+  private:
+    std::vector<glm::vec3> butterflyOriginalPos_;
 };

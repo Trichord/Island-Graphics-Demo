@@ -9,7 +9,8 @@
 #include <vector>
 
 #include "application/graphics_settings.h"
-#include "models/aabb.h"
+#include "models/animation/animator.h"
+#include "models/animation/skeletal_animation.h"
 #include "models/instanced_model.h"
 #include "models/model.h"
 #include "models/particles.h"
@@ -25,16 +26,23 @@
 class Scene
 {
   public:
+    struct EntryAnimation
+    {
+        SkeletalAnimation skeletalAnimation;
+        Animator animator;
+        std::unordered_map<std::string, std::size_t> animationMap;
+    };
+
     struct Entry
     {
         Handle handle{0};
-        AABB aabb;
+        ShaderType shaderType{ShaderType::directionalPBR};
 
         std::vector<Primitive> primitives;
-        std::vector<Transform> transforms;
+        std::vector<Transform> worldTransforms;
+        std::optional<EntryAnimation> entryAnimation;
 
-        std::optional<std::filesystem::path> filePath;
-        ShaderType shaderType{ShaderType::directionalPBR};
+        std::optional<std::filesystem::path> modelPath;
     };
 
     Scene(TextureManager &_textureManager, const GraphicsSettings &graphicsSettings,
@@ -47,25 +55,37 @@ class Scene
 
     // Environment
     float getWindStrength() const;
-    glm::vec3 getAmbientLight() const;
+    const glm::vec3 &getAmbientLight() const;
     DirectionalLight &getGlobalLight();
     const glm::vec3 &getWindDirection() const;
 
     // Accessors
     Camera &getCamera();
-    std::vector<Entry> &getAllSceneEntries();
-    Entry &getEntryByName(const std::string &key);
-    Entry &getEntryByHandle(Handle handle);
+    const std::vector<Entry> &getAllSceneEntries() const;
+    const Entry &getEntryByName(const std::string &key) const;
+    const Entry &getEntryByHandle(Handle handle) const;
 
     // Per-frame Update
-    std::unordered_set<Handle> &getUpdatedModels();
+    std::unordered_set<Handle> &getUpdatedHandles();
 
     // Mutators
     void setAmbientLight(const glm::vec3 &ambient);
 
   protected:
+    virtual void onUpdate(float time, float deltaTime) = 0;
+
+    Entry &getEntry(const std::string &name);
+    Entry &getEntry(const Handle handle);
+
+    void playAllAnimations(Entry &entry, float deltaTime);
+    void playAnimation(Entry &entry, const std::string &name, float deltaTime);
+    void playAnimation(Scene::Entry &entry, int index, float deltaTime);
+    void updateHandle(Handle handle);
+
+  private:
     Camera camera_;
     TextureManager &textureManager_;
+    Handle nextHandle_{1};
 
     // Associated data
     std::vector<Entry> entries_;
@@ -85,9 +105,6 @@ class Scene
 
     void setupScene(const std::filesystem::path &jsonFile, const GraphicsSettings &graphicsSettings);
 
-    // For updating existing transforms. Do not add or remove them.
-    virtual void onUpdate(float deltaTime) = 0;
-
     void loadGLTFTextures(Handle handle, const Model &model);
 
     void addSkybox(Handle handle, const Skybox &skybox);
@@ -98,4 +115,7 @@ class Scene
                            const std::string &name = {});
     void addCubemappedModel(Handle handle, const Model &model, const std::filesystem::path &imagePath,
                             const Transform &transform, ShaderType shaderType, const std::string &name = {});
+
+    std::size_t findHandle(Handle handle) const;
+    std::size_t findName(const std::string &name) const;
 };

@@ -22,8 +22,10 @@ class CascadeShadow
     CascadeShadow() = default;
     CascadeShadow(DirectionalLight &light, AABB worldAABB, float nearPlane);
 
-    [[nodiscard]] const Cascades &updateCascadeShadows(const glm::mat4 &cameraVP, const DirectionalLight &light,
-                                                       int shadowResolution, float farPlane);
+    const Cascades &getCascades() const;
+
+    void updateCascadeShadows(const glm::mat4 &cameraVP, const DirectionalLight &light, int shadowResolution,
+                              float farPlane);
 
   private:
     struct FrustumSphere
@@ -34,6 +36,7 @@ class CascadeShadow
 
     float nearPlane_{0.0f};
     float worldRadius_{0.0f};
+    float worldExtent_{0.0f};
     glm::vec3 worldCenter_{0.0f};
     glm::mat4 outerCascadeProjection_{1.0f};
     std::array<Cascade, shadowCascadeCount> cascades_;

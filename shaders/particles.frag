@@ -9,10 +9,12 @@ out vec4 fragColor;
 void main()
 {
 	vec2 point = gl_PointCoord * 2.0 - 1.0;
+	float dist2 = dot(point, point);
 
-	if (dot(point, point) > 1)
-		discard;
+	float alpha = color.a * (1.0 - smoothstep(0.9, 1.0, dist2));
+
+	if (dist2 > 1)
+		alpha = 0.0;
 	
-	float alpha = smoothstep(0.8, 1.0, color.a);
 	fragColor = vec4(vec3(color), alpha);
 }

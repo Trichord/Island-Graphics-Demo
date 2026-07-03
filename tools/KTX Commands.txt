@@ -1,0 +1,11 @@
+sRGB:
+ktx create --format R8G8B8A8_SRGB --encode uastc --uastc-quality 4 --generate-mipmap --zstd 9 --assign-tf srgb input.png output.ktx2
+
+Linear:
+ktx create --format R8G8B8A8_UNORM --encode uastc --uastc-quality 4 --generate-mipmap --zstd 9 --assign-tf linear input.png output.ktx2
+
+Normal / DUDV:
+ktx create --format R8G8_UNORM --encode uastc --uastc-quality 4 --generate-mipmap --normalize --normal-mode --zstd 9 --assign-tf linear input.png output.ktx2
+
+Cube:
+ktx create --format R8G8B8A8_SRGB --encode uastc --uastc-quality 4 --generate-mipmap --zstd 9 --cubemap --assign-tf srgb right.png left.png top.png bottom.png front.png back.png output.ktx2

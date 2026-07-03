@@ -21,16 +21,20 @@ class BufferBuilder
         std::size_t drawCounts{0};
         std::size_t cullResults{0};
         std::size_t visibleInstances{0};
+        std::size_t drawCommands{0};
+        std::size_t boneTransforms{0};
     };
 
-    [[nodiscard]] GlobalVAO buildVAO(const std::vector<Primitive::Vertex> &vertices,
-                                     const std::vector<std::uint32_t> &indices) const;
+    [[nodiscard]] VAOs buildVAO(const std::vector<Primitive::Vertex> &vertices,
+                                const std::vector<std::uint32_t> &indices) const;
 
     [[nodiscard]] SSBOs buildSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
                                    const std::vector<glm::mat4> &matrices,
                                    const std::vector<PrimitiveMetadata> &metadata,
+                                   const std::vector<Primitive::VertexSkin> &vertexSkins,
+                                   const std::vector<Primitive::Vertex> &originalSkinnedVerts,
                                    const std::vector<VisibilityBufferMap> &visibilityMap,
-                                   const std::vector<ParticleBufferMap> &particleMap, const std::vector<AABB> &aabbs,
+                                   const std::vector<std::uint32_t> &particleMap, const std::vector<AABB> &aabbs,
                                    BufferBuilder::Sizes sizes) const;
 
     [[nodiscard]] UBOs buildUBOs();

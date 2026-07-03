@@ -32,9 +32,11 @@ void iterateVertices(physicsUtilities::CollisionMesh &collisionMesh, const std::
             glm::vec3 b{vertices[indices[i + 1]].position};
             glm::vec3 c{vertices[indices[i + 2]].position};
 
-            a = glm::vec3{modelMatrix * glm::vec4{a, 1.0}};
-            b = glm::vec3{modelMatrix * glm::vec4{b, 1.0}};
-            c = glm::vec3{modelMatrix * glm::vec4{c, 1.0}};
+            glm::mat4 trs{modelMatrix * primitive.modelSpaceTransform};
+
+            a = glm::vec3{trs * glm::vec4{a, 1.0}};
+            b = glm::vec3{trs * glm::vec4{b, 1.0}};
+            c = glm::vec3{trs * glm::vec4{c, 1.0}};
 
             collisionMesh.minimumHeight = std::min({collisionMesh.minimumHeight, a.y, b.y, c.y});
 
@@ -47,12 +49,12 @@ physicsUtilities::CollisionMesh physicsUtilities::buildCollisionMesh(Scene &scen
 {
     physicsUtilities::CollisionMesh collisionMesh;
 
-    for (Scene::Entry &entry : scene.getAllSceneEntries())
+    for (const Scene::Entry &entry : scene.getAllSceneEntries())
     {
-        if (!entry.filePath.has_value())
+        if (!entry.modelPath.has_value())
             continue;
 
-        std::filesystem::path filePath{entry.filePath.value()};
+        std::filesystem::path filePath{entry.modelPath.value()};
         std::filesystem::path collisionMeshPath{filePath.parent_path() / "collision"};
         std::string gltf{filePath.stem().string() + "_collision.gltf"};
         std::filesystem::path fullPath{collisionMeshPath / gltf};
@@ -73,7 +75,7 @@ physicsUtilities::CollisionMesh physicsUtilities::buildCollisionMesh(Scene &scen
         else
             continue;
 
-        for (Transform &transform : entry.transforms)
+        for (const Transform &transform : entry.worldTransforms)
             iterateVertices(collisionMesh, collisionPrimitives, transform.getModelMatrix());
     }
 

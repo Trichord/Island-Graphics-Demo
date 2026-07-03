@@ -38,27 +38,35 @@ std::vector<SimpleAABB> simplifyAABBs(const std::vector<AABB> &aabbs)
 
 SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
                                 const std::vector<glm::mat4> &matrices, const std::vector<PrimitiveMetadata> &metadata,
+                                const std::vector<Primitive::VertexSkin> &vertexSkins,
+                                const std::vector<Primitive::Vertex> &originalSkinnedVerts,
                                 const std::vector<VisibilityBufferMap> &visibilityMap,
-                                const std::vector<ParticleBufferMap> &particleMap, const std::vector<AABB> &aabbs,
+                                const std::vector<std::uint32_t> &particleMap, const std::vector<AABB> &aabbs,
                                 BufferBuilder::Sizes sizes) const
 {
     SSBOs buffers;
     std::vector<SimpleAABB> simpleAABBs{simplifyAABBs(aabbs)};
-    std::size_t drawCommandsSize{commands.size() * sizeof(DrawElementsIndirectCommand)};
 
     buildSSBO(&buffers.visibilityMap, sizes.bufferMap, BindingPointSSBO::visibilityMap, false, visibilityMap.data());
     buildSSBO(&buffers.aabb, simpleAABBs.size() * sizeof(SimpleAABB), BindingPointSSBO::aabb, false,
               simpleAABBs.data());
     buildSSBO(&buffers.matrices, sizes.matrices, BindingPointSSBO::matrices, true, matrices.data());
     buildSSBO(&buffers.metadata, sizes.metadata, BindingPointSSBO::metadata, true, metadata.data());
-    buildSSBO(&buffers.drawCounts, sizes.drawCounts, BindingPointSSBO::drawCounts, false, nullptr);
+    buildSSBO(&buffers.drawCounts, sizes.drawCounts, BindingPointSSBO::drawCounts, true, nullptr);
     buildSSBO(&buffers.cullResults, sizes.cullResults, BindingPointSSBO::cullResults, false, nullptr);
-    buildSSBO(&buffers.drawCommands, drawCommandsSize, BindingPointSSBO::drawCommands, true, nullptr);
+    buildSSBO(&buffers.drawCommands, sizes.drawCommands, BindingPointSSBO::drawCommands, false, nullptr);
     buildSSBO(&buffers.visibleInstances, sizes.visibleInstances, BindingPointSSBO::visibleInstances, false, nullptr);
-    buildSSBO(&buffers.drawCommandsSource, drawCommandsSize, BindingPointSSBO::drawCommandsSource, false,
-              commands.data());
-    buildSSBO(&buffers.particleMap, particleMap.size() * sizeof(ParticleBufferMap), BindingPointSSBO::particleMap,
-              false, particleMap.data());
+    buildSSBO(&buffers.drawCommandsSource, commands.size() * sizeof(DrawElementsIndirectCommand),
+              BindingPointSSBO::drawCommandsSource, false, commands.data());
+    buildSSBO(&buffers.particleMap, particleMap.size() * sizeof(std::uint32_t), BindingPointSSBO::particleMap, false,
+              particleMap.data());
+
+    // Animation related SSBOs
+    buildSSBO(&buffers.boneTransforms, sizes.boneTransforms, BindingPointSSBO::boneTransforms, true, nullptr);
+    buildSSBO(&buffers.vertexBoneData, vertexSkins.size() * sizeof(Primitive::VertexSkin),
+              BindingPointSSBO::vertexBoneData, false, vertexSkins.data());
+    buildSSBO(&buffers.skinnedVertexSource, originalSkinnedVerts.size() * sizeof(Primitive::Vertex),
+              BindingPointSSBO::skinnedVertexSource, false, originalSkinnedVerts.data());
 
     return buffers;
 }
@@ -75,18 +83,19 @@ UBOs BufferBuilder::buildUBOs()
     return ubos;
 }
 
-GlobalVAO BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices,
-                                  const std::vector<std::uint32_t> &indices) const
+VAOs BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices,
+                             const std::vector<std::uint32_t> &indices) const
 {
-    GlobalVAO vao;
+    VAOs vao;
 
-    glCreateVertexArrays(1, &vao.id);
-    glBindVertexArray(vao.id);
+    glCreateVertexArrays(1, &vao.vao);
 
-    glEnableVertexArrayAttrib(vao.id, 0);
-    glEnableVertexArrayAttrib(vao.id, 1);
-    glEnableVertexArrayAttrib(vao.id, 2);
-    glEnableVertexArrayAttrib(vao.id, 3);
+    glEnableVertexArrayAttrib(vao.vao, 0);
+    glEnableVertexArrayAttrib(vao.vao, 1);
+    glEnableVertexArrayAttrib(vao.vao, 2);
+    glEnableVertexArrayAttrib(vao.vao, 3);
+    glEnableVertexArrayAttrib(vao.vao, 4);
+    glEnableVertexArrayAttrib(vao.vao, 5);
 
     glCreateBuffers(1, &vao.vbo);
     glNamedBufferStorage(vao.vbo, vertices.size() * sizeof(Primitive::Vertex), vertices.data(), 0);
@@ -94,21 +103,45 @@ GlobalVAO BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices
     glCreateBuffers(1, &vao.ebo);
     glNamedBufferStorage(vao.ebo, indices.size() * sizeof(std::uint32_t), indices.data(), 0);
 
-    glVertexArrayVertexBuffer(vao.id, 0, vao.vbo, 0, sizeof(Primitive::Vertex));
+    glVertexArrayVertexBuffer(vao.vao, 0, vao.vbo, 0, sizeof(Primitive::Vertex));
+    glVertexArrayElementBuffer(vao.vao, vao.ebo);
 
-    glVertexArrayElementBuffer(vao.id, vao.ebo);
+    glVertexArrayAttribFormat(vao.vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, position));
+    glVertexArrayAttribFormat(vao.vao, 1, 4, GL_INT_2_10_10_10_REV, GL_TRUE, offsetof(Primitive::Vertex, normal));
+    glVertexArrayAttribFormat(vao.vao, 2, 4, GL_INT_2_10_10_10_REV, GL_TRUE, offsetof(Primitive::Vertex, tangent));
+    glVertexArrayAttribFormat(vao.vao, 3, 2, GL_HALF_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, texCoords));
+    glVertexArrayAttribIFormat(vao.vao, 4, 1, GL_UNSIGNED_INT, offsetof(Primitive::Vertex, vboIndex));
+    glVertexArrayAttribFormat(vao.vao, 5, 4, GL_UNSIGNED_BYTE, GL_TRUE, offsetof(Primitive::Vertex, color));
 
-    glVertexArrayAttribFormat(vao.id, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, position));
-    glVertexArrayAttribFormat(vao.id, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, normal));
-    glVertexArrayAttribFormat(vao.id, 2, 4, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, tangent));
-    glVertexArrayAttribFormat(vao.id, 3, 2, GL_FLOAT, GL_FALSE, offsetof(Primitive::Vertex, texCoords));
-
-    glVertexArrayAttribBinding(vao.id, 0, 0);
-    glVertexArrayAttribBinding(vao.id, 1, 0);
-    glVertexArrayAttribBinding(vao.id, 2, 0);
-    glVertexArrayAttribBinding(vao.id, 3, 0);
+    glVertexArrayAttribBinding(vao.vao, 0, 0);
+    glVertexArrayAttribBinding(vao.vao, 1, 0);
+    glVertexArrayAttribBinding(vao.vao, 2, 0);
+    glVertexArrayAttribBinding(vao.vao, 3, 0);
+    glVertexArrayAttribBinding(vao.vao, 4, 0);
+    glVertexArrayAttribBinding(vao.vao, 5, 0);
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::vbo), vao.vbo);
+
+    std::vector<glm::vec4> shadowVerts;
+    shadowVerts.reserve(vertices.size());
+
+    for (const Primitive::Vertex &vertex : vertices)
+        shadowVerts.emplace_back(glm::vec4(vertex.position, 1.0));
+
+    glCreateVertexArrays(1, &vao.shadowVAO);
+
+    glEnableVertexArrayAttrib(vao.shadowVAO, 0);
+
+    glCreateBuffers(1, &vao.shadowVBO);
+    glNamedBufferStorage(vao.shadowVBO, vertices.size() * sizeof(glm::vec4), shadowVerts.data(), 0);
+
+    glVertexArrayVertexBuffer(vao.shadowVAO, 0, vao.shadowVBO, 0, sizeof(glm::vec4));
+    glVertexArrayElementBuffer(vao.shadowVAO, vao.ebo);
+
+    glVertexArrayAttribFormat(vao.shadowVAO, 0, 4, GL_FLOAT, GL_FALSE, 0);
+    glVertexArrayAttribBinding(vao.shadowVAO, 0, 0);
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(BindingPointSSBO::positionVBO), vao.shadowVBO);
 
     return vao;
 }
@@ -116,6 +149,9 @@ GlobalVAO BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices
 void BufferBuilder::buildSSBO(GLuint *id, std::size_t size, BindingPointSSBO binding, bool dynamic,
                               const void *data) const
 {
+    if (!size)
+        return;
+
     GLenum storageType{static_cast<GLenum>(dynamic ? GL_DYNAMIC_STORAGE_BIT : 0)};
     glCreateBuffers(1, id);
     glNamedBufferStorage(*id, static_cast<GLsizeiptr>(size), data, storageType);
@@ -124,6 +160,9 @@ void BufferBuilder::buildSSBO(GLuint *id, std::size_t size, BindingPointSSBO bin
 
 void BufferBuilder::buildUBO(GLuint *id, std::size_t size, BindingPointUBO binding) const
 {
+    if (!size)
+        return;
+
     glCreateBuffers(1, id);
     glNamedBufferStorage(*id, static_cast<GLsizeiptr>(size), nullptr, GL_DYNAMIC_STORAGE_BIT);
     glBindBufferBase(GL_UNIFORM_BUFFER, static_cast<GLuint>(binding), *id);

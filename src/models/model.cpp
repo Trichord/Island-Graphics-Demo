@@ -14,19 +14,18 @@
 #include <vector>
 
 #include "models/aabb.h"
+#include "models/animation/animator.h"
+#include "models/animation/skeletal_animation.h"
 #include "models/primitive.h"
 #include "utilities/asset_loader.h"
 #include "utilities/texture_manager.h"
 
 Model::Model(const std::filesystem::path &path)
     : asset_{AssetLoader::loadAsset(path)}, filePath_{path}, primitives_{AssetLoader::loadMeshes(asset_)},
-      aabb_{calculateAABB()}
+      skeletalAnimation_{AssetLoader::loadSkeletalAnimation(asset_)}
 {
-}
-
-const AABB &Model::getAABB() const
-{
-    return aabb_;
+    if (skeletalAnimation_.has_value() && skeletalAnimation_->skeleton.skin.has_value())
+        recalculateAnimatedAABBs();
 }
 
 const std::vector<Primitive> &Model::getPrimitives() const
@@ -44,16 +43,61 @@ const std::filesystem::path &Model::getPath() const
     return filePath_;
 }
 
-AABB Model::calculateAABB() const
+const std::optional<SkeletalAnimation> &Model::getSkeletalAnimation() const
 {
-    glm::vec3 min{std::numeric_limits<float>::infinity()};
-    glm::vec3 max{-std::numeric_limits<float>::infinity()};
+    return skeletalAnimation_;
+}
 
-    for (const Primitive &primitive : primitives_)
+void Model::recalculateAnimatedAABBs()
+{
+    constexpr float timeStep{0.1f};
+
+    const auto &skin = skeletalAnimation_->skeleton.skin;
+    std::vector<Animation> &animations{skeletalAnimation_->animations};
+
+    const std::size_t numJoints{skin.has_value() ? skin->invBindMatrices.size() : 0};
+    const std::size_t numNodes{skeletalAnimation_->skeleton.parents.size()};
+    Animator animator{numNodes, numJoints};
+
+    for (Animation &animation : animations)
     {
-        min = glm::min(min, primitive.aabb.getMin());
-        max = glm::max(max, primitive.aabb.getMax());
-    }
+        for (float dt{0.0f}; dt <= animation.end; dt += timeStep)
+        {
+            animator.play(animation, skeletalAnimation_->skeleton, primitives_, dt);
 
-    return {min, max};
+            const std::vector<glm::mat4> &jointMatrices{animator.getJointMatrices()};
+
+            for (Primitive &primitive : primitives_)
+            {
+                if (!primitive.vertexSkins.has_value())
+                    continue;
+
+                glm::vec3 min{primitive.aabb.getMin()};
+                glm::vec3 max{primitive.aabb.getMax()};
+
+                const AABB animatedAABB{primitive.aabb.transform(primitive.modelSpaceTransform)};
+                const std::vector<Primitive::VertexSkin> &skin{primitive.vertexSkins.value()};
+
+                for (std::size_t i{0}; i < primitive.vertices.size(); ++i)
+                {
+                    const glm::vec3 &position{primitive.vertices[i].position};
+                    const glm::uvec4 &boneIDs{skin[i].boneIDs};
+                    const glm::vec4 &weights{skin[i].weights};
+
+                    glm::vec4 acc{0.0f};
+
+                    for (std::size_t j{0}; j < 4; ++j)
+                    {
+                        if (weights[j] > 0.0f)
+                            acc += weights[j] * jointMatrices[boneIDs[j]] * glm::vec4(position, 1.0f);
+                    }
+
+                    min = glm::min(min, glm::vec3{acc});
+                    max = glm::max(max, glm::vec3{acc});
+                }
+
+                primitive.aabb = {min, max};
+            }
+        }
+    }
 }

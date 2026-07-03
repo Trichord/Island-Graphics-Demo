@@ -1,49 +1,19 @@
 #version 460 core
 
-// Types
-struct Metadata
-{
-	int albedoArray;
-	int albedoLayer;
-	int armArray;
-	int armLayer;
-	int normalArray;
-	int normalLayer;
-	int cubemapArray;
-	int cubemapLayer;
-	uint visibleInstancesBaseIndex;
-};
+#include "shared/binding_points.glsl"
+#include "shared/textures.glsl"
+#include "shared/types.glsl"
+#include "shared/ubo.glsl"
 
 // Constants
 const float waveSpeed = 0.05;
 const float dudvStrength = 0.01;
 const float specularDamper = 0.2;
-
-const float waterTransparency = 0.35;
+const float waterTransparency = 0.45;
 const vec4 waterColor = vec4(0.01, 0.48, 0.68, 0.0) * 0.2;
 
-// Samplers
-layout(binding = 0) uniform sampler2DArray textures[10];
-layout(binding = 10) uniform samplerCubeArray cubemaps[3];
-
-// UBOs
-layout (std140, binding = 0) uniform cameraData 
-{
-	layout (offset = 0) mat4 viewMatrix;
-	layout (offset = 64) mat4 projectionMatrix;
-	layout (offset = 128) mat4 projectionViewMatrix;
-	layout (offset = 192) mat4 inverseViewProjectMatrix;
-	layout (offset = 256) vec4 cameraPosition;
-};
-
-layout (std140, binding = 3) uniform packedTime
-{
-	layout (offset = 0) float deltaTime;
-	layout (offset = 4) float time;
-};
-
 // SSBOs
-layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
 {
 	Metadata metadata[];
 };
@@ -59,7 +29,6 @@ in vsOut
 {
 	vec2 texCoords;
 	vec3 fragPos;
-	vec4 clipSpace;
 } fsIn;
 
 // Out
@@ -105,7 +74,7 @@ void main()
 	vec3 specHighlight = lightColor * specular * specularDamper;
 
 	// Fresnel
-	float fresnel = 1.0 - dot(N, V);
+	float fresnel = 1.0 - max(dot(N, V), 0.0);
 	fresnel = pow(fresnel, 5.0);
 
 	// Reflection 

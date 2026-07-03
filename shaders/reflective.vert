@@ -1,45 +1,25 @@
 #version 460 core
 
-// Types
-struct Metadata
-{
-	int albedoArray;
-	int albedoLayer;
-	int armArray;
-	int armLayer;
-	int normalArray;
-	int normalLayer;
-	int cubemapArray;
-	int cubemapLayer;
-	uint visibleInstancesBaseIndex;
-};
+#include "shared/binding_points.glsl"
+#include "shared/types.glsl"
+#include "shared/ubo.glsl"
 
 // Attributes
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNorm;
-
-// UBOs
-layout (std140, binding = 0) uniform cameraData 
-{
-	layout (offset = 0) mat4 viewMatrix;
-	layout (offset = 64) mat4 projectionMatrix;
-	layout (offset = 128) mat4 projectionViewMatrix;
-	layout (offset = 192) mat4 inverseViewProjectMatrix;
-	layout (offset = 256) vec4 cameraPosition;
-};
+layout (location = 1) in vec4 aNormal;
 
 // SSBOs
-layout(binding = 2, std430) restrict readonly buffer matricesSSBO 
+layout(binding = SSBO_BINDING_MATRICES, std430) restrict readonly buffer matricesSSBO
 {
    mat4 matrices[];
 };
 
-layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
 {
 	Metadata metadata[];
 };
 
-layout(binding = 7, std430) restrict readonly buffer visibleInstancesSSBO 
+layout(binding = SSBO_BINDING_VISIBLE_INSTANCES, std430) restrict readonly buffer visibleInstancesSSBO 
 {
    uint instances[];
 };
@@ -59,10 +39,10 @@ void main()
 	mat4 modelMatrix = matrices[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
 
-	normal = normalMatrix * aNorm;
+	normal = normalMatrix * aNormal.xyz;
 	position = vec3(modelMatrix * vec4(aPos, 1.0f));
 
 	metadataIndex = gl_BaseInstance;
 
-	gl_Position = projectionViewMatrix * vec4(position, 1.0f);
+	gl_Position = viewProjectionMatrix * vec4(position, 1.0f);
 }
