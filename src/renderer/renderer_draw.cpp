@@ -96,7 +96,7 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
 
     bindBufferRanges(0);
     glDisable(GL_POLYGON_OFFSET_FILL);
-    glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
+    glViewport(0, 0, graphicsSettings_.renderWidth, graphicsSettings_.renderHeight);
     frameBuffer_.bind();
 }
 

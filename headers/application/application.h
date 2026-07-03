@@ -26,22 +26,33 @@ class Application
     Application(Application &&other) = delete;
     Application &operator=(Application &&other) = delete;
     ~Application();
+
+    // For GLFW resize callbacks
+    void setWindow(int width, int height);
+
     void run();
 
     static constexpr float physicsTick{1.0f / 60.0f};
 
   private:
-    // Window and timing
+    // Frame timing
     float deltaTime_{0.0f};
     float lastFrame_{0.0f};
     float currentFrame_{0.0f};
     float accumulator_{0.0f};
+
+    // Window
+    GLFWwindow *window_{nullptr};
+    int windowWidth_{1920};
+    int windowHeight_{1080};
+    bool windowResized_{false};
+
+    // Input tracking
     static inline bool leftCtrlToggle_{false};
     static inline bool leftShiftToggle_{false};
     static inline bool firstMouse_{true};
     static inline float lastMouseX_{0.0f};
     static inline float lastMouseY_{0.0f};
-    GLFWwindow *window_{nullptr};
 
     // Settings Window
     std::filesystem::path savePath{"./settings.json"};
@@ -58,6 +69,9 @@ class Application
     ObjectLayerPairFilterImpl objectLayerPairFilter_;
     ObjectVsBroadPhaseLayerFilterImpl objectVsBroadPhaseLayerFilter_;
 
+    // Scene pointer, for GLFW callbacks
+    Scene *scenePtr_{nullptr};
+
     /**
      * @brief Creates a GLFW window.  Display settings from the config window are
      * passed to GLFW here.
@@ -72,24 +86,15 @@ class Application
     void processKeyboard(Scene &scene, PlayerPhysics &physicsHandler);
 
     /**
-     * @brief Registers OpenGL function pointers, creates an OpenGL viewport, and
-     * optionally sets MSAA.
+     * @brief Registers OpenGL function pointers, checks for supported features, and creates an OpenGL viewport
      */
-    bool createOpenGLViewport(const GraphicsSettings &graphicsSettings);
+    bool createOpenGLViewport();
 
     /**
      * @brief Registers GLFW callbacks.  Mouse callback is seperate and should be
      * registered last with centerMouse()
      */
     void registerCallbacks();
-
-    /**
-     * @brief Registers a scene with GLFW to be used with GLFW's built in
-     * call-backs.
-     *
-     * @param scene The target scene to be processed by GLFW.
-     */
-    void addGlfwUserParam(Scene &scene);
 
     void registerJolt();
 

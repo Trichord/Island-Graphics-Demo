@@ -412,8 +412,8 @@ void SettingsWindow::updateResolution(GraphicsSettings &settings, int index)
 {
     if (index < resolutionTable_.size())
     {
-        settings.screenWidth = resolutionTable_[index].first;
-        settings.screenHeight = resolutionTable_[index].second;
+        settings.renderWidth = resolutionTable_[index].first;
+        settings.renderHeight = resolutionTable_[index].second;
     }
 }
 
@@ -446,7 +446,7 @@ void SettingsWindow::matchSettingsToGUI(const GraphicsSettings &settings)
     {
         const auto &[width, height]{resolutionTable_[i]};
 
-        if (width == settings.screenWidth && height == settings.screenHeight)
+        if (width == settings.renderWidth && height == settings.renderHeight)
             resolutionSelectedIndex_ = i;
     }
 

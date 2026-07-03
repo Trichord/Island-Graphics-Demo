@@ -325,7 +325,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
     camera_.setFOV(scene.camera.FOV);
     camera_.setNearPlane(scene.camera.nearPlane);
     camera_.setFarPlane(scene.camera.farPlane);
-    camera_.setAspectRatio(graphicsSettings.screenWidth / static_cast<float>(graphicsSettings.screenHeight));
+    camera_.setAspectRatio(graphicsSettings.renderWidth / static_cast<float>(graphicsSettings.renderHeight));
 
     ambientLight_ = scene.environment.ambientLight;
     globalLightSource_ = DirectionalLight{scene.environment.sunDirection, scene.environment.lightColor};

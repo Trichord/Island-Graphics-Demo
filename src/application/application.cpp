@@ -37,6 +37,13 @@ Application::~Application()
     glfwTerminate();
 }
 
+void Application::setWindow(int width, int height)
+{
+    windowWidth_ = width;
+    windowHeight_ = height;
+    windowResized_ = true;
+}
+
 void Application::run()
 {
     SettingsWindow settingsWindow;
@@ -51,7 +58,7 @@ void Application::run()
     if (!window_)
         return;
 
-    if (!createOpenGLViewport(graphicsSettings))
+    if (!createOpenGLViewport())
         return;
 
 #ifndef _DEBUG
@@ -69,11 +76,13 @@ void Application::run()
     // Create resources
     ThreadPool threadPool{std::max(2u, std::thread::hardware_concurrency() / 2u)};
     TextureManager textureManager{threadPool, graphicsSettings};
-    Renderer renderer(textureManager, graphicsSettings);
+    Renderer renderer(textureManager, graphicsSettings, windowWidth_, windowHeight_);
 
     std::cout << "Loading Models... ";
     IslandScene islandScene(textureManager, graphicsSettings, "./res/scenes/island_scene.json");
     std::cout << "Done" << std::endl;
+
+    scenePtr_ = &islandScene;
 
     // Initialize scene dependent resources
     renderer.initializeResources(islandScene);
@@ -83,12 +92,11 @@ void Application::run()
     std::cout << "Done" << std::endl;
 
     threadPool.stopAllThreads();
-    addGlfwUserParam(islandScene);
 
     while (!glfwWindowShouldClose(window_))
     {
         // Delta Time
-        currentFrame_ = (float)glfwGetTime();
+        currentFrame_ = static_cast<float>(glfwGetTime());
         deltaTime_ = currentFrame_ - lastFrame_;
         lastFrame_ = currentFrame_;
 
@@ -97,6 +105,12 @@ void Application::run()
 
         glfwPollEvents();
         processKeyboard(islandScene, physicsHandler);
+
+        if (windowResized_)
+        {
+            renderer.updateExternalResolution(windowWidth_, windowHeight_);
+            windowResized_ = false;
+        }
 
         // Draw
         renderer.renderScene(islandScene, deltaTime_);
@@ -113,7 +127,6 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_STENCIL_BITS, 0);
     glfwWindowHint(GLFW_DEPTH_BITS, 0);
     glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
@@ -122,14 +135,16 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 #endif
 
-    int width{graphicsSettings.screenWidth};
-    int height{graphicsSettings.screenHeight};
-
     if (graphicsSettings.fullscreen)
-        window_ = glfwCreateWindow(width, height, "Island Graphics Demo", glfwGetPrimaryMonitor(), nullptr);
+    {
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
+        const GLFWvidmode *mode{glfwGetVideoMode(glfwGetPrimaryMonitor())};
+        window_ = glfwCreateWindow(mode->width, mode->height, "Island Graphics Demo", glfwGetPrimaryMonitor(), nullptr);
+    }
     else
-        window_ = glfwCreateWindow(width, height, "Island Graphics Demo", NULL, NULL);
+        window_ = glfwCreateWindow(graphicsSettings.renderWidth, graphicsSettings.renderHeight, "Island Graphics Demo",
+                                   nullptr, nullptr);
 
     if (!window_)
     {
@@ -144,9 +159,12 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
 
     else
         glfwSwapInterval(0);
+
+    // Get the actual framebuffer given by GLFW since it might not be the requested resolution
+    glfwGetFramebufferSize(window_, &windowWidth_, &windowHeight_);
 }
 
-bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
+bool Application::createOpenGLViewport()
 {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -157,8 +175,8 @@ bool Application::createOpenGLViewport(const GraphicsSettings &graphicsSettings)
 
     bool supported{true};
 
-    GLsizei width{static_cast<GLsizei>(graphicsSettings.screenWidth)};
-    GLsizei height{static_cast<GLsizei>(graphicsSettings.screenHeight)};
+    GLsizei width{static_cast<GLsizei>(windowWidth_)};
+    GLsizei height{static_cast<GLsizei>(windowHeight_)};
 
     glViewport(0, 0, width, height);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -305,10 +323,10 @@ void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
     lastMouseX_ = static_cast<float>(xPos);
     lastMouseY_ = static_cast<float>(yPos);
 
-    auto scenePointer = static_cast<IslandScene *>(glfwGetWindowUserPointer(window));
+    auto appPtr = static_cast<Application *>(glfwGetWindowUserPointer(window));
 
-    if (scenePointer)
-        scenePointer->getCamera().processMouseMovement(xOffset, yOffset);
+    if (appPtr && appPtr->scenePtr_)
+        appPtr->scenePtr_->getCamera().processMouseMovement(xOffset, yOffset);
 }
 
 void Application::registerCallbacks()
@@ -318,11 +336,7 @@ void Application::registerCallbacks()
     glfwSetCursorPosCallback(window_, Application::mouse_callback);
     glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetWindowIconifyCallback(window_, window_iconify_callback);
-}
-
-void Application::addGlfwUserParam(Scene &scene)
-{
-    glfwSetWindowUserPointer(window_, &scene);
+    glfwSetWindowUserPointer(window_, this);
 }
 
 void Application::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
