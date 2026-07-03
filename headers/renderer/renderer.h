@@ -26,7 +26,7 @@
 class Renderer
 {
   public:
-    Renderer(TextureManager &textureManager, const GraphicsSettings &settings);
+    Renderer(TextureManager &textureManager, const GraphicsSettings &settings, int screenWidth, int screenHeight);
     Renderer(const Renderer &) = delete;
     Renderer &operator=(const Renderer &) = delete;
     Renderer(Renderer &&other) = delete;
@@ -34,6 +34,7 @@ class Renderer
 
     void initializeResources(Scene &scene);
     void renderScene(Scene &scene, float deltaTime);
+    void updateExternalResolution(int width, int height);
 
     std::uint32_t getFrameCount() const;
 
@@ -42,6 +43,8 @@ class Renderer
 
     const GraphicsSettings graphicsSettings_;
     TextureManager &textureManager_;
+    int externalWidth_{1920};
+    int externalHeight_{1080};
 
     RenderTarget frameBuffer_;
     RenderTarget msaaResolve_;

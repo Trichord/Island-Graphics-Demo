@@ -1,4 +1,5 @@
 #include "application/glfw_callbacks.h"
+#include "application/application.h"
 #include "application/gl_context.h"
 
 void window_iconify_callback(GLFWwindow *window, int iconified)
@@ -18,5 +19,8 @@ void window_iconify_callback(GLFWwindow *window, int iconified)
 // Global callbacks for GLFW
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
-    glViewport(0, 0, width, height);
+    auto appPtr = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
+    if (appPtr)
+        appPtr->setWindow(width, height);
 }

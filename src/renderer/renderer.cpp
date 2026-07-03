@@ -63,16 +63,19 @@ std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
 }
 } // namespace
 
-Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &settings)
-    : graphicsSettings_{settings}, textureManager_{textureManager},
-      frameBuffer_{settings.screenWidth,
-                   settings.screenHeight,
-                   {.msaa = settings.msaa,
-                    .depthType = RenderTarget::DepthType::RBO,
-                    .internalFormat = GL_RGBA16F,
-                    .depthFormat = GL_DEPTH_COMPONENT24,
-                    .mipmaps = true}},
-      msaaResolve_{settings.screenWidth, settings.screenHeight, {.internalFormat = GL_RGBA16F}},
+Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &settings, int windowWidth, int windowHeight)
+    : graphicsSettings_{settings}, textureManager_{textureManager}, externalWidth_{windowWidth},
+      externalHeight_{windowHeight},
+      frameBuffer_{
+          settings.renderWidth,
+          settings.renderHeight,
+          {.msaa = settings.msaa,
+           .depthType = RenderTarget::DepthType::RBO,
+           .internalFormat = GL_RGBA16F,
+           .depthFormat = GL_DEPTH_COMPONENT24,
+           .mipmaps = true},
+      },
+      msaaResolve_{settings.renderWidth, settings.renderHeight, {.internalFormat = GL_RGBA16F}},
       shadowPassTarget_{settings.shadowResolution ? RenderTarget{settings.shadowResolution,
                                                                  settings.shadowResolution,
                                                                  {
@@ -162,8 +165,8 @@ void Renderer::setupShader(GraphicsShader &shader)
 {
     // Setup Window settings
     shader.setFloat("gamma", graphicsSettings_.gamma);
-    shader.setInt("screenHeight", graphicsSettings_.screenHeight);
-    shader.setInt("screenWidth", graphicsSettings_.screenWidth);
+    shader.setInt("screenHeight", graphicsSettings_.renderHeight);
+    shader.setInt("screenWidth", graphicsSettings_.renderWidth);
 }
 
 void Renderer::updateCameraUBO(Camera &camera)
@@ -364,8 +367,24 @@ void Renderer::blitFrame()
 
     shaders_[shaderIndex(ShaderType::fboResolve)].use();
 
+    const int internalWidth{frameBuffer_.getWidth()};
+    const int internalHeight{frameBuffer_.getHeight()};
+    const bool changeViewport{internalWidth != externalWidth_ || internalHeight != externalHeight_};
+
+    if (changeViewport)
+        glViewport(0, 0, static_cast<GLsizei>(externalWidth_), static_cast<GLsizei>(externalHeight_));
+
     glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    if (changeViewport)
+        glViewport(0, 0, static_cast<GLsizei>(internalWidth), static_cast<GLsizei>(internalHeight));
 
     glEnable(GL_DEPTH_TEST);
     frameBuffer_.bind();
+}
+
+void Renderer::updateExternalResolution(int width, int height)
+{
+    externalWidth_ = width;
+    externalHeight_ = height;
 }

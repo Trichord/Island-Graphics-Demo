@@ -143,8 +143,8 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
 
     std::uint32_t baseVBOIndex{static_cast<std::uint32_t>(processed.bufferDescriptors.particleBaseVBOIndex)};
 
-    cullShader_.setInt("screenWidth", graphicsSettings_.screenWidth);
-    cullShader_.setInt("screenHeight", graphicsSettings_.screenHeight);
+    cullShader_.setInt("screenWidth", graphicsSettings_.renderWidth);
+    cullShader_.setInt("screenHeight", graphicsSettings_.renderHeight);
     particleShader_.setIntU("vboBaseIndex", baseVBOIndex);
 }
 
@@ -260,7 +260,7 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &
     }
 
     cubeFaces.unbind();
-    glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
+    glViewport(0, 0, graphicsSettings_.renderWidth, graphicsSettings_.renderHeight);
 }
 
 void Renderer::renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarget &blitTarget,
