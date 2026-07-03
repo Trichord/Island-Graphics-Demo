@@ -1,41 +1,17 @@
 #version 460 core
 
-// Types
-struct Metadata
-{
-	int albedoArray;
-	int albedoLayer;
-	int armArray;
-	int armLayer;
-	int normalArray;
-	int normalLayer;
-	int cubemapArray;
-	int cubemapLayer;
-	uint visibleInstancesBaseIndex;
-};
-
-// Samplers
-layout(binding = 10) uniform samplerCubeArray cubemaps[3];
-
-// UBOs
-layout (std140, binding = 0) uniform cameraData 
-{
-	layout (offset = 0) mat4 viewMatrix;
-	layout (offset = 64) mat4 projectionMatrix;
-	layout (offset = 128) mat4 projectionViewMatrix;
-	layout (offset = 192) mat4 inverseViewProjectMatrix;
-	layout (offset = 256) vec4 cameraPosition;
-};
+#include "shared/binding_points.glsl"
+#include "shared/textures.glsl"
+#include "shared/types.glsl"
+#include "shared/ubo.glsl"
 
 // SSBOs
-layout(binding = 3, std430) restrict readonly buffer metadataSSBO
+layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
 {
 	Metadata metadata[];
 };
 
 // In
-uniform float gamma;
-
 in flat int metadataIndex;
 
 in vec3 normal;
@@ -52,7 +28,6 @@ void main()
 	vec3 reflectDir = reflect(viewDir, normalize(normal));
 
 	vec3 color = texture(cubemaps[meta.cubemapArray], vec4(reflectDir, meta.cubemapLayer)).rgb;
-	color = pow(color, vec3(1.0/gamma));
 	
 	fragColor = vec4(color, 1.0); 
 }

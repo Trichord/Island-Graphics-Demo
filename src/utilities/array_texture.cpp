@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "renderer/render_target.h"
+#include "renderer/textures.h"
 #include "utilities/ktx_texture.h"
 #include "utilities/texture_utilities.h"
 
@@ -173,7 +174,7 @@ void ArrayTexture::allocate(bool cubemap, bool textureRepeat, bool mipmaps, floa
     glTextureParameteri(id_, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTextureParameteri(id_, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    if (anisotropy > 0.0f)
+    if (anisotropy > 0.0f && !cubemaps_)
         glTextureParameterf(id_, GL_TEXTURE_MAX_ANISOTROPY, anisotropy);
 
     if (fallback_)
@@ -305,7 +306,7 @@ void ArrayTexture::validate(const KTXTexture &texture)
 
 void ArrayTexture::createFallbackLayer()
 {
-    if (internalFormat_ == GL_SRGB8)
+    if (internalFormat_ == DynamicCubemaps::internalFormat)
         createSRGBFallback();
     else if (internalFormat_ == GL_COMPRESSED_RG_RGTC2)
         createRGRGTC2Fallback();
@@ -319,15 +320,19 @@ void ArrayTexture::createFallbackLayer()
 
 void ArrayTexture::createSRGBFallback()
 {
-    std::vector<std::uint8_t> pixels(width_ * height_ * 3, 0);
-    for (std::size_t i{0}; i < pixels.size(); i += 3)
+    std::vector<std::uint8_t> pixels(width_ * height_ * 4, 0);
+    for (std::size_t i{0}; i < pixels.size(); i += 4)
+    {
+        // Red + alpha
         pixels[i] = 255;
+        pixels[i + 3] = 255;
+    }
 
     int numFaces{cubemaps_ ? 6 : 1};
 
     for (int face{0}; face < numFaces; ++face)
     {
-        glTextureSubImage3D(id_, 0, 0, 0, face, static_cast<GLsizei>(width_), static_cast<GLsizei>(height_), 1, GL_RGB,
+        glTextureSubImage3D(id_, 0, 0, 0, face, static_cast<GLsizei>(width_), static_cast<GLsizei>(height_), 1, GL_RGBA,
                             GL_UNSIGNED_BYTE, pixels.data());
     }
 

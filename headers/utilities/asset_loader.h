@@ -2,8 +2,10 @@
 
 #include <fastgltf/types.hpp>
 #include <filesystem>
+#include <optional>
 #include <vector>
 
+#include "models/animation/skeletal_animation.h"
 #include "models/primitive.h"
 #include "renderer/textures.h"
 #include "scene/handle.h"
@@ -23,7 +25,7 @@ struct DeferredTexture
     std::filesystem::path path;
 
     bool textureRepeat{true};
-    std::vector<int> materialIndices;
+    std::vector<std::size_t> materialIndices;
     Material::Type type{Material::Type::albedo};
 };
 
@@ -33,4 +35,5 @@ std::vector<std::filesystem::path> getURIs(const fastgltf::Asset &asset, const s
 TextureDescriptor getTextureInfo(const fastgltf::Asset &asset, const fastgltf::TextureInfo &texInfo);
 std::vector<DeferredTexture> texturesFromAsset(const fastgltf::Asset &asset, const std::filesystem::path &parentPath,
                                                Handle handle);
+std::optional<SkeletalAnimation> loadSkeletalAnimation(const fastgltf::Asset &asset);
 } // namespace AssetLoader

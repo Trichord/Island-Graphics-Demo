@@ -2,9 +2,10 @@
 
 #include <array>
 #include <cstdint>
-#include <fastgltf/types.hpp>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <iostream>
+#include <set>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -16,16 +17,39 @@
 #include "renderer/render_target.h"
 #include "renderer/renderer_types.h"
 #include "renderer/shader/graphics_shader.h"
+#include "renderer/textures.h"
 #include "scene/camera.h"
 #include "scene/directional_light.h"
 #include "scene/handle.h"
 #include "scene/scene.h"
 #include "utilities/buffer_builder.h"
 #include "utilities/scene_processor.h"
-#include "utilities/shader_bucket_hash.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 #include "utilities/world_vectors.h"
+
+namespace
+{
+std::pair<std::size_t, bool> findBucket(const std::vector<MultiDrawBucket> &buckets, ShaderType type)
+{
+    for (std::size_t i{0}; i < buckets.size(); ++i)
+        if (buckets[i].shaderType == type)
+            return std::pair<std::size_t, bool>{i, true};
+
+    return std::pair<std::size_t, bool>{0, false};
+}
+
+std::size_t getNumDynamicCubemaps(const Scene &scene)
+{
+    std::size_t cubemaps{0};
+
+    for (const Scene::Entry &entry : scene.getAllSceneEntries())
+        if (entry.shaderType == ShaderType::water)
+            ++cubemaps;
+
+    return cubemaps;
+}
+} // namespace
 
 void Renderer::initializeResources(Scene &scene)
 {
@@ -35,56 +59,64 @@ void Renderer::initializeResources(Scene &scene)
     BufferBuilder builder;
     UBOs_ = builder.buildUBOs();
 
-    SceneProcessor processor{scene, textureManager_};
+    const bool shadowsEnabled{graphicsSettings_.shadowResolution > 1};
 
     // Cubemaps. Reserve space up front for any load-time generated cubemaps
-    std::size_t numCubemaps{processor.getNumDynamicCubemaps()};
-    GLenum colorFormat{textureManager_.getReflectionColorFormat()};
+    std::size_t numCubemaps{getNumDynamicCubemaps(scene)};
+    GLenum colorFormat{DynamicCubemaps::internalFormat};
     textureManager_.reserveCubemaps(numCubemaps, graphicsSettings_.reflectionResolution, colorFormat);
 
     textureManager_.buildAllTextures();
-    SceneProcessor::ProcessedScene processed{processor.processScene()};
+
+    SceneProcessor::ProcessedScene processed{SceneProcessor::processScene(scene, textureManager_, shadowsEnabled)};
 
     // Take ownership of everything before shadow map draw call
     takeGPUObjects(processed);
     takeBufferData(processed);
 
     // Extract temporaries
-    std::vector<DrawElementsIndirectCommand> commands{std::move(processed.commands)};
-    AABB sceneAABB{processed.sceneData.worldAABB};
-    auto bucketMap{std::move(processed.bucketMap)};
-    std::vector<std::size_t> vertexCounts{std::move(processed.vertexCounts)};
-
-    setLocalGroupSizes(processed, commands, vertexCounts, bucketMap);
+    AABB sceneAABB{processed.sceneDescriptors.worldAABB};
+    std::vector<std::set<Handle>> bucketHandles{std::move(processed.bufferDescriptors.drawBucketHandles)};
+    std::vector<std::uint32_t> metadataBridge{std::move(processed.bufferDescriptors.metadataBridge)};
 
     // Setup for cascade shadow maps
     float nearPlane{scene.getCamera().getNearPlane()};
     DirectionalLight &light{scene.getGlobalLight()};
-    cascadeShadow_ = CascadeShadow(light, sceneAABB, nearPlane);
+    cascadeShadow_ = {light, sceneAABB, nearPlane};
+
+    // Deferred shader loading so we can test the scene for animated models
+    std::cerr << "Loading Shaders... ";
+    loadShaders();
+    std::cerr << "Done" << std::endl;
+
+    for (auto &shader : shaders_)
+        setupShader(shader);
 
     // Set the light based uniforms and draw shadows
     setSceneShaderUniforms(scene);
+    setupComputeShaders(processed);
 
-    if (graphicsSettings_.shadowResolution > 1)
+    if (graphicsSettings_.shadowResolution)
         renderShadowMaps(scene, true);
 
     // Assign the skybox to any ocean shaders
-    borrowSkybox(bucketMap);
+    borrowSkybox(drawBuckets_, bucketHandles);
 
     // Dynamic cubemap generation. The scene must be ready to render, except water / ocean.
-    createCubemaps(scene, commands, bucketMap);
+    createCubemaps(scene, drawBuckets_);
 
     // Update the GPU metadata buffers for the freshly created cubemaps
-    processor.updateMetadataCubemaps(SSBOs_.metadata);
+    updateMetadataCubemaps(scene, metadataBridge);
 
     // Get ready for first frame
-    updateCameraUBO(scene);
+    bindBufferRanges(0);
+    updateCameraUBO(scene.getCamera());
 }
 
 void Renderer::takeGPUObjects(SceneProcessor::ProcessedScene &processed)
 {
-    VAO_ = std::move(processed.vao);
-    SSBOs_ = std::move(processed.ssbos);
+    VAOs_ = std::move(processed.VAOs);
+    SSBOs_ = std::move(processed.SSBOs);
 
     glBindBuffer(GL_PARAMETER_BUFFER, SSBOs_.drawCounts);
     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, SSBOs_.drawCommands);
@@ -92,33 +124,37 @@ void Renderer::takeGPUObjects(SceneProcessor::ProcessedScene &processed)
 
 void Renderer::takeBufferData(SceneProcessor::ProcessedScene &processed)
 {
-    drawBuckets_ = std::move(processed.bufferData.buckets);
-    matricesBaseIndex_ = std::move(processed.bufferData.matricesBaseIndexMap);
+    drawBuckets_ = std::move(processed.drawBuckets);
+    matricesBaseIndices_ = std::move(processed.bufferDescriptors.matricesBaseIndexMap);
+    boneTransformsBaseIndexMap_ = std::move(processed.bufferDescriptors.boneTransformsBaseIndexMap);
+
+    drawCommandsSize_ = static_cast<std::uint32_t>(processed.bufferDescriptors.drawCommandsSize);
+    cullResultsSize_ = static_cast<std::uint32_t>(processed.bufferDescriptors.cullResultsSize);
+    drawCountsSize_ = static_cast<std::uint32_t>(processed.bufferDescriptors.drawCountsSize);
+    visibleInstancesSize_ = static_cast<std::uint32_t>(processed.bufferDescriptors.visibleInstancesSize);
 }
 
-void Renderer::setLocalGroupSizes(const SceneProcessor::ProcessedScene &processed,
-                                  const std::vector<DrawElementsIndirectCommand> &commands,
-                                  const std::vector<std::size_t> vertexCounts, const BucketMap &bucketMap)
+void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &processed)
 {
-    using enum ShaderType;
+    cullWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numInstances);
+    compactionWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numPrimitives);
+    particleWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numParticles);
+    skinnedVertexGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numSkinnedVertices);
 
-    cullWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneData.numInstances);
-    compactionWorkGroupSize_ = static_cast<std::uint32_t>(commands.size());
+    std::uint32_t baseVBOIndex{static_cast<std::uint32_t>(processed.bufferDescriptors.particleBaseVBOIndex)};
 
-    for (const auto &[key, bucket] : bucketMap)
-    {
-        if (key.first == particles)
-        {
-            for (std::size_t i{bucket.startIndex}; i <= bucket.endIndex; ++i)
-                particleWorkGroupSize_ += static_cast<std::uint32_t>(vertexCounts[i]);
-        }
-    }
+    cullShader_.setInt("screenWidth", graphicsSettings_.screenWidth);
+    cullShader_.setInt("screenHeight", graphicsSettings_.screenHeight);
+    particleShader_.setIntU("vboBaseIndex", baseVBOIndex);
 }
 
 void Renderer::setSceneShaderUniforms(Scene &scene)
 {
     const DirectionalLight &light{scene.getGlobalLight()};
-    const float fov{scene.getCamera().getFOV()};
+
+    const Camera &camera{scene.getCamera()};
+    const float fov{camera.getFOV()};
+    const float nearPlane{camera.getNearPlane()};
 
     for (auto &shader : shaders_)
     {
@@ -131,122 +167,104 @@ void Renderer::setSceneShaderUniforms(Scene &scene)
 
         shader.setFloat("fov", fov);
     }
+
+    cullShader_.setFloat("nearPlane", nearPlane);
 }
 
-void Renderer::borrowSkybox(const BucketMap &bucketMap)
+void Renderer::borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
+                            const std::vector<std::set<Handle>> &bucketHandles)
 {
     using enum ShaderType;
-    using enum fastgltf::AlphaMode;
 
-    auto skyboxIter = bucketMap.find(ShaderBucket{skybox, Opaque});
-    auto oceanIter = bucketMap.find(ShaderBucket{ocean, Opaque});
+    auto [oceanIndex, oceanFound] = findBucket(drawBuckets, ocean);
+    auto [skyboxIndex, skyboxFound] = findBucket(drawBuckets, skybox);
 
-    if (skyboxIter == bucketMap.end() || oceanIter == bucketMap.end())
+    if (!oceanFound || !skyboxFound)
         return;
 
-    if (skyboxIter->second.handles.empty())
-        return;
+    std::set<Handle> oceanHandles{bucketHandles[oceanIndex]};
+    std::set<Handle> skyboxHandles{bucketHandles[skyboxIndex]};
 
-    Handle skyboxHandle{*skyboxIter->second.handles.begin()};
+    // Should't have more than one skybox. Undefined if there is.
+    Handle skyboxHandle{*skyboxHandles.begin()};
 
-    for (const Handle &oceanHandle : oceanIter->second.handles)
+    for (const Handle &oceanHandle : oceanHandles)
         textureManager_.borrowCubemaps(oceanHandle, skyboxHandle);
 }
 
-void Renderer::createCubemaps(Scene &scene, const std::vector<DrawElementsIndirectCommand> &commandsSource,
-                              const BucketMap &bucketMap)
+void Renderer::createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets)
 {
     using enum ShaderType;
-    using enum fastgltf::AlphaMode;
 
-    auto waterIter = bucketMap.find(ShaderBucket{water, Blend});
+    auto [waterIndex, found] = findBucket(drawBuckets, water);
 
-    if (waterIter == bucketMap.end())
+    if (!found)
         return;
 
-    std::size_t commandsStart{waterIter->second.startIndex};
-    std::size_t commandsEnd{waterIter->second.endIndex};
-
-    std::vector<DrawElementsIndirectCommand> commands = commandsSource;
-
-    // Ensure reflections don't capture uninitialized other reflections or self geometry
-    for (std::size_t i{commandsStart}; i <= commandsEnd; ++i)
-        commands[i].count = 0;
-
-    // Update the draw command buffer now that water is invisible
-    GLsizeiptr drawCommandBufferSize{static_cast<GLsizeiptr>(commands.size() * sizeof(DrawElementsIndirectCommand))};
-    glNamedBufferSubData(SSBOs_.drawCommands, 0, drawCommandBufferSize, commands.data());
-
-    // Save camera settings before we make it bounce around the scene
-    Camera &camera{scene.getCamera()};
-    const glm::vec3 originalPos{camera.getPosition()};
-    const float originalPitch{camera.getPitch()};
-    const float originalYaw{camera.getYaw()};
-    const float originalFOV{camera.getFOV()};
-    const float originalAspect{camera.getAspectRatio()};
+    // Find which parameter buffer index to 0, so that water never tries to self-draw
+    std::size_t parameterBufferIndex{0};
+    for (std::size_t i{0}; i < drawBuckets.size(); ++i)
+        if (drawBuckets[i].shaderType == water)
+        {
+            parameterBufferIndex = i;
+            break;
+        }
 
     // 90 degrees for cubemap
+    Camera camera;
     camera.setFOV(90.0f);
     camera.setAspectRatio(1.0f);
 
     int faceSize{graphicsSettings_.reflectionResolution};
     glViewport(0, 0, faceSize, faceSize);
 
-    GLenum colorFormat{textureManager_.getReflectionColorFormat()};
+    GLenum colorFormat{DynamicCubemaps::internalFormat};
     RenderTarget cubeFaces{faceSize, faceSize,
                            RenderTarget::Settings{.msaa = graphicsSettings_.msaa,
-                                                  .depthType = RenderTarget::DepthType::TEXTURE,
+                                                  .depthType = RenderTarget::DepthType::texture,
                                                   .internalFormat = colorFormat,
                                                   .depthFormat = GL_DEPTH_COMPONENT24,
                                                   .textureArray = true,
                                                   .textureArrayDepth = 6}};
 
     RenderTarget blitTarget{faceSize, faceSize,
-                            RenderTarget::Settings{.msaa = 0,
-                                                   .depthType = RenderTarget::DepthType::NONE,
-                                                   .internalFormat = colorFormat,
-                                                   .depthFormat = GL_NONE,
-                                                   .textureArray = true,
-                                                   .textureArrayDepth = 6}};
+                            RenderTarget::Settings{
+                                .internalFormat = colorFormat,
+                                .textureArray = true,
+                                .textureArrayDepth = 6,
+                            }};
 
     cubeFaces.bind();
 
     // Water should not be instanced, limit one cubemap per model. By walking the scene instead of draw entries,
     // we ensure each model gets one cubemap
-    for (Scene::Entry &entry : scene.getAllSceneEntries())
+    for (const Scene::Entry &entry : scene.getAllSceneEntries())
     {
         if (entry.shaderType != water)
             continue;
 
-        Transform &transform{entry.transforms.front()};
+        const Transform &transform{entry.worldTransforms.front()};
 
         // Set the camera in the center of the water plane
         camera.setPosition(transform.getPosition());
-        renderCubeFaces(scene, cubeFaces, blitTarget);
+        renderCubeFaces(camera, cubeFaces, blitTarget, parameterBufferIndex);
 
         // Assign the texture
         std::vector<int> materialIndices;
         materialIndices.reserve(entry.primitives.size());
 
-        for (Primitive &primitive : entry.primitives)
+        for (const Primitive &primitive : entry.primitives)
             materialIndices.push_back(primitive.materialIndex);
 
         textureManager_.setCubemap(entry.handle, materialIndices, blitTarget);
     }
 
-    // Reset
-    camera.setFOV(originalFOV);
-    camera.setAspectRatio(originalAspect);
-    camera.setPosition(originalPos);
-    camera.setPitch(originalPitch);
-    camera.setYaw(originalYaw);
-    updateCameraUBO(scene);
-
     cubeFaces.unbind();
     glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
 }
 
-void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget &blitTarget)
+void Renderer::renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarget &blitTarget,
+                               std::size_t parameterBufferIndex)
 {
     constexpr std::array<WorldOrientation, 6> faces{WorldOrientation::RIGHT, WorldOrientation::LEFT,
                                                     WorldOrientation::UP,    WorldOrientation::DOWN,
@@ -254,11 +272,17 @@ void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget 
 
     auto renderFace = [&](WorldOrientation orientation, Camera &camera) {
         camera.setWorldOrientation(orientation);
-        updateCameraUBO(scene);
+        updateCameraUBO(camera);
+
+        // Use buffer section 0 since its a main render pass
+        cullScene(camera.getViewProjectionMatrix(), 0);
+
+        GLuint zero{0};
+        glNamedBufferSubData(SSBOs_.drawCounts, static_cast<GLsizeiptr>(parameterBufferIndex * sizeof(std::uint32_t)),
+                             sizeof(GLuint), &zero);
+
         renderScene();
     };
-
-    Camera &camera{scene.getCamera()};
 
     for (int i{0}; i < 6; ++i)
     {
@@ -269,5 +293,43 @@ void Renderer::renderCubeFaces(Scene &scene, RenderTarget &target, RenderTarget 
         renderFace(faces[i], camera);
 
         target.blitTo(blitTarget);
+    }
+}
+
+void Renderer::updateMetadataCubemaps(Scene &scene, const std::vector<std::uint32_t> &metadataBridge)
+{
+    // Verify data layout before sparse updates of the metadata struct
+    static_assert(std::is_standard_layout_v<SamplerArrayIndex>);
+
+    std::size_t primitiveOffset{0};
+
+    for (const Scene::Entry &entry : scene.getAllSceneEntries())
+    {
+        using enum ShaderType;
+
+        const std::size_t numPrimitives{entry.primitives.size()};
+
+        if (entry.shaderType != ocean && entry.shaderType != water)
+        {
+            primitiveOffset += numPrimitives;
+            continue;
+        }
+
+        std::span<const Material> materials{textureManager_.getMaterials(entry.handle)};
+
+        for (std::size_t i{0}; i < entry.primitives.size(); ++i)
+        {
+            const Material &material{materials[entry.primitives[i].materialIndex]};
+            const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
+
+            const std::uint32_t bufferIndex{metadataBridge[primitiveOffset + i]};
+            const std::size_t bufferOffset{offsetof(PrimitiveMetadata, cubemap)};
+
+            glNamedBufferSubData(SSBOs_.metadata,
+                                 static_cast<GLintptr>(bufferIndex * sizeof(PrimitiveMetadata) + bufferOffset),
+                                 sizeof(SamplerArrayIndex), &cubemap);
+        }
+
+        primitiveOffset += numPrimitives;
     }
 }

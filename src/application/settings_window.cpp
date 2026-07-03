@@ -50,7 +50,10 @@ bool SettingsWindow::launchSettingsWindow(GraphicsSettings &settings)
     glfwTerminate();
 
     if (textureID_)
+    {
         glDeleteTextures(1, &textureID_);
+        textureID_ = 0;
+    }
 
     return settingsConfirmed;
 }
@@ -111,8 +114,10 @@ void SettingsWindow::setupImGui()
 
     // Enable Keyboard Controls
     ImGuiIO &io = ImGui::GetIO();
-    (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+    // Disable .ini drop
+    io.IniFilename = nullptr;
 
     // Configure backend rendering
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -196,7 +201,7 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
         Text("Gamma");
         SliderFloat("##gammaSlider", &settings.gamma, 0.8f, 1.3f, "%.2f", ImGuiSliderFlags_ClampOnInput);
         if (IsItemHovered(ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_NoSharedDelay))
-            SetTooltip("Ctrl + Click to edit", GetStyle().HoverDelayShort);
+            SetTooltip("Ctrl + Click to edit");
 
         Dummy(dummySpacing);
 

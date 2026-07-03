@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -13,8 +14,11 @@
 #include <vector>
 
 #include "application/graphics_settings.h"
+#include "models/animation/animator.h"
 #include "models/instanced_model.h"
 #include "models/model.h"
+#include "models/particles.h"
+#include "models/primitive.h"
 #include "models/skybox.h"
 #include "renderer/shader/graphics_shader.h"
 #include "scene/camera.h"
@@ -26,41 +30,74 @@
 
 namespace
 {
+
+// Helper for the visitor pattern
+template <class... Ts> struct overloaded : Ts...
+{
+    using Ts::operator()...;
+};
+
 void validateSceneEntry(Scene::Entry &entry)
 {
     using enum ShaderType;
-    using enum fastgltf::AlphaMode;
+    using enum AlphaMode;
 
     if (entry.shaderType == ocean)
     {
-        if (entry.primitives.front().alphaMode == Opaque)
+        if (entry.primitives.front().alphaMode == opaque)
             return;
 
         for (Primitive &primitive : entry.primitives)
         {
-            if (primitive.alphaMode == Opaque)
+            if (primitive.alphaMode == opaque)
                 continue;
 
-            std::cerr << "WARNING: Overriding ocean shader primitive alpha mode wtih Opaque" << std::endl;
-            primitive.alphaMode = Opaque;
+            std::cerr << "WARNING: Overriding ocean shader primitive alpha mode with Opaque" << std::endl;
+            primitive.alphaMode = opaque;
         }
     }
 
     if (entry.shaderType == water)
     {
-        if (entry.primitives.front().alphaMode == Blend)
+        if (entry.primitives.front().alphaMode == blend)
             return;
 
         for (Primitive &primitive : entry.primitives)
         {
-            if (primitive.alphaMode == Blend)
+            if (primitive.alphaMode == blend)
                 continue;
 
-            std::cerr << "WARNING: Overriding water shader primitive alpha mode wtih Blend" << std::endl;
-            primitive.alphaMode = Blend;
+            std::cerr << "WARNING: Overriding water shader primitive alpha mode with Blend" << std::endl;
+            primitive.alphaMode = blend;
         }
     }
 }
+
+std::optional<Scene::EntryAnimation> createEntryAnimation(const Model &model)
+{
+    const auto &skeletalAnimation = model.getSkeletalAnimation();
+
+    if (!skeletalAnimation.has_value())
+        return {};
+
+    auto &skin = skeletalAnimation->skeleton.skin;
+
+    std::unordered_map<std::string, std::size_t> map;
+
+    for (std::size_t i{0}; i < skeletalAnimation->animations.size(); ++i)
+    {
+        const auto &animation = skeletalAnimation->animations[i];
+
+        if (!animation.name.empty())
+            map.emplace(animation.name, i);
+    }
+
+    std::size_t numJoints{skin.has_value() ? skin.value().invBindMatrices.size() : 0};
+
+    return Scene::EntryAnimation{skeletalAnimation.value(),
+                                 Animator{skeletalAnimation->skeleton.parents.size(), numJoints}, map};
+}
+
 } // namespace
 
 Scene::Scene(TextureManager &textureManager, const GraphicsSettings &graphicsSettings,
@@ -70,25 +107,17 @@ Scene::Scene(TextureManager &textureManager, const GraphicsSettings &graphicsSet
     setupScene(jsonFile, graphicsSettings);
 }
 
-std::vector<Scene::Entry> &Scene::getAllSceneEntries()
+void Scene::updateHandle(Handle handle)
+{
+    updatedModels_.insert(handle);
+}
+
+const std::vector<Scene::Entry> &Scene::getAllSceneEntries() const
 {
     return entries_;
 }
 
-Scene::Entry &Scene::getEntryByName(const std::string &key)
-{
-    auto iter = entriesByName_.find(key);
-
-    if (iter == entriesByName_.end() || iter->second >= entries_.size())
-    {
-        std::cerr << "ERROR: Cannot find named scene entry " << key << std::endl;
-        throw std::runtime_error("Invalid key");
-    }
-
-    return entries_[iter->second];
-}
-
-Scene::Entry &Scene::getEntryByHandle(Handle handle)
+std::size_t Scene::findHandle(Handle handle) const
 {
     auto iter = entriesByHandle_.find(handle);
 
@@ -98,7 +127,40 @@ Scene::Entry &Scene::getEntryByHandle(Handle handle)
         throw std::runtime_error("Invalid key");
     }
 
-    return entries_[iter->second];
+    return iter->second;
+}
+
+std::size_t Scene::findName(const std::string &name) const
+{
+    auto iter = entriesByName_.find(name);
+
+    if (iter == entriesByName_.end() || iter->second >= entries_.size())
+    {
+        std::cerr << "ERROR: Cannot find named scene entry " << name << std::endl;
+        throw std::runtime_error("Invalid key");
+    }
+
+    return iter->second;
+}
+
+const Scene::Entry &Scene::getEntryByName(const std::string &name) const
+{
+    return entries_[findName(name)];
+}
+
+const Scene::Entry &Scene::getEntryByHandle(Handle handle) const
+{
+    return entries_[findHandle(handle)];
+}
+
+Scene::Entry &Scene::getEntry(const std::string &name)
+{
+    return entries_[findName(name)];
+}
+
+Scene::Entry &Scene::getEntry(const Handle handle)
+{
+    return entries_[findHandle(handle)];
 }
 
 DirectionalLight &Scene::getGlobalLight()
@@ -106,7 +168,7 @@ DirectionalLight &Scene::getGlobalLight()
     return globalLightSource_;
 }
 
-glm::vec3 Scene::getAmbientLight() const
+const glm::vec3 &Scene::getAmbientLight() const
 {
     return ambientLight_;
 }
@@ -131,7 +193,7 @@ float Scene::getWindStrength() const
     return windStrength_;
 }
 
-std::unordered_set<Handle> &Scene::getUpdatedModels()
+std::unordered_set<Handle> &Scene::getUpdatedHandles()
 {
     return updatedModels_;
 }
@@ -152,10 +214,9 @@ void Scene::addParticles(Handle handle, const Particles &particles)
 
     entries_.emplace_back(Entry{
         .handle = handle,
-        .aabb = particles.getAABB(),
-        .primitives = particles.getPrimitives(),
-        .transforms = {{}},
         .shaderType = ShaderType::particles,
+        .primitives = particles.getPrimitives(),
+        .worldTransforms = {{}},
     });
 }
 
@@ -168,10 +229,9 @@ void Scene::addSkybox(Handle handle, const Skybox &skybox)
 
     entries_.emplace_back(Entry{
         .handle = handle,
-        .aabb = skybox.getAABB(),
-        .primitives = skybox.getPrimitives(),
-        .transforms = {{}},
         .shaderType = ShaderType::skybox,
+        .primitives = skybox.getPrimitives(),
+        .worldTransforms = {{}},
     });
 }
 
@@ -185,11 +245,11 @@ void Scene::addModel(Handle handle, const Model &model, const Transform &transfo
 
     entries_.emplace_back(Entry{
         .handle = handle,
-        .aabb = model.getAABB(),
-        .primitives = model.getPrimitives(),
-        .transforms = {transform},
-        .filePath = model.getPath(),
         .shaderType = shaderType,
+        .primitives = model.getPrimitives(),
+        .worldTransforms = {transform},
+        .entryAnimation = createEntryAnimation(model),
+        .modelPath = model.getPath(),
     });
 }
 
@@ -204,11 +264,11 @@ void Scene::addCubemappedModel(Handle handle, const Model &model, const std::fil
 
     entries_.emplace_back(Entry{
         .handle = handle,
-        .aabb = model.getAABB(),
-        .primitives = model.getPrimitives(),
-        .transforms = {transform},
-        .filePath = model.getPath(),
         .shaderType = shaderType,
+        .primitives = model.getPrimitives(),
+        .worldTransforms = {transform},
+        .entryAnimation = createEntryAnimation(model),
+        .modelPath = model.getPath(),
     });
 }
 
@@ -224,19 +284,13 @@ void Scene::addInstancedModel(Handle handle, const InstancedModel &model, Shader
 
     entries_.emplace_back(Entry{
         .handle = handle,
-        .aabb = model.getAABB(),
-        .primitives = model.getPrimitives(),
-        .transforms = std::move(transforms),
-        .filePath = model.getPath(),
         .shaderType = shaderType,
+        .primitives = model.getPrimitives(),
+        .worldTransforms = std::move(transforms),
+        .entryAnimation = createEntryAnimation(model),
+        .modelPath = model.getPath(),
     });
 }
-
-// Helper for the visitor pattern
-template <class... Ts> struct overloaded : Ts...
-{
-    using Ts::operator()...;
-};
 
 void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSettings &graphicsSettings)
 {
@@ -283,11 +337,11 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
     {
         // Names are optional, entries by handle is not
         std::size_t entryIndex{entries_.size()};
-        Handle handle{textureManager_.assignHandle()};
+        Handle handle{nextHandle_++};
 
         std::visit(overloaded{
                        [&](const ParticlesEntry &entry) {
-                           Particles particles{entry.position,       entry.extent,   entry.color,
+                           Particles particles{entry.translation,    entry.extent,   entry.color,
                                                entry.colorVariation, entry.lifetime, entry.count};
                            addParticles(handle, particles);
                        },
@@ -316,4 +370,42 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
         validateSceneEntry(entries_.back());
         entriesByHandle_[handle] = entryIndex;
     }
+}
+
+void Scene::playAnimation(Scene::Entry &entry, const std::string &name, float deltaTime)
+{
+    if (!entry.entryAnimation.has_value())
+        return;
+
+    std::unordered_map<std::string, std::size_t> &map{entry.entryAnimation->animationMap};
+
+    auto nameIter = map.find(name);
+
+    if (nameIter == map.end())
+    {
+        std::cerr << "WARNING: Animation " << name << " not found" << std::endl;
+        return;
+    }
+
+    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
+    const Skeleton &skeleton{entryAnimation.skeletalAnimation.skeleton};
+
+    entryAnimation.animator.play(entryAnimation.skeletalAnimation.animations[nameIter->second], skeleton,
+                                 entry.primitives, deltaTime);
+}
+
+void Scene::playAnimation(Scene::Entry &entry, int index, float deltaTime)
+{
+    if (!entry.entryAnimation.has_value())
+        return;
+
+    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
+    std::vector<Animation> &animations{entryAnimation.skeletalAnimation.animations};
+
+    if (index >= static_cast<int>(animations.size()))
+        return;
+
+    const Skeleton &skeleton{entryAnimation.skeletalAnimation.skeleton};
+
+    entryAnimation.animator.play(animations[index], skeleton, entry.primitives, deltaTime);
 }

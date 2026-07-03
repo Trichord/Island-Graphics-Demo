@@ -2,27 +2,28 @@
 
 #include <fastgltf/types.hpp>
 #include <filesystem>
+#include <optional>
 #include <vector>
 
 #include "models/aabb.h"
 #include "models/primitive.h"
-#include "utilities/texture_manager.h"
+#include "models/animation/skeletal_animation.h"
 
 class Model
 {
   public:
     Model(const std::filesystem::path &path);
 
-    const AABB &getAABB() const;
     const std::filesystem::path &getPath() const;
     const fastgltf::Asset &getAsset() const;
     const std::vector<Primitive> &getPrimitives() const;
+    const std::optional<SkeletalAnimation> &getSkeletalAnimation() const;
 
   protected:
     fastgltf::Asset asset_;
     std::filesystem::path filePath_;
     std::vector<Primitive> primitives_;
-    AABB aabb_;
+    std::optional<SkeletalAnimation> skeletalAnimation_;
 
-    AABB calculateAABB() const;
+    void recalculateAnimatedAABBs();
 };

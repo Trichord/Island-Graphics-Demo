@@ -16,28 +16,16 @@
 #include "utilities/ktx_texture.h"
 #include "utilities/thread_pool.h"
 
-// Texture units. Easier to keep it here with the arrays
-namespace TextureUnit
-{
-static constexpr int array2DBase{0};
-static constexpr int arrayCubemapBase{10};
-static constexpr int shadow{13};
-} // namespace TextureUnit
-
 class TextureManager
 {
   public:
     TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings);
-
-    Handle assignHandle();
 
     // Add a gLTF model
     void loadModelTextures(const Handle handle, const fastgltf::Asset &asset, const std::filesystem::path &parentPath);
     void loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath);
 
     void addDefaultMaterial(const Handle handle);
-
-    GLenum getReflectionColorFormat() const;
     std::span<const Material> getMaterials(Handle handle) const;
 
     void reserveCubemaps(std::size_t numCubemaps, int resolution, GLenum internalFormat);
@@ -67,7 +55,6 @@ class TextureManager
 
     bool texturesBuilt_{false};
     float globalAnisotropicDegree_{0.0f};
-    GLenum dynamicCubemapInternalFormat_{GL_SRGB8};
 
     ThreadPool &threadPool_;
     std::vector<Material> materials_;
@@ -91,7 +78,7 @@ class TextureManager
 
     // Private helper for material lookups. Mirrors the public API, except its not const
     std::span<Material> findMaterials(Handle handle);
-    void addMaterials(Handle handle, std::size_t size);
+    void addMaterials(Handle handle, std::size_t numMaterials);
 
     void validateState();
     void assignFallbacks();

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_access.hpp>
+#include <string>
 #include <unordered_set>
 #include <vector>
 
@@ -25,61 +26,97 @@
 
 namespace
 {
-// Scale mipmaps and alpha cutoff for foliage
-constexpr float mipScale{0.111f};
-constexpr float alphaCutoff{0.425f};
-constexpr int shadowMapMSAA{2};
+// Hardware shadow bias
+constexpr GLfloat polygonFactor{1.0f};
+constexpr GLfloat polygonUnits{1.0f};
+
+// Reduce the distance of the camera's far plane by 80% for shadow cascades.
+constexpr float farPlaneReduction{0.2f};
+
+std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
+{
+    auto normalizePlane = [](glm::vec4 &plane) {
+        float length{glm::length(glm::vec3{plane})};
+        plane /= length;
+    };
+
+    const glm::vec4 row0{glm::row(matrix, 0)};
+    const glm::vec4 row1{glm::row(matrix, 1)};
+    const glm::vec4 row2{glm::row(matrix, 2)};
+    const glm::vec4 row3{glm::row(matrix, 3)};
+
+    glm::vec4 left{row3 + row0};
+    glm::vec4 right{row3 - row0};
+    glm::vec4 top{row3 - row1};
+    glm::vec4 bottom{row3 + row1};
+    glm::vec4 near{row3 + row2};
+    glm::vec4 far{row3 - row2};
+
+    normalizePlane(left);
+    normalizePlane(right);
+    normalizePlane(top);
+    normalizePlane(bottom);
+    normalizePlane(near);
+    normalizePlane(far);
+
+    return {left, right, top, bottom, near, far};
+}
 } // namespace
 
-const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix);
-
-Renderer::Renderer(ThreadPool &threadPool, TextureManager &textureManager, const GraphicsSettings &settings)
-    : graphicsSettings_{settings}, threadPool_{threadPool}, textureManager_{textureManager},
-      msaaShadowTarget_{settings.shadowResolution,
-                        settings.shadowResolution,
-                        {.msaa = shadowMapMSAA,
-                         .depthType = RenderTarget::DepthType::RBO,
-                         .internalFormat = GL_RG32F,
-                         .depthFormat = GL_DEPTH_COMPONENT32F}},
-
-      shadowPassTarget_{settings.shadowResolution,
-                        settings.shadowResolution,
-                        {.msaa = 0,
-                         .depthType = RenderTarget::DepthType::NONE,
-                         .internalFormat = GL_RG32F,
-                         .depthFormat = GL_NONE,
-                         .textureArray = true,
-                         .textureArrayDepth = shadowCascadeCount}}
+Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &settings)
+    : graphicsSettings_{settings}, textureManager_{textureManager},
+      frameBuffer_{settings.screenWidth,
+                   settings.screenHeight,
+                   {.msaa = settings.msaa,
+                    .depthType = RenderTarget::DepthType::RBO,
+                    .internalFormat = GL_RGBA16F,
+                    .depthFormat = GL_DEPTH_COMPONENT24,
+                    .mipmaps = true}},
+      msaaResolve_{settings.screenWidth, settings.screenHeight, {.internalFormat = GL_RGBA16F}},
+      shadowPassTarget_{settings.shadowResolution ? RenderTarget{settings.shadowResolution,
+                                                                 settings.shadowResolution,
+                                                                 {
+                                                                     .depthType = RenderTarget::DepthType::texture,
+                                                                     .depthFormat = GL_DEPTH_COMPONENT24,
+                                                                     .textureArray = true,
+                                                                     .textureArrayDepth = shadowCascadeCount,
+                                                                     .shadowMap = true,
+                                                                 }}
+                                                  : RenderTarget{}}
 {
-    loadShaders();
+    glBindTextureUnit(static_cast<GLuint>(TextureUnit::frameBuffer), msaaResolve_.getColorTextureID());
+    glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getDepthMapTextureID());
+    glPolygonOffset(polygonFactor, polygonUnits);
 
-    for (auto &shader : shaders_)
-        setupShader(shader);
-
-    glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getColorTextureID());
+    frameBuffer_.bind();
 }
 
 void Renderer::renderScene(Scene &scene, float deltaTime)
 {
-    glClearNamedFramebufferfv(0, GL_COLOR, 0, clearColor_.data());
-    glClearNamedFramebufferfv(0, GL_DEPTH, 0, &depthClear_);
+    frameBuffer_.clear();
+
+    // Updates from scene first
+    updateSceneTransforms(scene);
+    updateTimeUBO(deltaTime);
 
     const bool lightChanged{scene.getGlobalLight().directionHasUpdated()};
-    const bool cameraUpdated{scene.getCamera().hasUpdated()};
-
-    updateSceneTransforms(scene);
     updateShaderUniforms(scene, lightChanged);
-    updateTimeUBO(deltaTime);
-    updateParticles(deltaTime);
 
-    if (framesRendered_ % 2u && graphicsSettings_.shadowResolution > 1 || lightChanged)
+    // Give driver as much time as possible to process the scene transforms (needed in skinned vertices compute shader)
+    updateParticles();
+    updateSkinnedVertices();
+
+    if (graphicsSettings_.shadowResolution && (framesRendered_ % 2u || lightChanged))
         renderShadowMaps(scene, lightChanged);
 
-    if (cameraUpdated)
-        updateCameraUBO(scene);
+    Camera &camera{scene.getCamera()};
 
-    cullScene(scene.getCamera().getViewProjectionMatrix());
+    if (camera.hasUpdated())
+        updateCameraUBO(camera);
+
+    cullScene(scene.getCamera().getViewProjectionMatrix(), 0);
     renderScene();
+    blitFrame();
 
     ++framesRendered_;
 }
@@ -88,49 +125,51 @@ void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    if (graphicsSettings_.shadowResolution > 1)
-        shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR_shadow.vert",
-                                                 "./shaders/directional_PBR_shadow.frag"};
-    else
-        shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR.vert",
-                                                 "./shaders/directional_PBR.frag"};
+    const std::vector<std::string> defines{graphicsSettings_.shadowResolution ? "ALPHA_TESTED_SHADOWS" : "",
+                                           !boneTransformsBaseIndexMap_.empty() ? "SKINNED" : "",
+                                           graphicsSettings_.gamma != 1.0f ? "GAMMA_CORRECT" : ""};
 
-    shaders_[shaderIndex(grass)] = {grass, "./shaders/grass.vert", "./shaders/grass.frag"};
-    shaders_[shaderIndex(trees)] = {trees, "./shaders/trees.vert", "./shaders/trees.frag"};
-    shaders_[shaderIndex(reflective)] = {reflective, "./shaders/reflective.vert", "./shaders/reflective.frag"};
-    shaders_[shaderIndex(skybox)] = {skybox, "./shaders/skybox.vert", "./shaders/skybox.frag"};
-    shaders_[shaderIndex(water)] = {water, "./shaders/water.vert", "./shaders/water.frag"};
-    shaders_[shaderIndex(ocean)] = {ocean, "./shaders/water.vert", "./shaders/ocean.frag"};
-    shaders_[shaderIndex(particles)] = {particles, "./shaders/particles.vert", "./shaders/particles.frag"};
+    shaders_[shaderIndex(baseColor)] = {baseColor, "./shaders/base_color.vert", "./shaders/base_color.frag", defines};
+    shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR.vert",
+                                             "./shaders/directional_PBR.frag", defines};
+    shaders_[shaderIndex(grass)] = {grass, "./shaders/grass.vert", "./shaders/grass.frag", defines};
+    shaders_[shaderIndex(trees)] = {trees, "./shaders/trees.vert", "./shaders/trees.frag", defines};
+    shaders_[shaderIndex(reflective)] = {reflective, "./shaders/reflective.vert", "./shaders/reflective.frag", defines};
+    shaders_[shaderIndex(skybox)] = {skybox, "./shaders/skybox.vert", "./shaders/skybox.frag", defines};
+    shaders_[shaderIndex(water)] = {water, "./shaders/water.vert", "./shaders/water.frag", defines};
+    shaders_[shaderIndex(ocean)] = {ocean, "./shaders/water.vert", "./shaders/ocean.frag", defines};
+    shaders_[shaderIndex(particles)] = {particles, "./shaders/particles.vert", "./shaders/particles.frag", defines};
 
     // Internal use only shaders
-    shaders_[shaderIndex(shadowMap)] = {shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
-    shaders_[shaderIndex(shadowMapAlpha)] = {shadowMapAlpha, "./shaders/shadow_pass_alpha.vert",
-                                             "./shaders/shadow_pass_alpha.frag"};
+    if (graphicsSettings_.shadowResolution)
+    {
+        shaders_[shaderIndex(shadowMap)] = {shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
+        shaders_[shaderIndex(shadowMapAlpha)] = {shadowMapAlpha, "./shaders/shadow_pass.vert",
+                                                 "./shaders/shadow_pass.frag", defines};
+    }
+
+    shaders_[shaderIndex(fboResolve)] = {fboResolve, "./shaders/fbo_resolve.vert", "./shaders/fbo_resolve.frag",
+                                         defines};
 
     // Compute
     cullShader_ = {"./shaders/frustum_cull.comp"};
     compactionShader_ = {"./shaders/compact_draws.comp"};
     particleShader_ = {"./shaders/particles.comp"};
+    skinningShader_ = {"./shaders/vertex_skinning.comp"};
 }
 
 void Renderer::setupShader(GraphicsShader &shader)
 {
-    // Constants
-    shader.setFloat("mipScale", mipScale);
-    shader.setFloat("alphaCutoff", alphaCutoff);
-
     // Setup Window settings
     shader.setFloat("gamma", graphicsSettings_.gamma);
     shader.setInt("screenHeight", graphicsSettings_.screenHeight);
     shader.setInt("screenWidth", graphicsSettings_.screenWidth);
 }
 
-void Renderer::updateCameraUBO(Scene &scene)
+void Renderer::updateCameraUBO(Camera &camera)
 {
     PackedCameraUniforms uniforms;
 
-    Camera &camera{scene.getCamera()};
     uniforms.viewMatrix = camera.getViewMatrix();
     uniforms.projectionMatrix = camera.getProjectionMatrix();
     uniforms.viewProjectionMatrix = camera.getViewProjectionMatrix();
@@ -169,8 +208,10 @@ void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChange
 
     if (uploadAll)
     {
-        cascadeShadows.splits = {cascades[0].far, cascades[1].far, cascades[2].far, 0.0f};
-        bytes += sizeof(cascadeShadows.splits);
+        cascadeShadows.near = {cascades[0].near, cascades[1].near, cascades[2].near, 0.0f};
+        cascadeShadows.far = {cascades[0].far, cascades[1].far, cascades[2].far, 0.0f};
+        bytes += sizeof(cascadeShadows.far);
+        bytes += sizeof(cascadeShadows.near);
     }
 
     int cascadesCount{lightChanged ? shadowCascadeCount : shadowCascadeCount - 1};
@@ -197,24 +238,68 @@ void Renderer::updateShaderUniforms(Scene &scene, bool lightChanged)
 
 void Renderer::updateSceneTransforms(Scene &scene)
 {
-    std::unordered_set<Handle> &updatedTransformHandles{scene.getUpdatedModels()};
+    std::unordered_set<Handle> &updatedTransformHandles{scene.getUpdatedHandles()};
 
     for (Handle handle : updatedTransformHandles)
     {
-        std::uint32_t bufferBaseIndex{matricesBaseIndex_.at(handle)};
-        std::vector<Transform> &transforms{scene.getEntryByHandle(handle).transforms};
+        const std::vector<std::uint32_t> &bufferIndices{matricesBaseIndices_[handle]};
+        const Scene::Entry &sceneEntry{scene.getEntryByHandle(handle)};
+        const std::vector<Transform> &worldTransforms{sceneEntry.worldTransforms};
+        auto boneIter = boneTransformsBaseIndexMap_.find(handle);
 
-        updatedMatrices_.clear();
-        updatedMatrices_.reserve(transforms.size());
+        updatedMatrices_.reserve(worldTransforms.size());
 
-        for (Transform &transform : transforms)
-            updatedMatrices_.emplace_back(transform.getModelMatrix());
+        for (std::size_t i{0}; i < sceneEntry.primitives.size(); ++i)
+        {
+            updatedMatrices_.clear();
 
-        glNamedBufferSubData(SSBOs_.matrices, static_cast<GLintptr>(bufferBaseIndex * sizeof(glm::mat4)),
-                             static_cast<GLsizeiptr>(transforms.size() * sizeof(glm::mat4)), updatedMatrices_.data());
+            const Primitive &primitive{sceneEntry.primitives[i]};
+
+            for (const Transform &transform : worldTransforms)
+            {
+                const glm::mat4 &modelMatrix{transform.getModelMatrix()};
+
+                // Don't double apply model space transforms if skinned
+                const glm::mat4 worldTransform{boneIter == boneTransformsBaseIndexMap_.end()
+                                                   ? modelMatrix * primitive.modelSpaceTransform
+                                                   : modelMatrix};
+
+                updatedMatrices_.emplace_back(worldTransform);
+            }
+
+            glNamedBufferSubData(SSBOs_.matrices, static_cast<GLintptr>(bufferIndices[i] * sizeof(glm::mat4)),
+                                 static_cast<GLsizeiptr>(worldTransforms.size() * sizeof(glm::mat4)),
+                                 updatedMatrices_.data());
+        }
+
+        if (boneIter == boneTransformsBaseIndexMap_.end())
+            continue;
+
+        std::uint32_t boneTransformsOffset{boneIter->second};
+        const std::vector<glm::mat4> &jointMatrices{sceneEntry.entryAnimation->animator.getJointMatrices()};
+
+        glNamedBufferSubData(SSBOs_.boneTransforms, static_cast<GLintptr>(boneTransformsOffset * sizeof(glm::mat4)),
+                             static_cast<GLsizeiptr>(jointMatrices.size() * sizeof(glm::mat4)), jointMatrices.data());
     }
 
     updatedTransformHandles.clear();
+}
+
+void Renderer::updateCascades(Scene &scene, bool lightChanged)
+{
+    Camera &camera{scene.getCamera()};
+    DirectionalLight &light{scene.getGlobalLight()};
+
+    // Move the far plane closer for tighter cascades
+    const glm::mat4 cameraVP{camera.getResizedViewProjectionMatrix(farPlaneReduction)};
+    float farPlane{camera.getFarPlane() * farPlaneReduction};
+
+    // Recalculate frustum splits and light VP matrices
+    cascadeShadow_.updateCascadeShadows(cameraVP, light, graphicsSettings_.shadowResolution, farPlane);
+
+    // Splits never change, only set on renderer initialization
+    const bool updateFullUBO{framesRendered_ == 0};
+    updateCascadeShadowUBO(cascadeShadow_.getCascades(), lightChanged, updateFullUBO);
 }
 
 std::uint32_t Renderer::getFrameCount() const
@@ -222,69 +307,65 @@ std::uint32_t Renderer::getFrameCount() const
     return framesRendered_;
 }
 
-TextureManager &Renderer::getTextureManager()
-{
-    return textureManager_;
-}
-
-void Renderer::cullScene(const glm::mat4 &cullMatrix)
+// Culls a scene agains the cull matrix, building a new compacted list of draw commands and updating the parameter
+// buffer. Changes active shader program.
+void Renderer::cullScene(const glm::mat4 &cullMatrix, int bufferSection)
 {
     constexpr int shaderLocalSize{64};
 
-    glClearNamedBufferData(SSBOs_.drawCounts, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
-    glClearNamedBufferData(SSBOs_.cullResults, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+    glClearNamedBufferSubData(SSBOs_.drawCounts, GL_R32UI, static_cast<GLintptr>(bufferSection * drawCountsSize_),
+                              static_cast<GLsizeiptr>(drawCountsSize_), GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+    glClearNamedBufferSubData(SSBOs_.cullResults, GL_R32UI, static_cast<GLintptr>(bufferSection * cullResultsSize_),
+                              static_cast<GLsizeiptr>(cullResultsSize_), GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
 
     updateFrustumPlanesUBO(cullMatrix);
 
-    cullShader_.use();
+    glState_.bindProgram(cullShader_);
     cullShader_.dispatch((cullWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-    compactionShader_.use();
+    glState_.bindProgram(compactionShader_);
     compactionShader_.dispatch((compactionWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT);
 }
 
-const std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
-{
-    auto normalizePlane = [](glm::vec4 &plane) {
-        float length{glm::length(glm::vec3{plane})};
-        plane /= length;
-    };
-
-    const glm::vec4 row0{glm::row(matrix, 0)};
-    const glm::vec4 row1{glm::row(matrix, 1)};
-    const glm::vec4 row2{glm::row(matrix, 2)};
-    const glm::vec4 row3{glm::row(matrix, 3)};
-
-    glm::vec4 left{row3 + row0};
-    glm::vec4 right{row3 - row0};
-    glm::vec4 top{row3 - row1};
-    glm::vec4 bottom{row3 + row1};
-    glm::vec4 near{row3 + row2};
-    glm::vec4 far{row3 - row2};
-
-    normalizePlane(left);
-    normalizePlane(right);
-    normalizePlane(top);
-    normalizePlane(bottom);
-    normalizePlane(near);
-    normalizePlane(far);
-
-    return {left, right, top, bottom, near, far};
-}
-
-void Renderer::updateParticles(float deltaTime)
+void Renderer::updateParticles()
 {
     constexpr int shaderLocalSize{64};
 
     if (!particleWorkGroupSize_)
         return;
 
-    particleShader_.use();
+    glState_.bindProgram(particleShader_);
+    particleShader_.dispatch((particleWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
 
-    int particleCount{static_cast<int>(particleWorkGroupSize_)};
-    particleShader_.dispatch((particleCount + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
+    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+}
 
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+void Renderer::updateSkinnedVertices()
+{
+    constexpr int shaderLocalSize{64};
+
+    if (!skinnedVertexGroupSize_)
+        return;
+
+    glState_.bindProgram(skinningShader_);
+    skinningShader_.dispatch((skinnedVertexGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
+
+    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+}
+
+void Renderer::blitFrame()
+{
+    frameBuffer_.blitTo(msaaResolve_);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDisable(GL_DEPTH_TEST);
+
+    shaders_[shaderIndex(ShaderType::fboResolve)].use();
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    glEnable(GL_DEPTH_TEST);
+    frameBuffer_.bind();
 }

@@ -5,32 +5,52 @@
 #include <utility>
 
 /* Shader Storage Buffer Objects
- *
- * Overall strategy: maintain set regions for each primitive so that a base index is always known. From there, any
- * instancing is always base + instance.
+ * -----------------------------
  *
  * Visibility Map: Per (primitive × instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
- *      - matricesIndex: index into Matrices buffer
- *      - sharedBaseIndex: index into AABBs/Metadata/DrawCommands (the primitive)
+ *      - sharedBaseIndex: index into AABBs/Metadata/Draw Commands/Model Matrix (the primitive)
  *      - drawBucket: which draw bucket this primitive belongs to
  *      - drawCommandsBaseIndex: start of that bucket in DrawCommands
  *      - visibleInstancesBaseIndex: start of the (primitive x instance) in the visibility buffer
  *
- * AABB: Per primitive. Local-space bounding boxes
- * Matrices: Per model. World-space transforms (multiple primitives share one range)
- * Metadata: Per primitive. Material textures, visibility buffer base index
- * DrawCounts: Per draw bucket. Number of surviving draw commands after compaction
- * CullResults: Per primitive. Number of surviving instances after frustum test
- * DrawCommands: Per primitive. Compacted each frame from DrawCommandsSource
- * VisibleInstances: Per (primitive × instance) pair. Indices into Matrices for
+ * AABB: Per primitive. Local-space bounding boxes.
+ *
+ * Matrices: Per primitive. World-space transforms.
+ *
+ * Metadata: Per primitive. Material textures, visibility buffer base index.
+ *
+ * Draw Counts: Per draw bucket. Number of surviving draw commands after compaction.
+ *
+ * Cull Results: Per primitive. Number of surviving instances after frustum test.
+ *
+ * Draw Commands: Per primitive. Compacted each frame from DrawCommandsSource.
+ *
+ * Visible Instances: Per (primitive × instance) pair. Indices into Matrices buffer for
  *                   instances that passed the frustum test. Each primitive owns a
  *                   contiguous section sized to its instance count.
- * DrawCommandsSource: Per primitive. Immutable source of truth, set once at load
- * ParticleMap: Per vertex, for particles only. Allows any index in map buffer to look up its vertex in the VBO, and its
- * sharedBaseIndex.
  *
- * 1:1 indexed buffers: AABB[i], Metadata[i], DrawCommands[i], DrawCommandsSource[i]
- * Flattened buffers: Map[j], VisibleInstances[j] where j spans all (primitive × instance) pairs
+ * Draw Commands Source: Per primitive. Immutable source of truth, set once at load.
+ *
+ * Particle Map: Per particle vertex. Allows any index in map buffer to look up its shared index (aabb, metadata, etc).
+ *
+ * Bone Transforms: Per skinned model. Each model gets a dedicated section, allowing for skeletal animation.
+ *
+ * Vertex Bone Data: Per skinned vertex. Each skinned vertex gets a direct index into this buffer. Holds weights and
+ * bone IDs, keeping the vertex struct at 32 bytes.
+ *
+ * Skinned Vertex Source: Original skinned vertex. Immutable source of truth for compute shader vertex skinning.
+ *
+ *
+ * Implementation Notes
+ * --------------------
+ *
+ * 1:1 indexed buffers: Draw Commands Source[i], AABB[i], Metadata[i]
+ * Matrices[j], Visibility Map[j], Visible Instances[j] where j spans all (primitive × instance) pairs
+ * Vertex Bone Data[k], Skinned Vertex Source[k]
+ *
+ * Buffers resized for cascade shadows: Draw Commands, Draw Counts, Cull Results, Visible Instances. Allows the main
+ * render pass to own one section of the buffer, and each cascade owns its own section. Total size is sizeof(original
+ * buffer) * (cascade count + 1).
  *
  */
 
@@ -47,6 +67,9 @@ struct SSBOs
     GLuint visibleInstances{0};
     GLuint drawCommandsSource{0};
     GLuint particleMap{0};
+    GLuint boneTransforms{0};
+    GLuint vertexBoneData{0};
+    GLuint skinnedVertexSource{0};
 
     SSBOs() = default;
     SSBOs(const SSBOs &other) = delete;
@@ -59,7 +82,9 @@ struct SSBOs
           drawCommands{std::exchange(other.drawCommands, 0)},
           visibleInstances{std::exchange(other.visibleInstances, 0)},
           drawCommandsSource{std::exchange(other.drawCommandsSource, 0)},
-          particleMap{std::exchange(other.particleMap, 0)}
+          particleMap{std::exchange(other.particleMap, 0)}, boneTransforms{std::exchange(other.boneTransforms, 0)},
+          vertexBoneData{std::exchange(other.vertexBoneData, 0)},
+          skinnedVertexSource{std::exchange(other.skinnedVertexSource, 0)}
     {
     }
 
@@ -67,8 +92,9 @@ struct SSBOs
     {
         if (this != &other)
         {
-            GLuint buffers[]{visibilityMap, aabb,         matrices,         metadata,           drawCounts,
-                             cullResults,   drawCommands, visibleInstances, drawCommandsSource, particleMap};
+            GLuint buffers[]{visibilityMap,  aabb,           matrices,           metadata,           drawCounts,
+                             cullResults,    drawCommands,   visibleInstances,   drawCommandsSource, particleMap,
+                             boneTransforms, vertexBoneData, skinnedVertexSource};
             glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
 
             visibilityMap = std::exchange(other.visibilityMap, 0);
@@ -81,6 +107,9 @@ struct SSBOs
             visibleInstances = std::exchange(other.visibleInstances, 0);
             drawCommandsSource = std::exchange(other.drawCommandsSource, 0);
             particleMap = std::exchange(other.particleMap, 0);
+            boneTransforms = std::exchange(other.boneTransforms, 0);
+            vertexBoneData = std::exchange(other.vertexBoneData, 0);
+            skinnedVertexSource = std::exchange(other.skinnedVertexSource, 0);
         }
 
         return *this;
@@ -88,55 +117,70 @@ struct SSBOs
 
     ~SSBOs()
     {
-        GLuint buffers[]{visibilityMap, aabb,         matrices,         metadata,           drawCounts,
-                         cullResults,   drawCommands, visibleInstances, drawCommandsSource, particleMap};
+        GLuint buffers[]{visibilityMap,  aabb,           matrices,           metadata,           drawCounts,
+                         cullResults,    drawCommands,   visibleInstances,   drawCommandsSource, particleMap,
+                         boneTransforms, vertexBoneData, skinnedVertexSource};
         glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
     }
 };
 
-/* Vertex attribute layout:
+/*
+ * Vertex attribute layout:
  * 0 - position (vec3)
  * 1 - normal (vec3)
  * 2 - tangent (vec4)
  * 3 - texture coordinates (vec2)
+ *
+ * Shadow attribute layout:
+ * 0 - position (vec3)
+ * 1 - texture coordinates (vec2)
  */
 
-struct GlobalVAO
+struct VAOs
 {
-    GLuint id{0};
+    GLuint vao{0};
     GLuint vbo{0};
     GLuint ebo{0};
+    GLuint shadowVAO{0};
+    GLuint shadowVBO{0};
 
-    GlobalVAO() = default;
-    GlobalVAO(const GlobalVAO &other) = delete;
-    GlobalVAO &operator=(const GlobalVAO &other) = delete;
+    VAOs() = default;
+    VAOs(const VAOs &other) = delete;
+    VAOs &operator=(const VAOs &other) = delete;
 
-    GlobalVAO(GlobalVAO &&other) noexcept
-        : id{std::exchange(other.id, 0)}, vbo{std::exchange(other.vbo, 0)}, ebo{std::exchange(other.ebo, 0)}
+    VAOs(VAOs &&other) noexcept
+        : vao{std::exchange(other.vao, 0)}, vbo{std::exchange(other.vbo, 0)}, ebo{std::exchange(other.ebo, 0)},
+          shadowVAO{std::exchange(other.shadowVAO, 0)}, shadowVBO{std::exchange(other.shadowVBO, 0)}
     {
     }
 
-    GlobalVAO &operator=(GlobalVAO &&other) noexcept
+    VAOs &operator=(VAOs &&other) noexcept
     {
         if (this != &other)
         {
             glDeleteBuffers(1, &ebo);
             glDeleteBuffers(1, &vbo);
-            glDeleteVertexArrays(1, &id);
+            glDeleteBuffers(1, &shadowVBO);
+            glDeleteVertexArrays(1, &vao);
+            glDeleteVertexArrays(1, &shadowVAO);
 
-            id = std::exchange(other.id, 0);
+            vao = std::exchange(other.vao, 0);
             vbo = std::exchange(other.vbo, 0);
             ebo = std::exchange(other.ebo, 0);
+            shadowVAO = std::exchange(other.shadowVAO, 0);
+            shadowVBO = std::exchange(other.shadowVBO, 0);
         }
 
         return *this;
     }
 
-    ~GlobalVAO()
+    ~VAOs()
     {
         glDeleteBuffers(1, &ebo);
         glDeleteBuffers(1, &vbo);
-        glDeleteVertexArrays(1, &id);
+        glDeleteBuffers(1, &shadowVBO);
+        glDeleteVertexArrays(1, &vao);
+        glDeleteVertexArrays(1, &shadowVAO);
     }
 };
 
@@ -161,7 +205,7 @@ struct UBOs
     {
         if (this != &other)
         {
-            GLuint buffers[]{camera, frustumPlanes, cascadeShadows};
+            GLuint buffers[]{camera, frustumPlanes, cascadeShadows, time};
             glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
 
             camera = std::exchange(other.camera, 0);
@@ -202,5 +246,17 @@ enum class BindingPointSSBO : unsigned int
     visibleInstances,
     drawCommandsSource,
     vbo,
-    particleMap
+    particleMap,
+    boneTransforms,
+    vertexBoneData,
+    skinnedVertexSource,
+    positionVBO
 };
+
+namespace SSBOMinimum
+{
+inline constexpr int combinedBlocks{16};
+inline constexpr int combinedBindings{16};
+inline constexpr int vertexBlocks{8};
+inline constexpr int fragmentBlocks{8};
+} // namespace SSBOMinimum

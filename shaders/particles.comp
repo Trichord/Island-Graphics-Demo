@@ -1,141 +1,103 @@
 #version 460 core
 
-// Types
-struct DrawElementsIndirectCommand
-{
-    uint count;
-    uint instanceCount;
-    uint firstIndex;
-    int baseVertex;
-    uint baseInstance;
-};
-
-struct ParticleMap
-{
-    uint vboIndex;
-    uint sharedIndex;
-};
-
-struct Particle
-{
-    vec4 position;
-    vec4 velocity;
-    vec4 color;
-    vec2 flags;
-};
-
-struct AABB
-{
-    vec4 center;
-    vec4 extent;
-};
+#include "shared/binding_points.glsl"
+#include "shared/types.glsl"
+#include "shared/ubo.glsl"
 
 // Constants
-const float gravity = 15.0f;
+const float gravity = 90.0f;
 const float mass = 0.1f;
 const float invMass = 1.0 / mass;
 const float timeScale = 0.75;
 const float blackHolePosScale = 0.33;
 const float minLifetimePercent = 0.75;
+const float resetVelocityDamper = 0.005;
 
 // Attributes
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
-// UBOs
-layout(binding = 1, std140) uniform frustumPlanes
-{
-    vec4 planes[6];
-};
-
-layout (std140, binding = 3) uniform packedTime
-{
-	layout (offset = 0) float deltaTime;
-	layout (offset = 4) float time;
-};
-
 // SSBOs
-layout(binding = 1, std430) restrict readonly buffer aabbSSBO
+layout(binding = SSBO_BINDING_AABB, std430) restrict readonly buffer aabbSSBO
 {
     AABB AABBs[];
 };
 
-layout(binding = 8, std430) restrict readonly buffer drawCommandsSourceSSBO
+layout(binding = SSBO_BINDING_DRAW_COMMANDS_SOURCE, std430) restrict readonly buffer drawCommandsSourceSSBO
 {
     DrawElementsIndirectCommand commands[];
 };
 
-layout(binding = 10, std430) restrict readonly buffer particleMapSSBO
+layout(binding = SSBO_BINDING_VERTEX_MAP, std430) restrict readonly buffer VertexMapSSBO
 {
-    ParticleMap map[];
+    uint particleMap[];
 };
 
-// This is the VBO for all gLTF models aliased as vec4s. Avoids having multiple definitions of a 
-// vertex and padding issues, since the actual vertex is: Position (vec3), Normal (vec3), tangent (vec4), tex (vec2)
-layout(binding = 9, std430) buffer VBO
+// Aliased 32 byte Vertex
+layout(binding = SSBO_BINDING_VBO, std430) buffer VBO
 {
     vec4 particles[];
 };
 
+// In
+uniform uint vboBaseIndex;
+
 // AABBs for particles are already in world space
 void main()
 {
-    uint id = gl_GlobalInvocationID.x;
+    uint mapIndex = gl_GlobalInvocationID.x;
 
-    if (id >= map.length())
+    if (mapIndex >= particleMap.length())
         return;
     
-    ParticleMap particleMap = map[id];
+    uint sharedBufferIndex = particleMap[mapIndex];
 
-    AABB aabb = AABBs[particleMap.sharedIndex];
+    AABB aabb = AABBs[sharedBufferIndex];
 
-    // Multiply by 3 to convert a vertex struct index (48 bytes) into vec4s
-    uint particleIndex = particleMap.vboIndex * 3;
-    
-    // Position xyz and velocity x
-    vec4 d0 = particles[particleIndex];
+    // 2 * vec4 per Vertex
+    uint vboIndex = (vboBaseIndex + mapIndex) * 2;
+ 
+    // Remapping
+    vec4 posXYZvelX = particles[vboIndex];
+    vec4 velYZlifeColor = particles[vboIndex + 1];
 
-    // Velocity yz and color rg
-    vec4 d1 = particles[particleIndex + 1];
-
-    // Color ba and flags xy
-    vec4 d2 = particles[particleIndex + 2];
-
-    // Extract from vec4s
-    vec3 position = d0.xyz;
-    vec3 velocity = vec3(d0.w, d1.xy);
-    vec4 color = vec4(d1.zw, d2.xy);
-    vec2 lifetimes = d2.zw;
+    vec3 position = vec3(posXYZvelX.xyz);
+    vec3 velocity = vec3(posXYZvelX.w, velYZlifeColor.xy);
+    vec2 lifetimes = vec2(unpackHalf2x16(floatBitsToUint(velYZlifeColor.z)));
 
     vec3 blackHolePos = aabb.center.xyz + aabb.extent.xyz * blackHolePosScale;
-    vec3 blackHole2Pos = -blackHolePos;
+    vec3 originalBlackHolePos = blackHolePos;
+    blackHolePos.y = aabb.center.y;
 
     // Move black holes around
     blackHolePos.x += sin(time);
     blackHolePos.z += cos(time);
-    blackHole2Pos.x -= sin(time);
-    blackHole2Pos.z -= cos(time);
-
+    blackHolePos.y += sin(time) * 2.0;
+    
     // Force from first black hole
-    vec3 d = blackHolePos - position;
-    float dist1 = length(d);
-    vec3 force = (gravity / dist1) * normalize(d);
-
-    // Force from second black hole
-    d = blackHole2Pos - position;
-    float dist2 = length(d);
-    force += (gravity / dist2) * normalize(d);
+    vec3 toBlackHole = blackHolePos - position;
+    float dist = length(toBlackHole);
+    vec3 force = (gravity / (dist * dist)) * normalize(toBlackHole);
 
     // Ending condtions
-    float maxDist = length(aabb.extent.xyz);
+    float innerRadius = min(aabb.extent.x, min(aabb.extent.y, aabb.extent.z));
     
-    float decay = max(dist1, dist2) / maxDist;
+    float decay = dist / innerRadius;
     lifetimes.y -= decay * deltaTime * timeScale;
 
-    if (distance(position, aabb.center.xyz) > maxDist || lifetimes.y <= 0)
-    {
-        particles[particleIndex] = vec4(aabb.center.xyz, 0.0);
-        particles[particleIndex + 1] = vec4(0.0, 0.0, color.rg);
-        particles[particleIndex + 2] = vec4(color.ba, lifetimes.x, lifetimes.x);
+    if (distance(position, aabb.center.xyz) > innerRadius || lifetimes.y <= 0)
+    {   
+        // Vary the respawn point
+        originalBlackHolePos.y -= sin(time);
+
+        //Kill off most of the original velocity, leave some for variation
+        vec3 newVel = velocity * resetVelocityDamper;
+
+        vec3 respawnDir = aabb.center.xyz - originalBlackHolePos;
+        respawnDir.x -= sin(time * 0.5) * 0.5;
+        vec3 resetPos = aabb.center.xyz + normalize(respawnDir) * innerRadius * 0.80;
+
+        particles[vboIndex] = vec4(resetPos, newVel.x);
+        particles[vboIndex + 1] = vec4(newVel.yz, uintBitsToFloat(packHalf2x16(lifetimes.xx)), velYZlifeColor.w);
     }
     else
     { 
@@ -143,10 +105,9 @@ void main()
 
         vec3 a = force * invMass;
         vec3 v = velocity + a * dt;
-        vec3 p = position + velocity * dt + 0.5 * a * dt * dt;
+        vec3 p = position + v * dt;
         
-        particles[particleIndex] = vec4(p, v.x);
-        particles[particleIndex + 1] = vec4(v.yz, color.rg);
-        particles[particleIndex + 2] = vec4(color.ba, lifetimes);
+        particles[vboIndex] = vec4(p, v.x);
+        particles[vboIndex + 1] = vec4(v.yz, uintBitsToFloat(packHalf2x16(lifetimes)), velYZlifeColor.w);
     }
 }

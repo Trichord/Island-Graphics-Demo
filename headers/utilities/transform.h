@@ -10,33 +10,35 @@
 class Transform
 {
   public:
-    Transform(glm::vec3 position = glm::vec3(0.0f), glm::vec3 scale = glm::vec3(1.0f), float degrees = 0.0f,
-              glm::vec3 axis = glm::vec3(0.0f, 1.0f, 0.0f));
+    Transform(glm::vec3 position, glm::vec3 scale, float degrees, glm::vec3 axis = glm::vec3{0.0f, 1.0f, 0.0f});
+    Transform(glm::vec3 position = glm::vec3{0.0f}, glm::vec3 scale = glm::vec3{1.0f}, glm::quat quat = {});
 
     void setAbsoluteScale(float absoluteScale);
-    void setAbsolutePosition(glm::vec3 absolutePosition);
+    void setAbsoluteTranslation(glm::vec3 absoluteTranslation);
     void setAbsoluteRotation(glm::vec3 absoluteRotation);
+    void setAbsoluteRotation(glm::quat quat);
 
     void setRelativeScale(float relativeScale);
-    void setRelativePosition(glm::vec3 relativePosition);
+    void setRelativeTranslation(glm::vec3 relativeTranslation);
     void setRelativeRotation(glm::vec3 relativeRotation);
 
-    void rotateAroundAxis(float degrees, glm::vec3 axis);
+    void rotateAroundAxisLocal(float degrees, glm::vec3 axis);
+    void rotateAroundAxisWorld(float degrees, glm::vec3 axis);
 
-    glm::mat4 &getModelMatrix();
-    glm::mat3 &getNormalMatrix();
+    const glm::mat4 &getModelMatrix() const;
+    const glm::mat3 &getNormalMatrix() const;
     glm::vec3 getRotation() const;
     const glm::vec3 &getScale() const;
     const glm::vec3 &getPosition() const;
 
   private:
-    glm::vec3 position_{1.0f};
+    glm::vec3 translation_{0.0f};
+    glm::quat quaternion_{};
     glm::vec3 scale_{1.0f};
-    glm::mat4 modelMatrix_{1.0f};
-    glm::mat3 normalMatrix_{1.0f};
-    glm::quat quaternion_{1.0f, 0.0f, 0.0f, 0.0f};
 
-    bool isDirty_{true};
+    mutable glm::mat4 modelMatrix_{1.0f};
+    mutable glm::mat3 normalMatrix_{1.0f};
+    mutable bool isDirty_{true};
 
-    void rebuildModelMatrix();
+    void rebuildModelMatrix() const;
 };

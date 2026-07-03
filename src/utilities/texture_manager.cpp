@@ -39,7 +39,7 @@ TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &s
      * all cubemaps get an SRGB cubemap. ArrayTexture fallback support for different internal formats is minimal.
      */
 
-    arrayTextures_.reserve(10);
+    arrayTextures_.reserve(12);
 
     arrayTextures_.emplace_back(ArrayTexture{4096, 4096, GL_COMPRESSED_RG_RGTC2});
     arrayTextures_.emplace_back(ArrayTexture{4096, 4096, GL_COMPRESSED_RGBA_BPTC_UNORM});
@@ -54,24 +54,15 @@ TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &s
     arrayTextures_.emplace_back(ArrayTexture{1024, 1024, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM});
 
     arrayTextures_.emplace_back(ArrayTexture{512, 512, GL_COMPRESSED_RG_RGTC2, true});
+    arrayTextures_.emplace_back(ArrayTexture{512, 512, GL_COMPRESSED_RGBA_BPTC_UNORM});
+    arrayTextures_.emplace_back(ArrayTexture{512, 512, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM});
 
     arrayCubemaps_.reserve(3);
 
     arrayCubemaps_.emplace_back(ArrayTexture{4096, 4096, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM});
     arrayCubemaps_.emplace_back(ArrayTexture{2048, 2048, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM});
     arrayCubemaps_.emplace_back(ArrayTexture{settings.reflectionResolution, settings.reflectionResolution,
-                                             dynamicCubemapInternalFormat_, true});
-}
-
-Handle TextureManager::assignHandle()
-{
-    static Handle nextHandle{1};
-
-    Handle handle{nextHandle++};
-
-    materialLookup_[handle];
-
-    return handle;
+                                             DynamicCubemaps::internalFormat, true});
 }
 
 void TextureManager::addDefaultMaterial(const Handle handle)
@@ -96,11 +87,11 @@ bool TextureManager::allTexturesBuilt() const
 void TextureManager::loadCubemapTextures(const Handle handle, const std::filesystem::path &cubePath)
 {
     auto materials = findMaterials(handle);
-    std::vector<int> materialIndices;
+    std::vector<std::size_t> materialIndices;
 
     // Every model gets one cubemap
     materialIndices.resize(materials.size());
-    std::iota(materialIndices.begin(), materialIndices.end(), 0);
+    std::iota(materialIndices.begin(), materialIndices.end(), std::size_t{0});
 
     deferredTextures_.emplace_back(AssetLoader::DeferredTexture{
         .handle = handle,
@@ -109,12 +100,6 @@ void TextureManager::loadCubemapTextures(const Handle handle, const std::filesys
         .materialIndices = materialIndices,
         .type = Material::cubemap,
     });
-}
-
-// Returns the internal color format used for dynamic cubemaps
-GLenum TextureManager::getReflectionColorFormat() const
-{
-    return dynamicCubemapInternalFormat_;
 }
 
 std::span<const Material> TextureManager::getMaterials(Handle handle) const
@@ -176,7 +161,7 @@ void TextureManager::borrowCubemaps(Handle self, Handle other)
 void TextureManager::setCubemap(Handle handle, std::vector<int> overrideIndices, RenderTarget &renderTarget)
 {
     const int resolution{renderTarget.getWidth()};
-    ArrayReference arrayRef{findCubemapArray(resolution, dynamicCubemapInternalFormat_)};
+    ArrayReference arrayRef{findCubemapArray(resolution, renderTarget.getInternalFormat())};
 
     std::size_t layer{arrayRef.array.insert(renderTarget)};
     SamplerArrayIndex arrayIndex{.array = arrayRef.index, .layer = static_cast<int>(layer)};
@@ -234,10 +219,12 @@ void TextureManager::buildAllTextures()
 
     // Bind all units
     for (int i{0}; i < static_cast<int>(arrayTextures_.size()); ++i)
-        arrayTextures_[i].bindTextureUnit(TextureUnit::array2DBase + i);
+        if (arrayTextures_[i].getCurrentSize())
+            arrayTextures_[i].bindTextureUnit(TextureUnit::array2DBase + i);
 
     for (int i{0}; i < static_cast<int>(arrayCubemaps_.size()); ++i)
-        arrayCubemaps_[i].bindTextureUnit(TextureUnit::arrayCubemapBase + i);
+        if (arrayCubemaps_[i].getCurrentSize())
+            arrayCubemaps_[i].bindTextureUnit(TextureUnit::arrayCubemapBase + i);
 
     assignFallbacks();
     filepathCache_.clear();
@@ -277,9 +264,9 @@ void TextureManager::insertTexture(const AssetLoader::DeferredTexture &deferred,
     if (fileCacheIter != filepathCache_.end())
     {
         SamplerArrayIndex other = fileCacheIter->second;
-        for (int idx : deferred.materialIndices)
+        for (std::size_t index : deferred.materialIndices)
         {
-            Material &material{materials[idx]};
+            Material &material{materials[index]};
             material.layers[deferred.type] = other;
         }
 
@@ -297,9 +284,9 @@ void TextureManager::insertTexture(const AssetLoader::DeferredTexture &deferred,
     std::size_t layer{arrayRef.array.insert(texture)};
     SamplerArrayIndex arrayIndex{.array = arrayRef.index, .layer = static_cast<int>(layer)};
 
-    for (int idx : deferred.materialIndices)
+    for (std::size_t index : deferred.materialIndices)
     {
-        Material &material{materials[idx]};
+        Material &material{materials[index]};
         material.layers[deferred.type] = arrayIndex;
     }
 
@@ -358,22 +345,21 @@ void TextureManager::validateState()
     }
 }
 
-void TextureManager::addMaterials(Handle handle, std::size_t size)
+void TextureManager::addMaterials(Handle handle, std::size_t numMaterials)
 {
-    auto rangeIter = materialLookup_.find(handle);
+    const std::size_t currentSize{materials_.size()};
+    const std::size_t newSize{currentSize + numMaterials};
+    const MaterialRange range{currentSize, newSize};
 
-    if (rangeIter == materialLookup_.end())
-        missingHandleError(handle);
+    auto [rangeIter, inserted] = materialLookup_.try_emplace(handle, range);
 
-    auto &[_, range] = *rangeIter;
+    if (!inserted)
+    {
+        auto &[_, oldRange] = *rangeIter;
+        oldRange = range;
+    }
 
-    std::size_t begin{materials_.size()};
-    std::size_t end{begin + size};
-
-    range.begin = begin;
-    range.end = end;
-
-    materials_.resize(materials_.size() + size);
+    materials_.resize(newSize);
 }
 
 std::span<Material> TextureManager::findMaterials(Handle handle)
