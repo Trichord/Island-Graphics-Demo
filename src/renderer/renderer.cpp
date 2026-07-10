@@ -21,17 +21,29 @@
 #include "scene/handle.h"
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
+#include "utilities/texture_utilities.h"
 #include "utilities/thread_pool.h"
 #include "utilities/transform.h"
 
 namespace
 {
 // Hardware shadow bias
-constexpr GLfloat polygonFactor{1.0f};
+constexpr GLfloat polygonFactor{2.0f};
 constexpr GLfloat polygonUnits{1.0f};
+constexpr GLfloat polygonClamp{0.005f};
 
 // Reduce the distance of the camera's far plane by 80% for shadow cascades.
 constexpr float farPlaneReduction{0.2f};
+
+// Hierarchical Z-Buffer Occlusion Culling
+constexpr Sampler hiZSampler{
+    .magFilter = GL_NEAREST,
+    .minFilter = GL_NEAREST,
+    .wrapS = GL_CLAMP_TO_EDGE,
+    .wrapT = GL_CLAMP_TO_EDGE,
+};
+
+constexpr GLenum hiZInternalFormat{GL_R32F};
 
 std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
 {
@@ -70,12 +82,12 @@ Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &setti
           settings.renderWidth,
           settings.renderHeight,
           {.msaa = settings.msaa,
-           .depthType = RenderTarget::DepthType::RBO,
+           .depthType = RenderTarget::DepthType::texture,
            .internalFormat = GL_RGBA16F,
            .depthFormat = GL_DEPTH_COMPONENT24,
            .mipmaps = true},
       },
-      msaaResolve_{settings.renderWidth, settings.renderHeight, {.internalFormat = GL_RGBA16F}},
+      msaaResolveTarget_{settings.renderWidth, settings.renderHeight, {.internalFormat = GL_RGBA16F}},
       shadowPassTarget_{settings.shadowResolution ? RenderTarget{settings.shadowResolution,
                                                                  settings.shadowResolution,
                                                                  {
@@ -85,17 +97,34 @@ Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &setti
                                                                      .textureArrayDepth = shadowCascadeCount,
                                                                      .shadowMap = true,
                                                                  }}
-                                                  : RenderTarget{}}
+                                                  : RenderTarget{}},
+      hiZTexture_{TextureUtilities::createTextureID(settings.renderWidth / hiZResolutionReduction,
+                                                    settings.renderHeight / hiZResolutionReduction, hiZInternalFormat,
+                                                    hiZSampler, true, false)},
+      hiZViews_{hiZTexture_, hiZSampler, hiZInternalFormat,
+                TextureUtilities::calculateMipmapLevels(settings.renderWidth / hiZResolutionReduction,
+                                                        settings.renderHeight / hiZResolutionReduction, false)}
 {
-    glBindTextureUnit(static_cast<GLuint>(TextureUnit::frameBuffer), msaaResolve_.getColorTextureID());
+    glBindTextureUnit(static_cast<GLuint>(TextureUnit::depthMap), frameBuffer_.getDepthMapTextureID());
+    glBindTextureUnit(static_cast<GLuint>(TextureUnit::resolvedColor), msaaResolveTarget_.getColorTextureID());
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getDepthMapTextureID());
-    glPolygonOffset(polygonFactor, polygonUnits);
+    glBindTextureUnit(static_cast<GLuint>(TextureUnit::hiZ), hiZTexture_);
+    glPolygonOffsetClamp(polygonFactor, polygonUnits, polygonClamp);
 
     frameBuffer_.bind();
 }
 
+Renderer::~Renderer()
+{
+    if (hiZTexture_)
+        glDeleteTextures(1, &hiZTexture_);
+}
+
 void Renderer::renderScene(Scene &scene, float deltaTime)
 {
+    // One frame lag on occlusion culling
+    updateHiZ();
+    frameBuffer_.bind();
     frameBuffer_.clear();
 
     // Updates from scene first
@@ -105,7 +134,6 @@ void Renderer::renderScene(Scene &scene, float deltaTime)
     const bool lightChanged{scene.getGlobalLight().directionHasUpdated()};
     updateShaderUniforms(scene, lightChanged);
 
-    // Give driver as much time as possible to process the scene transforms (needed in skinned vertices compute shader)
     updateParticles();
     updateSkinnedVertices();
 
@@ -117,7 +145,7 @@ void Renderer::renderScene(Scene &scene, float deltaTime)
     if (camera.hasUpdated())
         updateCameraUBO(camera);
 
-    cullScene(scene.getCamera().getViewProjectionMatrix(), 0);
+    cullScene(cullShader_, scene.getCamera().getViewProjectionMatrix(), 0);
     renderScene();
     blitFrame();
 
@@ -155,10 +183,13 @@ void Renderer::loadShaders()
                                          defines};
 
     // Compute
-    cullShader_ = {"./shaders/frustum_cull.comp"};
+    cullShader_ = {"./shaders/cull.comp"};
+    cullFrustumShader_ = {"./shaders/cull_frustum.comp"};
     compactionShader_ = {"./shaders/compact_draws.comp"};
     particleShader_ = {"./shaders/particles.comp"};
     skinningShader_ = {"./shaders/vertex_skinning.comp"};
+    msaaDepthResolveShader_ = {"./shaders/msaa_depth.comp", {"MSAA_SAMPLES " + std::to_string(graphicsSettings_.msaa)}};
+    hiZShader_ = {"./shaders/hi_z.comp"};
 }
 
 void Renderer::setupShader(GraphicsShader &shader)
@@ -312,9 +343,9 @@ std::uint32_t Renderer::getFrameCount() const
 
 // Culls a scene agains the cull matrix, building a new compacted list of draw commands and updating the parameter
 // buffer. Changes active shader program.
-void Renderer::cullScene(const glm::mat4 &cullMatrix, int bufferSection)
+void Renderer::cullScene(ComputeShader &cullShader, const glm::mat4 &cullMatrix, int bufferSection)
 {
-    constexpr int shaderLocalSize{64};
+    constexpr std::uint32_t shaderLocalSize{64u};
 
     glClearNamedBufferSubData(SSBOs_.drawCounts, GL_R32UI, static_cast<GLintptr>(bufferSection * drawCountsSize_),
                               static_cast<GLsizeiptr>(drawCountsSize_), GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
@@ -323,8 +354,8 @@ void Renderer::cullScene(const glm::mat4 &cullMatrix, int bufferSection)
 
     updateFrustumPlanesUBO(cullMatrix);
 
-    glState_.bindProgram(cullShader_);
-    cullShader_.dispatch((cullWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
+    glState_.bindProgram(cullShader);
+    cullShader.dispatch((cullWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     glState_.bindProgram(compactionShader_);
@@ -334,38 +365,89 @@ void Renderer::cullScene(const glm::mat4 &cullMatrix, int bufferSection)
 
 void Renderer::updateParticles()
 {
-    constexpr int shaderLocalSize{64};
+    constexpr std::uint32_t localSizeX{64u};
 
     if (!particleWorkGroupSize_)
         return;
 
     glState_.bindProgram(particleShader_);
-    particleShader_.dispatch((particleWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
+    particleShader_.dispatch((particleWorkGroupSize_ + (localSizeX - 1)) / localSizeX, 1, 1);
 
     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 }
 
 void Renderer::updateSkinnedVertices()
 {
-    constexpr int shaderLocalSize{64};
+    constexpr std::uint32_t localSizeX{64u};
 
     if (!skinnedVertexGroupSize_)
         return;
 
     glState_.bindProgram(skinningShader_);
-    skinningShader_.dispatch((skinnedVertexGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
+    skinningShader_.dispatch((skinnedVertexGroupSize_ + (localSizeX - 1)) / localSizeX, 1, 1);
 
     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 }
 
+void Renderer::updateHiZ()
+{
+    constexpr std::uint32_t localSizeX{8u};
+    constexpr std::uint32_t localSizeY{8u};
+    constexpr std::uint32_t one{1u};
+
+    const std::vector<GLuint> &mipViews{hiZViews_.getMipViews()};
+
+    if (mipViews.empty())
+        return;
+
+    // Resolve msaa depth to the first mip level to simplify the Hi-Z pyramid building
+    glState_.bindProgram(msaaDepthResolveShader_);
+
+    glBindImageTexture(static_cast<GLuint>(ImageUnit::hiZWrite), mipViews[0], 0, GL_FALSE, 0, GL_WRITE_ONLY,
+                       hiZInternalFormat);
+
+    std::uint32_t textureWidth{static_cast<std::uint32_t>(graphicsSettings_.renderWidth / hiZResolutionReduction)};
+    std::uint32_t textureHeight{static_cast<std::uint32_t>(graphicsSettings_.renderHeight / hiZResolutionReduction)};
+
+    msaaDepthResolveShader_.dispatch((textureWidth + (localSizeX - 1)) / localSizeX,
+                                     (textureHeight + (localSizeY - 1)) / localSizeY, 1);
+
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+    glState_.bindProgram(hiZShader_);
+
+    // Stop early and avoid the last few mips?
+    for (std::size_t i{1}; i < mipViews.size(); ++i)
+    {
+        std::uint32_t srcMipX{std::max(one, textureWidth >> (i - 1))};
+        std::uint32_t srcMipY{std::max(one, textureHeight >> (i - 1))};
+        std::uint32_t dstMipX{std::max(one, textureWidth >> i)};
+        std::uint32_t dstMipY{std::max(one, textureHeight >> i)};
+
+        glBindImageTexture(static_cast<GLuint>(ImageUnit::hiZRead), mipViews[i - 1], 0, GL_FALSE, 0, GL_READ_ONLY,
+                           hiZInternalFormat);
+        glBindImageTexture(static_cast<GLuint>(ImageUnit::hiZWrite), mipViews[i], 0, GL_FALSE, 0, GL_WRITE_ONLY,
+                           hiZInternalFormat);
+
+        hiZShader_.setIVec4("mipSizes", glm::ivec4{srcMipX, srcMipY, dstMipX, dstMipY});
+        hiZShader_.dispatch((dstMipX + (localSizeX - 1)) / localSizeX, (dstMipY + (localSizeY - 1)) / localSizeY, 1);
+
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    }
+
+    glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+}
+
+// Blits frame from offscreen FBO and leaves the default framebuffer bound for Hi-Z at the start of next frame
 void Renderer::blitFrame()
 {
-    frameBuffer_.blitTo(msaaResolve_);
+    frameBuffer_.blitTo(msaaResolveTarget_);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST);
 
-    shaders_[shaderIndex(ShaderType::fboResolve)].use();
+    Shader &fboResolve{shaders_[shaderIndex(ShaderType::fboResolve)]};
+    glState_.bindProgram(fboResolve);
 
     const int internalWidth{frameBuffer_.getWidth()};
     const int internalHeight{frameBuffer_.getHeight()};
@@ -380,11 +462,14 @@ void Renderer::blitFrame()
         glViewport(0, 0, static_cast<GLsizei>(internalWidth), static_cast<GLsizei>(internalHeight));
 
     glEnable(GL_DEPTH_TEST);
-    frameBuffer_.bind();
 }
 
 void Renderer::updateExternalResolution(int width, int height)
 {
     externalWidth_ = width;
     externalHeight_ = height;
+}
+
+void Renderer::buildHiZViews()
+{
 }

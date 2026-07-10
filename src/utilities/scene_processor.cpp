@@ -31,7 +31,7 @@
 
 namespace
 {
-AABB getSceneBounds(Scene &scene)
+AABB getSceneBounds(const Scene &scene)
 {
     glm::vec3 min{std::numeric_limits<float>::infinity()};
     glm::vec3 max{-std::numeric_limits<float>::infinity()};
@@ -69,7 +69,7 @@ AABB getSceneBounds(Scene &scene)
 }
 } // namespace
 
-SceneProcessor::ProcessedScene SceneProcessor::processScene(Scene &scene, const TextureManager &textureManager,
+SceneProcessor::ProcessedScene SceneProcessor::processScene(const Scene &scene, const TextureManager &textureManager,
                                                             bool shadowsEnabled)
 {
     if (!textureManager.allTexturesBuilt())
@@ -134,7 +134,7 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene(Scene &scene, const 
             .drawBuckets = std::move(buckets)};
 }
 
-SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene)
+SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(const Scene &scene)
 {
     SceneTotals totals;
 
@@ -172,7 +172,8 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(Scene &scene)
 }
 
 // Build up all scene entries by shader type
-std::vector<SceneProcessor::BucketEntry> SceneProcessor::createBucketEntries(Scene &scene, const SceneTotals &totals)
+std::vector<SceneProcessor::BucketEntry> SceneProcessor::createBucketEntries(const Scene &scene,
+                                                                             const SceneTotals &totals)
 {
     BucketEntries bucketEntries;
     bucketEntries.reserve(totals.primitives);
@@ -206,34 +207,29 @@ std::vector<SceneProcessor::BucketEntry> SceneProcessor::createBucketEntries(Sce
 SceneProcessor::ProcessedVertices SceneProcessor::createProcessedVertices(const BucketEntries &entries,
                                                                           const SceneTotals &totals)
 {
+    std::uint32_t currentVertex{0};
     ProcessedVertices processed;
     processed.vertices.resize(totals.vertices);
-
-    std::uint32_t currentVertex{0};
 
     for (const BucketEntry &entry : entries)
     {
         // Particles hijack the vertex, don't overwrite
-        const bool update{entry.shaderType != ShaderType::particles};
-
+        const bool updateIndex{entry.shaderType != ShaderType::particles};
         const bool hasSkin{entry.primitive->vertexSkins.has_value()};
 
         for (std::size_t i{0}; i < entry.primitive->vertices.size(); ++i)
         {
             const Primitive::Vertex &vertex{entry.primitive->vertices[i]};
-
             const Primitive::Vertex updatedVertex{.position = vertex.position,
                                                   .normal = vertex.normal,
                                                   .tangent = vertex.tangent,
                                                   .texCoords = vertex.texCoords,
-                                                  .vboIndex = currentVertex,
+                                                  .vboIndex = updateIndex ? currentVertex : vertex.vboIndex,
                                                   .color = vertex.color};
 
-            if (update)
-                processed.vertices[currentVertex] = updatedVertex;
-            else
-                processed.vertices[currentVertex] = vertex;
+            processed.vertices[currentVertex] = updatedVertex;
 
+            // Save a copy of the original for the compute shader rest positions
             if (hasSkin)
                 processed.skinnedVertices.emplace_back(updatedVertex);
 
@@ -309,11 +305,10 @@ std::vector<std::set<Handle>> SceneProcessor::createDrawBucketHandles(const Buck
 std::vector<DrawElementsIndirectCommand> SceneProcessor::createDrawCommands(const BucketEntries &entries,
                                                                             const SceneTotals &totals)
 {
-    std::vector<DrawElementsIndirectCommand> commands;
-    commands.reserve(totals.primitives);
-
     std::size_t vaoIndex{0};
     std::size_t eboIndex{0};
+    std::vector<DrawElementsIndirectCommand> commands;
+    commands.reserve(totals.primitives);
 
     for (std::size_t i{0}; i < entries.size(); ++i)
     {
@@ -321,12 +316,13 @@ std::vector<DrawElementsIndirectCommand> SceneProcessor::createDrawCommands(cons
         const Primitive &primitive{*entry.primitive};
         const std::size_t numIndices{primitive.indices.size()};
 
-        commands.emplace_back(
-            DrawElementsIndirectCommand{.count = static_cast<unsigned int>(numIndices),
-                                        .instanceCount = static_cast<unsigned int>(entry.transforms.size()),
-                                        .firstIndex = static_cast<unsigned int>(eboIndex),
-                                        .baseVertex = static_cast<int>(vaoIndex),
-                                        .baseInstance = static_cast<unsigned int>(i)});
+        commands.emplace_back(DrawElementsIndirectCommand{
+            .count = static_cast<unsigned int>(numIndices),
+            .instanceCount = static_cast<unsigned int>(entry.transforms.size()),
+            .firstIndex = static_cast<unsigned int>(eboIndex),
+            .baseVertex = static_cast<int>(vaoIndex),
+            .baseInstance = static_cast<unsigned int>(i),
+        });
 
         vaoIndex += primitive.vertices.size();
         eboIndex += numIndices;
@@ -500,8 +496,6 @@ void SceneProcessor::setMetadataMaterials(const TextureManager &manager, const B
     for (std::size_t i{0}; i < entries.size(); ++i)
     {
         const BucketEntry &entry{entries[i]};
-        PrimitiveMetadata &metaEntry{metadata[i]};
-
         const std::size_t matIndex{entry.primitive->materialIndex};
         std::span<const Material> materials{manager.getMaterials(entry.handle)};
 
@@ -511,16 +505,13 @@ void SceneProcessor::setMetadataMaterials(const TextureManager &manager, const B
             throw std::runtime_error("Material index out of bounds");
         }
 
+        PrimitiveMetadata &metaEntry{metadata[i]};
         const Material &material{materials[matIndex]};
-        const SamplerArrayIndex &albedo{material.layers[Material::albedo]};
-        const SamplerArrayIndex &ARM{material.layers[Material::ARM]};
-        const SamplerArrayIndex &normal{material.layers[Material::normal]};
-        const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
 
-        metaEntry.albedo = albedo;
-        metaEntry.ARM = ARM;
-        metaEntry.normal = normal;
-        metaEntry.cubemap = cubemap;
+        metaEntry.albedo = material.layers[Material::albedo];
+        metaEntry.ARM = material.layers[Material::ARM];
+        metaEntry.normal = material.layers[Material::normal];
+        metaEntry.cubemap = material.layers[Material::cubemap];
     }
 }
 
@@ -582,18 +573,16 @@ std::unordered_map<Handle, std::uint32_t> SceneProcessor::createBoneTransformMap
 
     for (const BucketEntry &entry : entries)
     {
+        // Check for vertex skins specifically, since animations can exist solely as node transforms
         if (!entry.primitive->vertexSkins.has_value())
             continue;
 
-        // Per model - global transforms for bones (bone IDs)
         auto [iter, inserted] = boneTransformsMap.try_emplace(entry.handle, boneBufferOffset);
 
         if (inserted)
         {
             const auto &skin = entry.animation->skeletalAnimation.skeleton.skin;
-
-            std::uint32_t numBoneTransforms{static_cast<std::uint32_t>(skin->invBindMatrices.size())};
-            boneBufferOffset += numBoneTransforms;
+            boneBufferOffset += static_cast<std::uint32_t>(skin->invBindMatrices.size());
         }
     }
 
@@ -619,14 +608,12 @@ std::vector<Primitive::VertexSkin> SceneProcessor::createVertexSkins(
 
     for (const BucketEntry &entry : entries)
     {
-        std::size_t numVertices{entry.primitive->vertices.size()};
-
         if (!entry.primitive->vertexSkins.has_value())
             continue;
 
         const std::vector<Primitive::VertexSkin> &vertexSkins{entry.primitive->vertexSkins.value()};
-
         auto iter = boneTransformMap.find(entry.handle);
+
         if (iter == boneTransformMap.end())
         {
             std::cerr << "ERROR: Handle " << entry.handle << " missing from bone transform map" << std::endl;
@@ -636,7 +623,7 @@ std::vector<Primitive::VertexSkin> SceneProcessor::createVertexSkins(
         // Update each vertex's bone ID's to match the global offset in the SSBO (bone transform map gives base index)
         std::size_t bufferOffset{iter->second};
 
-        for (std::size_t i{0}; i < numVertices; ++i)
+        for (std::size_t i{0}; i < entry.primitive->vertices.size(); ++i)
         {
             glm::uvec4 boneIDs{vertexSkins[i].boneIDs};
 

@@ -1,6 +1,6 @@
 // Functions for calculating shadow contribution
 
-#include "shared/textures.glsl"
+#include "shared/samplers.glsl"
 #include "shared/ubo.glsl"
 
 int calculateCascadeIndex(float depth)

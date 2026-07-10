@@ -31,7 +31,7 @@ class ArrayTexture
     std::size_t insert(const KTXTexture &texture);
 
     void addCapacity(std::size_t capacity);
-    void allocate(bool cubemap, bool textureRepeat, bool mipmaps, float anisotropy);
+    void allocate(bool cubemaps, bool textureRepeat, bool mipmaps, float anisotropy);
 
     void bindTextureUnit(int unit);
     // Intended for uncompressed textures. Calling this with compressed textures is horribly slow
@@ -43,6 +43,7 @@ class ArrayTexture
     GLuint id_{0};
     int width_{0};
     int height_{0};
+    int mipLevels_{0};
     std::size_t current_{0};
     std::size_t capacity_{0};
     GLenum internalFormat_{GL_COMPRESSED_RGBA_BPTC_UNORM};

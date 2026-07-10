@@ -47,7 +47,7 @@ Shader::~Shader()
         glDeleteProgram(id_);
 }
 
-void Shader::use()
+void Shader::use() const
 {
     glUseProgram(id_);
 }
@@ -57,7 +57,7 @@ GLuint Shader::getID() const
     return id_;
 }
 
-void Shader::setBool(const std::string &name, bool value)
+void Shader::setBool(const std::string &name, bool value) const
 {
     GLint location{getCachedUniform(name)};
 
@@ -65,7 +65,7 @@ void Shader::setBool(const std::string &name, bool value)
         glProgramUniform1i(id_, location, value);
 }
 
-void Shader::setIntU(const std::string &name, unsigned int value)
+void Shader::setIntU(const std::string &name, unsigned int value) const
 {
     GLint location{getCachedUniform(name)};
 
@@ -73,7 +73,7 @@ void Shader::setIntU(const std::string &name, unsigned int value)
         glProgramUniform1ui(id_, location, value);
 }
 
-void Shader::setInt(const std::string &name, int value)
+void Shader::setInt(const std::string &name, int value) const
 {
     GLint location{getCachedUniform(name)};
 
@@ -81,7 +81,7 @@ void Shader::setInt(const std::string &name, int value)
         glProgramUniform1i(id_, location, value);
 }
 
-void Shader::setFloat(const std::string &name, float value)
+void Shader::setFloat(const std::string &name, float value) const
 {
     GLint location{getCachedUniform(name)};
 
@@ -89,7 +89,7 @@ void Shader::setFloat(const std::string &name, float value)
         glProgramUniform1f(id_, location, value);
 }
 
-void Shader::setMat3(const std::string &name, const glm::mat3 &value)
+void Shader::setMat3(const std::string &name, const glm::mat3 &value) const
 {
     GLint location{getCachedUniform(name)};
 
@@ -97,7 +97,7 @@ void Shader::setMat3(const std::string &name, const glm::mat3 &value)
         glProgramUniformMatrix3fv(id_, location, 1, GL_FALSE, glm::value_ptr(value));
 }
 
-void Shader::setMat4(const std::string &name, const glm::mat4 &value)
+void Shader::setMat4(const std::string &name, const glm::mat4 &value) const
 {
     GLint location{getCachedUniform(name)};
 
@@ -105,7 +105,7 @@ void Shader::setMat4(const std::string &name, const glm::mat4 &value)
         glProgramUniformMatrix4fv(id_, location, 1, GL_FALSE, glm::value_ptr(value));
 }
 
-void Shader::setVec2(const std::string &name, glm::vec2 value)
+void Shader::setVec2(const std::string &name, const glm::vec2 &value) const
 {
     GLint location{getCachedUniform(name)};
 
@@ -113,7 +113,7 @@ void Shader::setVec2(const std::string &name, glm::vec2 value)
         glProgramUniform2fv(id_, location, 1, glm::value_ptr(value));
 }
 
-void Shader::setVec3(const std::string &name, glm::vec3 value)
+void Shader::setVec3(const std::string &name, const glm::vec3 &value) const
 {
     GLint location{getCachedUniform(name)};
 
@@ -121,7 +121,7 @@ void Shader::setVec3(const std::string &name, glm::vec3 value)
         glProgramUniform3fv(id_, location, 1, glm::value_ptr(value));
 }
 
-void Shader::setVec4(const std::string &name, glm::vec4 value)
+void Shader::setVec4(const std::string &name, const glm::vec4 &value) const
 {
     GLint location{getCachedUniform(name)};
 
@@ -129,7 +129,31 @@ void Shader::setVec4(const std::string &name, glm::vec4 value)
         glProgramUniform4fv(id_, location, 1, glm::value_ptr(value));
 }
 
-GLint Shader::getCachedUniform(const std::string &name)
+void Shader::setIVec2(const std::string &name, const glm::ivec2 &value) const
+{
+    GLint location{getCachedUniform(name)};
+
+    if (location != -1)
+        glProgramUniform2iv(id_, location, 1, glm::value_ptr(value));
+}
+
+void Shader::setIVec3(const std::string &name, const glm::ivec3 &value) const
+{
+    GLint location{getCachedUniform(name)};
+
+    if (location != -1)
+        glProgramUniform3iv(id_, location, 1, glm::value_ptr(value));
+}
+
+void Shader::setIVec4(const std::string &name, const glm::ivec4 &value) const
+{
+    GLint location{getCachedUniform(name)};
+
+    if (location != -1)
+        glProgramUniform4iv(id_, location, 1, glm::value_ptr(value));
+}
+
+GLint Shader::getCachedUniform(const std::string &name) const
 {
     auto [iter, inserted] = uniformLocations_.try_emplace(name, -1);
 

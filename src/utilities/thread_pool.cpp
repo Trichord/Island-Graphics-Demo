@@ -53,7 +53,7 @@ void ThreadPool::enqueue(std::function<void()> task)
     if (stop_)
         throw std::runtime_error{"enqueue on stopped ThreadPool"};
 
-    tasks_.push(task);
+    tasks_.push(std::move(task));
     workCondition_.notify_one();
 }
 

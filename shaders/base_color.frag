@@ -1,6 +1,6 @@
 #version 460 core
 
-#include "shared/textures.glsl"
+#include "shared/samplers.glsl"
 
 // In
 in vec2 texCoords;
