@@ -29,6 +29,23 @@ GLuint magentaTexture()
 }
 } // namespace
 
+bool TextureUtilities::isCompressed(GLenum internalFormat)
+{
+    switch (internalFormat)
+    {
+    case GL_COMPRESSED_RED_RGTC1:
+    case GL_COMPRESSED_SIGNED_RED_RGTC1:
+    case GL_COMPRESSED_RG_RGTC2:
+    case GL_COMPRESSED_SIGNED_RG_RGTC2:
+    case GL_COMPRESSED_RGBA_BPTC_UNORM:
+    case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
+        return true;
+
+    default:
+        return false;
+    }
+}
+
 GLenum TextureUtilities::vkFormatToGL(const ktx_uint32_t vkFormat)
 {
     switch (vkFormat)
@@ -57,10 +74,10 @@ GLenum TextureUtilities::vkFormatToGL(const ktx_uint32_t vkFormat)
 int TextureUtilities::calculateMipmapLevels(int width, int height, bool compressed)
 {
     int mipCount{1};
-    int minDimension{std::min(width, height)};
+    int maxDimension{std::max(width, height)};
     int maxDepth{compressed ? 4 : 1};
 
-    while ((minDimension >> mipCount) >= maxDepth)
+    while ((maxDimension >> mipCount) >= maxDepth)
         ++mipCount;
 
     return mipCount;
@@ -155,6 +172,28 @@ GLuint TextureUtilities::textureFromFile(std::filesystem::path path, TextureDeta
 
     if (details.anisotropicFiltering > 0.0f)
         glTextureParameterf(id, GL_TEXTURE_MAX_ANISOTROPY, details.anisotropicFiltering);
+
+    return id;
+}
+
+GLuint TextureUtilities::createTextureID(int width, int height, GLenum internalFormat, Sampler sampler, bool mipmaps,
+                                         float anisoLevel)
+{
+    GLuint id{0};
+    int mipLevels{mipmaps ? TextureUtilities::calculateMipmapLevels(width, height, false) : 1};
+
+    glCreateTextures(GL_TEXTURE_2D, 1, &id);
+
+    glTextureParameteri(id, GL_TEXTURE_WRAP_S, sampler.wrapS);
+    glTextureParameteri(id, GL_TEXTURE_WRAP_T, sampler.wrapT);
+    glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, sampler.minFilter);
+    glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, sampler.magFilter);
+
+    if (anisoLevel > 0.0f)
+        glTextureParameterf(id, GL_TEXTURE_MAX_ANISOTROPY, anisoLevel);
+
+    glTextureStorage2D(id, static_cast<GLsizei>(mipLevels), internalFormat, static_cast<GLsizei>(width),
+                       static_cast<GLsizei>(height));
 
     return id;
 }

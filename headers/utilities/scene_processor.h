@@ -54,7 +54,7 @@ class SceneProcessor
         std::vector<MultiDrawBucket> drawBuckets;
     };
 
-    [[nodiscard]] static ProcessedScene processScene(Scene &scene, const TextureManager &textureManager,
+    [[nodiscard]] static ProcessedScene processScene(const Scene &scene, const TextureManager &textureManager,
                                                      bool shadowsEnabled);
 
   private:
@@ -94,8 +94,8 @@ class SceneProcessor
     using BucketEntries = std::vector<BucketEntry>;
 
     // Setup
-    [[nodiscard]] static SceneTotals getSceneTotals(Scene &scene);
-    [[nodiscard]] static BucketEntries createBucketEntries(Scene &scene, const SceneTotals &totals);
+    [[nodiscard]] static SceneTotals getSceneTotals(const Scene &scene);
+    [[nodiscard]] static BucketEntries createBucketEntries(const Scene &scene, const SceneTotals &totals);
 
     // Bucket Entry only
     [[nodiscard]] static std::size_t getParticleBucketStart(const BucketEntries &entries);

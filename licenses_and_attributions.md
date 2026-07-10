@@ -425,3 +425,21 @@ Model License:
 If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
 This work is based on "Butterflies - Poster 2" (https://sketchfab.com/3d-models/butterflies-poster-2-444a930949e44c3abaa085fbb5a63e0c) by SR_Spark (https://sketchfab.com/SR_Spark) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
 </details>
+
+<h2>Seagull</h2>
+
+<details>
+<summary>By AnimalMesh 3D</summary>
+
+Model Information:
+* title:	Seagull – Stylized Animated 3D Model
+* source:	https://sketchfab.com/3d-models/seagull-stylized-animated-3d-model-b331b360c0064536a6e517c1a93a349d
+* author:	AnimalMesh 3D (https://sketchfab.com/AnimalMesh3D)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Seagull – Stylized Animated 3D Model" (https://sketchfab.com/3d-models/seagull-stylized-animated-3d-model-b331b360c0064536a6e517c1a93a349d) by AnimalMesh 3D (https://sketchfab.com/AnimalMesh3D) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+</details>

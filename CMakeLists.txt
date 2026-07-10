@@ -38,6 +38,7 @@ set(SOURCES
     src/renderer/renderer.cpp
     src/renderer/renderer_draw.cpp
     src/renderer/renderer_setup.cpp
+    src/renderer/texture_view.cpp
     src/renderer/shader/compute_shader.cpp
     src/renderer/shader/graphics_shader.cpp
     src/renderer/shader/shader_base.cpp
@@ -90,6 +91,7 @@ set(HEADERS
     headers/renderer/shader/graphics_shader.h
     headers/renderer/shader/shader_base.h
     headers/renderer/textures.h
+    headers/renderer/texture_view.h
     headers/scene/camera.h
     headers/scene/directional_light.h
     headers/scene/handle.h

@@ -60,7 +60,7 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
         // Main pass is at buffer[0]
         int bufferSection{1 + i};
         bindBufferRanges(bufferSection);
-        cullScene(lightVP, bufferSection);
+        cullScene(cullFrustumShader_, lightVP, bufferSection);
     }
 
     // Opaque geometry first (positions only)

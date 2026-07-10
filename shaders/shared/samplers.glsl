@@ -5,6 +5,8 @@ layout(binding = 12) uniform samplerCubeArray cubemaps[3];
 
 layout(binding = 15) uniform sampler2DArrayShadow shadowMap;
 
-layout(binding = 16) uniform sampler2D frameBuffer;
+layout(binding = 16) uniform sampler2D resolvedColor;
 
-layout(binding = 17) uniform sampler2D depthMap;
+layout(binding = 17) uniform sampler2DMS depthMap;
+
+layout(binding = 18) uniform sampler2D hiZ;

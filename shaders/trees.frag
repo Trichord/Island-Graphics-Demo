@@ -4,7 +4,7 @@
 #include "shared/constants.glsl"
 #include "shared/foliage.glsl"
 #include "shared/pbr.glsl"
-#include "shared/textures.glsl"
+#include "shared/samplers.glsl"
 #include "shared/types.glsl"
 #include "shared/ubo.glsl"
 

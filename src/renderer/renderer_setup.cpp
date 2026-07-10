@@ -111,6 +111,12 @@ void Renderer::initializeResources(Scene &scene)
     // Get ready for first frame
     bindBufferRanges(0);
     updateCameraUBO(scene.getCamera());
+
+    // Unbind for Hi-Z at start of frame and prime texture so everything passes
+    frameBuffer_.unbind();
+    GLfloat one{1.0f};
+    for (std::size_t i{0}; i < hiZViews_.getMipViews().size(); ++i)
+        glClearTexImage(hiZTexture_, static_cast<GLint>(i), GL_RED, GL_FLOAT, &one);
 }
 
 void Renderer::takeGPUObjects(SceneProcessor::ProcessedScene &processed)
@@ -143,9 +149,12 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
 
     std::uint32_t baseVBOIndex{static_cast<std::uint32_t>(processed.bufferDescriptors.particleBaseVBOIndex)};
 
+    particleShader_.setIntU("vboBaseIndex", baseVBOIndex);
     cullShader_.setInt("screenWidth", graphicsSettings_.renderWidth);
     cullShader_.setInt("screenHeight", graphicsSettings_.renderHeight);
-    particleShader_.setIntU("vboBaseIndex", baseVBOIndex);
+    msaaDepthResolveShader_.setInt("resReduction", hiZResolutionReduction);
+    msaaDepthResolveShader_.setIVec2("mipRes", glm::ivec2{graphicsSettings_.renderWidth / hiZResolutionReduction,
+                                                          graphicsSettings_.renderHeight / hiZResolutionReduction});
 }
 
 void Renderer::setSceneShaderUniforms(Scene &scene)
@@ -274,8 +283,8 @@ void Renderer::renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarge
         camera.setWorldOrientation(orientation);
         updateCameraUBO(camera);
 
-        // Use buffer section 0 since its a main render pass
-        cullScene(camera.getViewProjectionMatrix(), 0);
+        // Use buffer section 0 since its a main render pass. Frustum only since Hi-Z is not prepped
+        cullScene(cullFrustumShader_, camera.getViewProjectionMatrix(), 0);
 
         GLuint zero{0};
         glNamedBufferSubData(SSBOs_.drawCounts, static_cast<GLsizeiptr>(parameterBufferIndex * sizeof(std::uint32_t)),

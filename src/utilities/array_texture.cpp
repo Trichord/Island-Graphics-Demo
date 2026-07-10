@@ -133,7 +133,7 @@ void ArrayTexture::generateMipmaps()
         glGenerateTextureMipmap(id_);
 }
 
-void ArrayTexture::allocate(bool cubemap, bool textureRepeat, bool mipmaps, float anisotropy)
+void ArrayTexture::allocate(bool cubemaps, bool textureRepeat, bool mipmaps, float anisotropy)
 {
     if (allocated_)
     {
@@ -147,19 +147,20 @@ void ArrayTexture::allocate(bool cubemap, bool textureRepeat, bool mipmaps, floa
     if (!capacity_)
         return;
 
-    cubemaps_ = cubemap;
+    cubemaps_ = cubemaps;
 
-    GLenum target{static_cast<GLenum>(cubemap ? GL_TEXTURE_CUBE_MAP_ARRAY : GL_TEXTURE_2D_ARRAY)};
-    GLsizei depth{static_cast<GLsizei>(cubemap ? capacity_ * 6 : capacity_)};
+    GLenum target{static_cast<GLenum>(cubemaps ? GL_TEXTURE_CUBE_MAP_ARRAY : GL_TEXTURE_2D_ARRAY)};
+    GLsizei depth{static_cast<GLsizei>(cubemaps ? capacity_ * 6 : capacity_)};
     GLenum repeat{static_cast<GLenum>(textureRepeat ? GL_REPEAT : GL_CLAMP_TO_EDGE)};
 
-    int mipLevels{mipmaps ? TextureUtilities::calculateMipmapLevels(width_, height_, true) : 1};
+    const bool isCompressed{TextureUtilities::isCompressed(internalFormat_)};
+    mipLevels_ = mipmaps ? TextureUtilities::calculateMipmapLevels(width_, height_, isCompressed) : 1;
 
     glCreateTextures(target, 1, &id_);
-    glTextureStorage3D(id_, static_cast<GLsizei>(mipLevels), internalFormat_, static_cast<GLsizei>(width_),
+    glTextureStorage3D(id_, static_cast<GLsizei>(mipLevels_), internalFormat_, static_cast<GLsizei>(width_),
                        static_cast<GLsizei>(height_), depth);
 
-    if (cubemap)
+    if (cubemaps)
     {
         glTextureParameteri(id_, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTextureParameteri(id_, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -294,6 +295,13 @@ void ArrayTexture::validate(const KTXTexture &texture)
     if (format != internalFormat_)
     {
         std::cerr << "ERROR: Format " << format << " mismatch";
+        valid = false;
+    }
+
+    if (texture.maxLevels() != mipLevels_)
+    {
+        std::cerr << "ERROR: Texture mip levels (" << texture.maxLevels() << ") incompatible with array mip levels ("
+                  << mipLevels_ << ")" << std::endl;
         valid = false;
     }
 

@@ -7,9 +7,6 @@
 // Attributes
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
-// Constants
-int minPixelSize = 4;
-
 // SSBOs
 layout(binding = SSBO_BINDING_VISIBILITY_MAP, std430) restrict readonly buffer mapSSBO
 {
@@ -50,34 +47,6 @@ bool aabbIntersectsFrustum(vec3 worldCenter, vec3 worldExtent)
     return true;
 }
 
-// 2D Polyhedral Bounds of a Clipped, Perspective-Projected 3D Sphere. Michael Mara, Morgan McGuire. 2013
-bool projectSphereView(vec3 c, float r, float znear, float P00, float P11, out vec4 aabb)
-{
-    if (c.z < r + znear) return false;
-
-    vec3 cr = c * r;
-    float czr2 = c.z * c.z - r * r;
-
-    float vx = sqrt(c.x * c.x + czr2);
-    float minx = (vx * c.x - cr.z) / (vx * c.z + cr.x);
-    float maxx = (vx * c.x + cr.z) / (vx * c.z - cr.x);
-
-    float vy = sqrt(c.y * c.y + czr2);
-    float miny = (vy * c.y - cr.z) / (vy * c.z + cr.y);
-    float maxy = (vy * c.y + cr.z) / (vy * c.z - cr.y);
-
-    aabb = vec4(minx * P00, miny * P11, maxx * P00, maxy * P11);
-    // clip space -> uv space
-    aabb = aabb.xwzy * vec4(0.5f, -0.5f, 0.5f, -0.5f) + vec4(0.5f);
-
-    return true;
-}
-
-// In
-uniform int screenWidth;
-uniform int screenHeight;
-uniform float nearPlane;
-
 void main()
 {
     uint instance = gl_GlobalInvocationID.x;
@@ -100,24 +69,7 @@ void main()
 
     if (!aabbIntersectsFrustum(worldCenter, worldExtent))
         return;
-    
-    vec3 viewCenter = vec3(viewMatrix * vec4(worldCenter, 1.0));
-    
-    // Flip the z axis to match the coordinate system expected by projectSphereView
-    viewCenter.z = - viewCenter.z;
-    
-    float radius = length(worldExtent);
-
-    vec4 viewAABB;
-
-    if (projectSphereView(viewCenter, radius, nearPlane, projectionMatrix[0][0], projectionMatrix[1][1], viewAABB))
-    {
-        vec2 pixelSize = vec2(viewAABB.zw - viewAABB.xy) * vec2(screenWidth, screenHeight);
-    
-        if (max(pixelSize.x, pixelSize.y) < minPixelSize)
-            return;
-    }
-    
+     
     uint counter = atomicAdd(cullResults[map.sharedBaseIndex], 1);
     visibleInstances[visibilityBufferBaseIndex + counter] = instance;        
 }

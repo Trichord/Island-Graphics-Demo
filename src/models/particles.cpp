@@ -1,5 +1,6 @@
 #include "models/particles.h"
 
+#include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/packing.hpp>
 #include <iostream>
@@ -11,9 +12,9 @@
 #include "models/primitive.h"
 
 Particles::Particles(const glm::vec3 &position, const glm::vec3 &extent, const glm::vec4 &color,
-                     const glm::vec4 colorVariation, float lifeTime, int numParticles)
-    : primitives_{
-          generateParticles(position, extent, color, colorVariation, std::min(lifeTime, 65504.0f), numParticles)}
+                     const glm::vec4 colorVariation, float lifetime, int numParticles)
+    : primitives_{generateParticles(position, extent, color, colorVariation,
+                                    std::isnan(lifetime) ? 65504.0f : std::min(lifetime, 65504.0f), numParticles)}
 {
 }
 
