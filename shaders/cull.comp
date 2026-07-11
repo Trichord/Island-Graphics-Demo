@@ -1,6 +1,9 @@
 #version 460 core
 
+//Occlusion culling algorithm and getBoxCorner credit: nVidia gl_occlusion_culling sample
+
 #include "shared/binding_points.glsl"
+#include "shared/samplers.glsl"
 #include "shared/types.glsl"
 #include "shared/ubo.glsl"
 
@@ -8,7 +11,8 @@
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 // Constants
-const int minPixelSize = 4;
+const int minScreenSize = 4;
+const int maxMipTexels = 8;
 
 // SSBOs
 layout(binding = SSBO_BINDING_VISIBILITY_MAP, std430) restrict readonly buffer mapSSBO
@@ -50,36 +54,16 @@ bool aabbIntersectsFrustum(vec3 worldCenter, vec3 worldExtent)
     return true;
 }
 
-// 2D Polyhedral Bounds of a Clipped, Perspective-Projected 3D Sphere. Michael Mara, Morgan McGuire. 2013
-bool projectSphereView(vec3 c, float r, float znear, float P00, float P11, out vec4 aabb)
+vec4 getBoxCorner(vec4 bboxMin, vec4 bboxMax, int n)
 {
-    if (c.z < r + znear) return false;
-
-    vec3 cr = c * r;
-    float czr2 = c.z * c.z - r * r;
-
-    float vx = sqrt(c.x * c.x + czr2);
-    float minx = (vx * c.x - cr.z) / (vx * c.z + cr.x);
-    float maxx = (vx * c.x + cr.z) / (vx * c.z - cr.x);
-
-    float vy = sqrt(c.y * c.y + czr2);
-    float miny = (vy * c.y - cr.z) / (vy * c.z + cr.y);
-    float maxy = (vy * c.y + cr.z) / (vy * c.z - cr.y);
-
-    aabb = vec4(minx * P00, miny * P11, maxx * P00, maxy * P11);
-    
-    // Clip space to UV space
-    //aabb = aabb.xwzy * vec4(0.5f, -0.5f, 0.5f, -0.5f) + vec4(0.5f);
-
-    // Clip space to UV space (no swizzle for OpenGL)
-    aabb = aabb * 0.5 + 0.5;
-
-    return true;
+    bvec3 useMax = bvec3((n & 1) != 0, (n & 2) != 0, (n & 4) != 0);
+    return vec4(mix(bboxMin.xyz, bboxMax.xyz, useMax), 1);
 }
 
 // In
-uniform int screenWidth;
-uniform int screenHeight;
+uniform ivec2 renderResolution;
+uniform ivec2 hiZResolution;
+uniform int hiZMaxMip;
 uniform float nearPlane;
 
 void main()
@@ -104,27 +88,57 @@ void main()
 
     if (!aabbIntersectsFrustum(worldCenter, worldExtent))
         return;
-    
-    vec3 viewCenter = vec3(viewMatrix * vec4(worldCenter, 1.0));
-    
-    // Flip the z axis to match the coordinate system expected by projectSphereView
-    viewCenter.z = - viewCenter.z;
-    
-    float radius = length(worldExtent);
 
-    vec4 viewAABB;
+    vec4 aabbMin = aabb.center - aabb.extent;
+    vec4 aabbMax = aabb.center + aabb.extent;
+    mat4 mvp = viewProjectionMatrix * modelMatrix;
+    vec3 clipMin = vec3(1e30);
+    vec3 clipMax = vec3(-1e30);
+    bool isNear = false;
 
-    // Object too close, mark visible
-    if (!projectSphereView(viewCenter, radius, nearPlane, projectionMatrix[0][0], projectionMatrix[1][1], viewAABB))
+    for (int i = 0; i < 8; ++i)
+    {
+        vec4 clipPos = mvp * getBoxCorner(aabbMin, aabbMax, i);
+
+        if (clipPos.w <= 0.0)
+        {
+            isNear = true;
+            break;
+        }
+
+        vec3 ndcPos = clipPos.xyz / clipPos.w;
+        clipMin = min(clipMin, ndcPos);
+        clipMax = max(clipMax, ndcPos);
+    }
+    
+    if (isNear)
     {
         uint counter = atomicAdd(cullResults[map.sharedBaseIndex], 1);
-        visibleInstances[visibilityBufferBaseIndex + counter] = instance;
+        visibleInstances[visibilityBufferBaseIndex + counter] = instance;  
         return;
     }
-   
-    vec2 pixelSize = vec2(viewAABB.zw - viewAABB.xy) * vec2(screenWidth, screenHeight);
+
+    // Reusing clip in UV space to keep register pressure down
+    clipMin = clamp(clipMin * 0.5 + 0.5, 0.0, 1.0);
+    clipMax = clamp(clipMax * 0.5 + 0.5, 0.0, 1.0);
+
+    ivec2 screenSize = ivec2(vec2(clipMax - clipMin) * vec2(renderResolution));
     
-    if (max(pixelSize.x, pixelSize.y) < minPixelSize)
+    if (max(screenSize.x, screenSize.y) < minScreenSize)
+        return;
+    
+    vec2 mipResolution = (clipMax.xy - clipMin.xy) * hiZResolution; 
+    float mipLevel = ceil(log2(max(mipResolution.x, mipResolution.y)));
+    mipLevel = clamp(mipLevel, 0.0, float(hiZMaxMip));
+
+    float depth = 0.0;
+    float a = textureLod(hiZ, clipMin.xy, mipLevel).r;
+    float b = textureLod(hiZ, vec2(clipMax.x, clipMin.y), mipLevel).r;
+    float c = textureLod(hiZ, clipMax.xy, mipLevel).r;
+    float d = textureLod(hiZ, vec2(clipMin.x,clipMax.y), mipLevel).r;
+    depth = max(depth, max(max(max(a,b), c), d));
+
+    if (clipMin.z > depth)
         return;
 
     uint counter = atomicAdd(cullResults[map.sharedBaseIndex], 1);

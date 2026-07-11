@@ -150,11 +150,14 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
     std::uint32_t baseVBOIndex{static_cast<std::uint32_t>(processed.bufferDescriptors.particleBaseVBOIndex)};
 
     particleShader_.setIntU("vboBaseIndex", baseVBOIndex);
-    cullShader_.setInt("screenWidth", graphicsSettings_.renderWidth);
-    cullShader_.setInt("screenHeight", graphicsSettings_.renderHeight);
+
+    glm::ivec2 hiZRes{graphicsSettings_.renderWidth / hiZResolutionReduction,
+                      graphicsSettings_.renderHeight / hiZResolutionReduction};
+    cullShader_.setIVec2("renderResolution", glm::ivec2{graphicsSettings_.renderWidth, graphicsSettings_.renderHeight});
+    cullShader_.setIVec2("hiZResolution", hiZRes);
+    cullShader_.setInt("hiZMaxMip", static_cast<int>(hiZViews_.getMipViews().size() - 1));
     msaaDepthResolveShader_.setInt("resReduction", hiZResolutionReduction);
-    msaaDepthResolveShader_.setIVec2("mipRes", glm::ivec2{graphicsSettings_.renderWidth / hiZResolutionReduction,
-                                                          graphicsSettings_.renderHeight / hiZResolutionReduction});
+    msaaDepthResolveShader_.setIVec2("mipRes", hiZRes);
 }
 
 void Renderer::setSceneShaderUniforms(Scene &scene)
