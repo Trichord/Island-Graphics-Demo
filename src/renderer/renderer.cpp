@@ -38,7 +38,7 @@ constexpr float farPlaneReduction{0.2f};
 // Hierarchical Z-Buffer Occlusion Culling
 constexpr Sampler hiZSampler{
     .magFilter = GL_NEAREST,
-    .minFilter = GL_NEAREST,
+    .minFilter = GL_NEAREST_MIPMAP_NEAREST,
     .wrapS = GL_CLAMP_TO_EDGE,
     .wrapT = GL_CLAMP_TO_EDGE,
 };
@@ -156,9 +156,11 @@ void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    const std::vector<std::string> defines{graphicsSettings_.shadowResolution ? "ALPHA_TESTED_SHADOWS" : "",
-                                           !boneTransformsBaseIndexMap_.empty() ? "SKINNED" : "",
-                                           graphicsSettings_.gamma != 1.0f ? "GAMMA_CORRECT" : ""};
+    const std::vector<std::string> defines{
+        graphicsSettings_.shadowResolution ? "ALPHA_TESTED_SHADOWS" : "",
+        graphicsSettings_.gamma != 1.0f ? "GAMMA_CORRECT" : "",
+        "MSAA_SAMPLES " + std::to_string(graphicsSettings_.msaa),
+    };
 
     shaders_[shaderIndex(baseColor)] = {baseColor, "./shaders/base_color.vert", "./shaders/base_color.frag", defines};
     shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR.vert",
@@ -188,7 +190,7 @@ void Renderer::loadShaders()
     compactionShader_ = {"./shaders/compact_draws.comp"};
     particleShader_ = {"./shaders/particles.comp"};
     skinningShader_ = {"./shaders/vertex_skinning.comp"};
-    msaaDepthResolveShader_ = {"./shaders/msaa_depth.comp", {"MSAA_SAMPLES " + std::to_string(graphicsSettings_.msaa)}};
+    msaaDepthResolveShader_ = {"./shaders/msaa_depth.comp", defines};
     hiZShader_ = {"./shaders/hi_z.comp"};
 }
 
@@ -360,7 +362,7 @@ void Renderer::cullScene(ComputeShader &cullShader, const glm::mat4 &cullMatrix,
 
     glState_.bindProgram(compactionShader_);
     compactionShader_.dispatch((compactionWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
 }
 
 void Renderer::updateParticles()

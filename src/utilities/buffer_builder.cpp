@@ -27,8 +27,8 @@ std::vector<SimpleAABB> simplifyAABBs(const std::vector<AABB> &aabbs)
 
     for (const AABB &aabb : aabbs)
         simpleAABBs.emplace_back(SimpleAABB{
-            .center = glm::vec4{aabb.getCenter(), 0.0f},
-            .extent = glm::vec4{aabb.getExtent(), 0.0f},
+            .center = glm::vec4{aabb.getCenter(), 1.0f},
+            .extent = glm::vec4{aabb.getExtent(), 1.0f},
         });
 
     return simpleAABBs;

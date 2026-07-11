@@ -19,6 +19,7 @@ void main()
 
 	ivec2 lastMipSize = mipSizes.xy;
 
+	// Credit: Mike Turitzin, https://miketuritzin.com/post/hierarchical-depth-buffers/
 	// Last mip was odd, previous 2x2 block doesn't map cleanly to a single texel
 	int xSamples = (lastMipSize.x & 1) == 0 ? 2 : 3; 
 	int ySamples = (lastMipSize.y & 1) == 0 ? 2 : 3; 
