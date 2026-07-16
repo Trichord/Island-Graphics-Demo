@@ -1,7 +1,5 @@
 #version 460 core
 
-//Occlusion culling algorithm and getBoxCorner credit: nVidia gl_occlusion_culling sample
-
 #include "shared/binding_points.glsl"
 #include "shared/samplers.glsl"
 #include "shared/types.glsl"
@@ -54,10 +52,77 @@ bool aabbIntersectsFrustum(vec3 worldCenter, vec3 worldExtent)
     return true;
 }
 
-vec4 getBoxCorner(vec4 bboxMin, vec4 bboxMax, int n)
+// Credit: https://zeux.io/2023/01/12/approximate-projected-bounds/
+bool projectBox(vec3 bMin, vec3 bMax, float zNear, mat4 viewProjection, out vec4 aabb, out float minZ)
 {
-    bvec3 useMax = bvec3((n & 1) != 0, (n & 2) != 0, (n & 4) != 0);
-    return vec4(mix(bboxMin.xyz, bboxMax.xyz, useMax), 1);
+    vec4 SX = viewProjection * vec4(bMax.x - bMin.x, 0.0, 0.0, 0.0);
+    vec4 SY = viewProjection * vec4(0.0, bMax.y - bMin.y, 0.0, 0.0);
+    vec4 SZ = viewProjection * vec4(0.0, 0.0, bMax.z - bMin.z, 0.0);
+
+    vec4 P0 = viewProjection * vec4(bMin.x, bMin.y, bMin.z, 1.0);
+    vec4 P1 = P0 + SZ;
+    vec4 P2 = P0 + SY;
+    vec4 P3 = P2 + SZ;
+    vec4 P4 = P0 + SX;
+    vec4 P5 = P4 + SZ;
+    vec4 P6 = P4 + SY;
+    vec4 P7 = P6 + SZ;
+
+    if (min(min(min(min(min(min(min(P0.w, P1.w), P2.w), P3.w), P4.w), P5.w), P6.w), P7.w) < zNear) 
+        return false;
+    
+    P0.xyz = P0.xyz / P0.w;
+    P1.xyz = P1.xyz / P1.w;
+    P2.xyz = P2.xyz / P2.w;
+    P3.xyz = P3.xyz / P3.w;
+    P4.xyz = P4.xyz / P4.w;
+    P5.xyz = P5.xyz / P5.w;
+    P6.xyz = P6.xyz / P6.w;
+    P7.xyz = P7.xyz / P7.w;
+
+    aabb.xy = min(min(min(min(min(min(min(
+        P0.xy, P1.xy), P2.xy), P3.xy), P4.xy), P5.xy), P6.xy), P7.xy);
+
+    aabb.zw = max(max(max(max(max(max(max(
+        P0.xy, P1.xy), P2.xy), P3.xy), P4.xy), P5.xy), P6.xy), P7.xy);
+
+    minZ = min(min(min(min(min(min(min(
+        P0.z, P1.z), P2.z), P3.z), P4.z), P5.z), P6.z), P7.z);
+    minZ = minZ * 0.5 + 0.5;
+
+    // Clip space to UV space. Since we're in UV space, clamp (changes UV box size). This allows for a better mip level selection
+    aabb = clamp(aabb * 0.5 + 0.5, 0.0, 1.0);
+
+    return true;
+}
+
+// Hi-Z sampling algorithms credit: Bevy Engine https://github.com/bevyengine
+float sampleHiZRow(ivec4 sx, int sy, int mip)
+{
+    float a = texelFetch(hiZ, ivec2(sx.x, sy), mip).x;
+    float b = texelFetch(hiZ, ivec2(sx.y, sy), mip).x;
+    float c = texelFetch(hiZ, ivec2(sx.z, sy), mip).x;
+    float d = texelFetch(hiZ, ivec2(sx.w, sy), mip).x;
+    return max(max(a, b), max(c, d));
+}
+
+float sampleHiZ(ivec2 sMin, ivec2 sMax, int mip)
+{
+    ivec4 texel = ivec4(0, 1, 2, 3);
+    ivec4 sx = min(sMin.x + texel, sMax.xxxx);
+    ivec4 sy = min(sMin.y + texel, sMax.yyyy);
+
+    float a = sampleHiZRow(sx, sy.x, mip);
+    float b = sampleHiZRow(sx, sy.y, mip);
+    float c = sampleHiZRow(sx, sy.z, mip);
+    float d = sampleHiZRow(sx, sy.w, mip);
+    return max(max(a, b), max(c, d));
+}
+
+void markVisible(BufferMap map, uint visibilityBufferBaseIndex, uint instance)
+{
+    uint counter = atomicAdd(cullResults[map.sharedBaseIndex], 1);
+    visibleInstances[visibilityBufferBaseIndex + counter] = instance; 
 }
 
 // In
@@ -65,6 +130,8 @@ uniform ivec2 renderResolution;
 uniform ivec2 hiZResolution;
 uniform int hiZMaxMip;
 uniform float nearPlane;
+
+uniform mat4 lastFrameVP;
 
 void main()
 {
@@ -89,58 +156,42 @@ void main()
     if (!aabbIntersectsFrustum(worldCenter, worldExtent))
         return;
 
-    vec4 aabbMin = aabb.center - aabb.extent;
-    vec4 aabbMax = aabb.center + aabb.extent;
-    mat4 mvp = viewProjectionMatrix * modelMatrix;
-    vec3 clipMin = vec3(1e30);
-    vec3 clipMax = vec3(-1e30);
-    bool isNear = false;
-
-    for (int i = 0; i < 8; ++i)
+    // Use local space AABB since the world space one is already a bit loose from the ABS trick
+    vec4 uvBox;
+    float minZ;
+    if (!projectBox(aabb.center.xyz - aabb.extent.xyz, aabb.center.xyz + aabb.extent.xyz, nearPlane, viewProjectionMatrix * modelMatrix, uvBox, minZ))
     {
-        vec4 clipPos = mvp * getBoxCorner(aabbMin, aabbMax, i);
-
-        if (clipPos.w <= 0.0)
-        {
-            isNear = true;
-            break;
-        }
-
-        vec3 ndcPos = clipPos.xyz / clipPos.w;
-        clipMin = min(clipMin, ndcPos);
-        clipMax = max(clipMax, ndcPos);
+         markVisible(map, visibilityBufferBaseIndex, instance);
+         return;
     }
-    
-    if (isNear)
-    {
-        uint counter = atomicAdd(cullResults[map.sharedBaseIndex], 1);
-        visibleInstances[visibilityBufferBaseIndex + counter] = instance;  
-        return;
-    }
-
-    // Reusing clip in UV space to keep register pressure down
-    clipMin = clamp(clipMin * 0.5 + 0.5, 0.0, 1.0);
-    clipMax = clamp(clipMax * 0.5 + 0.5, 0.0, 1.0);
-
-    ivec2 screenSize = ivec2(vec2(clipMax - clipMin) * vec2(renderResolution));
+        
+    ivec2 screenSize = ivec2(vec2(uvBox.zw - uvBox.xy) * vec2(renderResolution));
     
     if (max(screenSize.x, screenSize.y) < minScreenSize)
         return;
     
-    vec2 mipResolution = (clipMax.xy - clipMin.xy) * hiZResolution; 
-    float mipLevel = ceil(log2(max(mipResolution.x, mipResolution.y)));
-    mipLevel = clamp(mipLevel, 0.0, float(hiZMaxMip));
+    ivec2 minTexel = ivec2(max(uvBox.xy * hiZResolution, vec2(0.0)));
+    ivec2 maxTexel = ivec2(min(uvBox.zw * hiZResolution, hiZResolution - 1.0));
+    ivec2 size = maxTexel - minTexel;
+    int maxSize = max(max(size.x, size.y), 1);
+    
+    // use MSB to avoid a call to floor(log2(float(maxSize)))
+    int mip = clamp(findMSB(maxSize) - 1, 0, hiZMaxMip);
 
-    float depth = 0.0;
-    float a = textureLod(hiZ, clipMin.xy, mipLevel).r;
-    float b = textureLod(hiZ, vec2(clipMax.x, clipMin.y), mipLevel).r;
-    float c = textureLod(hiZ, clipMax.xy, mipLevel).r;
-    float d = textureLod(hiZ, vec2(clipMin.x,clipMax.y), mipLevel).r;
-    depth = max(depth, max(max(max(a,b), c), d));
+    if (any(greaterThan(maxTexel >> ivec2(mip), (minTexel >> ivec2(mip)) + 3)))
+        mip += 1;
+    
+    mip = clamp(mip, 0, hiZMaxMip);
 
-    if (clipMin.z > depth)
+    ivec2 mipResolution = max(hiZResolution >> ivec2(mip), ivec2(1));
+    ivec2 mipSpaceMin = min(minTexel >> ivec2(mip), mipResolution - 1);
+    ivec2 mipSpaceMax = min(maxTexel >> ivec2(mip), mipResolution - 1);
+     
+    // Choosing to use 16 samples instead of 4 for tighter culling
+    float depth = sampleHiZ(mipSpaceMin, mipSpaceMax, mip);
+
+    if (minZ > depth)
         return;
-
-    uint counter = atomicAdd(cullResults[map.sharedBaseIndex], 1);
-    visibleInstances[visibilityBufferBaseIndex + counter] = instance;      
+    
+    markVisible(map, visibilityBufferBaseIndex, instance);  
 }

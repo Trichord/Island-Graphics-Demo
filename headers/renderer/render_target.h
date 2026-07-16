@@ -51,7 +51,7 @@ class RenderTarget
 
   private:
     static constexpr float depthColor{1.0f};
-    static constexpr std::array<float, 4> clearColor{0.0f, 0.0f, 0.0f, 1.0f};
+    static constexpr std::array<float, 4> clearColor{1.0f, 1.0f, 1.0f, 1.0f};
 
     int layers_{1};
     int width_{1920};
