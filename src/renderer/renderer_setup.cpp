@@ -99,7 +99,7 @@ void Renderer::initializeResources(Scene &scene)
     if (graphicsSettings_.shadowResolution)
         renderShadowMaps(scene, true);
 
-    // Assign the skybox to any ocean shaders
+    // Assign the skybox to any ocean shaders before any cubemaps are rendered, so they are captured.
     borrowSkybox(drawBuckets_, bucketHandles);
 
     // Dynamic cubemap generation. The scene must be ready to render, except water / ocean.

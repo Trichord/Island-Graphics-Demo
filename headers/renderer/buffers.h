@@ -126,14 +126,15 @@ struct SSBOs
 
 /*
  * Vertex attribute layout:
- * 0 - position (vec3)
- * 1 - normal (vec3)
- * 2 - tangent (vec4)
- * 3 - texture coordinates (vec2)
+ * 0 - Position (vec3)
+ * 1 - Normal (uint / vec3)
+ * 2 - Tangent (uint / vec4)
+ * 3 - Texture coordinates (uint / vec2)
+ * 4 - VBO Index (uint) 
+ * 5 - Color (uint / vec4)
  *
  * Shadow attribute layout:
  * 0 - position (vec3)
- * 1 - texture coordinates (vec2)
  */
 
 struct VAOs
