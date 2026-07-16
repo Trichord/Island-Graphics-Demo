@@ -100,7 +100,6 @@ class Renderer
     GLuint createResolveTexture();
 
     // Setup
-    void buildHiZViews();
     void setSceneShaderUniforms(Scene &scene);
     void takeBufferData(SceneProcessor::ProcessedScene &processed);
     void takeGPUObjects(SceneProcessor::ProcessedScene &processed);

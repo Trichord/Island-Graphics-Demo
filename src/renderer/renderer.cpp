@@ -471,7 +471,3 @@ void Renderer::updateExternalResolution(int width, int height)
     externalWidth_ = width;
     externalHeight_ = height;
 }
-
-void Renderer::buildHiZViews()
-{
-}
