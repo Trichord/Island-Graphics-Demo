@@ -122,9 +122,6 @@ Renderer::~Renderer()
 
 void Renderer::renderScene(Scene &scene, float deltaTime)
 {
-    // One frame lag on occlusion culling
-    updateHiZ();
-    frameBuffer_.bind();
     frameBuffer_.clear();
 
     // Updates from scene first
@@ -145,9 +142,15 @@ void Renderer::renderScene(Scene &scene, float deltaTime)
     if (camera.hasUpdated())
         updateCameraUBO(camera);
 
-    cullScene(cullShader_, scene.getCamera().getViewProjectionMatrix(), 0);
+    const glm::mat4 &cameraVP{camera.getViewProjectionMatrix()};
+    cullScene(cullShader_, cameraVP, 0);
     renderScene();
     blitFrame();
+
+    // One frame lag on occlusion culling
+    cullShader_.setMat4("lastFrameVP", cameraVP);
+    updateHiZ();
+    frameBuffer_.bind();
 
     ++framesRendered_;
 }

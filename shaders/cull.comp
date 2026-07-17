@@ -10,7 +10,6 @@ layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 // Constants
 const int minScreenSize = 4;
-const int maxMipTexels = 8;
 
 // SSBOs
 layout(binding = SSBO_BINDING_VISIBILITY_MAP, std430) restrict readonly buffer mapSSBO
@@ -159,7 +158,7 @@ void main()
     // Use local space AABB since the world space one is already a bit loose from the ABS trick
     vec4 uvBox;
     float minZ;
-    if (!projectBox(aabb.center.xyz - aabb.extent.xyz, aabb.center.xyz + aabb.extent.xyz, nearPlane, viewProjectionMatrix * modelMatrix, uvBox, minZ))
+    if (!projectBox(aabb.center.xyz - aabb.extent.xyz, aabb.center.xyz + aabb.extent.xyz, nearPlane, lastFrameVP * modelMatrix, uvBox, minZ))
     {
          markVisible(map, visibilityBufferBaseIndex, instance);
          return;
