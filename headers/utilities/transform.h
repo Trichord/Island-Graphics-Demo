@@ -11,7 +11,8 @@ class Transform
 {
   public:
     Transform(glm::vec3 position, glm::vec3 scale, float degrees, glm::vec3 axis = glm::vec3{0.0f, 1.0f, 0.0f});
-    Transform(glm::vec3 position = glm::vec3{0.0f}, glm::vec3 scale = glm::vec3{1.0f}, glm::quat quat = {});
+    Transform(glm::vec3 position = glm::vec3{0.0f}, glm::vec3 scale = glm::vec3{1.0f},
+              glm::quat quat = glm::identity<glm::quat>());
 
     void setAbsoluteScale(float absoluteScale);
     void setAbsoluteTranslation(glm::vec3 absoluteTranslation);
@@ -33,7 +34,7 @@ class Transform
 
   private:
     glm::vec3 translation_{0.0f};
-    glm::quat quaternion_{};
+    glm::quat quaternion_{glm::identity<glm::quat>()};
     glm::vec3 scale_{1.0f};
 
     mutable glm::mat4 modelMatrix_{1.0f};
