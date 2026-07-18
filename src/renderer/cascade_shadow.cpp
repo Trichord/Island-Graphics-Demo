@@ -10,7 +10,7 @@
 #include "scene/directional_light.h"
 #include "utilities/world_vectors.h"
 
-CascadeShadow::CascadeShadow(DirectionalLight &light, AABB worldAABB, float nearPlane) : nearPlane_{nearPlane}
+CascadeShadow::CascadeShadow(const DirectionalLight &light, AABB worldAABB, float nearPlane) : nearPlane_{nearPlane}
 {
     // Small adjustment so the furthest cascade perfectly fits
     constexpr float orthoBoxModifier{1.05f};

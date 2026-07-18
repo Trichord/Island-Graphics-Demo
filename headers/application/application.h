@@ -83,7 +83,7 @@ class Application
      *
      * @param scene The target scene.
      */
-    void processKeyboard(Scene &scene, PlayerPhysics &physicsHandler);
+    void processKeyboard(Camera &camera, PlayerPhysics &physicsHandler);
 
     /**
      * @brief Registers OpenGL function pointers, checks for supported features, and creates an OpenGL viewport

@@ -120,7 +120,7 @@ Renderer::~Renderer()
         glDeleteTextures(1, &hiZTexture_);
 }
 
-void Renderer::renderScene(Scene &scene, float deltaTime)
+void Renderer::renderScene(const Scene &scene, float deltaTime)
 {
     frameBuffer_.clear();
 
@@ -137,7 +137,7 @@ void Renderer::renderScene(Scene &scene, float deltaTime)
     if (graphicsSettings_.shadowResolution && (framesRendered_ % 2u || lightChanged))
         renderShadowMaps(scene, lightChanged);
 
-    Camera &camera{scene.getCamera()};
+    const Camera &camera{scene.getCamera()};
 
     if (camera.hasUpdated())
         updateCameraUBO(camera);
@@ -205,7 +205,7 @@ void Renderer::setupShader(GraphicsShader &shader)
     shader.setInt("screenWidth", graphicsSettings_.renderWidth);
 }
 
-void Renderer::updateCameraUBO(Camera &camera)
+void Renderer::updateCameraUBO(const Camera &camera)
 {
     PackedCameraUniforms uniforms;
 
@@ -264,9 +264,9 @@ void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChange
     glNamedBufferSubData(UBOs_.cascadeShadows, offset, bytes, data);
 }
 
-void Renderer::updateShaderUniforms(Scene &scene, bool lightChanged)
+void Renderer::updateShaderUniforms(const Scene &scene, bool lightChanged)
 {
-    DirectionalLight &globalLight{scene.getGlobalLight()};
+    const DirectionalLight &globalLight{scene.getGlobalLight()};
 
     for (auto &shader : shaders_)
     {
@@ -275,14 +275,14 @@ void Renderer::updateShaderUniforms(Scene &scene, bool lightChanged)
     }
 }
 
-void Renderer::updateSceneTransforms(Scene &scene)
+void Renderer::updateSceneTransforms(const Scene &scene)
 {
-    std::unordered_set<Handle> &updatedTransformHandles{scene.getUpdatedHandles()};
+    const std::unordered_set<Handle> &updatedTransformHandles{scene.getUpdatedHandles()};
 
     for (Handle handle : updatedTransformHandles)
     {
         const std::vector<std::uint32_t> &bufferIndices{matricesBaseIndices_[handle]};
-        const Scene::Entry &sceneEntry{scene.getEntryByHandle(handle)};
+        const Scene::Entry &sceneEntry{scene.getEntry(handle)};
         const std::vector<Transform> &worldTransforms{sceneEntry.worldTransforms};
         auto boneIter = boneTransformsBaseIndexMap_.find(handle);
 
@@ -311,14 +311,12 @@ void Renderer::updateSceneTransforms(Scene &scene)
         glNamedBufferSubData(SSBOs_.boneTransforms, static_cast<GLintptr>(boneTransformsOffset * sizeof(glm::mat4)),
                              static_cast<GLsizeiptr>(jointMatrices.size() * sizeof(glm::mat4)), jointMatrices.data());
     }
-
-    updatedTransformHandles.clear();
 }
 
-void Renderer::updateCascades(Scene &scene, bool lightChanged)
+void Renderer::updateCascades(const Scene &scene, bool lightChanged)
 {
-    Camera &camera{scene.getCamera()};
-    DirectionalLight &light{scene.getGlobalLight()};
+    const Camera &camera{scene.getCamera()};
+    const DirectionalLight &light{scene.getGlobalLight()};
 
     // Move the far plane closer for tighter cascades
     const glm::mat4 cameraVP{camera.getResizedViewProjectionMatrix(farPlaneReduction)};

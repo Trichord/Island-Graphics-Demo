@@ -34,8 +34,8 @@ class Renderer
     Renderer &operator=(Renderer &&other) = delete;
     ~Renderer();
 
-    void initializeResources(Scene &scene);
-    void renderScene(Scene &scene, float deltaTime);
+    void initializeResources(const Scene &scene);
+    void renderScene(const Scene &scene, float deltaTime);
     void updateExternalResolution(int width, int height);
 
     std::uint32_t getFrameCount() const;
@@ -100,7 +100,7 @@ class Renderer
     GLuint createResolveTexture();
 
     // Setup
-    void setSceneShaderUniforms(Scene &scene);
+    void setSceneShaderUniforms(const Scene &scene);
     void takeBufferData(SceneProcessor::ProcessedScene &processed);
     void takeGPUObjects(SceneProcessor::ProcessedScene &processed);
     void setupComputeShaders(const SceneProcessor::ProcessedScene &processed);
@@ -108,16 +108,16 @@ class Renderer
     // Cubemap Generation
     void borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
                       const std::vector<std::set<Handle>> &bucketHandles);
-    void createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets);
+    void createCubemaps(const Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets);
     void renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarget &blitTarget,
                          std::size_t parameterBufferIndex);
-    void updateMetadataCubemaps(Scene &scene, const std::vector<std::uint32_t> &metadataBridge);
+    void updateMetadataCubemaps(const Scene &scene, const std::vector<std::uint32_t> &metadataBridge);
 
     // Drawing
     void blitFrame();
     void renderScene();
     void bindBufferRanges(int index);
-    void renderShadowMaps(Scene &scene, bool lightChanged);
+    void renderShadowMaps(const Scene &scene, bool lightChanged);
     void shadowPass(GraphicsShader &shader, int cascade, bool alphaTested);
     void cullScene(ComputeShader &cullShader, const glm::mat4 &cullMatrix, int bufferSection);
 
@@ -126,10 +126,10 @@ class Renderer
     void updateParticles();
     void updateSkinnedVertices();
     void updateTimeUBO(float deltaTime);
-    void updateCameraUBO(Camera &camera);
-    void updateSceneTransforms(Scene &scene);
-    void updateCascades(Scene &scene, bool lightChanged);
+    void updateCameraUBO(const Camera &camera);
+    void updateSceneTransforms(const Scene &scene);
+    void updateCascades(const Scene &scene, bool lightChanged);
     void updateFrustumPlanesUBO(const glm::mat4 &cullMatrix);
-    void updateShaderUniforms(Scene &scene, bool lightChanged);
+    void updateShaderUniforms(const Scene &scene, bool lightChanged);
     void updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll);
 };

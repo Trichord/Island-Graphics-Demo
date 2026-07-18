@@ -18,15 +18,14 @@ Camera::Camera(glm::vec3 position, float yaw, float pitch)
 {
 }
 
-bool Camera::hasUpdated()
+bool Camera::hasUpdated() const
 {
-    if (hasChanged_)
-    {
-        hasChanged_ = false;
-        return true;
-    }
-    else
-        return false;
+    return hasChanged_;
+}
+
+void Camera::clearFlags()
+{
+    hasChanged_ = false;
 }
 
 float Camera::getAspectRatio() const
@@ -49,7 +48,7 @@ const glm::vec3 &Camera::getPosition() const
     return position_;
 }
 
-const glm::mat4 &Camera::getViewMatrix()
+const glm::mat4 &Camera::getViewMatrix() const
 {
     if (dirtyMatrices_)
     {
@@ -60,12 +59,12 @@ const glm::mat4 &Camera::getViewMatrix()
     return viewMatrix_;
 }
 
-const glm::mat4 &Camera::getProjectionMatrix()
+const glm::mat4 &Camera::getProjectionMatrix() const
 {
     return projectionMatrix_;
 }
 
-const glm::mat4 &Camera::getViewProjectionMatrix()
+const glm::mat4 &Camera::getViewProjectionMatrix() const
 {
     if (dirtyMatrices_)
     {
@@ -168,7 +167,7 @@ void Camera::processMouseMovement(float xOffset, float yOffset)
     dirtyMatrices_ = true;
 }
 
-void Camera::updateMatrices()
+void Camera::updateMatrices() const
 {
     using namespace WorldVectors;
 
@@ -240,7 +239,7 @@ void Camera::setAspectRatio(float aspectRatio)
     hasChanged_ = true;
 }
 
-glm::mat4 Camera::getResizedViewProjectionMatrix(float ratio)
+glm::mat4 Camera::getResizedViewProjectionMatrix(float ratio) const
 {
     if (dirtyMatrices_)
     {

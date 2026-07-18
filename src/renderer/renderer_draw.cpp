@@ -41,7 +41,7 @@ void Renderer::renderScene()
     }
 }
 
-void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
+void Renderer::renderShadowMaps(const Scene &scene, bool lightChanged)
 {
     glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
     shadowPassTarget_.bind();
