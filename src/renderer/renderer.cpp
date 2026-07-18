@@ -295,16 +295,7 @@ void Renderer::updateSceneTransforms(Scene &scene)
             const Primitive &primitive{sceneEntry.primitives[i]};
 
             for (const Transform &transform : worldTransforms)
-            {
-                const glm::mat4 &modelMatrix{transform.getModelMatrix()};
-
-                // Don't double apply model space transforms if skinned
-                const glm::mat4 worldTransform{boneIter == boneTransformsBaseIndexMap_.end()
-                                                   ? modelMatrix * primitive.modelSpaceTransform
-                                                   : modelMatrix};
-
-                updatedMatrices_.emplace_back(worldTransform);
-            }
+                updatedMatrices_.emplace_back(transform.getModelMatrix() * primitive.modelSpaceTransform);
 
             glNamedBufferSubData(SSBOs_.matrices, static_cast<GLintptr>(bufferIndices[i] * sizeof(glm::mat4)),
                                  static_cast<GLsizeiptr>(worldTransforms.size() * sizeof(glm::mat4)),

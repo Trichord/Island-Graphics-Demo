@@ -144,7 +144,7 @@ void getNodeTransforms(const fastgltf::Asset &asset, std::vector<Primitive> &pri
     {
         fastgltf::iterateSceneNodes(
             asset, i, fastgltf::math::fmat4x4(1.0f), [&](const fastgltf::Node &node, fastgltf::math::fmat4x4 matrix) {
-                if (node.meshIndex.has_value())
+                if (node.meshIndex.has_value() && !node.skinIndex.has_value())
                 {
                     const std::size_t meshIndex{node.meshIndex.value()};
                     const PrimitiveRange &range{meshToPrimitive[meshIndex]};
@@ -160,7 +160,6 @@ void getNodeTransforms(const fastgltf::Asset &asset, std::vector<Primitive> &pri
 
 void loadSkin(const fastgltf::Asset &asset, const fastgltf::Skin &srcSkin, Skeleton::Skin &dstSkin)
 {
-    // Copy for later recursive traversal
     dstSkin.jointNodes.assign(srcSkin.joints.begin(), srcSkin.joints.end());
 
     if (srcSkin.inverseBindMatrices.has_value())

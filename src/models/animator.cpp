@@ -82,7 +82,8 @@ void Animator::play(Animation &animation, const Skeleton &skeleton, std::vector<
     // Write any non skeletal transforms back to the primitive's model space transform
     for (auto &[nodeIndex, primitiveIndices] : skeleton.nodeToPrimitives)
         for (std::size_t index : primitiveIndices)
-            primitives[index].modelSpaceTransform = globalTransforms_[nodeIndex];
+            if (!primitives[index].vertexSkins.has_value())
+                primitives[index].modelSpaceTransform = globalTransforms_[nodeIndex];
 
     // Update skinned joints for the SSBO
     if (!skeleton.skin.has_value())
@@ -150,7 +151,7 @@ std::variant<glm::vec3, glm::quat> Animator::interpolateSampler(AnimationSampler
     return interpolate(sampler.interpolation, currentValue, nextValue, t);
 }
 
-const std::vector<glm::mat4>& Animator::getJointMatrices() const
+const std::vector<glm::mat4> &Animator::getJointMatrices() const
 {
     return jointMatrices_;
 }
