@@ -72,8 +72,4 @@ void IslandScene::onUpdate(float time, float deltaTime)
     }
 
     playAnimation(butterfly, "fly", deltaTime * 0.75f);
-
-    // Flag updated models
-    updateHandle(spaceModel.handle);
-    updateHandle(butterfly.handle);
 }

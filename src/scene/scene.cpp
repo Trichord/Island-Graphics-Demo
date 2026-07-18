@@ -107,11 +107,6 @@ Scene::Scene(TextureManager &textureManager, const GraphicsSettings &graphicsSet
     setupScene(jsonFile, graphicsSettings);
 }
 
-void Scene::updateHandle(Handle handle)
-{
-    updatedModels_.insert(handle);
-}
-
 const std::vector<Scene::Entry> &Scene::getAllSceneEntries() const
 {
     return entries_;
@@ -143,27 +138,33 @@ std::size_t Scene::findName(const std::string &name) const
     return iter->second;
 }
 
-const Scene::Entry &Scene::getEntryByName(const std::string &name) const
+const Scene::Entry &Scene::getEntry(const std::string &name) const
 {
     return entries_[findName(name)];
 }
 
-const Scene::Entry &Scene::getEntryByHandle(Handle handle) const
+const Scene::Entry &Scene::getEntry(Handle handle) const
 {
     return entries_[findHandle(handle)];
 }
 
 Scene::Entry &Scene::getEntry(const std::string &name)
 {
+    std::size_t index{findName(name)};
+    updatedModels_.insert(entries_[index].handle);
+
     return entries_[findName(name)];
 }
 
-Scene::Entry &Scene::getEntry(const Handle handle)
+Scene::Entry &Scene::getEntry(Handle handle)
 {
+    std::size_t index{findHandle(handle)};
+    updatedModels_.insert(entries_[index].handle);
+
     return entries_[findHandle(handle)];
 }
 
-DirectionalLight &Scene::getGlobalLight()
+const DirectionalLight &Scene::getGlobalLight() const
 {
     return globalLightSource_;
 }
@@ -183,6 +184,11 @@ Camera &Scene::getCamera()
     return camera_;
 }
 
+const Camera &Scene::getCamera() const
+{
+    return camera_;
+}
+
 const glm::vec3 &Scene::getWindDirection() const
 {
     return windDirection_;
@@ -193,9 +199,16 @@ float Scene::getWindStrength() const
     return windStrength_;
 }
 
-std::unordered_set<Handle> &Scene::getUpdatedHandles()
+const std::unordered_set<Handle> &Scene::getUpdatedHandles() const
 {
     return updatedModels_;
+}
+
+void Scene::clearUpdates()
+{
+    updatedModels_.clear();
+    camera_.clearFlags();
+    globalLightSource_.clearFlags();
 }
 
 void Scene::loadGLTFTextures(Handle handle, const Model &model)
@@ -328,7 +341,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
     camera_.setAspectRatio(graphicsSettings.renderWidth / static_cast<float>(graphicsSettings.renderHeight));
 
     ambientLight_ = scene.environment.ambientLight;
-    globalLightSource_ = DirectionalLight{scene.environment.sunDirection, scene.environment.lightColor};
+    globalLightSource_ = DirectionalLight{scene.environment.lightColor, scene.environment.sunDirection};
 
     windStrength_ = scene.wind.strength;
     windDirection_ = scene.wind.direction;

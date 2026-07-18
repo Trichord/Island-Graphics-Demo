@@ -104,7 +104,7 @@ void Application::run()
         islandScene.onUpdate(currentFrame_, deltaTime_);
 
         glfwPollEvents();
-        processKeyboard(islandScene, physicsHandler);
+        processKeyboard(islandScene.getCamera(), physicsHandler);
 
         if (windowResized_)
         {
@@ -114,6 +114,9 @@ void Application::run()
 
         // Draw
         renderer.renderScene(islandScene, deltaTime_);
+
+        // Clear
+        islandScene.clearUpdates();
         glfwSwapBuffers(window_);
     }
 
@@ -256,14 +259,13 @@ bool Application::createOpenGLViewport()
     return supported;
 }
 
-void Application::processKeyboard(Scene &scene, PlayerPhysics &physicsHandler)
+void Application::processKeyboard(Camera& camera, PlayerPhysics &physicsHandler)
 {
     using enum CharacterMovement;
 
     std::uint8_t direction{0};
     bool jump{false};
 
-    Camera &camera{scene.getCamera()};
     const glm::vec3 front{camera.getFront()};
 
     glm::vec3 previousPos{physicsHandler.getPreviousPosition()};

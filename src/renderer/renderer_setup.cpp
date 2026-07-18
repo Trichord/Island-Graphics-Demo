@@ -51,7 +51,7 @@ std::size_t getNumDynamicCubemaps(const Scene &scene)
 }
 } // namespace
 
-void Renderer::initializeResources(Scene &scene)
+void Renderer::initializeResources(const Scene &scene)
 {
     if (scene.getAllSceneEntries().empty())
         return;
@@ -81,7 +81,7 @@ void Renderer::initializeResources(Scene &scene)
 
     // Setup for cascade shadow maps
     float nearPlane{scene.getCamera().getNearPlane()};
-    DirectionalLight &light{scene.getGlobalLight()};
+    const DirectionalLight &light{scene.getGlobalLight()};
     cascadeShadow_ = {light, sceneAABB, nearPlane};
 
     // Deferred shader loading so we can test the scene for animated models
@@ -160,7 +160,7 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
     msaaDepthResolveShader_.setIVec2("mipRes", hiZRes);
 }
 
-void Renderer::setSceneShaderUniforms(Scene &scene)
+void Renderer::setSceneShaderUniforms(const Scene &scene)
 {
     const DirectionalLight &light{scene.getGlobalLight()};
 
@@ -204,7 +204,7 @@ void Renderer::borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
         textureManager_.borrowCubemaps(oceanHandle, skyboxHandle);
 }
 
-void Renderer::createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets)
+void Renderer::createCubemaps(const Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets)
 {
     using enum ShaderType;
 
@@ -308,7 +308,7 @@ void Renderer::renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarge
     }
 }
 
-void Renderer::updateMetadataCubemaps(Scene &scene, const std::vector<std::uint32_t> &metadataBridge)
+void Renderer::updateMetadataCubemaps(const Scene &scene, const std::vector<std::uint32_t> &metadataBridge)
 {
     // Verify data layout before sparse updates of the metadata struct
     static_assert(std::is_standard_layout_v<SamplerArrayIndex>);

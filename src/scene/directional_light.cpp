@@ -2,36 +2,45 @@
 
 #include <glm/glm.hpp>
 
-#include "scene/light.h"
-
-DirectionalLight::DirectionalLight(const glm::vec3 &newDirection, const glm::vec3 &newColor)
-    : Light{newColor}, direction_{newDirection}
+DirectionalLight::DirectionalLight(const glm::vec3 &color, const glm::vec3 &direction)
+    : color_{color}, direction_{direction}
 {
 }
 
-glm::vec3 DirectionalLight::getColor() const
+const glm::vec3 &DirectionalLight::getColor() const
 {
     return color_;
 }
 
-glm::vec3 DirectionalLight::getDirection() const
+const glm::vec3 &DirectionalLight::getDirection() const
 {
     return direction_;
 }
 
-void DirectionalLight::setDirection(const glm::vec3 &newDirection)
-{  
-    direction_ = newDirection;
+void DirectionalLight::setDirection(const glm::vec3 &direction)
+{
+    direction_ = direction;
     directionUpdated_ = true;
 }
 
-bool DirectionalLight::directionHasUpdated()
+bool DirectionalLight::directionHasUpdated() const
 {
-    if (directionUpdated_)
-    {
-        directionUpdated_ = false;
-        return true;
-    }
-    else
-        return false;
+    return directionUpdated_;
+}
+
+void DirectionalLight::setColor(const glm::vec3 &newColor)
+{
+    color_ = newColor;
+    colorUpdated_ = true;
+}
+
+bool DirectionalLight::colorHasUpdated() const
+{
+    return colorUpdated_;
+}
+
+void DirectionalLight::clearFlags()
+{
+    colorUpdated_ = false;
+    directionUpdated_ = false;
 }
