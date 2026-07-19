@@ -73,12 +73,13 @@ class Scene
   protected:
     virtual void onUpdate(float time, float deltaTime) = 0;
 
-    Entry &getEntry(const std::string &name);
-    Entry &getEntry(Handle handle);
+    [[nodiscard]] Entry &editEntry(Handle handle);
+    [[nodiscard]] Entry &editEntry(const std::string &name);
 
-    void playAllAnimations(Entry &entry, float deltaTime);
-    void playAnimation(Entry &entry, const std::string &name, float deltaTime);
-    void playAnimation(Scene::Entry &entry, int index, float deltaTime);
+    // Convenience methods
+    Skeleton &getSkeleton(Scene::Entry &entry);
+    Animation &getAnimation(Scene::Entry &entry, int index);
+    Animation &getAnimation(Scene::Entry &entry, const std::string &name);
 
     void setAmbientLight(const glm::vec3 &ambient);
 

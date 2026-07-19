@@ -13,21 +13,21 @@ IslandScene::IslandScene(TextureManager &textureManager, const GraphicsSettings 
                          const std::filesystem::path &jsonFile)
     : Scene(textureManager, graphicsSettings, jsonFile)
 {
-    Entry &butterfly{getEntry("butterfly")};
+    // Cache original positions so that animated models can return or calculate updated positions
+    Entry &butterfly{editEntry("butterfly")};
     butterflyOriginalPos_.reserve(butterfly.worldTransforms.size());
 
-    for (Transform &transform : butterfly.worldTransforms)
+    for (const Transform &transform : butterfly.worldTransforms)
         butterflyOriginalPos_.emplace_back(transform.getPosition());
+
+    // Set starting animations for first frame
+    Animation &fly{getAnimation(butterfly, "fly")};
+    butterfly.entryAnimation->animator.setAnimation(fly);
 }
 
 void IslandScene::onUpdate(float time, float deltaTime)
 {
-    constexpr float degreesPerSecond{2.0f};
-    constexpr glm::vec3 oddAxisAngle{0.2926f, 0.8048f, 0.5164f};
-    constexpr glm::vec3 oddAxisAngle2{-0.3197f, 0.7975f, 0.5117f};
-
-    // Rotate the fancy space model
-    Entry &spaceModel{getEntry("spaceModel")};
+    Entry &spaceModel{editEntry("spaceModel")};
 
     for (std::size_t i{0}; i < spaceModel.worldTransforms.size(); ++i)
     {
@@ -35,14 +35,7 @@ void IslandScene::onUpdate(float time, float deltaTime)
         spaceModel.worldTransforms[i].rotateAroundAxisLocal(degreesPerSecond * deltaTime, oddAxisAngle2);
     }
 
-    // Update butterfly positions and animations
-    constexpr float butterflySpeed{5.0f};
-    constexpr float heightMultiplier{0.04f};
-    constexpr float bobSpeed{79.6227f};
-    constexpr float radius{8.0f};
-    constexpr float largeHeightWave{0.65f};
-
-    Entry &butterfly{getEntry("butterfly")};
+    Entry &butterfly{editEntry("butterfly")};
 
     // Negative to orient the model properly
     float baseAngle{-glm::radians(time * butterflySpeed)};
@@ -71,5 +64,5 @@ void IslandScene::onUpdate(float time, float deltaTime)
         transform.setAbsoluteRotation(glm::vec3{0.0f, yaw + modelFlip, 0.0f});
     }
 
-    playAnimation(butterfly, "fly", deltaTime * 0.75f);
+    butterfly.entryAnimation->animator.update(getSkeleton(butterfly), butterfly.primitives, deltaTime);
 }
