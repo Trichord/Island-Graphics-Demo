@@ -410,7 +410,6 @@ void Renderer::updateHiZ()
 
     glState_.bindProgram(hiZShader_);
 
-    // Stop early and avoid the last few mips?
     for (std::size_t i{1}; i < mipViews.size(); ++i)
     {
         std::uint32_t srcMipX{std::max(one, textureWidth >> (i - 1))};

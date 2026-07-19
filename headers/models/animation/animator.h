@@ -14,18 +14,27 @@ class Animator
     Animator() = default;
     Animator(std::size_t numNodes, std::size_t numJoints);
 
-    void play(Animation &animation, const Skeleton &skeleton, std::vector<Primitive> &primitives, float deltaTime);
+    void setAnimation(Animation& animation);
+    void setTransition(Animation &transitionTo, float blendDuration);
+    void update(const Skeleton &skeleton, std::vector<Primitive> &primitives, float deltaTime);
 
-    void reset(Animation &animation);
-
-    const std::vector<glm::mat4>& getJointMatrices() const;
+    const std::vector<glm::mat4> &getJointMatrices() const;
 
   private:
     float time_{0.0f};
+    float blendTime_{0.0f};
+    float blendDuration_{0.0f};
+
+    Animation *currentAnimation_{nullptr};
+    Animation *nextAnimation_{nullptr};
 
     std::vector<glm::vec3> localTranslations_;
     std::vector<glm::quat> localRotations_;
     std::vector<glm::vec3> localScales_;
+
+    std::vector<glm::vec3> nextLocalTranslations_;
+    std::vector<glm::quat> nextLocalRotations_;
+    std::vector<glm::vec3> nextLocalScales_;
 
     // Recalculate each frame from animation changes
     std::vector<glm::mat4> globalTransforms_;
@@ -33,5 +42,9 @@ class Animator
     // Pass to shaders
     std::vector<glm::mat4> jointMatrices_;
 
-    std::variant<glm::vec3, glm::quat> interpolateSampler(AnimationSampler &sampler);
+    std::variant<glm::vec3, glm::quat> interpolateSampler(AnimationSampler &sampler, float time);
+    void sampleChannels(Animation &animation, std::vector<glm::vec3> &translations, std::vector<glm::quat> &rotations,
+                        std::vector<glm::vec3> &scales, float time);
+    void resetSamplers(Animation &animation);
+    void resetBlend();
 };

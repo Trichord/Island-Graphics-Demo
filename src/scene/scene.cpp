@@ -148,7 +148,7 @@ const Scene::Entry &Scene::getEntry(Handle handle) const
     return entries_[findHandle(handle)];
 }
 
-Scene::Entry &Scene::getEntry(const std::string &name)
+Scene::Entry &Scene::editEntry(const std::string &name)
 {
     std::size_t index{findName(name)};
     updatedModels_.insert(entries_[index].handle);
@@ -156,7 +156,7 @@ Scene::Entry &Scene::getEntry(const std::string &name)
     return entries_[findName(name)];
 }
 
-Scene::Entry &Scene::getEntry(Handle handle)
+Scene::Entry &Scene::editEntry(Handle handle)
 {
     std::size_t index{findHandle(handle)};
     updatedModels_.insert(entries_[index].handle);
@@ -202,6 +202,44 @@ float Scene::getWindStrength() const
 const std::unordered_set<Handle> &Scene::getUpdatedHandles() const
 {
     return updatedModels_;
+}
+
+Skeleton &Scene::getSkeleton(Scene::Entry &entry)
+{
+    if (!entry.entryAnimation.has_value())
+        throw std::runtime_error("No animations");
+
+    return entry.entryAnimation->skeletalAnimation.skeleton;
+}
+
+Animation &Scene::getAnimation(Scene::Entry &entry, const std::string &name)
+{
+    if (!entry.entryAnimation.has_value())
+        throw std::runtime_error("No animations");
+
+    std::unordered_map<std::string, std::size_t> &map{entry.entryAnimation->animationMap};
+
+    auto nameIter = map.find(name);
+
+    if (nameIter == map.end())
+        throw std::runtime_error("Animation not found");
+
+    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
+    return entryAnimation.skeletalAnimation.animations[nameIter->second];
+}
+
+Animation &Scene::getAnimation(Scene::Entry &entry, int index)
+{
+    if (!entry.entryAnimation.has_value())
+        throw std::runtime_error("No animations");
+
+    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
+    std::vector<Animation> &animations{entryAnimation.skeletalAnimation.animations};
+
+    if (index >= static_cast<int>(animations.size()))
+        throw std::runtime_error("Animation not found");
+
+    return animations[index];
 }
 
 void Scene::clearUpdates()
@@ -383,42 +421,4 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
         validateSceneEntry(entries_.back());
         entriesByHandle_[handle] = entryIndex;
     }
-}
-
-void Scene::playAnimation(Scene::Entry &entry, const std::string &name, float deltaTime)
-{
-    if (!entry.entryAnimation.has_value())
-        return;
-
-    std::unordered_map<std::string, std::size_t> &map{entry.entryAnimation->animationMap};
-
-    auto nameIter = map.find(name);
-
-    if (nameIter == map.end())
-    {
-        std::cerr << "WARNING: Animation " << name << " not found" << std::endl;
-        return;
-    }
-
-    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
-    const Skeleton &skeleton{entryAnimation.skeletalAnimation.skeleton};
-
-    entryAnimation.animator.play(entryAnimation.skeletalAnimation.animations[nameIter->second], skeleton,
-                                 entry.primitives, deltaTime);
-}
-
-void Scene::playAnimation(Scene::Entry &entry, int index, float deltaTime)
-{
-    if (!entry.entryAnimation.has_value())
-        return;
-
-    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
-    std::vector<Animation> &animations{entryAnimation.skeletalAnimation.animations};
-
-    if (index >= static_cast<int>(animations.size()))
-        return;
-
-    const Skeleton &skeleton{entryAnimation.skeletalAnimation.skeleton};
-
-    entryAnimation.animator.play(animations[index], skeleton, entry.primitives, deltaTime);
 }
