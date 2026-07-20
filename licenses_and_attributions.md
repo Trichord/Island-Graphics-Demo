@@ -1,14 +1,8 @@
-**A huge thank you to Joey de Vries for his work with https://learnopengl.com/
-Without him, this project would not exist.**
-
-If your work is not in this list, please let me know right away and I will add you! 
-
-<br>
-This software contains source code provided by NVIDIA Corporation.
-
+**A huge thank you to Joey de Vries for his work with https://learnopengl.com/ <br> Without him, this project would not exist.** <br>
+<br> If your work is not in this list, please let me know right away and I will add you! 
+<br> This software contains source code provided by NVIDIA Corporation.
 
 <h1>Libraries</h1>
-
 
 <h2>GLM</h2>
 <details>
