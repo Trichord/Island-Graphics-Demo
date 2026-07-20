@@ -1,7 +1,7 @@
-If your work is not in this list, please let me know right away and I will add you! 
-
 **A huge thank you to Joey de Vries for his work with https://learnopengl.com/
 Without him, this project would not exist.**
+
+If your work is not in this list, please let me know right away and I will add you! 
 
 <br>
 This software contains source code provided by NVIDIA Corporation.
@@ -62,7 +62,7 @@ This notice may not be removed or altered from any source distribution.
 <details>
 <summary>Copyright (c) 2022 - 2026 Sean Apeler. All rights reserved.</summary>
 
-<a href="#mit-license">The MIT License</a>
+<a href="#mit-license">MIT License</a>
 
 </details>
 
@@ -71,7 +71,7 @@ This notice may not be removed or altered from any source distribution.
 <details>
 <summary>Copyright (c) 2014-2026 Omar Cornut</summary>
 
-<a href="#mit-license">The MIT License</a>
+<a href="#mit-license">MIT License</a>
 
 </details>
 
@@ -80,7 +80,7 @@ This notice may not be removed or altered from any source distribution.
 <details>
 <summary>Copyright 2021 Jorrit Rouwe</summary>
 
-<a href="#mit-license">The MIT License</a>
+<a href="#mit-license">MIT License</a>
 
 </details>
 
@@ -138,7 +138,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 <details>
 <summary>Copyright © 2013-2026 Niels Lohmann</summary>
 
-<a href="#mit-license">The MIT License</a>
+<a href="#mit-license">MIT License</a>
 </details>
 
 <h2>GLAD</h2>
@@ -146,7 +146,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 <details>
 <summary>Copyright (c) 2013-2022 David Herberth</summary>
 
-<a href="#mit-license">The MIT License</a>
+<a href="#mit-license">MIT License</a>
 
 </details>
 
@@ -197,13 +197,12 @@ MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
 
 <h2>Bevy Engine</h2>
 <details>
-<a href="#mit-license">The MIT License</a>
+<a href="#mit-license">MIT License</a>
 </details>
 
+<h2>MIT License</h2>
 <a id="mit-license"></a>
 <details>
-<summary><h2>MIT License</h2></summary>
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
