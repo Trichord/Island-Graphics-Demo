@@ -63,7 +63,7 @@ class Scene
     Camera &getCamera();
     const Camera &getCamera() const;
     const std::vector<Entry> &getAllSceneEntries() const;
-    const Entry &getEntry(const std::string &key) const;
+    const Entry &getEntry(std::string_view name) const;
     const Entry &getEntry(Handle handle) const;
 
     // Per-frame Update
@@ -76,12 +76,12 @@ class Scene
     virtual void onUpdate(float time, float deltaTime) = 0;
 
     [[nodiscard]] Entry &editEntry(Handle handle);
-    [[nodiscard]] Entry &editEntry(const std::string &name);
+    [[nodiscard]] Entry &editEntry(std::string_view name);
 
     // Convenience methods
     Skeleton &getSkeleton(Scene::Entry &entry);
     Animation &getAnimation(Scene::Entry &entry, int index);
-    Animation &getAnimation(Scene::Entry &entry, const std::string &name);
+    Animation &getAnimation(Scene::Entry &entry, std::string_view name);
 
     void setAmbientLight(const glm::vec3 &ambient);
 
@@ -119,5 +119,5 @@ class Scene
                             const Transform &transform, ShaderType shaderType, const std::string &name = {});
 
     std::size_t findHandle(Handle handle) const;
-    std::size_t findName(const std::string &name) const;
+    std::size_t findName(std::string_view name) const;
 };

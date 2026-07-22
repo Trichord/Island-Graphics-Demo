@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <vector>
+#include <random>
 
 #include "application/graphics_settings.h"
 #include "scene/island_scene/seagull.h"
@@ -18,6 +19,15 @@ class IslandScene : public Scene
     void onUpdate(float time, float deltaTime) override;
 
   private:
+    static constexpr int numSeagulls_{6};
+    static constexpr std::array<std::string_view, numSeagulls_> seagullNames_{
+        {"seagull1", "seagull2", "seagull3", "seagull4", "seagull5", "seagull6"}};
+
     std::vector<glm::vec3> butterflyOriginalPos_;
-    Seagull seagull_;
+    std::vector<Seagull> seagulls_ = std::vector<Seagull>(numSeagulls_);
+
+    Animation &randomSeagullIdle(Scene::Entry &entry);
+    void updateSpaceModel(Scene::Entry &entry, float deltaTime);
+    void updateButterfly(Scene::Entry &butterfly, float time, float deltaTime);
+    void updateSeagull(Seagull& seagull, Scene::Entry &seagullEntry, float deltaTime);
 };

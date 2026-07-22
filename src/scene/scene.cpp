@@ -125,9 +125,9 @@ std::size_t Scene::findHandle(Handle handle) const
     return iter->second;
 }
 
-std::size_t Scene::findName(const std::string &name) const
+std::size_t Scene::findName(std::string_view name) const
 {
-    auto iter = entriesByName_.find(name);
+    auto iter = entriesByName_.find(name.data());
 
     if (iter == entriesByName_.end() || iter->second >= entries_.size())
     {
@@ -138,7 +138,7 @@ std::size_t Scene::findName(const std::string &name) const
     return iter->second;
 }
 
-const Scene::Entry &Scene::getEntry(const std::string &name) const
+const Scene::Entry &Scene::getEntry(std::string_view name) const
 {
     return entries_[findName(name)];
 }
@@ -148,7 +148,7 @@ const Scene::Entry &Scene::getEntry(Handle handle) const
     return entries_[findHandle(handle)];
 }
 
-Scene::Entry &Scene::editEntry(const std::string &name)
+Scene::Entry &Scene::editEntry(std::string_view name)
 {
     std::size_t index{findName(name)};
     updatedModels_.insert(entries_[index].handle);
@@ -212,14 +212,14 @@ Skeleton &Scene::getSkeleton(Scene::Entry &entry)
     return entry.entryAnimation->skeletalAnimation.skeleton;
 }
 
-Animation &Scene::getAnimation(Scene::Entry &entry, const std::string &name)
+Animation &Scene::getAnimation(Scene::Entry &entry, std::string_view name)
 {
     if (!entry.entryAnimation.has_value())
         throw std::runtime_error("No animations");
 
     std::unordered_map<std::string, std::size_t> &map{entry.entryAnimation->animationMap};
 
-    auto nameIter = map.find(name);
+    auto nameIter = map.find(name.data());
 
     if (nameIter == map.end())
         throw std::runtime_error("Animation not found");

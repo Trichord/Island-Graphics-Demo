@@ -28,7 +28,7 @@ class Seagull
 
   private:
     static constexpr float flySpeed_{3.0f};
-    static constexpr float climbAngle_{glm::radians(20.0f)};
+    static constexpr float climbAngle_{glm::radians(28.0f)};
     static constexpr float maxPitchSpeed_{glm::radians(120.0f)};
 
     Seagull::State state_{Seagull::State::resting};

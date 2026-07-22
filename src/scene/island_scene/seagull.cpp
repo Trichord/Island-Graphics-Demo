@@ -146,7 +146,7 @@ void Seagull::updateState(const glm::vec3 &playerPos, float deltaTime)
     using enum Seagull::State;
 
     auto createDestination = [](const glm::vec3 &position, const glm::vec3 &flatFront, float height, float angle) {
-        float dist{(height - position.y) / glm::tan(angle)};
+        const float dist{(height - position.y) / glm::tan(angle)};
         return glm::vec3{position.x + flatFront.x * dist, height, position.z + flatFront.z * dist};
     };
 
@@ -188,7 +188,6 @@ void Seagull::updateState(const glm::vec3 &playerPos, float deltaTime)
     if (state_ == returning && playerTooClose)
     {
         state_ = panicking;
-        float dist{(orbitHeight_ - position.y) / glm::tan(climbAngle_)};
         setFlight(position, createDestination(position, flatFront, orbitHeight_, climbAngle_));
         stateChanged_ = true;
     }
