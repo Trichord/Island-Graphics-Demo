@@ -38,14 +38,14 @@ set(SOURCES
     src/renderer/renderer.cpp
     src/renderer/renderer_draw.cpp
     src/renderer/renderer_setup.cpp
+    src/renderer/texture_view.cpp
     src/renderer/shader/compute_shader.cpp
     src/renderer/shader/graphics_shader.cpp
     src/renderer/shader/shader_base.cpp
     src/scene/camera.cpp
     src/scene/directional_light.cpp
     src/scene/island_scene/island_scene.cpp
-    src/scene/light.cpp
-    src/scene/point_light.cpp
+    src/scene/island_scene/seagull.cpp
     src/scene/scene.cpp
     src/utilities/array_texture.cpp
     src/utilities/asset_loader.cpp
@@ -90,12 +90,12 @@ set(HEADERS
     headers/renderer/shader/graphics_shader.h
     headers/renderer/shader/shader_base.h
     headers/renderer/textures.h
+    headers/renderer/texture_view.h
     headers/scene/camera.h
     headers/scene/directional_light.h
     headers/scene/handle.h
     headers/scene/island_scene/island_scene.h
-    headers/scene/light.h
-    headers/scene/point_light.h
+    headers/scene/island_scene/seagull.h
     headers/scene/scene.h
     headers/scene/scene_file.h
     headers/utilities/array_texture.h
@@ -158,18 +158,12 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     JPH_USE_TZCNT
 )
 
-# Copy resources
-
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/res
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>/res
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/shaders
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders
+# Use PWD for debug / release
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )
 
-# Clean install
+# Install with full copy of resources
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION .)
 install(DIRECTORY res/ DESTINATION res)

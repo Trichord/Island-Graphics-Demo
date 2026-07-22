@@ -127,9 +127,13 @@ inline void from_json(const nlohmann::json &j, Transform &t)
         }
         else
         {
-            glm::vec3 degrees{parseVec3(rot)};
-            t.setAbsoluteRotation(degrees);
-        };
+            glm::vec3 rotations{glm::radians(parseVec3(rot))};
+            const glm::quat yaw{glm::angleAxis(rotations.y, WorldVectors::worldUp)};
+            const glm::quat pitch{glm::angleAxis(rotations.x, WorldVectors::worldRight)};
+            const glm::quat roll{glm::angleAxis(rotations.z, WorldVectors::worldFront)};
+
+            t.setAbsoluteRotation(roll * pitch * yaw);
+        }
     }
 }
 
@@ -192,7 +196,7 @@ inline void from_json(const nlohmann::json &j, SceneCamera &c)
 {
     c.position = j.contains("position") ? parseVec3(j.at("position")) : glm::vec3{0.0f};
     c.pitch = j.value("pitch", 0.0f);
-    c.yaw = j.value("yaw", 0.0f);
+    c.yaw = j.value("yaw", -90.0f);
     c.nearPlane = j.value("nearPlane", 0.1f);
     c.farPlane = j.value("farPlane", 1000.0f);
     c.FOV = j.value("FOV", 45.0f);

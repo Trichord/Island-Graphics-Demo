@@ -4,8 +4,8 @@
 
 struct GraphicsSettings
 {
-    int screenWidth{1920};
-    int screenHeight{1080};
+    int renderWidth{1920};
+    int renderHeight{1080};
     int msaa{4};
     int anisotropicFiltering{4};
     int shadowResolution{1024};
@@ -19,8 +19,8 @@ inline void to_json(nlohmann::json &j, const GraphicsSettings &s)
 {
     using json = nlohmann::json;
 
-    j = json{{"screenWidth", s.screenWidth},
-             {"screenHeight", s.screenHeight},
+    j = json{{"renderWidth", s.renderWidth},
+             {"renderHeight", s.renderHeight},
              {"msaa", s.msaa},
              {"aniso", s.anisotropicFiltering},
              {"shadowResolution", s.shadowResolution},
@@ -32,8 +32,8 @@ inline void to_json(nlohmann::json &j, const GraphicsSettings &s)
 
 inline void from_json(const nlohmann::json &j, GraphicsSettings &s)
 {
-    s.screenWidth = j.value("screenWidth", 1920);
-    s.screenHeight = j.value("screenHeight", 1080);
+    s.renderWidth = j.value("renderWidth", 1920);
+    s.renderHeight = j.value("renderHeight", 1080);
     s.msaa = j.value("msaa", 4);
     s.anisotropicFiltering = j.value("aniso", 4);
     s.shadowResolution = j.value("shadowResolution", 1024);

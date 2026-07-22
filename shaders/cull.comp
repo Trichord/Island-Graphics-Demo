@@ -1,0 +1,196 @@
+#version 460 core
+
+#include "shared/binding_points.glsl"
+#include "shared/samplers.glsl"
+#include "shared/types.glsl"
+#include "shared/ubo.glsl"
+
+// Attributes
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+// Constants
+const int minScreenSize = 4;
+
+// SSBOs
+layout(binding = SSBO_BINDING_VISIBILITY_MAP, std430) restrict readonly buffer mapSSBO
+{
+    BufferMap maps[];
+};
+
+layout(binding = SSBO_BINDING_AABB, std430) restrict readonly buffer aabbSSBO
+{
+    AABB AABBs[];
+};
+
+layout(binding = SSBO_BINDING_MATRICES, std430) restrict readonly buffer matricesSSBO
+{
+    mat4 matrices[];
+};
+
+layout(binding = SSBO_BINDING_CULL_RESULTS, std430) buffer cullResultsSSBO
+{
+    uint cullResults[];
+};
+
+layout(binding = SSBO_BINDING_VISIBLE_INSTANCES, std430) restrict writeonly buffer visibleInstancesSSBO
+{
+    uint visibleInstances[];
+};
+
+bool aabbIntersectsFrustum(vec3 worldCenter, vec3 worldExtent)
+{
+    for (int i = 0; i < 6; ++i)
+    {
+        float d = dot(worldCenter, planes[i].xyz);
+        float r = dot(worldExtent, abs(planes[i].xyz));
+
+        if (d + r < -planes[i].w)
+            return false;
+    }
+
+    return true;
+}
+
+// Credit: https://zeux.io/2023/01/12/approximate-projected-bounds/
+bool projectBox(vec3 bMin, vec3 bMax, float zNear, mat4 viewProjection, out vec4 aabb, out float minZ)
+{
+    vec4 SX = viewProjection * vec4(bMax.x - bMin.x, 0.0, 0.0, 0.0);
+    vec4 SY = viewProjection * vec4(0.0, bMax.y - bMin.y, 0.0, 0.0);
+    vec4 SZ = viewProjection * vec4(0.0, 0.0, bMax.z - bMin.z, 0.0);
+
+    vec4 P0 = viewProjection * vec4(bMin.x, bMin.y, bMin.z, 1.0);
+    vec4 P1 = P0 + SZ;
+    vec4 P2 = P0 + SY;
+    vec4 P3 = P2 + SZ;
+    vec4 P4 = P0 + SX;
+    vec4 P5 = P4 + SZ;
+    vec4 P6 = P4 + SY;
+    vec4 P7 = P6 + SZ;
+
+    if (min(min(min(min(min(min(min(P0.w, P1.w), P2.w), P3.w), P4.w), P5.w), P6.w), P7.w) < zNear) 
+        return false;
+    
+    P0.xyz = P0.xyz / P0.w;
+    P1.xyz = P1.xyz / P1.w;
+    P2.xyz = P2.xyz / P2.w;
+    P3.xyz = P3.xyz / P3.w;
+    P4.xyz = P4.xyz / P4.w;
+    P5.xyz = P5.xyz / P5.w;
+    P6.xyz = P6.xyz / P6.w;
+    P7.xyz = P7.xyz / P7.w;
+
+    aabb.xy = min(min(min(min(min(min(min(
+        P0.xy, P1.xy), P2.xy), P3.xy), P4.xy), P5.xy), P6.xy), P7.xy);
+
+    aabb.zw = max(max(max(max(max(max(max(
+        P0.xy, P1.xy), P2.xy), P3.xy), P4.xy), P5.xy), P6.xy), P7.xy);
+
+    minZ = min(min(min(min(min(min(min(
+        P0.z, P1.z), P2.z), P3.z), P4.z), P5.z), P6.z), P7.z);
+    minZ = minZ * 0.5 + 0.5;
+
+    // Clip space to UV space. Since we're in UV space, clamp (changes UV box size). This allows for a better mip level selection
+    aabb = clamp(aabb * 0.5 + 0.5, 0.0, 1.0);
+
+    return true;
+}
+
+// Hi-Z sampling algorithms credit: Bevy Engine https://github.com/bevyengine
+float sampleHiZRow(ivec4 sx, int sy, int mip)
+{
+    float a = texelFetch(hiZ, ivec2(sx.x, sy), mip).x;
+    float b = texelFetch(hiZ, ivec2(sx.y, sy), mip).x;
+    float c = texelFetch(hiZ, ivec2(sx.z, sy), mip).x;
+    float d = texelFetch(hiZ, ivec2(sx.w, sy), mip).x;
+    return max(max(a, b), max(c, d));
+}
+
+float sampleHiZ(ivec2 sMin, ivec2 sMax, int mip)
+{
+    ivec4 texel = ivec4(0, 1, 2, 3);
+    ivec4 sx = min(sMin.x + texel, sMax.xxxx);
+    ivec4 sy = min(sMin.y + texel, sMax.yyyy);
+
+    float a = sampleHiZRow(sx, sy.x, mip);
+    float b = sampleHiZRow(sx, sy.y, mip);
+    float c = sampleHiZRow(sx, sy.z, mip);
+    float d = sampleHiZRow(sx, sy.w, mip);
+    return max(max(a, b), max(c, d));
+}
+
+void markVisible(BufferMap map, uint visibilityBufferBaseIndex, uint instance)
+{
+    uint counter = atomicAdd(cullResults[map.sharedBaseIndex], 1);
+    visibleInstances[visibilityBufferBaseIndex + counter] = instance; 
+}
+
+// In
+uniform ivec2 renderResolution;
+uniform ivec2 hiZResolution;
+uniform int hiZMaxMip;
+uniform float nearPlane;
+
+uniform mat4 lastFrameVP;
+
+void main()
+{
+    uint instance = gl_GlobalInvocationID.x;
+
+    if (instance >= maps.length())
+        return;
+    
+    mat4 modelMatrix = matrices[instance];
+    BufferMap map = maps[instance];
+    
+    AABB aabb = AABBs[map.sharedBaseIndex];
+    uint visibilityBufferBaseIndex = map.visibleInstancesBaseIndex;
+
+    // World space AABB
+    mat3 RS = mat3(modelMatrix);
+    mat3 absRS = mat3(abs(RS[0]), abs(RS[1]), abs(RS[2]));
+
+    vec3 worldCenter = vec3(modelMatrix * vec4(aabb.center.xyz, 1.0));
+    vec3 worldExtent =  absRS * aabb.extent.xyz;
+
+    if (!aabbIntersectsFrustum(worldCenter, worldExtent))
+        return;
+
+    // Use local space AABB since the world space one is already a bit loose from the ABS trick
+    vec4 uvBox;
+    float minZ;
+    if (!projectBox(aabb.center.xyz - aabb.extent.xyz, aabb.center.xyz + aabb.extent.xyz, nearPlane, lastFrameVP * modelMatrix, uvBox, minZ))
+    {
+         markVisible(map, visibilityBufferBaseIndex, instance);
+         return;
+    }
+        
+    ivec2 screenSize = ivec2(vec2(uvBox.zw - uvBox.xy) * vec2(renderResolution));
+    
+    if (max(screenSize.x, screenSize.y) < minScreenSize)
+        return;
+    
+    ivec2 minTexel = ivec2(max(uvBox.xy * hiZResolution, vec2(0.0)));
+    ivec2 maxTexel = ivec2(min(uvBox.zw * hiZResolution, hiZResolution - 1.0));
+    ivec2 size = maxTexel - minTexel;
+    int maxSize = max(max(size.x, size.y), 1);
+    
+    // use MSB to avoid a call to floor(log2(float(maxSize)))
+    int mip = clamp(findMSB(maxSize) - 1, 0, hiZMaxMip);
+
+    if (any(greaterThan(maxTexel >> ivec2(mip), (minTexel >> ivec2(mip)) + 3)))
+        mip += 1;
+    
+    mip = clamp(mip, 0, hiZMaxMip);
+
+    ivec2 mipResolution = max(hiZResolution >> ivec2(mip), ivec2(1));
+    ivec2 mipSpaceMin = min(minTexel >> ivec2(mip), mipResolution - 1);
+    ivec2 mipSpaceMax = min(maxTexel >> ivec2(mip), mipResolution - 1);
+     
+    // Choosing to use 16 samples instead of 4 for tighter culling
+    float depth = sampleHiZ(mipSpaceMin, mipSpaceMax, mip);
+
+    if (minZ > depth)
+        return;
+    
+    markVisible(map, visibilityBufferBaseIndex, instance);  
+}

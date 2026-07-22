@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "models/primitive.h"
+#include "renderer/buffers.h"
 #include "renderer/cascade_shadow.h"
 #include "renderer/renderer_types.h"
 #include "renderer/shader/graphics_shader.h"
@@ -41,7 +42,7 @@ void Renderer::renderScene()
     }
 }
 
-void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
+void Renderer::renderShadowMaps(const Scene &scene, bool lightChanged)
 {
     glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
     shadowPassTarget_.bind();
@@ -60,7 +61,7 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
         // Main pass is at buffer[0]
         int bufferSection{1 + i};
         bindBufferRanges(bufferSection);
-        cullScene(lightVP, bufferSection);
+        cullScene(cullFrustumShader_, lightVP, bufferSection);
     }
 
     // Opaque geometry first (positions only)
@@ -96,7 +97,7 @@ void Renderer::renderShadowMaps(Scene &scene, bool lightChanged)
 
     bindBufferRanges(0);
     glDisable(GL_POLYGON_OFFSET_FILL);
-    glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
+    glViewport(0, 0, graphicsSettings_.renderWidth, graphicsSettings_.renderHeight);
     frameBuffer_.bind();
 }
 

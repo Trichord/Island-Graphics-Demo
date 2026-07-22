@@ -1,11 +1,13 @@
 #include "renderer/renderer.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <iostream>
 #include <set>
+#include <span>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -51,7 +53,7 @@ std::size_t getNumDynamicCubemaps(const Scene &scene)
 }
 } // namespace
 
-void Renderer::initializeResources(Scene &scene)
+void Renderer::initializeResources(const Scene &scene)
 {
     if (scene.getAllSceneEntries().empty())
         return;
@@ -81,7 +83,7 @@ void Renderer::initializeResources(Scene &scene)
 
     // Setup for cascade shadow maps
     float nearPlane{scene.getCamera().getNearPlane()};
-    DirectionalLight &light{scene.getGlobalLight()};
+    const DirectionalLight &light{scene.getGlobalLight()};
     cascadeShadow_ = {light, sceneAABB, nearPlane};
 
     // Deferred shader loading so we can test the scene for animated models
@@ -99,7 +101,7 @@ void Renderer::initializeResources(Scene &scene)
     if (graphicsSettings_.shadowResolution)
         renderShadowMaps(scene, true);
 
-    // Assign the skybox to any ocean shaders
+    // Assign the skybox to any ocean shaders before any cubemaps are rendered, so they are captured.
     borrowSkybox(drawBuckets_, bucketHandles);
 
     // Dynamic cubemap generation. The scene must be ready to render, except water / ocean.
@@ -111,6 +113,12 @@ void Renderer::initializeResources(Scene &scene)
     // Get ready for first frame
     bindBufferRanges(0);
     updateCameraUBO(scene.getCamera());
+
+    // Unbind for Hi-Z at start of frame and prime texture so everything passes
+    frameBuffer_.unbind();
+    GLfloat one{1.0f};
+    for (std::size_t i{0}; i < hiZViews_.getMipViews().size(); ++i)
+        glClearTexImage(hiZTexture_, static_cast<GLint>(i), GL_RED, GL_FLOAT, &one);
 }
 
 void Renderer::takeGPUObjects(SceneProcessor::ProcessedScene &processed)
@@ -143,12 +151,18 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
 
     std::uint32_t baseVBOIndex{static_cast<std::uint32_t>(processed.bufferDescriptors.particleBaseVBOIndex)};
 
-    cullShader_.setInt("screenWidth", graphicsSettings_.screenWidth);
-    cullShader_.setInt("screenHeight", graphicsSettings_.screenHeight);
     particleShader_.setIntU("vboBaseIndex", baseVBOIndex);
+
+    glm::ivec2 hiZRes{graphicsSettings_.renderWidth / hiZResolutionReduction,
+                      graphicsSettings_.renderHeight / hiZResolutionReduction};
+    cullShader_.setIVec2("renderResolution", glm::ivec2{graphicsSettings_.renderWidth, graphicsSettings_.renderHeight});
+    cullShader_.setIVec2("hiZResolution", hiZRes);
+    cullShader_.setInt("hiZMaxMip", static_cast<int>(hiZViews_.getMipViews().size() - 1));
+    msaaDepthResolveShader_.setInt("resReduction", hiZResolutionReduction);
+    msaaDepthResolveShader_.setIVec2("mipRes", hiZRes);
 }
 
-void Renderer::setSceneShaderUniforms(Scene &scene)
+void Renderer::setSceneShaderUniforms(const Scene &scene)
 {
     const DirectionalLight &light{scene.getGlobalLight()};
 
@@ -192,7 +206,7 @@ void Renderer::borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
         textureManager_.borrowCubemaps(oceanHandle, skyboxHandle);
 }
 
-void Renderer::createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets)
+void Renderer::createCubemaps(const Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets)
 {
     using enum ShaderType;
 
@@ -260,7 +274,7 @@ void Renderer::createCubemaps(Scene &scene, const std::vector<MultiDrawBucket> &
     }
 
     cubeFaces.unbind();
-    glViewport(0, 0, graphicsSettings_.screenWidth, graphicsSettings_.screenHeight);
+    glViewport(0, 0, graphicsSettings_.renderWidth, graphicsSettings_.renderHeight);
 }
 
 void Renderer::renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarget &blitTarget,
@@ -274,8 +288,8 @@ void Renderer::renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarge
         camera.setWorldOrientation(orientation);
         updateCameraUBO(camera);
 
-        // Use buffer section 0 since its a main render pass
-        cullScene(camera.getViewProjectionMatrix(), 0);
+        // Use buffer section 0 since its a main render pass. Frustum only since Hi-Z is not prepped
+        cullScene(cullFrustumShader_, camera.getViewProjectionMatrix(), 0);
 
         GLuint zero{0};
         glNamedBufferSubData(SSBOs_.drawCounts, static_cast<GLsizeiptr>(parameterBufferIndex * sizeof(std::uint32_t)),
@@ -296,11 +310,8 @@ void Renderer::renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarge
     }
 }
 
-void Renderer::updateMetadataCubemaps(Scene &scene, const std::vector<std::uint32_t> &metadataBridge)
+void Renderer::updateMetadataCubemaps(const Scene &scene, const std::vector<std::uint32_t> &metadataBridge)
 {
-    // Verify data layout before sparse updates of the metadata struct
-    static_assert(std::is_standard_layout_v<SamplerArrayIndex>);
-
     std::size_t primitiveOffset{0};
 
     for (const Scene::Entry &entry : scene.getAllSceneEntries())

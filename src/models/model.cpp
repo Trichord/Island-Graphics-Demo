@@ -61,9 +61,11 @@ void Model::recalculateAnimatedAABBs()
 
     for (Animation &animation : animations)
     {
+        animator.setAnimation(animation);
+
         for (float dt{0.0f}; dt <= animation.end; dt += timeStep)
         {
-            animator.play(animation, skeletalAnimation_->skeleton, primitives_, dt);
+            animator.update(skeletalAnimation_->skeleton, primitives_, dt);
 
             const std::vector<glm::mat4> &jointMatrices{animator.getJointMatrices()};
 

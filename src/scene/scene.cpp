@@ -107,11 +107,6 @@ Scene::Scene(TextureManager &textureManager, const GraphicsSettings &graphicsSet
     setupScene(jsonFile, graphicsSettings);
 }
 
-void Scene::updateHandle(Handle handle)
-{
-    updatedModels_.insert(handle);
-}
-
 const std::vector<Scene::Entry> &Scene::getAllSceneEntries() const
 {
     return entries_;
@@ -130,9 +125,9 @@ std::size_t Scene::findHandle(Handle handle) const
     return iter->second;
 }
 
-std::size_t Scene::findName(const std::string &name) const
+std::size_t Scene::findName(std::string_view name) const
 {
-    auto iter = entriesByName_.find(name);
+    auto iter = entriesByName_.find(name.data());
 
     if (iter == entriesByName_.end() || iter->second >= entries_.size())
     {
@@ -143,27 +138,33 @@ std::size_t Scene::findName(const std::string &name) const
     return iter->second;
 }
 
-const Scene::Entry &Scene::getEntryByName(const std::string &name) const
+const Scene::Entry &Scene::getEntry(std::string_view name) const
 {
     return entries_[findName(name)];
 }
 
-const Scene::Entry &Scene::getEntryByHandle(Handle handle) const
+const Scene::Entry &Scene::getEntry(Handle handle) const
 {
     return entries_[findHandle(handle)];
 }
 
-Scene::Entry &Scene::getEntry(const std::string &name)
+Scene::Entry &Scene::editEntry(std::string_view name)
 {
+    std::size_t index{findName(name)};
+    updatedModels_.insert(entries_[index].handle);
+
     return entries_[findName(name)];
 }
 
-Scene::Entry &Scene::getEntry(const Handle handle)
+Scene::Entry &Scene::editEntry(Handle handle)
 {
+    std::size_t index{findHandle(handle)};
+    updatedModels_.insert(entries_[index].handle);
+
     return entries_[findHandle(handle)];
 }
 
-DirectionalLight &Scene::getGlobalLight()
+const DirectionalLight &Scene::getGlobalLight() const
 {
     return globalLightSource_;
 }
@@ -183,6 +184,11 @@ Camera &Scene::getCamera()
     return camera_;
 }
 
+const Camera &Scene::getCamera() const
+{
+    return camera_;
+}
+
 const glm::vec3 &Scene::getWindDirection() const
 {
     return windDirection_;
@@ -193,9 +199,54 @@ float Scene::getWindStrength() const
     return windStrength_;
 }
 
-std::unordered_set<Handle> &Scene::getUpdatedHandles()
+const std::unordered_set<Handle> &Scene::getUpdatedHandles() const
 {
     return updatedModels_;
+}
+
+Skeleton &Scene::getSkeleton(Scene::Entry &entry)
+{
+    if (!entry.entryAnimation.has_value())
+        throw std::runtime_error("No animations");
+
+    return entry.entryAnimation->skeletalAnimation.skeleton;
+}
+
+Animation &Scene::getAnimation(Scene::Entry &entry, std::string_view name)
+{
+    if (!entry.entryAnimation.has_value())
+        throw std::runtime_error("No animations");
+
+    std::unordered_map<std::string, std::size_t> &map{entry.entryAnimation->animationMap};
+
+    auto nameIter = map.find(name.data());
+
+    if (nameIter == map.end())
+        throw std::runtime_error("Animation not found");
+
+    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
+    return entryAnimation.skeletalAnimation.animations[nameIter->second];
+}
+
+Animation &Scene::getAnimation(Scene::Entry &entry, int index)
+{
+    if (!entry.entryAnimation.has_value())
+        throw std::runtime_error("No animations");
+
+    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
+    std::vector<Animation> &animations{entryAnimation.skeletalAnimation.animations};
+
+    if (index >= static_cast<int>(animations.size()))
+        throw std::runtime_error("Animation not found");
+
+    return animations[index];
+}
+
+void Scene::clearUpdates()
+{
+    updatedModels_.clear();
+    camera_.clearFlags();
+    globalLightSource_.clearFlags();
 }
 
 void Scene::loadGLTFTextures(Handle handle, const Model &model)
@@ -325,10 +376,10 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
     camera_.setFOV(scene.camera.FOV);
     camera_.setNearPlane(scene.camera.nearPlane);
     camera_.setFarPlane(scene.camera.farPlane);
-    camera_.setAspectRatio(graphicsSettings.screenWidth / static_cast<float>(graphicsSettings.screenHeight));
+    camera_.setAspectRatio(graphicsSettings.renderWidth / static_cast<float>(graphicsSettings.renderHeight));
 
     ambientLight_ = scene.environment.ambientLight;
-    globalLightSource_ = DirectionalLight{scene.environment.sunDirection, scene.environment.lightColor};
+    globalLightSource_ = DirectionalLight{scene.environment.lightColor, scene.environment.sunDirection};
 
     windStrength_ = scene.wind.strength;
     windDirection_ = scene.wind.direction;
@@ -370,42 +421,4 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
         validateSceneEntry(entries_.back());
         entriesByHandle_[handle] = entryIndex;
     }
-}
-
-void Scene::playAnimation(Scene::Entry &entry, const std::string &name, float deltaTime)
-{
-    if (!entry.entryAnimation.has_value())
-        return;
-
-    std::unordered_map<std::string, std::size_t> &map{entry.entryAnimation->animationMap};
-
-    auto nameIter = map.find(name);
-
-    if (nameIter == map.end())
-    {
-        std::cerr << "WARNING: Animation " << name << " not found" << std::endl;
-        return;
-    }
-
-    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
-    const Skeleton &skeleton{entryAnimation.skeletalAnimation.skeleton};
-
-    entryAnimation.animator.play(entryAnimation.skeletalAnimation.animations[nameIter->second], skeleton,
-                                 entry.primitives, deltaTime);
-}
-
-void Scene::playAnimation(Scene::Entry &entry, int index, float deltaTime)
-{
-    if (!entry.entryAnimation.has_value())
-        return;
-
-    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
-    std::vector<Animation> &animations{entryAnimation.skeletalAnimation.animations};
-
-    if (index >= static_cast<int>(animations.size()))
-        return;
-
-    const Skeleton &skeleton{entryAnimation.skeletalAnimation.skeleton};
-
-    entryAnimation.animator.play(animations[index], skeleton, entry.primitives, deltaTime);
 }

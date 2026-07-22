@@ -1,7 +1,7 @@
 #version 460 core
 
 #include "shared/binding_points.glsl"
-#include "shared/textures.glsl"
+#include "shared/samplers.glsl"
 #include "shared/types.glsl"
 #include "shared/ubo.glsl"
 

@@ -7,9 +7,7 @@
 class Camera
 {
   public:
-    Camera(glm::vec3 position = glm::vec3{0.0f}, float yaw = 90.0f, float pitch = 0.0f);
-
-    [[nodiscard]] bool hasUpdated();
+    Camera(glm::vec3 position = glm::vec3{0.0f}, float yaw = -90.0f, float pitch = 0.0f);
 
     float getFOV() const;
     float getYaw() const;
@@ -20,10 +18,10 @@ class Camera
 
     const glm::vec3 getFront() const;
     const glm::vec3 &getPosition() const;
-    const glm::mat4 &getViewMatrix();
-    const glm::mat4 &getProjectionMatrix();
-    const glm::mat4 &getViewProjectionMatrix();
-    glm::mat4 getResizedViewProjectionMatrix(float ratio);
+    const glm::mat4 &getViewMatrix() const;
+    const glm::mat4 &getProjectionMatrix() const;
+    const glm::mat4 &getViewProjectionMatrix() const;
+    glm::mat4 getResizedViewProjectionMatrix(float ratio) const;
 
     void setFOV(float fov);
     void setYaw(float yaw);
@@ -36,21 +34,23 @@ class Camera
 
     void processMouseMovement(float xOffset, float yOffset);
 
+    void clearFlags();
+    [[nodiscard]] bool hasUpdated() const;
+    
   private:
-    // Basic angles
-    float yaw_{0.0f};
+    float yaw_{-90.0f};
     float pitch_{0.0f};
+    glm::vec3 position_{0.0f};
 
     // Cached matrices
-    glm::vec3 position_{0.0f};
-    glm::mat4 viewMatrix_{1.0f};
-    glm::mat4 projectionMatrix_{1.0f};
-    glm::mat4 viewProjectionMatrix_{1.0f};
-    glm::mat4 inverseVPMatrix_{1.0f};
+    mutable glm::mat4 viewMatrix_{1.0f};
+    mutable glm::mat4 projectionMatrix_{1.0f};
+    mutable glm::mat4 viewProjectionMatrix_{1.0f};
+    mutable glm::mat4 inverseVPMatrix_{1.0f};
 
     // State tracking
-    bool hasChanged_{false};
-    bool dirtyMatrices_{true};
+    mutable bool hasChanged_{false};
+    mutable bool dirtyMatrices_{true};
 
     // Frustum
     float fov_{45.0f};
@@ -58,6 +58,6 @@ class Camera
     float farPlane_{1000.0f};
     float aspectRatio_{16.0f / 9.0f};
 
-    void updateMatrices();
+    void updateMatrices() const;
     glm::vec3 createFront() const;
 };

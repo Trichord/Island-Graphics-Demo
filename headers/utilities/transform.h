@@ -11,11 +11,11 @@ class Transform
 {
   public:
     Transform(glm::vec3 position, glm::vec3 scale, float degrees, glm::vec3 axis = glm::vec3{0.0f, 1.0f, 0.0f});
-    Transform(glm::vec3 position = glm::vec3{0.0f}, glm::vec3 scale = glm::vec3{1.0f}, glm::quat quat = {});
+    Transform(glm::vec3 position = glm::vec3{0.0f}, glm::vec3 scale = glm::vec3{1.0f},
+              glm::quat quat = glm::identity<glm::quat>());
 
     void setAbsoluteScale(float absoluteScale);
     void setAbsoluteTranslation(glm::vec3 absoluteTranslation);
-    void setAbsoluteRotation(glm::vec3 absoluteRotation);
     void setAbsoluteRotation(glm::quat quat);
 
     void setRelativeScale(float relativeScale);
@@ -25,15 +25,20 @@ class Transform
     void rotateAroundAxisLocal(float degrees, glm::vec3 axis);
     void rotateAroundAxisWorld(float degrees, glm::vec3 axis);
 
-    const glm::mat4 &getModelMatrix() const;
-    const glm::mat3 &getNormalMatrix() const;
-    glm::vec3 getRotation() const;
+    float getYaw() const;
+    float getPitch() const;
+    glm::vec3 getUp() const;
+    glm::vec3 getFront() const;
+    glm::vec3 getRight() const;
     const glm::vec3 &getScale() const;
     const glm::vec3 &getPosition() const;
+    const glm::quat &getRotation() const;
+    const glm::mat4 &getModelMatrix() const;
+    const glm::mat3 &getNormalMatrix() const;
 
   private:
     glm::vec3 translation_{0.0f};
-    glm::quat quaternion_{};
+    glm::quat quaternion_{glm::identity<glm::quat>()};
     glm::vec3 scale_{1.0f};
 
     mutable glm::mat4 modelMatrix_{1.0f};

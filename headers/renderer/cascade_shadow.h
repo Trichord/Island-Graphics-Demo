@@ -20,7 +20,7 @@ class CascadeShadow
 {
   public:
     CascadeShadow() = default;
-    CascadeShadow(DirectionalLight &light, AABB worldAABB, float nearPlane);
+    CascadeShadow(const DirectionalLight &light, AABB worldAABB, float nearPlane);
 
     const Cascades &getCascades() const;
 

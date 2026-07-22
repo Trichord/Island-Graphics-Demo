@@ -53,7 +53,7 @@ std::vector<glm::vec3> InstancedModel::loadPositions() const
     while (positionsFile >> px >> py >> pz >> nx >> ny >> nz)
     {
         instances.emplace_back(glm::vec3{px, py, pz});
-        instances.emplace_back(glm::vec3{nx, ny, nz});
+        instances.emplace_back(glm::normalize(glm::vec3{nx, ny, nz}));
     }
 
     return instances;

@@ -10,7 +10,7 @@
   },
   "camera": {
     "position": [134.6624, 0.5, -62.8179],
-    "yaw": -100.0,
+    "yaw": -180,
     "nearPlane": 0.1,
     "farPlane": 2000.0,
     "FOV": 45.0
@@ -35,6 +35,72 @@
       "name": "butterfly",
       "modelPath": "./res/models/animated/butterfly/butterfly.gltf",
       "positionsPath": "./res/positions/butterflies.txt",
+      "shader": "baseColor"
+    },
+    {
+      "type": "model",
+      "name": "seagull1",
+      "transform": {
+        "translation": [-256.874237, -9.704913, 72.669205],
+        "rotation": [-0.184779, -129.805565, 0.488397],
+	"scale": 0.22
+      },
+      "modelPath": "./res/models/animated/seagull/seagull.gltf",
+      "shader": "baseColor"
+    },
+    {
+      "type": "model",
+      "name": "seagull2",
+      "transform": {
+        "translation": [-262.982117, -9.850640, 72.508682],
+        "rotation": [0.285964, 9.000033, 1.538309],
+	"scale": 0.25
+      },
+      "modelPath": "./res/models/animated/seagull/seagull.gltf",
+      "shader": "baseColor"
+    },
+    {
+      "type": "model",
+      "name": "seagull3",
+      "transform": {
+        "translation": [-251.663193, -9.660975, 70.553123],
+        "rotation": [0.047384, 99.010296, 0.624766],
+	"scale": 0.26
+      },
+      "modelPath": "./res/models/animated/seagull/seagull.gltf",
+      "shader": "baseColor"
+    },
+    {
+      "type": "model",
+      "name": "seagull4",
+      "transform": {
+        "translation": [-261.249817, -9.863427, 56.218235],
+        "rotation": [-1.297287, 80.361448, 0.493048],
+	"scale": 0.27
+      },
+      "modelPath": "./res/models/animated/seagull/seagull.gltf",
+      "shader": "baseColor"
+    },
+    {
+      "type": "model",
+      "name": "seagull5",
+      "transform": {
+        "translation": [-256.478699, -9.703675, 64.734009],
+        "rotation": [0.467883, -94.872212, 0.452886],
+	"scale": 0.25
+      },
+      "modelPath": "./res/models/animated/seagull/seagull.gltf",
+      "shader": "baseColor"
+    },
+    {
+      "type": "model",
+      "name": "seagull6",
+      "transform": {
+        "translation": [-254.614548, -9.693320, 65.784607],
+        "rotation": [0.302638, -116.389584, 0.529772],
+	"scale": 0.24
+      },
+      "modelPath": "./res/models/animated/seagull/seagull.gltf",
       "shader": "baseColor"
     },
     {

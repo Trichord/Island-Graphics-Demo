@@ -5,75 +5,179 @@
 #include <vector>
 
 #include "application/graphics_settings.h"
+#include "models/animation/animation.h"
+#include "scene/island_scene/seagull.h"
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
+#include "utilities/world_vectors.h"
+
+namespace
+{
+namespace Butterfly
+{
+// Update butterfly positions and animations
+constexpr float speed{5.0f};
+constexpr float heightMultiplier{0.04f};
+constexpr float bobSpeed{79.6227f};
+constexpr float radius{8.0f};
+constexpr float largeHeightWave{0.65f};
+} // namespace Butterfly
+
+namespace SeagullConstants
+{
+// How close the player can get before they fly away
+constexpr float panicDist{23.0f};
+constexpr float blendTime{0.3f};
+constexpr float restTime{blendTime * 2.0f};
+constexpr float orbitTime{20.0f};
+constexpr float orbitHeight{17.0f};
+constexpr float orbitRadius{10.0f};
+} // namespace SeagullConstants
+
+namespace SpaceModel
+{
+constexpr float degreesPerSecond{2.0f};
+constexpr glm::vec3 oddAxisAngle{0.2926f, 0.8048f, 0.5164f};
+constexpr glm::vec3 oddAxisAngle2{-0.3197f, 0.7975f, 0.5117f};
+} // namespace SpaceModel
+
+float randomRange(float low, float high)
+{
+    static std::minstd_rand gen{std::random_device{}()};
+    return std::uniform_real_distribution<float>(low, high)(gen);
+}
+
+} // namespace
 
 IslandScene::IslandScene(TextureManager &textureManager, const GraphicsSettings &graphicsSettings,
                          const std::filesystem::path &jsonFile)
     : Scene(textureManager, graphicsSettings, jsonFile)
 {
-    Entry &butterfly{getEntry("butterfly")};
+    // Cache original positions so that animated models can return or calculate updated positions
+    Entry &butterfly{editEntry("butterfly")};
     butterflyOriginalPos_.reserve(butterfly.worldTransforms.size());
 
-    for (Transform &transform : butterfly.worldTransforms)
+    for (const Transform &transform : butterfly.worldTransforms)
         butterflyOriginalPos_.emplace_back(transform.getPosition());
+
+    // Set starting animations for first frame
+    Animation &fly{getAnimation(butterfly, "fly")};
+    butterfly.entryAnimation->animator.setAnimation(fly);
+
+    // Seed the gulls with some randomness for some variety in their interactions
+    for (std::size_t i{0}; i < seagullNames_.size(); ++i)
+    {
+        Scene::Entry &seagull{editEntry(seagullNames_[i].data())};
+
+        seagulls_[i] = Seagull{seagull.worldTransforms.front(),
+                               Seagull::State::resting,
+                               SeagullConstants::panicDist + randomRange(-0.125f, 0.125f),
+                               SeagullConstants::orbitHeight + randomRange(-5.0f, 5.0f),
+                               SeagullConstants::orbitTime + randomRange(-5.0f, 5.0f),
+                               SeagullConstants::orbitRadius + randomRange(-2.0f, 2.0f),
+                               SeagullConstants::restTime + randomRange(-0.2f, 0.2f)};
+
+        seagull.entryAnimation->animator.setAnimation(randomSeagullIdle(seagull));
+
+        // Simulate just a bit of a starting animation to desync
+        seagull.entryAnimation->animator.update(getSkeleton(seagull), seagull.primitives, randomRange(0.1f, 0.3f));
+    }
 }
 
 void IslandScene::onUpdate(float time, float deltaTime)
 {
-    constexpr float degreesPerSecond{2.0f};
-    constexpr glm::vec3 oddAxisAngle{0.2926f, 0.8048f, 0.5164f};
-    constexpr glm::vec3 oddAxisAngle2{-0.3197f, 0.7975f, 0.5117f};
+    updateSpaceModel(editEntry("spaceModel"), deltaTime);
+    updateButterfly(editEntry("butterfly"), time, deltaTime);
 
-    // Rotate the fancy space model
-    Entry &spaceModel{getEntry("spaceModel")};
+    for (std::size_t i{0}; i < seagullNames_.size(); ++i)
+        updateSeagull(seagulls_[i], editEntry(seagullNames_[i]), deltaTime);
+}
 
-    for (std::size_t i{0}; i < spaceModel.worldTransforms.size(); ++i)
+Animation &IslandScene::randomSeagullIdle(Scene::Entry &entry)
+{
+    float random{randomRange(0.0f, 100.0f)};
+
+    if (random <= 33.0f)
+        return getAnimation(entry, "eat");
+    else if (random <= 66.0f)
+        return getAnimation(entry, "look");
+    else
+        return getAnimation(entry, "clearing");
+}
+
+void IslandScene::updateSpaceModel(Scene::Entry &entry, float deltaTime)
+{
+    for (std::size_t i{0}; i < entry.worldTransforms.size(); ++i)
     {
-        spaceModel.worldTransforms[i].rotateAroundAxisLocal(degreesPerSecond * deltaTime, oddAxisAngle);
-        spaceModel.worldTransforms[i].rotateAroundAxisLocal(degreesPerSecond * deltaTime, oddAxisAngle2);
+        entry.worldTransforms[i].rotateAroundAxisLocal(SpaceModel::degreesPerSecond * deltaTime,
+                                                       SpaceModel::oddAxisAngle);
+        entry.worldTransforms[i].rotateAroundAxisLocal(SpaceModel::degreesPerSecond * deltaTime,
+                                                       SpaceModel::oddAxisAngle2);
     }
+}
 
-    // Update butterfly positions and animations
-    constexpr float butterflySpeed{5.0f};
-    constexpr float heightMultiplier{0.04f};
-    constexpr float bobSpeed{79.6227f};
-    constexpr float radius{8.0f};
-    constexpr float largeHeightWave{0.65f};
-
-    Entry &butterfly{getEntry("butterfly")};
-
-    // Negative to orient the model properly
-    float baseAngle{-glm::radians(time * butterflySpeed)};
+void IslandScene::updateButterfly(Scene::Entry &butterfly, float time, float deltaTime)
+{
+    float baseAngle{glm::radians(time * Butterfly::speed)};
 
     for (std::size_t i{0}; i < butterfly.worldTransforms.size(); ++i)
     {
         const glm::vec3 originalPos{butterflyOriginalPos_[i]};
-        const bool reversePattern{static_cast<int>(originalPos.x) % 2 == 0};
+        const bool reversePattern{static_cast<int>(originalPos.x) % 2 == 1};
         const float angle{reversePattern ? -baseAngle : baseAngle};
 
         const float sinTheta{glm::sin(angle)};
         const float cosTheta{glm::cos(angle)};
 
         // Figure 8 (Lemniscate of Gerono)
-        const glm::vec3 newPos{radius * sinTheta, glm::sin(angle * bobSpeed) * heightMultiplier,
-                               radius * (sinTheta * cosTheta)};
-        const glm::vec3 heightModifier{0.0f, cosTheta * largeHeightWave, 0.0f};
+        const glm::vec3 newPos{Butterfly::radius * sinTheta,
+                               glm::sin(angle * Butterfly::bobSpeed) * Butterfly::heightMultiplier,
+                               Butterfly::radius * (sinTheta * cosTheta)};
+        const glm::vec3 heightModifier{0.0f, cosTheta * Butterfly::largeHeightWave, 0.0f};
 
         Transform &transform{butterfly.worldTransforms[i]};
         transform.setAbsoluteTranslation(originalPos + newPos + heightModifier);
 
         // Rotate to match new position
-        const float modelFlip{reversePattern ? 0.0f : 180.0f};
-
-        float yaw{glm::degrees(glm::atan(cosTheta, glm::cos(2.0f * angle)))};
-        transform.setAbsoluteRotation(glm::vec3{0.0f, yaw + modelFlip, 0.0f});
+        const float modelFlip{glm::radians(reversePattern ? 0.0f : 180.0f)};
+        float yaw{glm::atan(cosTheta, glm::cos(2.0f * angle))};
+        transform.setAbsoluteRotation(glm::angleAxis(yaw + modelFlip, WorldVectors::worldUp));
     }
 
-    playAnimation(butterfly, "fly", deltaTime * 0.75f);
+    butterfly.entryAnimation->animator.update(getSkeleton(butterfly), butterfly.primitives, deltaTime);
+}
 
-    // Flag updated models
-    updateHandle(spaceModel.handle);
-    updateHandle(butterfly.handle);
+void IslandScene::updateSeagull(Seagull &seagull, Scene::Entry &entry, float deltaTime)
+{
+    seagull.update(camera_.getPosition(), deltaTime);
+
+    if (seagull.stateChanged())
+    {
+        switch (seagull.getState())
+        {
+            using enum Seagull::State;
+
+        case resting:
+            entry.entryAnimation->animator.setTransition(randomSeagullIdle(entry), SeagullConstants::blendTime);
+            break;
+
+        case panicking:
+            entry.entryAnimation->animator.setTransition(getAnimation(entry, "fly"), SeagullConstants::blendTime);
+            break;
+
+        case returning:
+            entry.entryAnimation->animator.setTransition(getAnimation(entry, "glide"), SeagullConstants::blendTime);
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    Transform &seagullTransform{entry.worldTransforms.front()};
+    seagullTransform.setAbsoluteRotation(seagull.getRotation());
+    seagullTransform.setAbsoluteTranslation(seagull.getPosition());
+
+    entry.entryAnimation->animator.update(getSkeleton(entry), entry.primitives, deltaTime);
 }

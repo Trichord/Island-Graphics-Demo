@@ -4,6 +4,25 @@
 #include <cstdint>
 #include <glad/glad.h>
 
+// Texture unit bindings
+namespace TextureUnit
+{
+static constexpr int array2DBase{0};
+static constexpr int arrayCubemapBase{12};
+static constexpr int shadow{15};
+static constexpr int resolvedColor{16};
+static constexpr int depthMap{17};
+static constexpr int hiZ{18};
+static constexpr int max{32};
+} // namespace TextureUnit
+
+namespace ImageUnit
+{
+static constexpr int hiZRead{0};
+static constexpr int hiZWrite{1};
+static constexpr int max{8};
+}
+
 namespace DynamicCubemaps
 {
 constexpr GLenum internalFormat{GL_SRGB8_ALPHA8};
@@ -56,14 +75,3 @@ struct Material
         return layers[t];
     }
 };
-
-// Texture unit bindings
-namespace TextureUnit
-{
-static constexpr int array2DBase{0};
-static constexpr int arrayCubemapBase{12};
-static constexpr int shadow{15};
-static constexpr int frameBuffer{16};
-static constexpr int depthMap{17};
-static constexpr int max{32};
-} // namespace TextureUnit

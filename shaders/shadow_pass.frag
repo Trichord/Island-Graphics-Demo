@@ -2,7 +2,7 @@
 
 #ifdef ALPHA_TESTED_SHADOWS
 #include "shared/binding_points.glsl"
-#include "shared/textures.glsl"
+#include "shared/samplers.glsl"
 #include "shared/types.glsl"
 
 // SSBOs

@@ -1,6 +1,6 @@
 #version 460 core
 
-#include "shared/textures.glsl"
+#include "shared/samplers.glsl"
 
 // In
 uniform float gamma;
@@ -24,7 +24,7 @@ vec3 ACESFilm(vec3 x)
 
 void main()
 {
-	vec3 color = texture(frameBuffer, texCoords).rgb;
+	vec3 color = texture(resolvedColor, texCoords).rgb;
 
 	color = ACESFilm(color);
 

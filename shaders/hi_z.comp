@@ -1,0 +1,38 @@
+#version 460 core
+
+#include "shared/images.glsl"
+#include "shared/samplers.glsl"
+
+// Attributes
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+// In
+uniform ivec4 mipSizes;
+
+void main()
+{	
+	ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 currentMipSize = mipSizes.zw;
+
+	if(any(greaterThanEqual(texel, currentMipSize)))
+		return;
+
+	ivec2 lastMipSize = mipSizes.xy;
+
+	// Credit: Mike Turitzin, https://miketuritzin.com/post/hierarchical-depth-buffers/
+	// Last mip was odd, previous 2x2 block doesn't map cleanly to a single texel
+	int xSamples = (lastMipSize.x & 1) == 0 ? 2 : 3; 
+	int ySamples = (lastMipSize.y & 1) == 0 ? 2 : 3; 
+
+	float maxDepth = 0.0;
+
+	for (int x = 0; x < xSamples; ++x)
+		for (int y = 0; y < ySamples; ++y)
+		{
+			ivec2 sampleCoords = 2 * texel + ivec2(x, y);
+			sampleCoords = clamp(sampleCoords, ivec2(0, 0), lastMipSize - ivec2(1, 1));
+			maxDepth = max(maxDepth, imageLoad(hiZRead, sampleCoords).r);
+		}
+
+	imageStore(hiZWrite, texel, vec4(maxDepth));
+}

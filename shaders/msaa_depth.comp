@@ -1,0 +1,33 @@
+#version 460 core
+
+#include "shared/images.glsl"
+#include "shared/samplers.glsl"
+
+// Attributes
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+uniform int resReduction;
+uniform ivec2 mipRes;
+
+void main()
+{
+	ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
+
+	if (texel.x >= mipRes.x || texel.y >= mipRes.y)
+		return;
+	
+	// Scale the reduced Hi-Z area back to the original FBO res
+	ivec2 sampleArea = texel * resReduction;
+	float maxDepth = 0.0;
+
+	for (int x = 0; x < resReduction; ++x)
+		for (int y = 0; y < resReduction; ++y)
+		{
+			ivec2 sampleLocation = sampleArea + ivec2(x,y);
+
+			for (int i = 0; i < MSAA_SAMPLES; ++i)
+				maxDepth = max(maxDepth, texelFetch(depthMap, sampleLocation, i).r);
+		}
+
+	imageStore(hiZWrite, texel, vec4(maxDepth, 0.0, 0.0, 0.0));
+}

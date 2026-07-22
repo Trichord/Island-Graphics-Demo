@@ -56,34 +56,36 @@ class Scene
     // Environment
     float getWindStrength() const;
     const glm::vec3 &getAmbientLight() const;
-    DirectionalLight &getGlobalLight();
+    const DirectionalLight &getGlobalLight() const;
     const glm::vec3 &getWindDirection() const;
 
     // Accessors
     Camera &getCamera();
+    const Camera &getCamera() const;
     const std::vector<Entry> &getAllSceneEntries() const;
-    const Entry &getEntryByName(const std::string &key) const;
-    const Entry &getEntryByHandle(Handle handle) const;
+    const Entry &getEntry(std::string_view name) const;
+    const Entry &getEntry(Handle handle) const;
 
     // Per-frame Update
-    std::unordered_set<Handle> &getUpdatedHandles();
-
-    // Mutators
-    void setAmbientLight(const glm::vec3 &ambient);
+    const std::unordered_set<Handle> &getUpdatedHandles() const;
+    void clearUpdates();
 
   protected:
+    Camera camera_;
+
     virtual void onUpdate(float time, float deltaTime) = 0;
 
-    Entry &getEntry(const std::string &name);
-    Entry &getEntry(const Handle handle);
+    [[nodiscard]] Entry &editEntry(Handle handle);
+    [[nodiscard]] Entry &editEntry(std::string_view name);
 
-    void playAllAnimations(Entry &entry, float deltaTime);
-    void playAnimation(Entry &entry, const std::string &name, float deltaTime);
-    void playAnimation(Scene::Entry &entry, int index, float deltaTime);
-    void updateHandle(Handle handle);
+    // Convenience methods
+    Skeleton &getSkeleton(Scene::Entry &entry);
+    Animation &getAnimation(Scene::Entry &entry, int index);
+    Animation &getAnimation(Scene::Entry &entry, std::string_view name);
+
+    void setAmbientLight(const glm::vec3 &ambient);
 
   private:
-    Camera camera_;
     TextureManager &textureManager_;
     Handle nextHandle_{1};
 
@@ -117,5 +119,5 @@ class Scene
                             const Transform &transform, ShaderType shaderType, const std::string &name = {});
 
     std::size_t findHandle(Handle handle) const;
-    std::size_t findName(const std::string &name) const;
+    std::size_t findName(std::string_view name) const;
 };

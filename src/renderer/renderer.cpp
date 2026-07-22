@@ -1,5 +1,6 @@
 #include "renderer/renderer.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -11,27 +12,41 @@
 
 #include "application/gl_context.h"
 #include "application/graphics_settings.h"
+#include "models/primitive.h"
 #include "renderer/cascade_shadow.h"
 #include "renderer/render_target.h"
 #include "renderer/renderer_types.h"
 #include "renderer/shader/compute_shader.h"
 #include "renderer/shader/graphics_shader.h"
+#include "renderer/shader/shader_base.h"
+#include "renderer/textures.h"
 #include "scene/camera.h"
 #include "scene/directional_light.h"
 #include "scene/handle.h"
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
-#include "utilities/thread_pool.h"
+#include "utilities/texture_utilities.h"
 #include "utilities/transform.h"
 
 namespace
 {
 // Hardware shadow bias
-constexpr GLfloat polygonFactor{1.0f};
+constexpr GLfloat polygonFactor{2.0f};
 constexpr GLfloat polygonUnits{1.0f};
+constexpr GLfloat polygonClamp{0.01f};
 
 // Reduce the distance of the camera's far plane by 80% for shadow cascades.
 constexpr float farPlaneReduction{0.2f};
+
+// Hierarchical Z-Buffer Occlusion Culling
+constexpr Sampler hiZSampler{
+    .magFilter = GL_NEAREST,
+    .minFilter = GL_NEAREST_MIPMAP_NEAREST,
+    .wrapS = GL_CLAMP_TO_EDGE,
+    .wrapT = GL_CLAMP_TO_EDGE,
+};
+
+constexpr GLenum hiZInternalFormat{GL_R32F};
 
 std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
 {
@@ -63,16 +78,19 @@ std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
 }
 } // namespace
 
-Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &settings)
-    : graphicsSettings_{settings}, textureManager_{textureManager},
-      frameBuffer_{settings.screenWidth,
-                   settings.screenHeight,
-                   {.msaa = settings.msaa,
-                    .depthType = RenderTarget::DepthType::RBO,
-                    .internalFormat = GL_RGBA16F,
-                    .depthFormat = GL_DEPTH_COMPONENT24,
-                    .mipmaps = true}},
-      msaaResolve_{settings.screenWidth, settings.screenHeight, {.internalFormat = GL_RGBA16F}},
+Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &settings, int windowWidth, int windowHeight)
+    : graphicsSettings_{settings}, textureManager_{textureManager}, externalWidth_{windowWidth},
+      externalHeight_{windowHeight},
+      frameBuffer_{
+          settings.renderWidth,
+          settings.renderHeight,
+          {.msaa = settings.msaa,
+           .depthType = RenderTarget::DepthType::texture,
+           .internalFormat = GL_RGBA16F,
+           .depthFormat = GL_DEPTH_COMPONENT24,
+           .mipmaps = true},
+      },
+      msaaResolveTarget_{settings.renderWidth, settings.renderHeight, {.internalFormat = GL_RGBA16F}},
       shadowPassTarget_{settings.shadowResolution ? RenderTarget{settings.shadowResolution,
                                                                  settings.shadowResolution,
                                                                  {
@@ -82,16 +100,30 @@ Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &setti
                                                                      .textureArrayDepth = shadowCascadeCount,
                                                                      .shadowMap = true,
                                                                  }}
-                                                  : RenderTarget{}}
+                                                  : RenderTarget{}},
+      hiZTexture_{TextureUtilities::createTextureID(settings.renderWidth / hiZResolutionReduction,
+                                                    settings.renderHeight / hiZResolutionReduction, hiZInternalFormat,
+                                                    hiZSampler, true, false)},
+      hiZViews_{hiZTexture_, hiZSampler, hiZInternalFormat,
+                TextureUtilities::calculateMipmapLevels(settings.renderWidth / hiZResolutionReduction,
+                                                        settings.renderHeight / hiZResolutionReduction, false)}
 {
-    glBindTextureUnit(static_cast<GLuint>(TextureUnit::frameBuffer), msaaResolve_.getColorTextureID());
+    glBindTextureUnit(static_cast<GLuint>(TextureUnit::depthMap), frameBuffer_.getDepthMapTextureID());
+    glBindTextureUnit(static_cast<GLuint>(TextureUnit::resolvedColor), msaaResolveTarget_.getColorTextureID());
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getDepthMapTextureID());
-    glPolygonOffset(polygonFactor, polygonUnits);
+    glBindTextureUnit(static_cast<GLuint>(TextureUnit::hiZ), hiZTexture_);
+    glPolygonOffsetClamp(polygonFactor, polygonUnits, polygonClamp);
 
     frameBuffer_.bind();
 }
 
-void Renderer::renderScene(Scene &scene, float deltaTime)
+Renderer::~Renderer()
+{
+    if (hiZTexture_)
+        glDeleteTextures(1, &hiZTexture_);
+}
+
+void Renderer::renderScene(const Scene &scene, float deltaTime)
 {
     frameBuffer_.clear();
 
@@ -102,21 +134,26 @@ void Renderer::renderScene(Scene &scene, float deltaTime)
     const bool lightChanged{scene.getGlobalLight().directionHasUpdated()};
     updateShaderUniforms(scene, lightChanged);
 
-    // Give driver as much time as possible to process the scene transforms (needed in skinned vertices compute shader)
     updateParticles();
     updateSkinnedVertices();
 
     if (graphicsSettings_.shadowResolution && (framesRendered_ % 2u || lightChanged))
         renderShadowMaps(scene, lightChanged);
 
-    Camera &camera{scene.getCamera()};
+    const Camera &camera{scene.getCamera()};
 
     if (camera.hasUpdated())
         updateCameraUBO(camera);
 
-    cullScene(scene.getCamera().getViewProjectionMatrix(), 0);
+    const glm::mat4 &cameraVP{camera.getViewProjectionMatrix()};
+    cullScene(cullShader_, cameraVP, 0);
     renderScene();
     blitFrame();
+
+    // One frame lag on occlusion culling
+    cullShader_.setMat4("lastFrameVP", cameraVP);
+    updateHiZ();
+    frameBuffer_.bind();
 
     ++framesRendered_;
 }
@@ -125,9 +162,11 @@ void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    const std::vector<std::string> defines{graphicsSettings_.shadowResolution ? "ALPHA_TESTED_SHADOWS" : "",
-                                           !boneTransformsBaseIndexMap_.empty() ? "SKINNED" : "",
-                                           graphicsSettings_.gamma != 1.0f ? "GAMMA_CORRECT" : ""};
+    const std::vector<std::string> defines{
+        graphicsSettings_.shadowResolution ? "ALPHA_TESTED_SHADOWS" : "",
+        graphicsSettings_.gamma != 1.0f ? "GAMMA_CORRECT" : "",
+        "MSAA_SAMPLES " + std::to_string(graphicsSettings_.msaa),
+    };
 
     shaders_[shaderIndex(baseColor)] = {baseColor, "./shaders/base_color.vert", "./shaders/base_color.frag", defines};
     shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR.vert",
@@ -152,21 +191,24 @@ void Renderer::loadShaders()
                                          defines};
 
     // Compute
-    cullShader_ = {"./shaders/frustum_cull.comp"};
+    cullShader_ = {"./shaders/cull.comp"};
+    cullFrustumShader_ = {"./shaders/cull_frustum.comp"};
     compactionShader_ = {"./shaders/compact_draws.comp"};
     particleShader_ = {"./shaders/particles.comp"};
     skinningShader_ = {"./shaders/vertex_skinning.comp"};
+    msaaDepthResolveShader_ = {"./shaders/msaa_depth.comp", defines};
+    hiZShader_ = {"./shaders/hi_z.comp"};
 }
 
 void Renderer::setupShader(GraphicsShader &shader)
 {
     // Setup Window settings
     shader.setFloat("gamma", graphicsSettings_.gamma);
-    shader.setInt("screenHeight", graphicsSettings_.screenHeight);
-    shader.setInt("screenWidth", graphicsSettings_.screenWidth);
+    shader.setInt("screenHeight", graphicsSettings_.renderHeight);
+    shader.setInt("screenWidth", graphicsSettings_.renderWidth);
 }
 
-void Renderer::updateCameraUBO(Camera &camera)
+void Renderer::updateCameraUBO(const Camera &camera)
 {
     PackedCameraUniforms uniforms;
 
@@ -225,9 +267,9 @@ void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChange
     glNamedBufferSubData(UBOs_.cascadeShadows, offset, bytes, data);
 }
 
-void Renderer::updateShaderUniforms(Scene &scene, bool lightChanged)
+void Renderer::updateShaderUniforms(const Scene &scene, bool lightChanged)
 {
-    DirectionalLight &globalLight{scene.getGlobalLight()};
+    const DirectionalLight &globalLight{scene.getGlobalLight()};
 
     for (auto &shader : shaders_)
     {
@@ -236,14 +278,14 @@ void Renderer::updateShaderUniforms(Scene &scene, bool lightChanged)
     }
 }
 
-void Renderer::updateSceneTransforms(Scene &scene)
+void Renderer::updateSceneTransforms(const Scene &scene)
 {
-    std::unordered_set<Handle> &updatedTransformHandles{scene.getUpdatedHandles()};
+    const std::unordered_set<Handle> &updatedTransformHandles{scene.getUpdatedHandles()};
 
     for (Handle handle : updatedTransformHandles)
     {
         const std::vector<std::uint32_t> &bufferIndices{matricesBaseIndices_[handle]};
-        const Scene::Entry &sceneEntry{scene.getEntryByHandle(handle)};
+        const Scene::Entry &sceneEntry{scene.getEntry(handle)};
         const std::vector<Transform> &worldTransforms{sceneEntry.worldTransforms};
         auto boneIter = boneTransformsBaseIndexMap_.find(handle);
 
@@ -256,16 +298,7 @@ void Renderer::updateSceneTransforms(Scene &scene)
             const Primitive &primitive{sceneEntry.primitives[i]};
 
             for (const Transform &transform : worldTransforms)
-            {
-                const glm::mat4 &modelMatrix{transform.getModelMatrix()};
-
-                // Don't double apply model space transforms if skinned
-                const glm::mat4 worldTransform{boneIter == boneTransformsBaseIndexMap_.end()
-                                                   ? modelMatrix * primitive.modelSpaceTransform
-                                                   : modelMatrix};
-
-                updatedMatrices_.emplace_back(worldTransform);
-            }
+                updatedMatrices_.emplace_back(transform.getModelMatrix() * primitive.modelSpaceTransform);
 
             glNamedBufferSubData(SSBOs_.matrices, static_cast<GLintptr>(bufferIndices[i] * sizeof(glm::mat4)),
                                  static_cast<GLsizeiptr>(worldTransforms.size() * sizeof(glm::mat4)),
@@ -281,14 +314,12 @@ void Renderer::updateSceneTransforms(Scene &scene)
         glNamedBufferSubData(SSBOs_.boneTransforms, static_cast<GLintptr>(boneTransformsOffset * sizeof(glm::mat4)),
                              static_cast<GLsizeiptr>(jointMatrices.size() * sizeof(glm::mat4)), jointMatrices.data());
     }
-
-    updatedTransformHandles.clear();
 }
 
-void Renderer::updateCascades(Scene &scene, bool lightChanged)
+void Renderer::updateCascades(const Scene &scene, bool lightChanged)
 {
-    Camera &camera{scene.getCamera()};
-    DirectionalLight &light{scene.getGlobalLight()};
+    const Camera &camera{scene.getCamera()};
+    const DirectionalLight &light{scene.getGlobalLight()};
 
     // Move the far plane closer for tighter cascades
     const glm::mat4 cameraVP{camera.getResizedViewProjectionMatrix(farPlaneReduction)};
@@ -309,9 +340,9 @@ std::uint32_t Renderer::getFrameCount() const
 
 // Culls a scene agains the cull matrix, building a new compacted list of draw commands and updating the parameter
 // buffer. Changes active shader program.
-void Renderer::cullScene(const glm::mat4 &cullMatrix, int bufferSection)
+void Renderer::cullScene(ComputeShader &cullShader, const glm::mat4 &cullMatrix, int bufferSection)
 {
-    constexpr int shaderLocalSize{64};
+    constexpr std::uint32_t shaderLocalSize{64u};
 
     glClearNamedBufferSubData(SSBOs_.drawCounts, GL_R32UI, static_cast<GLintptr>(bufferSection * drawCountsSize_),
                               static_cast<GLsizeiptr>(drawCountsSize_), GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
@@ -320,52 +351,117 @@ void Renderer::cullScene(const glm::mat4 &cullMatrix, int bufferSection)
 
     updateFrustumPlanesUBO(cullMatrix);
 
-    glState_.bindProgram(cullShader_);
-    cullShader_.dispatch((cullWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
+    glState_.bindProgram(cullShader);
+    cullShader.dispatch((cullWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     glState_.bindProgram(compactionShader_);
     compactionShader_.dispatch((compactionWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
 }
 
 void Renderer::updateParticles()
 {
-    constexpr int shaderLocalSize{64};
+    constexpr std::uint32_t localSizeX{64u};
 
     if (!particleWorkGroupSize_)
         return;
 
     glState_.bindProgram(particleShader_);
-    particleShader_.dispatch((particleWorkGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
+    particleShader_.dispatch((particleWorkGroupSize_ + (localSizeX - 1)) / localSizeX, 1, 1);
 
     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 }
 
 void Renderer::updateSkinnedVertices()
 {
-    constexpr int shaderLocalSize{64};
+    constexpr std::uint32_t localSizeX{64u};
 
     if (!skinnedVertexGroupSize_)
         return;
 
     glState_.bindProgram(skinningShader_);
-    skinningShader_.dispatch((skinnedVertexGroupSize_ + (shaderLocalSize - 1)) / shaderLocalSize, 1, 1);
+    skinningShader_.dispatch((skinnedVertexGroupSize_ + (localSizeX - 1)) / localSizeX, 1, 1);
 
     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 }
 
+void Renderer::updateHiZ()
+{
+    constexpr std::uint32_t localSizeX{8u};
+    constexpr std::uint32_t localSizeY{8u};
+    constexpr std::uint32_t one{1u};
+
+    const std::vector<GLuint> &mipViews{hiZViews_.getMipViews()};
+
+    if (mipViews.empty())
+        return;
+
+    // Resolve msaa depth to the first mip level to simplify the Hi-Z pyramid building
+    glState_.bindProgram(msaaDepthResolveShader_);
+
+    glBindImageTexture(static_cast<GLuint>(ImageUnit::hiZWrite), mipViews[0], 0, GL_FALSE, 0, GL_WRITE_ONLY,
+                       hiZInternalFormat);
+
+    std::uint32_t textureWidth{static_cast<std::uint32_t>(graphicsSettings_.renderWidth / hiZResolutionReduction)};
+    std::uint32_t textureHeight{static_cast<std::uint32_t>(graphicsSettings_.renderHeight / hiZResolutionReduction)};
+
+    msaaDepthResolveShader_.dispatch((textureWidth + (localSizeX - 1)) / localSizeX,
+                                     (textureHeight + (localSizeY - 1)) / localSizeY, 1);
+
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+    glState_.bindProgram(hiZShader_);
+
+    for (std::size_t i{1}; i < mipViews.size(); ++i)
+    {
+        std::uint32_t srcMipX{std::max(one, textureWidth >> (i - 1))};
+        std::uint32_t srcMipY{std::max(one, textureHeight >> (i - 1))};
+        std::uint32_t dstMipX{std::max(one, textureWidth >> i)};
+        std::uint32_t dstMipY{std::max(one, textureHeight >> i)};
+
+        glBindImageTexture(static_cast<GLuint>(ImageUnit::hiZRead), mipViews[i - 1], 0, GL_FALSE, 0, GL_READ_ONLY,
+                           hiZInternalFormat);
+        glBindImageTexture(static_cast<GLuint>(ImageUnit::hiZWrite), mipViews[i], 0, GL_FALSE, 0, GL_WRITE_ONLY,
+                           hiZInternalFormat);
+
+        hiZShader_.setIVec4("mipSizes", glm::ivec4{srcMipX, srcMipY, dstMipX, dstMipY});
+        hiZShader_.dispatch((dstMipX + (localSizeX - 1)) / localSizeX, (dstMipY + (localSizeY - 1)) / localSizeY, 1);
+
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    }
+
+    glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+}
+
+// Blits frame from offscreen FBO and leaves the default framebuffer bound for Hi-Z at the start of next frame
 void Renderer::blitFrame()
 {
-    frameBuffer_.blitTo(msaaResolve_);
+    frameBuffer_.blitTo(msaaResolveTarget_);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST);
 
-    shaders_[shaderIndex(ShaderType::fboResolve)].use();
+    Shader &fboResolve{shaders_[shaderIndex(ShaderType::fboResolve)]};
+    glState_.bindProgram(fboResolve);
+
+    const int internalWidth{frameBuffer_.getWidth()};
+    const int internalHeight{frameBuffer_.getHeight()};
+    const bool changeViewport{internalWidth != externalWidth_ || internalHeight != externalHeight_};
+
+    if (changeViewport)
+        glViewport(0, 0, static_cast<GLsizei>(externalWidth_), static_cast<GLsizei>(externalHeight_));
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
+    if (changeViewport)
+        glViewport(0, 0, static_cast<GLsizei>(internalWidth), static_cast<GLsizei>(internalHeight));
+
     glEnable(GL_DEPTH_TEST);
-    frameBuffer_.bind();
+}
+
+void Renderer::updateExternalResolution(int width, int height)
+{
+    externalWidth_ = width;
+    externalHeight_ = height;
 }
