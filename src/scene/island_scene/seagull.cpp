@@ -51,10 +51,10 @@ bool Seagull::canReturnHome() const
 {
     const glm::vec3 home{homePos_ - transform_.getPosition()};
     const glm::vec3 &direction{transform_.getFront()};
-    const glm::vec2 flatHome{home.x, home.z};
 
-    // If the bird is within ~22.5 degrees of the home direction, its safe to break the circle
-    return glm::dot(glm::normalize(glm::vec2{direction.x, direction.z}), glm::normalize(flatHome)) > 0.92388f;
+    // If the bird is orbiting and aligns within ~40 degrees of the home direction, its safe to break the circle. If the
+    // player has chased it enough times to push it right above home, it will stay there to avoid a steep janky decent
+    return glm::dot(glm::normalize(direction), glm::normalize(home)) > 0.698132f;
 }
 
 void Seagull::orbit(float deltaTime)
@@ -82,10 +82,22 @@ void Seagull::updateFlight(float deltaTime)
 
     transform_.setAbsoluteTranslation(newPos);
 
-    const float decentRate{flightHeight_ * 6.0f * mixFactor * (1.0f - mixFactor)};
-    const float pitch{glm::atan2(decentRate, flightFlatDist_)};
+    // Decent comes from derivative of smoothstep, so the bird's pitch follows the vertical flight curve. Horizontal
+    // motion is linear
+    const float climbRate{flightHeight_ * 6.0f * mixFactor * (1.0f - mixFactor)};
+    const float targetPitch{glm::atan2(climbRate, flightFlatDist_)};
+
+    // Limit how fast the bird can adjust pitch because of the midair returning -> panic state change.
+    const float maxPitchChange{maxPitchSpeed_ * deltaTime};
+    const float pitchChange{targetPitch - currentPitch_};
+
+    if (glm::abs(pitchChange) > maxPitchChange)
+        currentPitch_ = currentPitch_ + glm::sign(pitchChange) * maxPitchChange;
+    else
+        currentPitch_ = targetPitch;
+
     const glm::quat yawQuat{glm::angleAxis(flightYaw_, WorldVectors::worldUp)};
-    const glm::quat pitchQuat{glm::angleAxis(pitch, WorldVectors::worldRight)};
+    const glm::quat pitchQuat{glm::angleAxis(currentPitch_, WorldVectors::worldRight)};
 
     transform_.setAbsoluteRotation(yawQuat * pitchQuat);
 }
