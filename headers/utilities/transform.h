@@ -16,7 +16,6 @@ class Transform
 
     void setAbsoluteScale(float absoluteScale);
     void setAbsoluteTranslation(glm::vec3 absoluteTranslation);
-    void setAbsoluteRotation(glm::vec3 absoluteRotation);
     void setAbsoluteRotation(glm::quat quat);
 
     void setRelativeScale(float relativeScale);
@@ -26,11 +25,16 @@ class Transform
     void rotateAroundAxisLocal(float degrees, glm::vec3 axis);
     void rotateAroundAxisWorld(float degrees, glm::vec3 axis);
 
-    const glm::mat4 &getModelMatrix() const;
-    const glm::mat3 &getNormalMatrix() const;
-    glm::vec3 getRotation() const;
+    float getYaw() const;
+    float getPitch() const;
+    glm::vec3 getUp() const;
+    glm::vec3 getFront() const;
+    glm::vec3 getRight() const;
     const glm::vec3 &getScale() const;
     const glm::vec3 &getPosition() const;
+    const glm::quat &getRotation() const;
+    const glm::mat4 &getModelMatrix() const;
+    const glm::mat3 &getNormalMatrix() const;
 
   private:
     glm::vec3 translation_{0.0f};

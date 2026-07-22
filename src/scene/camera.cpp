@@ -51,10 +51,7 @@ const glm::vec3 &Camera::getPosition() const
 const glm::mat4 &Camera::getViewMatrix() const
 {
     if (dirtyMatrices_)
-    {
         updateMatrices();
-        dirtyMatrices_ = false;
-    }
 
     return viewMatrix_;
 }
@@ -67,10 +64,7 @@ const glm::mat4 &Camera::getProjectionMatrix() const
 const glm::mat4 &Camera::getViewProjectionMatrix() const
 {
     if (dirtyMatrices_)
-    {
         updateMatrices();
-        dirtyMatrices_ = false;
-    }
 
     return viewProjectionMatrix_;
 }
@@ -121,7 +115,7 @@ void Camera::setWorldOrientation(WorldOrientation orientation)
 
     case DOWN:
         front = worldDown;
-        up = worldBack;
+        up = worldFront;
         break;
 
     case RIGHT:
@@ -148,6 +142,7 @@ void Camera::setWorldOrientation(WorldOrientation orientation)
     projectionMatrix_ = glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_);
     viewMatrix_ = glm::lookAt(position_, position_ + front, up);
     viewProjectionMatrix_ = projectionMatrix_ * viewMatrix_;
+    inverseVPMatrix_ = glm::inverse(viewProjectionMatrix_);
 
     hasChanged_ = true;
     dirtyMatrices_ = false;
@@ -161,7 +156,7 @@ void Camera::processMouseMovement(float xOffset, float yOffset)
     pitch_ += yOffset;
     pitch_ = std::clamp(pitch_, minPitch, maxPitch);
 
-    yaw_ = std::fmod(yaw_ - xOffset, 360.0f);
+    yaw_ = std::fmod(yaw_ + xOffset, 360.0f);
 
     hasChanged_ = true;
     dirtyMatrices_ = true;
@@ -192,9 +187,9 @@ glm::vec3 Camera::createFront() const
     const float cosPitch{glm::cos(pitchRads)};
 
     glm::vec3 front;
-    front.x = cosPitch * glm::sin(yawRads);
+    front.x = glm::cos(yawRads) * cosPitch;
     front.y = glm::sin(pitchRads);
-    front.z = cosPitch * glm::cos(yawRads);
+    front.z = glm::sin(yawRads) * cosPitch;
 
     return front;
 }
@@ -208,6 +203,7 @@ const glm::vec3 Camera::getFront() const
 {
     return createFront();
 }
+
 float Camera::getFarPlane() const
 {
     return farPlane_;
@@ -242,11 +238,8 @@ void Camera::setAspectRatio(float aspectRatio)
 glm::mat4 Camera::getResizedViewProjectionMatrix(float ratio) const
 {
     if (dirtyMatrices_)
-    {
         updateMatrices();
-        dirtyMatrices_ = false;
-    }
-
+    
     const glm::mat4 projectionMatrix{glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_ * ratio)};
     return projectionMatrix * viewMatrix_;
 }

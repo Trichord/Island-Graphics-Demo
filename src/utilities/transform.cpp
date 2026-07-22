@@ -1,8 +1,13 @@
 #include "utilities/transform.h"
 
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/compatibility.hpp>
+
+#include "utilities/world_vectors.h"
 
 Transform::Transform(glm::vec3 translation, glm::vec3 scale, float degrees, glm::vec3 axis)
     : translation_{translation}, scale_{scale}
@@ -23,12 +28,6 @@ Transform::Transform(glm::vec3 translation, glm::vec3 scale, glm::quat quat)
 void Transform::setAbsoluteTranslation(glm::vec3 absoluteTranslation)
 {
     translation_ = absoluteTranslation;
-    isDirty_ = true;
-}
-
-void Transform::setAbsoluteRotation(glm::vec3 absoluteRotation)
-{
-    quaternion_ = glm::quat(glm::radians(absoluteRotation));
     isDirty_ = true;
 }
 
@@ -84,9 +83,41 @@ const glm::vec3 &Transform::getPosition() const
     return translation_;
 }
 
+const glm::quat &Transform::getRotation() const
+{
+    return quaternion_;
+}
+
 const glm::vec3 &Transform::getScale() const
 {
     return scale_;
+}
+
+glm::vec3 Transform::getFront() const
+{
+    return quaternion_ * WorldVectors::worldFront;
+}
+
+glm::vec3 Transform::getUp() const
+{
+    return quaternion_ * WorldVectors::worldUp;
+}
+
+glm::vec3 Transform::getRight() const
+{
+    return quaternion_ * WorldVectors::worldRight;
+}
+
+float Transform::getYaw() const
+{
+    glm::vec3 forward{getFront()};
+    return glm::degrees(glm::atan2(forward.x, -forward.z));
+}
+
+float Transform::getPitch() const
+{
+    glm::vec3 forward{getFront()};
+    return glm::degrees(asin(glm::clamp(forward.y, -1.0f, 1.0f)));
 }
 
 const glm::mat4 &Transform::getModelMatrix() const
@@ -109,11 +140,6 @@ const glm::mat3 &Transform::getNormalMatrix() const
     }
 
     return normalMatrix_;
-}
-
-glm::vec3 Transform::getRotation() const
-{
-    return glm::degrees(glm::eulerAngles(quaternion_));
 }
 
 void Transform::rebuildModelMatrix() const

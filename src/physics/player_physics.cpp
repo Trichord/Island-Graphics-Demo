@@ -111,13 +111,13 @@ void PlayerPhysics::movePlayer(std::uint8_t direction, const glm::vec3 &front, b
         forwardMove += 1.0f;
 
     if (direction & BACKWARD)
-        forwardMove += -1.0f;
+        forwardMove -= 1.0f;
 
     if (direction & RIGHT)
         sideMove += 1.0f;
 
     if (direction & LEFT)
-        sideMove += -1.0f;
+        sideMove -= 1.0f;
 
     glm::vec3 forward{glm::normalize(glm::vec3{front.x, 0.0f, front.z})};
     glm::vec3 right{glm::cross(forward, worldUp)};
