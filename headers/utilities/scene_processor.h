@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <optional>
 #include <set>
 #include <span>
 #include <unordered_map>

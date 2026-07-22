@@ -2,17 +2,16 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 
+#include <glm/glm.hpp>
 #include <glm/gtx/compatibility.hpp>
 
-namespace
-{
-constexpr float epsilon{0.05f};
-}
+#include "utilities/transform.h"
+#include "utilities/world_vectors.h"
 
 Seagull::Seagull(const Transform &startingTransform, Seagull::State state, float panicDistance, float orbitHeight,
                  float orbitTime, float orbitRadius, float restTime)
     : state_{state}, orbitHeight_{orbitHeight}, orbitTime_{orbitTime}, orbitRadius_{orbitRadius}, restTime_{restTime},
-      panicDist_{panicDistance}, startingPos_{startingTransform.getPosition()}, transform_{startingTransform}
+      panicDist_{panicDistance}, homePos_{startingTransform.getPosition()}, transform_{startingTransform}
 {
 }
 
@@ -33,141 +32,162 @@ const glm::quat &Seagull::getRotation() const
 
 bool Seagull::stateChanged()
 {
-    if (hasChanged_)
+    if (stateChanged_)
     {
-        hasChanged_ = false;
+        stateChanged_ = false;
         return true;
     }
 
     return false;
 }
 
-void Seagull::update(const glm::vec3 &playerPos, float time, float deltaTime)
+void Seagull::update(const glm::vec3 &playerPos, float deltaTime)
 {
     updateState(playerPos, deltaTime);
-    updatePosition(playerPos, time, deltaTime);
+    updatePosition(deltaTime);
+}
+
+bool Seagull::canReturnHome() const
+{
+    const glm::vec3 home{homePos_ - transform_.getPosition()};
+    const glm::vec3 &direction{transform_.getFront()};
+    const glm::vec2 flatHome{home.x, home.z};
+
+    // If the bird is within ~22.5 degrees of the home direction, its safe to break the circle
+    return glm::dot(glm::normalize(glm::vec2{direction.x, direction.z}), glm::normalize(flatHome)) > 0.92388f;
+}
+
+void Seagull::orbit(float deltaTime)
+{
+    const float angularSpeed{flySpeed_ / orbitRadius_};
+    orbitAngle_ += (flipOrbit_ ? angularSpeed : -angularSpeed) * deltaTime;
+
+    const glm::vec3 newPos{orbitPos_ + glm::vec3{glm::cos(orbitAngle_), 0.0f, glm::sin(orbitAngle_)} * orbitRadius_};
+    const glm::vec3 heading{glm::normalize(newPos - transform_.getPosition())};
+    const float yaw{glm::atan2(-heading.x, -heading.z)};
+
+    transform_.setAbsoluteRotation(glm::angleAxis(yaw, WorldVectors::worldUp));
+    transform_.setAbsoluteTranslation(newPos);
+}
+
+void Seagull::updateFlight(float deltaTime)
+{
+    flightTimer_ += deltaTime;
+
+    const float mixFactor{glm::clamp(flightTimer_ / flightDuration_, 0.0f, 1.0f)};
+    glm::vec3 newPos;
+    newPos.x = glm::mix(startingPoint_.x, endingPoint_.x, mixFactor);
+    newPos.z = glm::mix(startingPoint_.z, endingPoint_.z, mixFactor);
+    newPos.y = glm::mix(startingPoint_.y, endingPoint_.y, glm::smoothstep(0.0f, 1.0f, mixFactor));
+
+    transform_.setAbsoluteTranslation(newPos);
+
+    const float decentRate{flightHeight_ * 6.0f * mixFactor * (1.0f - mixFactor)};
+    const float pitch{glm::atan2(decentRate, flightFlatDist_)};
+    const glm::quat yawQuat{glm::angleAxis(flightYaw_, WorldVectors::worldUp)};
+    const glm::quat pitchQuat{glm::angleAxis(pitch, WorldVectors::worldRight)};
+
+    transform_.setAbsoluteRotation(yawQuat * pitchQuat);
+}
+
+void Seagull::updatePosition(float deltaTime)
+{
+    using enum Seagull::State;
+
+    switch (state_)
+    {
+    case panicking:
+        updateFlight(deltaTime);
+        return;
+
+    case orbiting:
+        orbit(deltaTime);
+        return;
+
+    case returning:
+        updateFlight(deltaTime);
+        return;
+
+    case resting:
+        return;
+    }
+}
+
+void Seagull::setFlight(const glm::vec3 &start, const glm::vec3 &end)
+{
+    flightTimer_ = 0.0f;
+    startingPoint_ = start;
+    endingPoint_ = end;
+
+    const glm::vec3 flightDir{end - start};
+    flightFlatDist_ = glm::length(glm::vec2{flightDir.x, flightDir.z});
+    flightDuration_ = flightFlatDist_ / flySpeed_;
+    flightYaw_ = glm::atan2(-flightDir.x, -flightDir.z);
+    flightHeight_ = flightDir.y;
 }
 
 // Update the state of the seagull. Deliberately allows transitions through multiple states in one frame if given bad
 // inputs
 void Seagull::updateState(const glm::vec3 &playerPos, float deltaTime)
 {
-    constexpr float returnPositionEpsilon{0.1f};
+    constexpr float returnPositionEpsilon{0.15f};
     using enum Seagull::State;
 
+    auto createDestination = [](const glm::vec3 &position, const glm::vec3 &flatFront, float height, float angle) {
+        float dist{(height - position.y) / glm::tan(angle)};
+        return glm::vec3{position.x + flatFront.x * dist, height, position.z + flatFront.z * dist};
+    };
+
     const glm::vec3 &position{transform_.getPosition()};
+    const glm::vec3 front{transform_.getFront()};
+    const glm::vec3 flatFront{glm::normalize(glm::vec3{front.x, 0.0f, front.z})};
     const bool playerTooClose{glm::length(position - playerPos) <= panicDist_};
 
     if (state_ == resting && playerTooClose && restTimer_ >= restTime_)
     {
         state_ = panicking;
         restTimer_ = 0.0f;
-        hasChanged_ = true;
+        setFlight(homePos_, createDestination(homePos_, flatFront, orbitHeight_, climbAngle_));
+        stateChanged_ = true;
     }
 
     if (state_ == panicking && position.y >= orbitHeight_)
     {
         state_ = orbiting;
-        hasChanged_ = true;
-        const glm::vec3 &pos{transform_.getPosition()};
-        const glm::vec3 front{transform_.getFront()};
-        const glm::vec3 flatFront{glm::normalize(glm::vec3{front.x, 0.0f, front.z})};
-        const glm::vec3 perpendicular{-flatFront.z, 0.0f, flatFront.x};
 
-        flipOrbit_ = static_cast<int>(position.z) % 2 == 0;
-        orbitPos_ = pos + (flipOrbit_ ? perpendicular : -perpendicular) * orbitRadius_;
-        orbitAngle_ = glm::atan2(pos.z - orbitPos_.z, pos.x - orbitPos_.x);
+        const glm::vec3 perpendicular{-flatFront.z, 0.0f, flatFront.x};
+        flipOrbit_ = static_cast<int>(position.z * 10.0f) % 2 == 0;
+        orbitPos_ = position + (flipOrbit_ ? perpendicular : -perpendicular) * orbitRadius_;
+        orbitAngle_ = glm::atan2(position.z - orbitPos_.z, position.x - orbitPos_.x);
+        stateChanged_ = true;
     }
 
     if (state_ == orbiting && !playerTooClose)
         orbitTimer_ += deltaTime;
 
-    if (state_ == orbiting && orbitTimer_ >= orbitTime_)
+    if (state_ == orbiting && orbitTimer_ >= orbitTime_ && canReturnHome())
     {
         orbitTimer_ = 0.0f;
         state_ = returning;
-        hasChanged_ = true;
+        setFlight(position, homePos_);
+        stateChanged_ = true;
     }
 
     if (state_ == returning && playerTooClose)
     {
         state_ = panicking;
-        hasChanged_ = true;
+        float dist{(orbitHeight_ - position.y) / glm::tan(climbAngle_)};
+        setFlight(position, createDestination(position, flatFront, orbitHeight_, climbAngle_));
+        stateChanged_ = true;
     }
 
-    if (state_ == returning && glm::distance(position, startingPos_) <= returnPositionEpsilon)
+    if (state_ == returning && glm::length(homePos_ - position) <= returnPositionEpsilon)
     {
         state_ = resting;
-        hasChanged_ = true;
+        transform_.setAbsoluteTranslation(homePos_);
+        stateChanged_ = true;
     }
 
     if (state_ == resting)
         restTimer_ += deltaTime;
-}
-
-void Seagull::updatePosition(const glm::vec3 &playerPos, float time, float deltaTime)
-{
-    using enum Seagull::State;
-
-    const glm::vec3 &position{transform_.getPosition()};
-    const glm::vec3 direction{transform_.getFront()};
-    float pitch{transform_.getPitch()};
-
-    switch (state_)
-    {
-    case panicking: {
-        const float pitchBlend{(position.y - startingPos_.y) / (orbitHeight_ - startingPos_.y)};
-        pitch = climbAngle_ * rampPitch(pitchBlend);
-
-        const float yaw{glm::atan2(-direction.x, -direction.z)};
-        const glm::quat yawQuat{glm::angleAxis(yaw, WorldVectors::worldUp)};
-        const glm::quat pitchQuat{glm::angleAxis(glm::radians(pitch), WorldVectors::worldRight)};
-
-        transform_.setAbsoluteRotation(yawQuat * pitchQuat);
-        transform_.setRelativeTranslation(transform_.getFront() * flySpeed_ * deltaTime);
-
-        return;
-    }
-
-    case orbiting: {
-        const float angularSpeed{flySpeed_ / orbitRadius_};
-        orbitAngle_ += (flipOrbit_ ? angularSpeed : -angularSpeed) * deltaTime;
-
-        const glm::vec3 newPos{orbitPos_ + glm::vec3{glm::cos(orbitAngle_), 0.0f, sin(orbitAngle_)} * orbitRadius_};
-        const glm::vec3 heading{glm::normalize(newPos - position)};
-        const float yaw{glm::atan2(-heading.x, -heading.z)};
-
-        transform_.setAbsoluteRotation(glm::angleAxis(yaw, WorldVectors::worldUp));
-        transform_.setAbsoluteTranslation(newPos);
-
-        return;
-    }
-
-    case returning: {
-        const float pitchBlend{(position.y - startingPos_.y) / (orbitHeight_ - startingPos_.y)};
-        pitch = -climbAngle_ * rampPitch(pitchBlend);
-
-        glm::vec3 home{glm::normalize(startingPos_ - position)};
-        glm::vec3 heading{
-            glm::mix(direction, home, 1.0f - glm::smoothstep(1.0f - transitionZone_, 1.0f + epsilon, pitchBlend))};
-
-        const float yaw{glm::atan2(-heading.x, -heading.z)};
-        const glm::quat yawQuat{glm::angleAxis(yaw, WorldVectors::worldUp)};
-        const glm::quat pitchQuat{glm::angleAxis(glm::radians(pitch), WorldVectors::worldRight)};
-
-        transform_.setAbsoluteRotation(yawQuat * pitchQuat);
-        transform_.setRelativeTranslation(transform_.getFront() * flySpeed_ * deltaTime);
-    }
-    }
-}
-
-float Seagull::rampPitch(float blend) const
-{
-    // Smooth out takeoff and landing transitions otherwise the bird snaps into place
-    if (blend <= transitionZone_)
-        return glm::smoothstep(-epsilon, transitionZone_, blend);
-    else if (blend >= 1.0f - transitionZone_)
-        return 1.0f - glm::smoothstep(1.0f - transitionZone_, 1.0f + epsilon, blend);
-    else
-        return 1.0f;
 }
