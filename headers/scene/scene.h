@@ -71,6 +71,8 @@ class Scene
     void clearUpdates();
 
   protected:
+    Camera camera_;
+
     virtual void onUpdate(float time, float deltaTime) = 0;
 
     [[nodiscard]] Entry &editEntry(Handle handle);
@@ -84,7 +86,6 @@ class Scene
     void setAmbientLight(const glm::vec3 &ambient);
 
   private:
-    Camera camera_;
     TextureManager &textureManager_;
     Handle nextHandle_{1};
 

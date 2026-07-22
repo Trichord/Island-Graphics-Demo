@@ -45,6 +45,7 @@ set(SOURCES
     src/scene/camera.cpp
     src/scene/directional_light.cpp
     src/scene/island_scene/island_scene.cpp
+    src/scene/island_scene/seagull.cpp
     src/scene/scene.cpp
     src/utilities/array_texture.cpp
     src/utilities/asset_loader.cpp
@@ -94,6 +95,7 @@ set(HEADERS
     headers/scene/directional_light.h
     headers/scene/handle.h
     headers/scene/island_scene/island_scene.h
+    headers/scene/island_scene/seagull.h
     headers/scene/scene.h
     headers/scene/scene_file.h
     headers/utilities/array_texture.h

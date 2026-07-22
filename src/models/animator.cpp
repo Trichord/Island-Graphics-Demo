@@ -118,14 +118,14 @@ void Animator::update(const Skeleton &skeleton, std::vector<Primitive> &primitiv
     {
         const float nextDuration{nextAnimation_->end - nextAnimation_->start};
         blendTime_ = blendTime_ + deltaTime;
+        const float nextTime{nextAnimation_->start + std::min(blendTime_, nextDuration)};
         const float blend{std::clamp(blendTime_ / blendDuration_, 0.0f, 1.0f)};
 
         nextLocalTranslations_ = skeleton.restTranslations;
         nextLocalRotations_ = skeleton.restRotations;
         nextLocalScales_ = skeleton.restScales;
 
-        sampleChannels(*nextAnimation_, nextLocalTranslations_, nextLocalRotations_, nextLocalScales_,
-                       std::clamp(blendTime_, 0.0f, nextDuration));
+        sampleChannels(*nextAnimation_, nextLocalTranslations_, nextLocalRotations_, nextLocalScales_, nextTime);
 
         for (std::size_t i{0}; i < nextLocalTranslations_.size(); ++i)
         {
@@ -138,7 +138,7 @@ void Animator::update(const Skeleton &skeleton, std::vector<Primitive> &primitiv
         {
             currentAnimation_ = nextAnimation_;
 
-            time_ = blendTime_;
+            time_ = nextTime;
             resetBlend();
         }
     }

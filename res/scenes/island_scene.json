@@ -10,7 +10,7 @@
   },
   "camera": {
     "position": [134.6624, 0.5, -62.8179],
-    "yaw": -100.0,
+    "yaw": -180,
     "nearPlane": 0.1,
     "farPlane": 2000.0,
     "FOV": 45.0
@@ -35,6 +35,17 @@
       "name": "butterfly",
       "modelPath": "./res/models/animated/butterfly/butterfly.gltf",
       "positionsPath": "./res/positions/butterflies.txt",
+      "shader": "baseColor"
+    },
+    {
+      "type": "model",
+      "name": "seagull",
+      "transform": {
+        "translation": [94.6624, 0.5, -62.8179],
+        "rotation": [1.19411, -6.05362, -19.0008],
+	"scale": 0.25
+      },
+      "modelPath": "./res/models/animated/seagull/seagull.gltf",
       "shader": "baseColor"
     },
     {
