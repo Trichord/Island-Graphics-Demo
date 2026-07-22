@@ -1,6 +1,8 @@
 #pragma once
 
 #include <filesystem>
+#include <glm/glm.hpp>
+#include <vector>
 
 #include "application/graphics_settings.h"
 #include "scene/island_scene/seagull.h"

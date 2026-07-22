@@ -22,7 +22,6 @@
 #include "scene/scene.h"
 #include "utilities/scene_processor.h"
 #include "utilities/texture_manager.h"
-#include "utilities/thread_pool.h"
 
 class Renderer
 {

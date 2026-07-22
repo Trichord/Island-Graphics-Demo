@@ -5,10 +5,12 @@
 #include <vector>
 
 #include "application/graphics_settings.h"
+#include "models/animation/animation.h"
 #include "scene/island_scene/seagull.h"
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
+#include "utilities/world_vectors.h"
 
 namespace
 {
@@ -44,7 +46,7 @@ IslandScene::IslandScene(TextureManager &textureManager, const GraphicsSettings 
     : Scene(textureManager, graphicsSettings, jsonFile), seagull_{getEntry("seagull").worldTransforms.front(),
                                                                   Seagull::State::resting,
                                                                   SeagullConstants::panicDist,
-                                                                  5.0f, //height
+                                                                  5.0f, // height
                                                                   15.0f,
                                                                   2.0f, // radius
                                                                   SeagullConstants::restTime}
@@ -106,7 +108,7 @@ void IslandScene::onUpdate(float time, float deltaTime)
 
     butterfly.entryAnimation->animator.update(getSkeleton(butterfly), butterfly.primitives, deltaTime);
 
-    seagull_.update(camera_.getPosition(), time, deltaTime);
+    seagull_.update(camera_.getPosition(), deltaTime);
     Entry &seagullEntry{editEntry("seagull")};
 
     if (seagull_.stateChanged())

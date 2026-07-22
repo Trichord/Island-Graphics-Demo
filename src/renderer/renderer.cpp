@@ -1,5 +1,6 @@
 #include "renderer/renderer.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -11,18 +12,20 @@
 
 #include "application/gl_context.h"
 #include "application/graphics_settings.h"
+#include "models/primitive.h"
 #include "renderer/cascade_shadow.h"
 #include "renderer/render_target.h"
 #include "renderer/renderer_types.h"
 #include "renderer/shader/compute_shader.h"
 #include "renderer/shader/graphics_shader.h"
+#include "renderer/shader/shader_base.h"
+#include "renderer/textures.h"
 #include "scene/camera.h"
 #include "scene/directional_light.h"
 #include "scene/handle.h"
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
 #include "utilities/texture_utilities.h"
-#include "utilities/thread_pool.h"
 #include "utilities/transform.h"
 
 namespace
@@ -30,7 +33,7 @@ namespace
 // Hardware shadow bias
 constexpr GLfloat polygonFactor{2.0f};
 constexpr GLfloat polygonUnits{1.0f};
-constexpr GLfloat polygonClamp{0.005f};
+constexpr GLfloat polygonClamp{0.01f};
 
 // Reduce the distance of the camera's far plane by 80% for shadow cascades.
 constexpr float farPlaneReduction{0.2f};

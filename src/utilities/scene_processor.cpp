@@ -5,18 +5,17 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <iostream>
-#include <iterator>
 #include <limits>
 #include <set>
 #include <span>
 #include <stdexcept>
 #include <tuple>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "models/aabb.h"
+#include "models/animation/skeleton.h"
 #include "models/primitive.h"
 #include "renderer/buffers.h"
 #include "renderer/cascade_shadow.h"

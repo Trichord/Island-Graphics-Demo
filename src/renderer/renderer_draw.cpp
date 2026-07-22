@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "models/primitive.h"
+#include "renderer/buffers.h"
 #include "renderer/cascade_shadow.h"
 #include "renderer/renderer_types.h"
 #include "renderer/shader/graphics_shader.h"

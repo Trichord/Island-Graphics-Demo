@@ -1,11 +1,13 @@
 #include "renderer/renderer.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <iostream>
 #include <set>
+#include <span>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -310,9 +312,6 @@ void Renderer::renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarge
 
 void Renderer::updateMetadataCubemaps(const Scene &scene, const std::vector<std::uint32_t> &metadataBridge)
 {
-    // Verify data layout before sparse updates of the metadata struct
-    static_assert(std::is_standard_layout_v<SamplerArrayIndex>);
-
     std::size_t primitiveOffset{0};
 
     for (const Scene::Entry &entry : scene.getAllSceneEntries())

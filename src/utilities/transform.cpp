@@ -117,7 +117,7 @@ float Transform::getYaw() const
 float Transform::getPitch() const
 {
     glm::vec3 forward{getFront()};
-    return glm::degrees(asin(glm::clamp(forward.y, -1.0f, 1.0f)));
+    return glm::degrees(glm::asin(glm::clamp(forward.y, -1.0f, 1.0f)));
 }
 
 const glm::mat4 &Transform::getModelMatrix() const
