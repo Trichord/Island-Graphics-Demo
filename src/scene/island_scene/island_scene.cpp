@@ -22,6 +22,7 @@ constexpr float heightMultiplier{0.04f};
 constexpr float bobSpeed{79.6227f};
 constexpr float radius{8.0f};
 constexpr float largeHeightWave{0.65f};
+constexpr float animationTimeScale{0.85f};
 } // namespace Butterfly
 
 namespace SeagullConstants
@@ -145,7 +146,8 @@ void IslandScene::updateButterfly(Scene::Entry &butterfly, float time, float del
         transform.setAbsoluteRotation(glm::angleAxis(yaw + modelFlip, WorldVectors::worldUp));
     }
 
-    butterfly.entryAnimation->animator.update(getSkeleton(butterfly), butterfly.primitives, deltaTime);
+    butterfly.entryAnimation->animator.update(getSkeleton(butterfly), butterfly.primitives,
+                                              deltaTime * Butterfly::animationTimeScale);
 }
 
 void IslandScene::updateSeagull(Seagull &seagull, Scene::Entry &entry, float deltaTime)

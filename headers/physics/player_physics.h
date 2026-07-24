@@ -10,7 +10,7 @@
 #include <jolt/Physics/Body/BodyInterface.h>
 #include <jolt/Physics/PhysicsSystem.h>
 
-#include "physics/player.h"
+#include "physics/character_capsule.h"
 #include "scene/scene.h"
 
 enum CharacterMovement : std::uint8_t
@@ -54,7 +54,7 @@ class PlayerPhysics
     JPH::Body *terrain_{nullptr};
 
     // The player capsule
-    Player player_;
+    CharacterCapsule player_;
 
     void movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime);
 };

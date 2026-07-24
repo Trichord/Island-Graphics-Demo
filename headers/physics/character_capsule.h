@@ -16,16 +16,15 @@
 #include <jolt/Physics/Collision/Shape/SubShapeID.h>
 #include <jolt/Physics/PhysicsSystem.h>
 
-class Player : public JPH::CharacterContactListener
+class CharacterCapsule : public JPH::CharacterContactListener
 {
   public:
-    Player() = default;
-    Player(const Player &) = delete;
-    Player &operator=(const Player &) = delete;
-    Player(Player &&other) = delete;
-    Player &operator=(Player &&other) = delete;
-
-    void init(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator);
+    CharacterCapsule() = default;
+    CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator);
+    CharacterCapsule(const CharacterCapsule &) = delete;
+    CharacterCapsule &operator=(const CharacterCapsule &) = delete;
+    CharacterCapsule(CharacterCapsule &&other) = delete;
+    CharacterCapsule &operator=(CharacterCapsule &&other) = delete;
 
     JPH::Vec3 getCenter() const;
     JPH::Vec3 getPosition() const;
@@ -70,6 +69,10 @@ class Player : public JPH::CharacterContactListener
 
     JPH::Vec3 desiredVelocity_{0.0f, 0.0f, 0.0f};
 
+    // Non-owning pointers
+    JPH::PhysicsSystem *physicsSystem_{nullptr};
+    JPH::TempAllocatorImpl *tempAllocator_{nullptr};
+
     // The different stances for the character
     JPH::RefConst<JPH::Shape> standingShape_;
     JPH::RefConst<JPH::Shape> innerStandingShape_;
@@ -77,9 +80,5 @@ class Player : public JPH::CharacterContactListener
     JPH::RefConst<JPH::Shape> innerCrouchingShape_;
 
     // Capsule
-    JPH::Ref<JPH::CharacterVirtual> player_;
-
-    // Non-owning pointers
-    JPH::PhysicsSystem *physicsSystem_{nullptr};
-    JPH::TempAllocatorImpl *tempAllocator_{nullptr};
+    JPH::Ref<JPH::CharacterVirtual> capsule_;
 };

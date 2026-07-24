@@ -29,8 +29,8 @@ set(SOURCES
     src/models/model.cpp
     src/models/particles.cpp
     src/models/skybox.cpp
+    src/physics/character_capsule.cpp
     src/physics/physics_utilities.cpp
-    src/physics/player.cpp
     src/physics/player_physics.cpp
     src/renderer/cascade_shadow.cpp
     src/renderer/gl_state.cpp
@@ -76,9 +76,9 @@ set(HEADERS
     headers/models/animation/animator.h
     headers/models/animation/skeletal_animation.h
     headers/models/animation/skeleton.h
+    headers/physics/character_capsule.h
     headers/physics/jolt_impl.h
     headers/physics/physics_utilities.h
-    headers/physics/player.h
     headers/physics/player_physics.h
     headers/renderer/buffers.h
     headers/renderer/cascade_shadow.h

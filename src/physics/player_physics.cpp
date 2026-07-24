@@ -21,7 +21,7 @@
 
 PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator)
     : resetPosition_{toJPHVec3(scene.getCamera().getPosition())}, physicsSystem_{physicsSystem},
-      tempAllocator_{tempAllocator}
+      tempAllocator_{tempAllocator}, player_{physicsSystem, tempAllocator}
 {
     using namespace JPH;
 
@@ -59,8 +59,6 @@ PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JP
     }
 
     physicsSystem_.OptimizeBroadPhase();
-
-    player_.init(physicsSystem, tempAllocator);
 
     // Set start position
     glm::vec3 cameraPos{scene.getCamera().getPosition()};
