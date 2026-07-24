@@ -135,7 +135,7 @@ void Player::handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime)
             speed = characterSpeed_;
 
         if (crouched_ && player_->IsSupported())
-            speed *= characterCrouchSpeedMultiplier;
+            speed *= characterCrouchSpeedMultiplier_;
 
         // Smooth the player input
         desiredVelocity_ = 0.3f * direction * speed + 0.7f * desiredVelocity_;

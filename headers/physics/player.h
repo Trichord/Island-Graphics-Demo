@@ -58,9 +58,10 @@ class Player : public JPH::CharacterContactListener
 
     // Character movement properties
     static constexpr float jumpSpeed_{2.75f};
-    static constexpr float characterSpeed_{4.0f};
-    static constexpr float characterCrouchSpeedMultiplier{0.4f};
-    static constexpr float characterSprintSpeedMultiplier_{1.4f};
+    static constexpr float characterSpeed_{3.5f};
+    static constexpr float characterCrouchSpeedMultiplier_{0.4f};
+    static constexpr float characterSprintSpeedMultiplier_{1.3f};
+
     bool crouched_{false};
     bool allowSliding_{false};
     bool characterSprinting_{false};

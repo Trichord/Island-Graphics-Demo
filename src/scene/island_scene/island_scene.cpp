@@ -27,11 +27,11 @@ constexpr float largeHeightWave{0.65f};
 namespace SeagullConstants
 {
 // How close the player can get before they fly away
-constexpr float panicDist{23.0f};
+constexpr float panicDist{20.0f};
 constexpr float blendTime{0.3f};
 constexpr float restTime{blendTime * 2.0f};
 constexpr float orbitTime{20.0f};
-constexpr float orbitHeight{17.0f};
+constexpr float orbitHeight{15.0f};
 constexpr float orbitRadius{10.0f};
 } // namespace SeagullConstants
 
@@ -73,10 +73,10 @@ IslandScene::IslandScene(TextureManager &textureManager, const GraphicsSettings 
         seagulls_[i] = Seagull{seagull.worldTransforms.front(),
                                Seagull::State::resting,
                                SeagullConstants::panicDist + randomRange(-0.125f, 0.125f),
-                               SeagullConstants::orbitHeight + randomRange(-5.0f, 5.0f),
-                               SeagullConstants::orbitTime + randomRange(-5.0f, 5.0f),
+                               SeagullConstants::orbitHeight + randomRange(-3.0f, 3.0f),
+                               SeagullConstants::orbitTime + randomRange(-2.0f, 8.0f),
                                SeagullConstants::orbitRadius + randomRange(-2.0f, 2.0f),
-                               SeagullConstants::restTime + randomRange(-0.2f, 0.2f)};
+                               SeagullConstants::restTime + randomRange(0.0f, 0.2f)};
 
         seagull.entryAnimation->animator.setAnimation(randomSeagullIdle(seagull));
 

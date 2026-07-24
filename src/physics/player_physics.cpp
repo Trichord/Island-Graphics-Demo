@@ -121,9 +121,12 @@ void PlayerPhysics::movePlayer(std::uint8_t direction, const glm::vec3 &front, b
 
     glm::vec3 forward{glm::normalize(glm::vec3{front.x, 0.0f, front.z})};
     glm::vec3 right{glm::cross(forward, worldUp)};
-    glm::vec3 wishDir{forward * forwardMove + right * sideMove};
+    JPH::Vec3 wishDir{toJPHVec3(glm::vec3{forward * forwardMove + right * sideMove})};
 
-    player_.handleInput(toJPHVec3(wishDir), jump, deltaTime);
+    if (wishDir.LengthSq())
+        wishDir = wishDir.Normalized();
+
+    player_.handleInput(wishDir, jump, deltaTime);
     player_.physicsUpdate(deltaTime);
 }
 
