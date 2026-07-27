@@ -43,7 +43,7 @@ constexpr glm::vec3 oddAxisAngle{0.2926f, 0.8048f, 0.5164f};
 constexpr glm::vec3 oddAxisAngle2{-0.3197f, 0.7975f, 0.5117f};
 } // namespace SpaceModel
 
-float randomRange(float low, float high)
+float randomFloat(float low, float high)
 {
     static std::minstd_rand gen{std::random_device{}()};
     return std::uniform_real_distribution<float>(low, high)(gen);
@@ -73,16 +73,16 @@ IslandScene::IslandScene(TextureManager &textureManager, const GraphicsSettings 
 
         seagulls_[i] = Seagull{seagull.worldTransforms.front(),
                                Seagull::State::resting,
-                               SeagullConstants::panicDist + randomRange(-0.125f, 0.125f),
-                               SeagullConstants::orbitHeight + randomRange(-3.0f, 3.0f),
-                               SeagullConstants::orbitTime + randomRange(-2.0f, 8.0f),
-                               SeagullConstants::orbitRadius + randomRange(-2.0f, 2.0f),
-                               SeagullConstants::restTime + randomRange(0.0f, 0.2f)};
+                               SeagullConstants::panicDist + randomFloat(-0.125f, 0.125f),
+                               SeagullConstants::orbitHeight + randomFloat(-3.0f, 3.0f),
+                               SeagullConstants::orbitTime + randomFloat(-2.0f, 8.0f),
+                               SeagullConstants::orbitRadius + randomFloat(-2.0f, 2.0f),
+                               SeagullConstants::restTime + randomFloat(0.0f, 0.2f)};
 
         seagull.entryAnimation->animator.setAnimation(randomSeagullIdle(seagull));
 
         // Simulate just a bit of a starting animation to desync
-        seagull.entryAnimation->animator.update(getSkeleton(seagull), seagull.primitives, randomRange(0.1f, 0.3f));
+        seagull.entryAnimation->animator.update(getSkeleton(seagull), seagull.primitives, randomFloat(0.1f, 0.3f));
     }
 }
 
@@ -97,7 +97,7 @@ void IslandScene::onUpdate(float time, float deltaTime)
 
 Animation &IslandScene::randomSeagullIdle(Scene::Entry &entry)
 {
-    float random{randomRange(0.0f, 100.0f)};
+    float random{randomFloat(0.0f, 100.0f)};
 
     if (random <= 33.0f)
         return getAnimation(entry, "eat");

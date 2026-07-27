@@ -56,6 +56,14 @@ bool AABB::intersects(const std::array<glm::vec4, 6> &planes) const
     return true;
 }
 
+bool AABB::pointInside(const glm::vec3 &point) const
+{
+    glm::vec3 d{point - center_};
+
+    // Bitwise and the result for a branchless test
+    return (std::abs(d.x) <= extent_.x) & (std::abs(d.y) <= extent_.y) & (std::abs(d.z) <= extent_.z);
+}
+
 void AABB::resize(float scale)
 {
     extent_ *= scale;

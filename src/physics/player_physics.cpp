@@ -76,7 +76,19 @@ PlayerPhysics::~PlayerPhysics()
     }
 }
 
-void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime)
+void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
+{
+    accumulator_ += deltaTime;
+
+    while (accumulator_ > physicsTick)
+    {
+        previousPosition_ = toGLM(player_.getCenter());
+        tick(direction, front, jump, physicsTick);
+        accumulator_ -= physicsTick;
+    }
+}
+
+void PlayerPhysics::tick(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
 {
     constexpr float maxFallVelocity{-30.0f};
 
@@ -84,6 +96,8 @@ void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, bool 
     if (player_.getPosition().GetY() < resetHeight_)
     {
         player_.setPosition(resetPosition_);
+
+        // Override last position too, so we don't interpolate between two wildly different points
         previousPosition_ = toGLM(resetPosition_);
 
         JPH::Vec3 velocity{player_.getVelocity()};
@@ -93,11 +107,10 @@ void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, bool 
         return;
     }
 
-    previousPosition_ = toGLM(player_.getCenter());
-    movePlayer(direction, front, jump, crouch, deltaTime);
+    movePlayer(direction, front, jump, deltaTime);
 }
 
-void PlayerPhysics::movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime)
+void PlayerPhysics::movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
 {
     using enum CharacterMovement;
     using namespace WorldVectors;
@@ -138,10 +151,12 @@ void PlayerPhysics::setPosition(const glm::vec3 &newPosition)
     player_.setPosition(toJPHVec3(newPosition));
 }
 
-const glm::vec3 &PlayerPhysics::getPreviousPosition() const
+glm::vec3 PlayerPhysics::getInterpolatedPosition() const
 {
-    return previousPosition_;
-}
+    // Interpolate camera between last position and latest physics tick (Glenn Fiedler)
+    float alpha{accumulator_ / physicsTick};
+    return glm::mix(previousPosition_, getPosition(), alpha);
+};
 
 void PlayerPhysics::toggleCrouch(bool enable)
 {

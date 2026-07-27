@@ -16,6 +16,7 @@
 #include "application/glfw_callbacks.h"
 #include "application/graphics_settings.h"
 #include "application/settings_window.h"
+#include "audio/audio_player.h"
 #include "physics/player_physics.h"
 #include "renderer/buffers.h"
 #include "renderer/renderer.h"
@@ -79,10 +80,13 @@ void Application::run()
     Renderer renderer(textureManager, graphicsSettings, windowWidth_, windowHeight_);
 
     std::cout << "Loading Models... ";
-    IslandScene islandScene(textureManager, graphicsSettings, "./res/scenes/island_scene.json");
+    IslandScene islandScene(textureManager, graphicsSettings, "./res/scenes/island_scene/scene.json");
     std::cout << "Done" << std::endl;
-
     scenePtr_ = &islandScene;
+
+    std::cout << "Loading Audio... ";
+    AudioPlayer audioPlayer{"./res/scenes/island_scene/audio.json"};
+    std::cout << "Done" << std::endl;
 
     // Initialize scene dependent resources
     renderer.initializeResources(islandScene);
@@ -104,7 +108,7 @@ void Application::run()
         islandScene.onUpdate(currentFrame_, deltaTime_);
 
         glfwPollEvents();
-        processKeyboard(islandScene.getCamera(), physicsHandler);
+        processKeyboard(islandScene.getCamera(), physicsHandler, audioPlayer);
 
         if (windowResized_)
         {
@@ -259,7 +263,7 @@ bool Application::createOpenGLViewport()
     return supported;
 }
 
-void Application::processKeyboard(Camera& camera, PlayerPhysics &physicsHandler)
+void Application::processKeyboard(Camera &camera, PlayerPhysics &physicsHandler, AudioPlayer& audioPlayer)
 {
     using enum CharacterMovement;
 
@@ -267,10 +271,6 @@ void Application::processKeyboard(Camera& camera, PlayerPhysics &physicsHandler)
     bool jump{false};
 
     const glm::vec3 front{camera.getFront()};
-
-    glm::vec3 previousPos{physicsHandler.getPreviousPosition()};
-
-    accumulator_ += deltaTime_;
 
     if (glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
@@ -293,21 +293,14 @@ void Application::processKeyboard(Camera& camera, PlayerPhysics &physicsHandler)
     if (glfwGetKey(window_, GLFW_KEY_SPACE) == GLFW_PRESS)
         jump = true;
 
+    // Debounced input
     physicsHandler.toggleCrouch(leftCtrlToggle_);
     physicsHandler.toggleSprint(leftShiftToggle_);
-
-    while (accumulator_ > physicsTick)
-    {
-        previousPos = physicsHandler.getPosition();
-        physicsHandler.update(direction, front, jump, leftCtrlToggle_, physicsTick);
-        accumulator_ -= physicsTick;
-    }
-
-    // Interpolate camera between last position and latest physics tick (Glenn Fiedler)
-    float alpha{accumulator_ / physicsTick};
-    glm::vec3 interpolatedPos{glm::mix(previousPos, physicsHandler.getPosition(), alpha)};
-
-    camera.setPosition(interpolatedPos);
+    physicsHandler.update(direction, front, jump, deltaTime_);
+    
+    const glm::vec3 pos{physicsHandler.getInterpolatedPosition()};
+    camera.setPosition(pos);
+    audioPlayer.update(pos, camera.getFront());
 }
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)

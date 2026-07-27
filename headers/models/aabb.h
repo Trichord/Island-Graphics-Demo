@@ -22,6 +22,8 @@ class AABB
     bool intersects(const std::array<glm::vec4, 6> &planes, const glm::mat4 &modelMatrix) const;
     bool intersects(const std::array<glm::vec4, 6> &planes) const;
 
+    bool pointInside(const glm::vec3 &point) const;
+
     // Returns a new AABB, translated by the model matrix
     AABB transform(const glm::mat4 &modelMatrix) const;
 

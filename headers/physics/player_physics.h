@@ -33,15 +33,18 @@ class PlayerPhysics
     ~PlayerPhysics();
 
     glm::vec3 getPosition() const;
-    const glm::vec3 &getPreviousPosition() const;
+    glm::vec3 getInterpolatedPosition() const;
     void setPosition(const glm::vec3 &newPosition);
 
     void toggleCrouch(bool enable);
     void toggleSprint(bool enable);
 
-    void update(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime);
+    void update(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime);
 
   private:
+    static constexpr float physicsTick{1.0f / 60.0f};
+
+    float accumulator_{0.0f};
     float resetHeight_{0.0f};
     glm::vec3 previousPosition_{0.0f};
     JPH::Vec3 resetPosition_{0.0f, 0.0f, 0.0f};
@@ -56,5 +59,6 @@ class PlayerPhysics
     // The player capsule
     CharacterCapsule player_;
 
-    void movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime);
+    void movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime);
+    void tick(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime);
 };

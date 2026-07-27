@@ -369,3 +369,13 @@ Model License:
 If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
 This work is based on "Seagull – Stylized Animated 3D Model" (https://sketchfab.com/3d-models/seagull-stylized-animated-3d-model-b331b360c0064536a6e517c1a93a349d) by AnimalMesh 3D (https://sketchfab.com/AnimalMesh3D) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
 </details>
+
+<h1>Audio</h1>
+
+<h2>Hilltop Music</h2>
+
+<details>
+<summary>By penguinmusic</summary>
+
+By [penguinmusic](https://pixabay.com/users/penguinmusic-24940186/) via [Pixabay](https://pixabay.com/)
+</details>

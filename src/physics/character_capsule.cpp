@@ -94,8 +94,8 @@ void CharacterCapsule::toggleCrouch(bool enable)
     const Shape *shape{isStanding ? crouchingShape_ : standingShape_};
 
     if (capsule_->SetShape(shape, 1.5f * physicsSystem_->GetPhysicsSettings().mPenetrationSlop,
-                          physicsSystem_->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-                          physicsSystem_->GetDefaultLayerFilter(Layers::MOVING), {}, {}, *tempAllocator_))
+                           physicsSystem_->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
+                           physicsSystem_->GetDefaultLayerFilter(Layers::MOVING), {}, {}, *tempAllocator_))
     {
         const Shape *inner_shape{isStanding ? innerCrouchingShape_ : innerStandingShape_};
         capsule_->SetInnerBodyShape(inner_shape);
@@ -107,7 +107,8 @@ void CharacterCapsule::toggleSprint(bool enable)
     if (characterSprinting_ == enable)
         return;
 
-    characterSprinting_ = !characterSprinting_;
+    if (capsule_->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround)
+        characterSprinting_ = !characterSprinting_;
 }
 
 void CharacterCapsule::handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime)
@@ -191,15 +192,15 @@ void CharacterCapsule::physicsUpdate(float deltaTime)
     // Move character, using default update settings
     CharacterVirtual::ExtendedUpdateSettings updateSettings;
     capsule_->ExtendedUpdate(deltaTime, physicsSystem_->GetGravity(), updateSettings,
-                            physicsSystem_->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-                            physicsSystem_->GetDefaultLayerFilter(Layers::MOVING), {}, {}, *tempAllocator_);
+                             physicsSystem_->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
+                             physicsSystem_->GetDefaultLayerFilter(Layers::MOVING), {}, {}, *tempAllocator_);
 }
 
 void CharacterCapsule::OnContactSolve(const JPH::CharacterVirtual *inCharacter, const JPH::BodyID &inBodyID2,
-                                   const JPH::SubShapeID &inSubShapeID2, JPH::RVec3Arg inContactPosition,
-                                   JPH::Vec3Arg inContactNormal, JPH::Vec3Arg inContactVelocity,
-                                   const JPH::PhysicsMaterial *inContactMaterial, JPH::Vec3Arg inCharacterVelocity,
-                                   JPH::Vec3 &ioNewCharacterVelocity)
+                                      const JPH::SubShapeID &inSubShapeID2, JPH::RVec3Arg inContactPosition,
+                                      JPH::Vec3Arg inContactNormal, JPH::Vec3Arg inContactVelocity,
+                                      const JPH::PhysicsMaterial *inContactMaterial, JPH::Vec3Arg inCharacterVelocity,
+                                      JPH::Vec3 &ioNewCharacterVelocity)
 {
     // Ignore callbacks for other characters than the player
     if (inCharacter != capsule_)

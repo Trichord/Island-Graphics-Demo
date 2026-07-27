@@ -88,7 +88,7 @@ struct SceneCamera
 
 using SceneEntry = std::variant<ModelEntry, InstancedModelEntry, CubeMappedModelEntry, SkyboxEntry, ParticlesEntry>;
 
-struct SceneDescription
+struct SceneFile
 {
     SceneEnvironment environment;
     SceneWind wind;
@@ -221,7 +221,7 @@ inline SceneEntry parseSceneEntry(const nlohmann::json &j)
     throw nlohmann::json::type_error::create(302, "Unknown model type: " + type, &j);
 }
 
-inline void from_json(const nlohmann::json &j, SceneDescription &s)
+inline void from_json(const nlohmann::json &j, SceneFile &s)
 {
     s.environment = j.value("environment", SceneEnvironment{});
     s.wind = j.value("wind", SceneWind{});

@@ -59,7 +59,7 @@ class CharacterCapsule : public JPH::CharacterContactListener
     static constexpr float jumpSpeed_{2.75f};
     static constexpr float characterSpeed_{3.5f};
     static constexpr float characterCrouchSpeedMultiplier_{0.4f};
-    static constexpr float characterSprintSpeedMultiplier_{1.3f};
+    static constexpr float characterSprintSpeedMultiplier_{1.45f};
 
     bool crouched_{false};
     bool allowSliding_{false};

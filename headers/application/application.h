@@ -8,6 +8,7 @@
 
 #include "application/gl_context.h"
 #include "application/graphics_settings.h"
+#include "audio/audio_player.h"
 #include "physics/jolt_impl.h"
 #include "physics/player_physics.h"
 #include "scene/scene.h"
@@ -32,14 +33,11 @@ class Application
 
     void run();
 
-    static constexpr float physicsTick{1.0f / 60.0f};
-
   private:
     // Frame timing
     float deltaTime_{0.0f};
     float lastFrame_{0.0f};
     float currentFrame_{0.0f};
-    float accumulator_{0.0f};
 
     // Window
     GLFWwindow *window_{nullptr};
@@ -83,7 +81,7 @@ class Application
      *
      * @param scene The target scene.
      */
-    void processKeyboard(Camera &camera, PlayerPhysics &physicsHandler);
+    void processKeyboard(Camera &camera, PlayerPhysics &physicsHandler, AudioPlayer &audioPlayer);
 
     /**
      * @brief Registers OpenGL function pointers, checks for supported features, and creates an OpenGL viewport

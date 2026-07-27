@@ -23,6 +23,8 @@ set(SOURCES
     src/application/application.cpp
     src/application/glfw_callbacks.cpp
     src/application/settings_window.cpp
+    src/audio/audio_player.cpp
+    src/audio/miniaudio_impl.cpp
     src/models/aabb.cpp
     src/models/animator.cpp
     src/models/instanced_model.cpp
@@ -66,6 +68,7 @@ set(HEADERS
     headers/application/glfw_callbacks.h
     headers/application/graphics_settings.h
     headers/application/settings_window.h
+    headers/audio/audio_player.h
     headers/models/aabb.h
     headers/models/instanced_model.h
     headers/models/model.h
@@ -91,6 +94,7 @@ set(HEADERS
     headers/renderer/shader/shader_base.h
     headers/renderer/textures.h
     headers/renderer/texture_view.h
+    headers/scene/audio_file.h
     headers/scene/camera.h
     headers/scene/directional_light.h
     headers/scene/handle.h
@@ -104,7 +108,6 @@ set(HEADERS
     headers/utilities/json_loader.h
     headers/utilities/ktx_texture.h
     headers/utilities/scene_processor.h
-    
     headers/utilities/texture_loader.h
     headers/utilities/texture_manager.h
     headers/utilities/texture_utilities.h
@@ -125,14 +128,14 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 # Link libraries
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
+    fastgltf::fastgltf
     glfw
     glad::glad
     glm::glm
     imgui::imgui
-    fastgltf::fastgltf
-    nlohmann_json::nlohmann_json
     Jolt::Jolt
     KTX::ktx
+    nlohmann_json::nlohmann_json
     opengl32
     gdi32
 )
@@ -156,6 +159,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     JPH_USE_FMADD
     JPH_USE_LZCNT
     JPH_USE_TZCNT
+    NOMINMAX
 )
 
 # Use PWD for debug / release

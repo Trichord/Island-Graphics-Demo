@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "soundPath": "audio/ambient/wind.ogg",
+      "zoneCenter": [10.0, 0.0, -5.0],
+      "zoneExtent": [3.0, 2.0, 3.0],
+      "loop": true,
+      "streaming": true
+    },
+    {
+      "soundPath": "audio/music/battle.ogg",
+      "playImmediate": true,
+      "oneShot": true
+    }
+  ],
+  "footsteps": [
+    "audio/footsteps/step1.ogg"
+  ]
+}

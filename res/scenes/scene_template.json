@@ -23,14 +23,14 @@
       "modelPath": "assets/models/cabin.gltf",
       "shader": "directionalPBR",
       "transform": {
-        "position": [0.0, 0.0, 0.0],
+        "translation": [0.0, 0.0, 0.0],
         "scale": 1.0,
-        "rotationDegrees": 45.0,
-        "rotationAxis": [0.0, 1.0, 0.0]
+        "rotation": [0.0, 45.0, 0.0]
       }
     },
     {
       "type": "instanced",
+      "name": "pines",
       "modelPath": "assets/models/pine.gltf",
       "positionsPath": "assets/data/tree_positions.txt",
       "minScale": 0.8,
@@ -44,10 +44,9 @@
       "cubemapPath": "assets/textures/lake_cubemap.ktx2",
       "shader": "water",
       "transform": {
-        "position": [10.0, -1.0, 5.0],
+        "translation": [10.0, -1.0, 5.0],
         "scale": 2.0,
-        "rotationDegrees": 0.0,
-        "rotationAxis": [0.0, 1.0, 0.0]
+        "rotation": [0.0, 0.0, 0.0]
       }
     },
     {
@@ -56,11 +55,11 @@
     },
     {
       "type": "particles",
-      "position": [0.0, 10.0, 0.0],
+      "translation": [0.0, 10.0, 0.0],
       "extent": [30.0, 15.0, 30.0],
       "color": [1.0, 1.0, 1.0, 0.8],
       "colorVariation": [0.0, 0.0, 0.1, 0.2],
-      "lifeTime": 5.0,
+      "lifetime": 5.0,
       "count": 500
     }
   ]
