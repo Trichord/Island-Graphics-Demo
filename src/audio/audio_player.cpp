@@ -59,14 +59,14 @@ AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
     ma_engine_listener_set_world_up(&audioEngine_, 0, WorldVectors::worldUp.x, WorldVectors::worldUp.y,
                                     WorldVectors::worldUp.z);
 
-    zones_.reserve(audio.audioEntries.size());
+    trigger_.reserve(audio.audioEntries.size());
     hasPlayed_.resize(audio.audioEntries.size());
-    footsteps_.reserve(audio.footsteps.size());
+    footsteps_.reserve(audio.footsteps.soundPaths.size());
 
     for (const AudioEntry &entry : audio.audioEntries)
     {
-        zones_.emplace_back(Zone{
-            .zone = entry.zone,
+        trigger_.emplace_back(Trigger{
+            .aabb = entry.zone,
             .enabled = entry.playImmediate,
             .oneShot = entry.oneShot,
         });
@@ -80,7 +80,7 @@ AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
         if (!entry.spatialization)
             flags |= MA_SOUND_FLAG_NO_SPATIALIZATION;
 
-        ma_sound &sound{zones_.back().sound};
+        ma_sound &sound{trigger_.back().sound};
         ma_result result;
         result =
             ma_sound_init_from_file(&audioEngine_, entry.soundPath.string().c_str(), flags, nullptr, nullptr, &sound);
@@ -99,15 +99,21 @@ AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
 
         if (entry.playImmediate)
             ma_sound_start(&sound);
+
+        ma_sound_set_volume(&sound, entry.volume);
     }
 
-    for (const std::filesystem::path &path : audio.footsteps)
+    for (const std::filesystem::path &path : audio.footsteps.soundPaths)
     {
-        footsteps_.emplace_back(ma_sound{});
+        footsteps_.emplace_back(Footstep{
+            .volume = audio.footsteps.volume,
+            .sound = ma_sound{},
+        });
+
         ma_result result;
         result = ma_sound_init_from_file(&audioEngine_, path.string().c_str(),
                                          MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_NO_SPATIALIZATION, nullptr, nullptr,
-                                         &footsteps_.back());
+                                         &footsteps_.back().sound);
 
         if (result != MA_SUCCESS)
         {
@@ -119,45 +125,43 @@ AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
 
 AudioPlayer::~AudioPlayer()
 {
-    for (Zone &zone : zones_)
+    for (Trigger &zone : trigger_)
         ma_sound_uninit(&zone.sound);
 
-    for (ma_sound &sound : footsteps_)
-        ma_sound_uninit(&sound);
+    for (Footstep &footstep : footsteps_)
+        ma_sound_uninit(&footstep.sound);
 
     ma_engine_uninit(&audioEngine_);
 }
 
 void AudioPlayer::update(const glm::vec3 &listenerPos, const glm::vec3 &listenerFront)
 {
-    if (zones_.empty())
+    if (trigger_.empty())
         return;
 
-    for (std::size_t i{0}; i < zones_.size(); ++i)
+    for (std::size_t i{0}; i < trigger_.size(); ++i)
     {
-        Zone &zone{zones_[i]};
-        const bool wasEnabled{zone.enabled};
+        Trigger &trigger{trigger_[i]};
 
-        zone.enabled = zone.zone.pointInside(listenerPos);
+        if (ma_sound_at_end(&trigger.sound))
+            hasPlayed_[i] = true;
 
-        if (wasEnabled != zone.enabled)
+        if (trigger.oneShot && hasPlayed_[i] || trigger.oneShot && ma_sound_is_playing(&trigger.sound))
+            continue;
+
+        const bool wasEnabled{trigger.enabled};
+        trigger.enabled = trigger.aabb.pointInside(listenerPos);
+
+        if (wasEnabled != trigger.enabled)
         {
-            if (zone.enabled)
-            {
-                if (zone.oneShot && hasPlayed_[i])
-                    continue;
-
-                ma_sound_start(&zone.sound);
-
-                if (ma_sound_at_end(&zone.sound))
-                    hasPlayed_[i] = true;
-            }
+            if (trigger.enabled)
+                ma_sound_start(&trigger.sound);
             else
             {
-                ma_sound_stop(&zone.sound);
+                ma_sound_stop(&trigger.sound);
 
-                if (!ma_sound_is_looping(&zone.sound))
-                    ma_sound_seek_to_pcm_frame(&zone.sound, 0);
+                if (!ma_sound_is_looping(&trigger.sound))
+                    ma_sound_seek_to_pcm_frame(&trigger.sound, 0);
             }
         }
     }
@@ -170,7 +174,6 @@ void AudioPlayer::playFootstep()
 {
     constexpr float pitchVariation{0.2f};
     constexpr float volumeVariation{0.4f};
-    constexpr float footstepVolume{0.8f};
 
     static std::minstd_rand gen{std::random_device{}()};
 
@@ -179,14 +182,14 @@ void AudioPlayer::playFootstep()
 
     float randomPitch{std::uniform_real_distribution<float>(-pitchVariation, pitchVariation)(gen)};
     float randomVolume{std::uniform_real_distribution<float>(0.0f, volumeVariation)(gen)};
-    int soundIndex{std::uniform_int_distribution<int>(0, footsteps_.size() - 1)(gen)};
+    int randomIndex{std::uniform_int_distribution<int>(0, footsteps_.size() - 1)(gen)};
 
-    ma_sound &sound{footsteps_[soundIndex]};
+    Footstep &footstep{footsteps_[randomIndex]};
 
     // Only make footsteps randomly softer. Normal footstep volume is already plenty.
-    ma_sound_set_volume(&sound, footstepVolume - volumeVariation);
-    ma_sound_set_pitch(&sound, 1.0f + randomPitch);
+    ma_sound_set_volume(&footstep.sound, footstep.volume - randomVolume);
+    ma_sound_set_pitch(&footstep.sound, 1.0f + randomPitch);
 
-    ma_sound_seek_to_pcm_frame(&sound, 0);
-    ma_sound_start(&sound);
+    ma_sound_seek_to_pcm_frame(&footstep.sound, 0);
+    ma_sound_start(&footstep.sound);
 }

@@ -18,17 +18,24 @@ class AudioPlayer
     void playFootstep();
 
   private:
-    struct Zone
+    struct Trigger
     {
-        AABB zone;
+        AABB aabb;
         ma_sound sound;
         bool enabled{false};
         bool oneShot{false};
     };
 
+    struct Footstep
+    {
+        // Store the volume locally so it can be randomly altered
+        float volume{1.0f};
+        ma_sound sound;
+    };
+
     ma_engine audioEngine_ = {};
-    std::vector<Zone> zones_;
-    std::vector<ma_sound> footsteps_;
+    std::vector<Trigger> trigger_;
+    std::vector<Footstep> footsteps_;
     std::vector<bool> hasPlayed_;
 
     void playSounds() const;

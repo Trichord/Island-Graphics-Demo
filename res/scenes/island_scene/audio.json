@@ -1,8 +1,22 @@
 {
- "footsteps": [
-    "./res/audio/sfx/footstep1.wav",
-    "./res/audio/sfx/footstep2.wav",
-    "./res/audio/sfx/footstep3.wav",
-    "./res/audio/sfx/footstep4.wav"
-  ]
+  "entries": [
+    {
+      "soundPath": "./res/audio/music/ambient.mp3",
+      "zoneCenter": [-6.18625, 14.6561, -171.031],
+      "zoneExtent": [31.557, 13.4663, 39.1258],
+      "volume": 0.625,
+      "oneShot": true,
+      "streaming": true,
+      "spatialization": false
+    }
+  ],
+  "footsteps": {
+    "volume": 0.5,
+    "soundPaths": [
+      "./res/audio/sfx/footstep1.wav",
+      "./res/audio/sfx/footstep2.wav",
+      "./res/audio/sfx/footstep3.wav",
+      "./res/audio/sfx/footstep4.wav"
+    ]
+  }
 }

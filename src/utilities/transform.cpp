@@ -43,6 +43,12 @@ void Transform::setAbsoluteScale(float absoluteScale)
     isDirty_ = true;
 }
 
+void Transform::setAbsoluteScale(const glm::vec3 &absoluteScale)
+{
+    scale_ = glm::vec3(absoluteScale);
+    isDirty_ = true;
+}
+
 void Transform::setRelativeTranslation(glm::vec3 relativeTranslation)
 {
     translation_ += relativeTranslation;
@@ -57,6 +63,12 @@ void Transform::setRelativeRotation(glm::vec3 relativeRotation)
 }
 
 void Transform::setRelativeScale(float relativeScale)
+{
+    scale_ *= relativeScale;
+    isDirty_ = true;
+}
+
+void Transform::setRelativeScale(const glm::vec3 &relativeScale)
 {
     scale_ *= relativeScale;
     isDirty_ = true;
