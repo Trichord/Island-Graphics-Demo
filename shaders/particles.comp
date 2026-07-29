@@ -10,7 +10,6 @@ const float mass = 0.1;
 const float invMass = 1.0 / mass;
 const float timeScale = 0.75;
 const float blackHolePosScale = 0.33;
-const float minLifetimePercent = 0.75;
 const float resetVelocityDamper = 0.005;
 
 // Attributes

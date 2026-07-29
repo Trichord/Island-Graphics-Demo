@@ -148,11 +148,7 @@ void CharacterCapsule::handleInput(const JPH::Vec3 &direction, bool jump, float 
 
     Vec3 newVelocity;
 
-    if (capsule_->GetGroundState() == CharacterVirtual::EGroundState::OnGround // If on ground
-        && (enableCharacterInertia_
-                ? movingTowardsGround // Inertia enabled: And not moving away from ground
-                : !capsule_->IsSlopeTooSteep(
-                      capsule_->GetGroundNormal()))) // Inertia disabled: And not on a slope that is too steep
+    if (isGrounded() && movingTowardsGround)
     {
         // Assume velocity of ground when on ground
         newVelocity = groundVelocity;
@@ -224,4 +220,9 @@ void CharacterCapsule::OnContactSolve(const JPH::CharacterVirtual *inCharacter, 
 JPH::Vec3 CharacterCapsule::getVelocity() const
 {
     return capsule_->GetLinearVelocity();
+}
+
+bool CharacterCapsule::isGrounded() const
+{
+    return capsule_->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround;
 }

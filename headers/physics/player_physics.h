@@ -40,13 +40,18 @@ class PlayerPhysics
     void toggleSprint(bool enable);
 
     void update(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime);
+    bool footstepTriggered();
 
   private:
-    static constexpr float physicsTick{1.0f / 60.0f};
+    static constexpr float physicsTick_{1.0f / 60.0f};
+    static constexpr float footstepDistance_{2.0f};
+    static constexpr float firstStepDistance_{0.1f};
+    static constexpr float maxAccumulator_{physicsTick_ * 3.0f};
 
-    float accumulator_{0.0f};
+    float timeAccumulator_{0.0f};
+    float footstepAccumulator_{footstepDistance_ - firstStepDistance_};
     float resetHeight_{0.0f};
-    glm::vec3 previousPosition_{0.0f};
+    JPH::Vec3 previousPosition_{0.0f, 0.0f, 0.0f};
     JPH::Vec3 resetPosition_{0.0f, 0.0f, 0.0f};
 
     JPH::PhysicsSystem &physicsSystem_;

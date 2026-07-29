@@ -301,6 +301,9 @@ void Application::processKeyboard(Camera &camera, PlayerPhysics &physicsHandler,
     const glm::vec3 pos{physicsHandler.getInterpolatedPosition()};
     camera.setPosition(pos);
     audioPlayer.update(pos, camera.getFront());
+
+    if (physicsHandler.footstepTriggered())
+        audioPlayer.playFootstep();
 }
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)

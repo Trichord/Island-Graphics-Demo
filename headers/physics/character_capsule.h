@@ -29,11 +29,13 @@ class CharacterCapsule : public JPH::CharacterContactListener
     JPH::Vec3 getCenter() const;
     JPH::Vec3 getPosition() const;
     JPH::Vec3 getVelocity() const;
+    bool isGrounded() const;
 
     void setPosition(JPH::Vec3 position);
     void setVelocity(JPH::Vec3 velocity);
     void toggleCrouch(bool enable);
     void toggleSprint(bool enable);
+
 
     void physicsUpdate(float deltaTime);
     void handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime);
@@ -64,7 +66,6 @@ class CharacterCapsule : public JPH::CharacterContactListener
     bool crouched_{false};
     bool allowSliding_{false};
     bool characterSprinting_{false};
-    bool enableCharacterInertia_{true};
     bool controlMovementDuringJump_{true};
 
     JPH::Vec3 desiredVelocity_{0.0f, 0.0f, 0.0f};

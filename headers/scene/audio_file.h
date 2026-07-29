@@ -18,15 +18,10 @@ struct AudioEntry
     bool spatialization{false};
 };
 
-struct Footsteps
-{
-    std::vector<std::filesystem::path> soundPaths;
-};
-
 struct AudioFile
 {
     std::vector<AudioEntry> audioEntries;
-    Footsteps footsteps;
+    std::vector<std::filesystem::path> footsteps;
 };
 
 inline glm::vec3 parseVec3(const nlohmann::json &j)
@@ -49,13 +44,8 @@ inline void from_json(const nlohmann::json &j, AudioEntry &entry)
     entry.spatialization = j.value("spatialization", true);
 }
 
-inline void from_json(const nlohmann::json &j, Footsteps &footsteps)
-{
-    footsteps.soundPaths = j.value("footsteps", std::vector<std::filesystem::path>{});
-}
-
 inline void from_json(const nlohmann::json &j, AudioFile &audioFile)
 {
     audioFile.audioEntries = j.value("entries", std::vector<AudioEntry>{});
-    audioFile.footsteps = j.value("footsteps", Footsteps{});
+    audioFile.footsteps = j.value("footsteps", std::vector<std::filesystem::path>{});
 }

@@ -61,7 +61,7 @@ AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
 
     zones_.reserve(audio.audioEntries.size());
     hasPlayed_.resize(audio.audioEntries.size());
-    footsteps_.reserve(audio.footsteps.soundPaths.size());
+    footsteps_.reserve(audio.footsteps.size());
 
     for (const AudioEntry &entry : audio.audioEntries)
     {
@@ -91,6 +91,9 @@ AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
             throw std::runtime_error("Failed to load sound");
         }
 
+        glm::vec3 pos{entry.zone.getCenter()};
+        ma_sound_set_position(&sound, pos.x, pos.y, pos.z);
+
         if (entry.loop)
             ma_sound_set_looping(&sound, MA_TRUE);
 
@@ -98,11 +101,12 @@ AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
             ma_sound_start(&sound);
     }
 
-    for (const std::filesystem::path &path : audio.footsteps.soundPaths)
+    for (const std::filesystem::path &path : audio.footsteps)
     {
         footsteps_.emplace_back(ma_sound{});
         ma_result result;
-        result = ma_sound_init_from_file(&audioEngine_, path.string().c_str(), MA_SOUND_FLAG_DECODE, nullptr, nullptr,
+        result = ma_sound_init_from_file(&audioEngine_, path.string().c_str(),
+                                         MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_NO_SPATIALIZATION, nullptr, nullptr,
                                          &footsteps_.back());
 
         if (result != MA_SUCCESS)
@@ -164,20 +168,25 @@ void AudioPlayer::update(const glm::vec3 &listenerPos, const glm::vec3 &listener
 
 void AudioPlayer::playFootstep()
 {
-    constexpr float pitchVariation{0.1f};
+    constexpr float pitchVariation{0.2f};
+    constexpr float volumeVariation{0.4f};
+    constexpr float footstepVolume{0.8f};
+
     static std::minstd_rand gen{std::random_device{}()};
 
     if (footsteps_.empty())
         return;
 
-    int soundIndex{std::uniform_int_distribution<int>(0, footsteps_.size())(gen)};
     float randomPitch{std::uniform_real_distribution<float>(-pitchVariation, pitchVariation)(gen)};
+    float randomVolume{std::uniform_real_distribution<float>(0.0f, volumeVariation)(gen)};
+    int soundIndex{std::uniform_int_distribution<int>(0, footsteps_.size() - 1)(gen)};
 
     ma_sound &sound{footsteps_[soundIndex]};
 
-    if (ma_sound_at_end(&sound))
-        ma_sound_seek_to_pcm_frame(&sound, 0);
-
+    // Only make footsteps randomly softer. Normal footstep volume is already plenty.
+    ma_sound_set_volume(&sound, footstepVolume - volumeVariation);
     ma_sound_set_pitch(&sound, 1.0f + randomPitch);
+
+    ma_sound_seek_to_pcm_frame(&sound, 0);
     ma_sound_start(&sound);
 }

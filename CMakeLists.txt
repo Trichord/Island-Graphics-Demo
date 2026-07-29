@@ -12,9 +12,9 @@ find_package(glad CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(fastgltf CONFIG REQUIRED)
-find_package(nlohmann_json CONFIG REQUIRED)
 find_package(Jolt CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 # Source files
 

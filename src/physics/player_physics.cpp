@@ -78,13 +78,17 @@ PlayerPhysics::~PlayerPhysics()
 
 void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
 {
-    accumulator_ += deltaTime;
+    // Avoid feedback loop when framerate drops
+    timeAccumulator_ = std::min(timeAccumulator_ + deltaTime, maxAccumulator_);
 
-    while (accumulator_ > physicsTick)
+    while (timeAccumulator_ > physicsTick_)
     {
-        previousPosition_ = toGLM(player_.getCenter());
-        tick(direction, front, jump, physicsTick);
-        accumulator_ -= physicsTick;
+        previousPosition_ = player_.getCenter();
+        tick(direction, front, jump, physicsTick_);
+        timeAccumulator_ -= physicsTick_;
+
+        if (player_.isGrounded())
+            footstepAccumulator_ += (player_.getCenter() - previousPosition_).Length();
     }
 }
 
@@ -98,7 +102,7 @@ void PlayerPhysics::tick(std::uint8_t direction, const glm::vec3 &front, bool ju
         player_.setPosition(resetPosition_);
 
         // Override last position too, so we don't interpolate between two wildly different points
-        previousPosition_ = toGLM(resetPosition_);
+        previousPosition_ = resetPosition_;
 
         JPH::Vec3 velocity{player_.getVelocity()};
         JPH::Vec3 newVelocity{velocity.GetX(), std::max(velocity.GetY(), maxFallVelocity), velocity.GetZ()};
@@ -154,8 +158,8 @@ void PlayerPhysics::setPosition(const glm::vec3 &newPosition)
 glm::vec3 PlayerPhysics::getInterpolatedPosition() const
 {
     // Interpolate camera between last position and latest physics tick (Glenn Fiedler)
-    float alpha{accumulator_ / physicsTick};
-    return glm::mix(previousPosition_, getPosition(), alpha);
+    float alpha{timeAccumulator_ / physicsTick_};
+    return glm::mix(toGLM(previousPosition_), getPosition(), alpha);
 };
 
 void PlayerPhysics::toggleCrouch(bool enable)
@@ -166,4 +170,15 @@ void PlayerPhysics::toggleCrouch(bool enable)
 void PlayerPhysics::toggleSprint(bool enable)
 {
     player_.toggleSprint(enable);
+}
+
+bool PlayerPhysics::footstepTriggered()
+{
+    if (footstepAccumulator_ >= footstepDistance_)
+    {
+        footstepAccumulator_ = std::fmod(footstepAccumulator_, footstepDistance_);
+        return true;
+    }
+
+    return false;
 }

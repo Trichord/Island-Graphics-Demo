@@ -1,0 +1,8 @@
+{
+ "footsteps": [
+    "./res/audio/sfx/footstep1.wav",
+    "./res/audio/sfx/footstep2.wav",
+    "./res/audio/sfx/footstep3.wav",
+    "./res/audio/sfx/footstep4.wav"
+  ]
+}
