@@ -405,7 +405,7 @@ void SettingsWindow::loadConfigWindowImage()
         .anisotropicFiltering = false,
     };
 
-    textureID_ = TextureUtilities::textureFromFile("./res/textures/wireframe_sphere.ktx2", details);
+    textureID_ = texture::textureFromFile("./res/textures/wireframe_sphere.ktx2", details);
 }
 
 void SettingsWindow::updateResolution(GraphicsSettings &settings, int index)

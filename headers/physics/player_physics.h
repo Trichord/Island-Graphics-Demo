@@ -1,31 +1,33 @@
 #pragma once
 
-#include <jolt/Jolt.h>
+#include <Jolt/Jolt.h>
 
+#include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Math/Vec3.h>
+#include <Jolt/Physics/Body/BodyID.h>
+#include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/PhysicsSystem.h>
 #include <cstdint>
 #include <glm/glm.hpp>
-#include <jolt/Core/TempAllocator.h>
-#include <jolt/Math/Vec3.h>
-#include <jolt/Physics/Body/Body.h>
-#include <jolt/Physics/Body/BodyInterface.h>
-#include <jolt/Physics/PhysicsSystem.h>
+#include <vector>
 
 #include "physics/character_capsule.h"
 #include "scene/scene.h"
 
 enum CharacterMovement : std::uint8_t
 {
+    NONE = 0,
     FORWARD = 1U,
     BACKWARD = 2U,
     LEFT = 4U,
     RIGHT = 8U,
-    NONE = 16U
+    UP = 16U
 };
 
 class PlayerPhysics
 {
   public:
-    PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator);
+    PlayerPhysics(const Scene &scene, JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator);
     PlayerPhysics(const PlayerPhysics &) = delete;
     PlayerPhysics &operator=(const PlayerPhysics &) = delete;
     PlayerPhysics(PlayerPhysics &&other) = delete;
@@ -39,7 +41,7 @@ class PlayerPhysics
     void toggleCrouch(bool enable);
     void toggleSprint(bool enable);
 
-    void update(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime);
+    void update(std::uint8_t direction, const glm::vec3 &front, float deltaTime);
     bool footstepTriggered();
 
   private:
@@ -48,18 +50,17 @@ class PlayerPhysics
     static constexpr float firstStepDistance_{0.1f};
     static constexpr float maxAccumulator_{physicsTick_ * 3.0f};
 
+    bool jumpTriggered_{false};
     float timeAccumulator_{0.0f};
     float footstepAccumulator_{footstepDistance_ - firstStepDistance_};
     float resetHeight_{0.0f};
     JPH::Vec3 previousPosition_{0.0f, 0.0f, 0.0f};
     JPH::Vec3 resetPosition_{0.0f, 0.0f, 0.0f};
 
+    std::vector<JPH::BodyID> bodyIDs_;
     JPH::PhysicsSystem &physicsSystem_;
     JPH::BodyInterface *bodyInterface_;
     JPH::TempAllocatorImpl &tempAllocator_;
-
-    // Physics body for terrain
-    JPH::Body *terrain_{nullptr};
 
     // The player capsule
     CharacterCapsule player_;

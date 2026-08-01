@@ -16,6 +16,7 @@
 #include "models/particles.h"
 #include "models/primitive.h"
 #include "models/skybox.h"
+#include "physics/collision_shapes.h"
 #include "renderer/shader/graphics_shader.h"
 #include "scene/camera.h"
 #include "scene/directional_light.h"
@@ -42,7 +43,7 @@ class Scene
         std::vector<Transform> worldTransforms;
         std::optional<EntryAnimation> entryAnimation;
 
-        std::optional<std::filesystem::path> modelPath;
+        std::optional<Collision::Geometry> collisionGeometry;
     };
 
     Scene(TextureManager &_textureManager, const GraphicsSettings &graphicsSettings,
@@ -112,11 +113,14 @@ class Scene
     void addSkybox(Handle handle, const Skybox &skybox);
     void addParticles(Handle handle, const Particles &particles);
     void addModel(Handle handle, const Model &model, const Transform &transform, ShaderType shaderType,
-                  const std::string &name = {});
+                  const std::optional<Collision::Geometry> & = {}, const std::string &name = {});
     void addInstancedModel(Handle handle, const InstancedModel &model, ShaderType shaderType,
+                           const std::optional<Collision::Geometry> &collisionGeometry = {},
                            const std::string &name = {});
     void addCubemappedModel(Handle handle, const Model &model, const std::filesystem::path &imagePath,
-                            const Transform &transform, ShaderType shaderType, const std::string &name = {});
+                            const Transform &transform, ShaderType shaderType,
+                            const std::optional<Collision::Geometry> &collisionGeometry = {},
+                            const std::string &name = {});
 
     std::size_t findHandle(Handle handle) const;
     std::size_t findName(std::string_view name) const;

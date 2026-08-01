@@ -10,7 +10,7 @@
 #include "renderer/textures.h"
 #include "scene/handle.h"
 
-namespace AssetLoader
+namespace loader
 {
 
 struct TextureDescriptor

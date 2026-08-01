@@ -46,9 +46,9 @@ set(SOURCES
     src/renderer/shader/shader_base.cpp
     src/scene/camera.cpp
     src/scene/directional_light.cpp
+    src/scene/scene.cpp
     src/scene/island_scene/island_scene.cpp
     src/scene/island_scene/seagull.cpp
-    src/scene/scene.cpp
     src/utilities/array_texture.cpp
     src/utilities/asset_loader.cpp
     src/utilities/buffer_builder.cpp
@@ -80,6 +80,7 @@ set(HEADERS
     headers/models/animation/skeletal_animation.h
     headers/models/animation/skeleton.h
     headers/physics/character_capsule.h
+    headers/physics/collision_shapes.h
     headers/physics/jolt_impl.h
     headers/physics/physics_utilities.h
     headers/physics/player_physics.h
@@ -98,15 +99,16 @@ set(HEADERS
     headers/scene/camera.h
     headers/scene/directional_light.h
     headers/scene/handle.h
-    headers/scene/island_scene/island_scene.h
-    headers/scene/island_scene/seagull.h
     headers/scene/scene.h
     headers/scene/scene_file.h
+    headers/scene/island_scene/island_scene.h
+    headers/scene/island_scene/seagull.h
     headers/utilities/array_texture.h
     headers/utilities/asset_loader.h
     headers/utilities/buffer_builder.h
     headers/utilities/json_loader.h
     headers/utilities/ktx_texture.h
+    headers/utilities/overloaded.h
     headers/utilities/scene_processor.h
     headers/utilities/texture_loader.h
     headers/utilities/texture_manager.h

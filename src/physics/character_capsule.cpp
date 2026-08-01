@@ -1,21 +1,21 @@
 #include "physics/character_capsule.h"
 
-#include <jolt/Core/Reference.h>
-#include <jolt/Core/TempAllocator.h>
-#include <jolt/Geometry/Plane.h>
-#include <jolt/Math/MathTypes.h>
-#include <jolt/Math/Quat.h>
-#include <jolt/Math/Real.h>
-#include <jolt/Math/Vec3.h>
-#include <jolt/Physics/Body/BodyID.h>
-#include <jolt/Physics/Character/CharacterBase.h>
-#include <jolt/Physics/Character/CharacterVirtual.h>
-#include <jolt/Physics/Collision/PhysicsMaterial.h>
-#include <jolt/Physics/Collision/Shape/CapsuleShape.h>
-#include <jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
-#include <jolt/Physics/Collision/Shape/Shape.h>
-#include <jolt/Physics/Collision/Shape/SubShapeID.h>
-#include <jolt/Physics/PhysicsSystem.h>
+#include <Jolt/Core/Reference.h>
+#include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Geometry/Plane.h>
+#include <Jolt/Math/MathTypes.h>
+#include <Jolt/Math/Quat.h>
+#include <Jolt/Math/Real.h>
+#include <Jolt/Math/Vec3.h>
+#include <Jolt/Physics/Body/BodyID.h>
+#include <Jolt/Physics/Character/CharacterBase.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
+#include <Jolt/Physics/Collision/PhysicsMaterial.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include <Jolt/Physics/Collision/Shape/Shape.h>
+#include <Jolt/Physics/Collision/Shape/SubShapeID.h>
+#include <Jolt/Physics/PhysicsSystem.h>
 
 #include "physics/jolt_impl.h"
 
@@ -87,8 +87,6 @@ void CharacterCapsule::toggleCrouch(bool enable)
     if (crouched_ == enable)
         return;
 
-    crouched_ = !crouched_;
-
     // Toggle crouch based off the current shape of the capsule
     bool isStanding{capsule_->GetShape() == standingShape_};
     const Shape *shape{isStanding ? crouchingShape_ : standingShape_};
@@ -99,6 +97,7 @@ void CharacterCapsule::toggleCrouch(bool enable)
     {
         const Shape *inner_shape{isStanding ? innerCrouchingShape_ : innerStandingShape_};
         capsule_->SetInnerBodyShape(inner_shape);
+        crouched_ = enable;
     }
 }
 
@@ -107,6 +106,7 @@ void CharacterCapsule::toggleSprint(bool enable)
     if (characterSprinting_ == enable)
         return;
 
+    // Stop sprint toggle mid-air, since that affects velocity.
     if (capsule_->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround)
         characterSprinting_ = !characterSprinting_;
 }
@@ -141,21 +141,15 @@ void CharacterCapsule::handleInput(const JPH::Vec3 &direction, bool jump, float 
         allowSliding_ = true;
     }
 
-    // Current velocity
+    // New velocity starts at zero and is built up through conditions
+    Vec3 newVelocity{JPH::Vec3::sZero()};
     Vec3 currentVerticalVelocity{capsule_->GetLinearVelocity().Dot(capsule_->GetUp()) * capsule_->GetUp()};
-    Vec3 groundVelocity{capsule_->GetGroundVelocity()};
-    bool movingTowardsGround{(currentVerticalVelocity.GetY() - groundVelocity.GetY()) < 0.1f};
-
-    Vec3 newVelocity;
+    bool movingTowardsGround{currentVerticalVelocity.GetY() < 0.1f};
 
     if (isGrounded() && movingTowardsGround)
     {
-        // Assume velocity of ground when on ground
-        newVelocity = groundVelocity;
-
-        // Jump
-        if (jump && movingTowardsGround)
-            newVelocity += jumpSpeed_ * capsule_->GetUp();
+        if (jump)
+            newVelocity = jumpSpeed_ * capsule_->GetUp();
     }
     else
         newVelocity = currentVerticalVelocity;
@@ -202,6 +196,11 @@ void CharacterCapsule::OnContactSolve(const JPH::CharacterVirtual *inCharacter, 
     if (inCharacter != capsule_)
         return;
 
+    // Don't allow the player to slide down static not-too-steep surfaces when not actively moving and when not on a
+    // moving platform
+    if (!allowSliding_ && inContactVelocity.IsNearZero() && !inCharacter->IsSlopeTooSteep(inContactNormal))
+        ioNewCharacterVelocity = JPH::Vec3::sZero();
+
     // Cancel out any vertical component to prevent steep slope jitter
     if (inCharacter->IsSlopeTooSteep(inContactNormal))
     {
@@ -210,11 +209,13 @@ void CharacterCapsule::OnContactSolve(const JPH::CharacterVirtual *inCharacter, 
         if (vertical > 0.0f)
             ioNewCharacterVelocity -= vertical * up;
     }
+}
 
-    // Don't allow the player to slide down static not-too-steep surfaces when not actively moving and when not on a
-    // moving platform
-    if (!allowSliding_ && inContactVelocity.IsNearZero() && !inCharacter->IsSlopeTooSteep(inContactNormal))
-        ioNewCharacterVelocity = JPH::Vec3::sZero();
+bool CharacterCapsule::OnContactValidate(const JPH::CharacterVirtual *inCharacter,
+                                         const JPH::CharacterContact &inContact)
+{
+    // Prevent standing on upside down faces by checking if surface normal is within ~30 degrees of up.
+    return !inContact.mIsBackFacingContact || inContact.mSurfaceNormal.Dot(inCharacter->GetUp()) < 0.866025f;
 }
 
 JPH::Vec3 CharacterCapsule::getVelocity() const

@@ -1,63 +1,32 @@
 #include "physics/player_physics.h"
 
-#include <jolt/Jolt.h>
+#include <Jolt/Jolt.h>
 
+#include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Math/Vec3.h>
+#include <Jolt/Physics/Body/BodyID.h>
+#include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/PhysicsSystem.h>
+#include <algorithm>
+#include <cstdint>
 #include <glm/glm.hpp>
-#include <jolt/Core/TempAllocator.h>
-#include <jolt/Math/Quat.h>
-#include <jolt/Math/Real.h>
-#include <jolt/Math/Vec3.h>
-#include <jolt/Physics/Body/BodyCreationSettings.h>
-#include <jolt/Physics/Body/MotionType.h>
-#include <jolt/Physics/Collision/Shape/MeshShape.h>
-#include <jolt/Physics/Collision/Shape/Shape.h>
-#include <jolt/Physics/EActivation.h>
-#include <jolt/Physics/PhysicsSystem.h>
 
 #include "physics/jolt_impl.h"
 #include "physics/physics_utilities.h"
 #include "scene/scene.h"
 #include "utilities/world_vectors.h"
 
-PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator)
+PlayerPhysics::PlayerPhysics(const Scene &scene, JPH::PhysicsSystem &physicsSystem,
+                             JPH::TempAllocatorImpl &tempAllocator)
     : resetPosition_{toJPHVec3(scene.getCamera().getPosition())}, physicsSystem_{physicsSystem},
-      tempAllocator_{tempAllocator}, player_{physicsSystem, tempAllocator}
+      tempAllocator_{tempAllocator}, bodyInterface_{&physicsSystem.GetBodyInterface()},
+      player_{physicsSystem, tempAllocator}
 {
     using namespace JPH;
 
-    // bodyInterface_ = &physicsSystem_.GetBodyInterfaceNoLock();
-    bodyInterface_ = &physicsSystem_.GetBodyInterface();
-
-    // Build the static collision mesh from scene
-    physicsUtilities::CollisionMesh collisionMesh{physicsUtilities::buildCollisionMesh(scene)};
-
-    if (!collisionMesh.mesh.empty())
-    {
-        resetHeight_ = collisionMesh.minimumHeight;
-
-        // Create terrain and flag it to survive this constructor call
-        MeshShapeSettings terrainShapeSettings{collisionMesh.mesh};
-        terrainShapeSettings.SetEmbedded();
-
-        // Create the shape
-        ShapeSettings::ShapeResult terrainResult{terrainShapeSettings.Create()};
-        ShapeRefC terrainShape{terrainResult.Get()};
-
-        // Terrain properties
-        BodyCreationSettings terrainSettings{terrainShape, RVec3::sZero(), Quat::sIdentity(), EMotionType::Static,
-                                             Layers::NON_MOVING};
-
-        // Create the actual rigid body
-        terrain_ = bodyInterface_->CreateBody(terrainSettings);
-
-        // Add it to the world
-        bodyInterface_->AddBody(terrain_->GetID(), EActivation::DontActivate);
-    }
-    else
-    {
-        resetHeight_ = -1000000.0f;
-    }
-
+    physics::StaticBodies staticBodies{physics::buildCollisionGeometry(scene, *bodyInterface_)};
+    resetHeight_ = staticBodies.minimumHeight;
+    bodyIDs_ = std::move(staticBodies.ids);
     physicsSystem_.OptimizeBroadPhase();
 
     // Set start position
@@ -69,17 +38,18 @@ PlayerPhysics::~PlayerPhysics()
 {
     using namespace JPH;
 
-    if (terrain_)
+    for (JPH::BodyID &id : bodyIDs_)
     {
-        bodyInterface_->RemoveBody(terrain_->GetID());
-        bodyInterface_->DestroyBody(terrain_->GetID());
+        bodyInterface_->RemoveBody(id);
+        bodyInterface_->DestroyBody(id);
     }
 }
 
-void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
+void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float deltaTime)
 {
     // Avoid feedback loop when framerate drops
     timeAccumulator_ = std::min(timeAccumulator_ + deltaTime, maxAccumulator_);
+    const bool jump{(direction & CharacterMovement::UP) != 0};
 
     while (timeAccumulator_ > physicsTick_)
     {

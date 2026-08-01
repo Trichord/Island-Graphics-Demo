@@ -17,9 +17,9 @@ KTXTexture::KTXTexture(const std::filesystem::path path) : path_{path}
 
     if (result == KTX_SUCCESS)
     {
-        if (TextureUtilities::transcodeKTX(*this))
+        if (texture::transcodeKTX(*this))
         {
-            int maxMip{TextureUtilities::calculateMipmapLevels(static_cast<int>(texture_->baseWidth),
+            int maxMip{texture::calculateMipmapLevels(static_cast<int>(texture_->baseWidth),
                                                                static_cast<int>(texture_->baseHeight), true)};
             maxMipLevels_ = std::min(static_cast<ktx_uint32_t>(maxMip), texture_->numLevels);
         }

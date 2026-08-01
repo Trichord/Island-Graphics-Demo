@@ -144,7 +144,7 @@ void getNodeTransforms(const fastgltf::Asset &asset, std::vector<Primitive> &pri
     {
         fastgltf::iterateSceneNodes(
             asset, i, fastgltf::math::fmat4x4(1.0f), [&](const fastgltf::Node &node, fastgltf::math::fmat4x4 matrix) {
-                if (node.meshIndex.has_value() && !node.skinIndex.has_value())
+                if (node.meshIndex && !node.skinIndex)
                 {
                     const std::size_t meshIndex{node.meshIndex.value()};
                     const PrimitiveRange &range{meshToPrimitive[meshIndex]};
@@ -162,7 +162,7 @@ void loadSkin(const fastgltf::Asset &asset, const fastgltf::Skin &srcSkin, Skele
 {
     dstSkin.jointNodes.assign(srcSkin.joints.begin(), srcSkin.joints.end());
 
-    if (srcSkin.inverseBindMatrices.has_value())
+    if (srcSkin.inverseBindMatrices)
     {
         auto &accessor = asset.accessors[*srcSkin.inverseBindMatrices];
 
@@ -290,7 +290,7 @@ std::vector<Animation> loadAnimations(const fastgltf::Asset &asset)
             dstChannel.path = fastgltfToAnimationPath(srcChannel.path);
             dstChannel.samplerIndex = srcChannel.samplerIndex;
 
-            if (!srcChannel.nodeIndex.has_value())
+            if (!srcChannel.nodeIndex)
             {
                 std::cerr << "ERROR: No node target for animation channel" << std::endl;
                 throw std::runtime_error("Empty animation channel target node");
@@ -380,7 +380,7 @@ void reorderSkeleton(Skeleton &skeleton, const std::vector<size_t> &orderedParen
 
     skeleton.nodeToPrimitives = remappedNodeToPrimitive;
 
-    if (!skeleton.skin.has_value())
+    if (!skeleton.skin)
         return;
 
     const auto jOriginal = skeleton.skin->jointNodes;
@@ -398,7 +398,7 @@ void reorderAnimations(std::vector<Animation> &animations, const std::vector<std
 
 } // namespace
 
-fastgltf::Asset AssetLoader::loadAsset(const std::filesystem::path &path)
+fastgltf::Asset loader::loadAsset(const std::filesystem::path &path)
 {
     static fastgltf::Parser parser;
     auto data = fastgltf::GltfDataBuffer::FromPath(path);
@@ -423,7 +423,7 @@ fastgltf::Asset AssetLoader::loadAsset(const std::filesystem::path &path)
     return std::move(assetResult.get());
 }
 
-std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
+std::vector<Primitive> loader::loadMeshes(const fastgltf::Asset &asset)
 {
     std::vector<Primitive> primitives;
     std::size_t numPrimitives{0};
@@ -548,7 +548,7 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
             }
 
             // Indices
-            if (gltfPrimitive.indicesAccessor.has_value())
+            if (gltfPrimitive.indicesAccessor)
             {
                 auto &indicesAccessor = asset.accessors[gltfPrimitive.indicesAccessor.value()];
                 indices.resize(indicesAccessor.count);
@@ -565,7 +565,7 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
             std::size_t materialIndex{0};
             fastgltf::AlphaMode alphaMode{fastgltf::AlphaMode::Opaque};
 
-            if (gltfPrimitive.materialIndex.has_value() && !asset.images.empty() && !asset.materials.empty())
+            if (gltfPrimitive.materialIndex && !asset.images.empty() && !asset.materials.empty())
             {
                 materialIndex = gltfPrimitive.materialIndex.value();
                 alphaMode = asset.materials[materialIndex].alphaMode;
@@ -590,7 +590,7 @@ std::vector<Primitive> AssetLoader::loadMeshes(const fastgltf::Asset &asset)
     return primitives;
 }
 
-std::vector<std::filesystem::path> AssetLoader::getURIs(const fastgltf::Asset &asset,
+std::vector<std::filesystem::path> loader::getURIs(const fastgltf::Asset &asset,
                                                         const std::filesystem::path &parentPath)
 {
     std::vector<std::filesystem::path> URIpaths;
@@ -621,7 +621,7 @@ std::vector<std::filesystem::path> AssetLoader::getURIs(const fastgltf::Asset &a
     return URIpaths;
 }
 
-AssetLoader::TextureDescriptor AssetLoader::getTextureInfo(const fastgltf::Asset &asset,
+loader::TextureDescriptor loader::getTextureInfo(const fastgltf::Asset &asset,
                                                            const fastgltf::TextureInfo &texInfo)
 {
     const auto &texture = asset.textures[texInfo.textureIndex];
@@ -631,16 +631,16 @@ AssetLoader::TextureDescriptor AssetLoader::getTextureInfo(const fastgltf::Asset
     auto wrapS = fastgltf::Wrap::Repeat;
     auto wrapT = fastgltf::Wrap::Repeat;
 
-    if (texture.samplerIndex.has_value())
+    if (texture.samplerIndex)
     {
         auto samplerIndex = texture.samplerIndex.value();
         wrapS = asset.samplers[samplerIndex].wrapS;
         wrapT = asset.samplers[samplerIndex].wrapT;
 
-        if (asset.samplers[samplerIndex].magFilter.has_value())
+        if (asset.samplers[samplerIndex].magFilter)
             magFilter = asset.samplers[samplerIndex].magFilter.value();
 
-        if (asset.samplers[samplerIndex].minFilter.has_value())
+        if (asset.samplers[samplerIndex].minFilter)
             minFilter = asset.samplers[samplerIndex].minFilter.value();
     }
 
@@ -652,11 +652,11 @@ AssetLoader::TextureDescriptor AssetLoader::getTextureInfo(const fastgltf::Asset
 }
 
 // Queues up pending textures for an asset, to be inserted into the texture array later
-std::vector<AssetLoader::DeferredTexture> AssetLoader::texturesFromAsset(const fastgltf::Asset &asset,
+std::vector<loader::DeferredTexture> loader::texturesFromAsset(const fastgltf::Asset &asset,
                                                                          const std::filesystem::path &parentPath,
                                                                          Handle handle)
 {
-    using namespace AssetLoader;
+    using namespace loader;
 
     std::vector<DeferredTexture> deferredTextures;
     deferredTextures.reserve(asset.images.size());
@@ -712,20 +712,20 @@ std::vector<AssetLoader::DeferredTexture> AssetLoader::texturesFromAsset(const f
         const fastgltf::Material &assetMaterial = asset.materials[i];
         Material material;
 
-        if (assetMaterial.pbrData.baseColorTexture.has_value())
+        if (assetMaterial.pbrData.baseColorTexture)
         {
             const fastgltf::TextureInfo &albedoInfo{assetMaterial.pbrData.baseColorTexture.value()};
             getOrCreateTextureID(albedoInfo, Material::albedo, i);
         }
 
-        if (assetMaterial.pbrData.metallicRoughnessTexture.has_value())
+        if (assetMaterial.pbrData.metallicRoughnessTexture)
         {
             // ARM map never gets sRGB or anisotropic filtering
             const fastgltf::TextureInfo &armInfo = assetMaterial.pbrData.metallicRoughnessTexture.value();
             getOrCreateTextureID(armInfo, Material::ARM, i);
         }
 
-        if (assetMaterial.normalTexture.has_value())
+        if (assetMaterial.normalTexture)
         {
             // Normal maps get no sRGB or aniso
             const fastgltf::TextureInfo &normalInfo = assetMaterial.normalTexture.value();
@@ -736,7 +736,7 @@ std::vector<AssetLoader::DeferredTexture> AssetLoader::texturesFromAsset(const f
     return deferredTextures;
 }
 
-std::optional<SkeletalAnimation> AssetLoader::loadSkeletalAnimation(const fastgltf::Asset &asset)
+std::optional<SkeletalAnimation> loader::loadSkeletalAnimation(const fastgltf::Asset &asset)
 {
     if (asset.animations.empty())
         return {};
@@ -765,7 +765,7 @@ std::optional<SkeletalAnimation> AssetLoader::loadSkeletalAnimation(const fastgl
     {
         const auto meshIndex = asset.nodes[i].meshIndex;
 
-        if (!meshIndex.has_value())
+        if (!meshIndex)
             continue;
 
         const PrimitiveRange &range{ranges[meshIndex.value()]};

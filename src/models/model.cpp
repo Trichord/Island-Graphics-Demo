@@ -21,10 +21,10 @@
 #include "utilities/texture_manager.h"
 
 Model::Model(const std::filesystem::path &path)
-    : asset_{AssetLoader::loadAsset(path)}, filePath_{path}, primitives_{AssetLoader::loadMeshes(asset_)},
-      skeletalAnimation_{AssetLoader::loadSkeletalAnimation(asset_)}
+    : asset_{loader::loadAsset(path)}, filePath_{path}, primitives_{loader::loadMeshes(asset_)},
+      skeletalAnimation_{loader::loadSkeletalAnimation(asset_)}
 {
-    if (skeletalAnimation_.has_value() && skeletalAnimation_->skeleton.skin.has_value())
+    if (skeletalAnimation_ && skeletalAnimation_->skeleton.skin)
         recalculateAnimatedAABBs();
 }
 
@@ -55,7 +55,7 @@ void Model::recalculateAnimatedAABBs()
     const auto &skin = skeletalAnimation_->skeleton.skin;
     std::vector<Animation> &animations{skeletalAnimation_->animations};
 
-    const std::size_t numJoints{skin.has_value() ? skin->invBindMatrices.size() : 0};
+    const std::size_t numJoints{skin ? skin->invBindMatrices.size() : 0};
     const std::size_t numNodes{skeletalAnimation_->skeleton.parents.size()};
     Animator animator{numNodes, numJoints};
 
@@ -71,7 +71,7 @@ void Model::recalculateAnimatedAABBs()
 
             for (Primitive &primitive : primitives_)
             {
-                if (!primitive.vertexSkins.has_value())
+                if (!primitive.vertexSkins)
                     continue;
 
                 glm::vec3 min{primitive.aabb.getMin()};

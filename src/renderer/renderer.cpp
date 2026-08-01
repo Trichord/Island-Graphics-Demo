@@ -101,11 +101,11 @@ Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &setti
                                                                      .shadowMap = true,
                                                                  }}
                                                   : RenderTarget{}},
-      hiZTexture_{TextureUtilities::createTextureID(settings.renderWidth / hiZResolutionReduction,
+      hiZTexture_{texture::createTextureID(settings.renderWidth / hiZResolutionReduction,
                                                     settings.renderHeight / hiZResolutionReduction, hiZInternalFormat,
                                                     hiZSampler, true, false)},
       hiZViews_{hiZTexture_, hiZSampler, hiZInternalFormat,
-                TextureUtilities::calculateMipmapLevels(settings.renderWidth / hiZResolutionReduction,
+                texture::calculateMipmapLevels(settings.renderWidth / hiZResolutionReduction,
                                                         settings.renderHeight / hiZResolutionReduction, false)}
 {
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::depthMap), frameBuffer_.getDepthMapTextureID());

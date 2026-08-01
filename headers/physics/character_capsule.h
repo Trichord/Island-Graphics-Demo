@@ -1,20 +1,20 @@
 #pragma once
 
-#include <jolt/Jolt.h>
+#include <Jolt/Jolt.h>
 
 #include <glm/glm.hpp>
-#include <jolt/Core/Reference.h>
-#include <jolt/Core/TempAllocator.h>
-#include <jolt/Math/Math.h>
-#include <jolt/Math/MathTypes.h>
-#include <jolt/Math/Real.h>
-#include <jolt/Math/Vec3.h>
-#include <jolt/Physics/Body/BodyID.h>
-#include <jolt/Physics/Character/CharacterVirtual.h>
-#include <jolt/Physics/Collision/PhysicsMaterial.h>
-#include <jolt/Physics/Collision/Shape/Shape.h>
-#include <jolt/Physics/Collision/Shape/SubShapeID.h>
-#include <jolt/Physics/PhysicsSystem.h>
+#include <Jolt/Core/Reference.h>
+#include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Math/Math.h>
+#include <Jolt/Math/MathTypes.h>
+#include <Jolt/Math/Real.h>
+#include <Jolt/Math/Vec3.h>
+#include <Jolt/Physics/Body/BodyID.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
+#include <Jolt/Physics/Collision/PhysicsMaterial.h>
+#include <Jolt/Physics/Collision/Shape/Shape.h>
+#include <Jolt/Physics/Collision/Shape/SubShapeID.h>
+#include <Jolt/Physics/PhysicsSystem.h>
 
 class CharacterCapsule : public JPH::CharacterContactListener
 {
@@ -36,7 +36,6 @@ class CharacterCapsule : public JPH::CharacterContactListener
     void toggleCrouch(bool enable);
     void toggleSprint(bool enable);
 
-
     void physicsUpdate(float deltaTime);
     void handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime);
 
@@ -45,6 +44,8 @@ class CharacterCapsule : public JPH::CharacterContactListener
                         JPH::Vec3Arg inContactNormal, JPH::Vec3Arg inContactVelocity,
                         const JPH::PhysicsMaterial *inContactMaterial, JPH::Vec3Arg inCharacterVelocity,
                         JPH::Vec3 &ioNewCharacterVelocity) override;
+
+    bool OnContactValidate(const JPH::CharacterVirtual *inCharacter, const JPH::CharacterContact &inContact) override;
 
   private:
     // Character size

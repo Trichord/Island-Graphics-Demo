@@ -145,8 +145,7 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(const Scene &scene)
         totals.primitives += numPrimitives;
         totals.instances += numTransforms * numPrimitives;
 
-        const bool hasAnimation{entry.entryAnimation.has_value()};
-        const bool hasSkin{hasAnimation && entry.entryAnimation->skeletalAnimation.skeleton.skin.has_value()};
+        const bool hasSkin{entry.entryAnimation && entry.entryAnimation->skeletalAnimation.skeleton.skin};
 
         for (const Primitive &primitive : entry.primitives)
         {
@@ -214,7 +213,7 @@ SceneProcessor::ProcessedVertices SceneProcessor::createProcessedVertices(const 
     {
         // Particles hijack the vertex, don't overwrite
         const bool updateIndex{entry.shaderType != ShaderType::particles};
-        const bool hasSkin{entry.primitive->vertexSkins.has_value()};
+        const bool hasSkin{entry.primitive->vertexSkins};
 
         for (std::size_t i{0}; i < entry.primitive->vertices.size(); ++i)
         {
@@ -573,7 +572,7 @@ std::unordered_map<Handle, std::uint32_t> SceneProcessor::createBoneTransformMap
     for (const BucketEntry &entry : entries)
     {
         // Check for vertex skins specifically, since animations can exist solely as node transforms
-        if (!entry.primitive->vertexSkins.has_value())
+        if (!entry.primitive->vertexSkins)
             continue;
 
         auto [iter, inserted] = boneTransformsMap.try_emplace(entry.handle, boneBufferOffset);
@@ -607,7 +606,7 @@ std::vector<Primitive::VertexSkin> SceneProcessor::createVertexSkins(
 
     for (const BucketEntry &entry : entries)
     {
-        if (!entry.primitive->vertexSkins.has_value())
+        if (!entry.primitive->vertexSkins)
             continue;
 
         const std::vector<Primitive::VertexSkin> &vertexSkins{entry.primitive->vertexSkins.value()};

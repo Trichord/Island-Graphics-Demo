@@ -8,6 +8,7 @@
 #include <variant>
 #include <vector>
 
+#include "physics/collision_shapes.h"
 #include "renderer/shader/graphics_shader.h"
 #include "utilities/transform.h"
 
@@ -27,6 +28,7 @@ struct ModelEntry
     Transform transform;
     std::filesystem::path modelPath;
     ShaderType shader{ShaderType::baseColor};
+    std::optional<Collision::Geometry> collisionGeometry{std::nullopt};
 };
 
 struct InstancedModelEntry
@@ -37,6 +39,7 @@ struct InstancedModelEntry
     std::filesystem::path modelPath;
     std::filesystem::path positionsPath;
     ShaderType shader{ShaderType::baseColor};
+    std::optional<Collision::Geometry> collisionGeometry{std::nullopt};
 };
 
 struct CubeMappedModelEntry
@@ -46,6 +49,7 @@ struct CubeMappedModelEntry
     std::filesystem::path modelPath;
     std::filesystem::path cubemapPath;
     ShaderType shader{ShaderType::baseColor};
+    std::optional<Collision::Geometry> collisionGeometry{std::nullopt};
 };
 
 struct ParticlesEntry
@@ -137,12 +141,33 @@ inline void from_json(const nlohmann::json &j, Transform &t)
     }
 }
 
+namespace Collision
+{
+inline void from_json(const nlohmann::json &j, Geometry &geometry)
+{
+    const auto &type = j.at("type").get<std::string>();
+
+    if (type == "mesh")
+        geometry = Collision::Mesh{.path = j.value("path", std::filesystem::path{})};
+    else if (type == "capsule")
+        geometry = Collision::Capsule{
+            .radius = j.value("radius", 0.0f),
+            .height = j.value("height", 0.0f),
+        };
+    else
+        throw nlohmann::json::type_error::create(302, "Unknown collision type: " + type, &j);
+}
+} // namespace Collision
+
 inline void from_json(const nlohmann::json &j, ModelEntry &model)
 {
     model.name = j.value("name", std::string{});
     model.transform = j.value("transform", Transform{});
     model.modelPath = j.value("modelPath", std::filesystem::path{});
     model.shader = j.value("shader", ShaderType::directionalPBR);
+
+    if (j.contains("collisionGeometry"))
+        model.collisionGeometry = j.at("collisionGeometry").get<Collision::Geometry>();
 }
 
 inline void from_json(const nlohmann::json &j, InstancedModelEntry &model)
@@ -153,6 +178,9 @@ inline void from_json(const nlohmann::json &j, InstancedModelEntry &model)
     model.modelPath = j.value("modelPath", std::filesystem::path{});
     model.positionsPath = j.value("positionsPath", std::filesystem::path{});
     model.shader = j.value("shader", ShaderType::directionalPBR);
+
+    if (j.contains("collisionGeometry"))
+        model.collisionGeometry = j.at("collisionGeometry").get<Collision::Geometry>();
 }
 
 inline void from_json(const nlohmann::json &j, CubeMappedModelEntry &model)
@@ -162,6 +190,9 @@ inline void from_json(const nlohmann::json &j, CubeMappedModelEntry &model)
     model.modelPath = j.value("modelPath", std::filesystem::path{});
     model.cubemapPath = j.value("cubemapPath", std::filesystem::path{});
     model.shader = j.value("shader", ShaderType::directionalPBR);
+
+    if (j.contains("collisionGeometry"))
+        model.collisionGeometry = j.at("collisionGeometry").get<Collision::Geometry>();
 }
 
 inline void from_json(const nlohmann::json &j, ParticlesEntry &particle)

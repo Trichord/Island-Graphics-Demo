@@ -1,15 +1,15 @@
 #include "application/application.h"
 
+#include <Jolt/Core/Factory.h>
+#include <Jolt/Core/JobSystemSingleThreaded.h>
+#include <Jolt/Core/Memory.h>
+#include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Physics/PhysicsSystem.h>
+#include <Jolt/registerTypes.h>
 #include <algorithm>
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <iostream>
-#include <jolt/Core/Factory.h>
-#include <jolt/Core/JobSystemSingleThreaded.h>
-#include <jolt/Core/Memory.h>
-#include <jolt/Core/TempAllocator.h>
-#include <jolt/Physics/PhysicsSystem.h>
-#include <jolt/registerTypes.h>
 #include <thread>
 
 #include "application/gl_context.h"
@@ -20,6 +20,7 @@
 #include "physics/player_physics.h"
 #include "renderer/buffers.h"
 #include "renderer/renderer.h"
+#include "renderer/textures.h"
 #include "scene/camera.h"
 #include "scene/island_scene/island_scene.h"
 #include "scene/scene.h"
@@ -69,9 +70,9 @@ void Application::run()
     // Jolt Physics
     registerJolt();
     JPH::PhysicsSystem physicsSystem;
-    JPH::TempAllocatorImpl tempAllocator{joltStackSize};
+    JPH::TempAllocatorImpl tempAllocator{joltStackSize_};
     JPH::JobSystemSingleThreaded jobSystem_{maxPhysicsJobs_};
-    physicsSystem.Init(maxBodies, 0, maxBodyPairs, maxContactConstraints, broadPhaseLayer_,
+    physicsSystem.Init(maxBodies_, 0, maxBodyPairs_, maxContactConstraints_, broadPhaseLayer_,
                        objectVsBroadPhaseLayerFilter_, objectLayerPairFilter_);
 
     // Create resources
@@ -100,15 +101,14 @@ void Application::run()
     while (!glfwWindowShouldClose(window_))
     {
         // Delta Time
-        currentFrame_ = static_cast<float>(glfwGetTime());
-        deltaTime_ = currentFrame_ - lastFrame_;
+        currentFrame_ = glfwGetTime();
+        deltaTime_ = static_cast<float>(currentFrame_ - lastFrame_);
         lastFrame_ = currentFrame_;
 
         // Update
-        islandScene.onUpdate(currentFrame_, deltaTime_);
-
         glfwPollEvents();
-        processKeyboard(islandScene.getCamera(), physicsHandler, audioPlayer);
+        updateScene(processKeyboard(), islandScene.getCamera(), physicsHandler, audioPlayer);
+        islandScene.onUpdate(currentFrame_, deltaTime_);
 
         if (windowResized_)
         {
@@ -263,20 +263,14 @@ bool Application::createOpenGLViewport()
     return supported;
 }
 
-void Application::processKeyboard(Camera &camera, PlayerPhysics &physicsHandler, AudioPlayer& audioPlayer)
+std::uint8_t Application::processKeyboard()
 {
     using enum CharacterMovement;
 
-    std::uint8_t direction{0};
-    bool jump{false};
-
-    const glm::vec3 front{camera.getFront()};
+    std::uint8_t direction{NONE};
 
     if (glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    {
         glfwSetWindowShouldClose(window_, GLFW_TRUE);
-        return;
-    }
 
     if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS)
         direction |= FORWARD;
@@ -291,19 +285,24 @@ void Application::processKeyboard(Camera &camera, PlayerPhysics &physicsHandler,
         direction |= RIGHT;
 
     if (glfwGetKey(window_, GLFW_KEY_SPACE) == GLFW_PRESS)
-        jump = true;
+        direction |= UP;
 
+    return direction;
+}
+
+void Application::updateScene(std::uint8_t movementFlags, Camera &camera, PlayerPhysics &physics, AudioPlayer &audio)
+{
     // Debounced input
-    physicsHandler.toggleCrouch(leftCtrlToggle_);
-    physicsHandler.toggleSprint(leftShiftToggle_);
-    physicsHandler.update(direction, front, jump, deltaTime_);
-    
-    const glm::vec3 pos{physicsHandler.getInterpolatedPosition()};
-    camera.setPosition(pos);
-    audioPlayer.update(pos, camera.getFront());
+    physics.toggleCrouch(leftCtrlToggle_);
+    physics.toggleSprint(leftShiftToggle_);
+    physics.update(movementFlags, camera.getFront(), deltaTime_);
 
-    if (physicsHandler.footstepTriggered())
-        audioPlayer.playFootstep();
+    const glm::vec3 pos{physics.getInterpolatedPosition()};
+    camera.setPosition(pos);
+    audio.update(pos, camera.getFront());
+
+    if (physics.footstepTriggered())
+        audio.playFootstep();
 }
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)

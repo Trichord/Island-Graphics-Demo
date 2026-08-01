@@ -25,18 +25,12 @@
 #include "scene/directional_light.h"
 #include "scene/handle.h"
 #include "scene/scene_file.h"
+#include "utilities/overloaded.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 
 namespace
 {
-
-// Helper for the visitor pattern
-template <class... Ts> struct overloaded : Ts...
-{
-    using Ts::operator()...;
-};
-
 void validateSceneEntry(Scene::Entry &entry)
 {
     using enum ShaderType;
@@ -77,7 +71,7 @@ std::optional<Scene::EntryAnimation> createEntryAnimation(const Model &model)
 {
     const auto &skeletalAnimation = model.getSkeletalAnimation();
 
-    if (!skeletalAnimation.has_value())
+    if (!skeletalAnimation)
         return {};
 
     auto &skin = skeletalAnimation->skeleton.skin;
@@ -92,7 +86,7 @@ std::optional<Scene::EntryAnimation> createEntryAnimation(const Model &model)
             map.emplace(animation.name, i);
     }
 
-    std::size_t numJoints{skin.has_value() ? skin.value().invBindMatrices.size() : 0};
+    std::size_t numJoints{skin ? skin.value().invBindMatrices.size() : 0};
 
     return Scene::EntryAnimation{skeletalAnimation.value(),
                                  Animator{skeletalAnimation->skeleton.parents.size(), numJoints}, map};
@@ -206,7 +200,7 @@ const std::unordered_set<Handle> &Scene::getUpdatedHandles() const
 
 Skeleton &Scene::getSkeleton(Scene::Entry &entry)
 {
-    if (!entry.entryAnimation.has_value())
+    if (!entry.entryAnimation)
         throw std::runtime_error("No animations");
 
     return entry.entryAnimation->skeletalAnimation.skeleton;
@@ -214,7 +208,7 @@ Skeleton &Scene::getSkeleton(Scene::Entry &entry)
 
 Animation &Scene::getAnimation(Scene::Entry &entry, std::string_view name)
 {
-    if (!entry.entryAnimation.has_value())
+    if (!entry.entryAnimation)
         throw std::runtime_error("No animations");
 
     std::unordered_map<std::string, std::size_t> &map{entry.entryAnimation->animationMap};
@@ -230,7 +224,7 @@ Animation &Scene::getAnimation(Scene::Entry &entry, std::string_view name)
 
 Animation &Scene::getAnimation(Scene::Entry &entry, int index)
 {
-    if (!entry.entryAnimation.has_value())
+    if (!entry.entryAnimation)
         throw std::runtime_error("No animations");
 
     Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
@@ -287,7 +281,7 @@ void Scene::addSkybox(Handle handle, const Skybox &skybox)
 }
 
 void Scene::addModel(Handle handle, const Model &model, const Transform &transform, ShaderType shaderType,
-                     const std::string &name)
+                     const std::optional<Collision::Geometry> &collisionGeometry, const std::string &name)
 {
     if (!name.empty())
         entriesByName_.emplace(name, entries_.size());
@@ -300,12 +294,13 @@ void Scene::addModel(Handle handle, const Model &model, const Transform &transfo
         .primitives = model.getPrimitives(),
         .worldTransforms = {transform},
         .entryAnimation = createEntryAnimation(model),
-        .modelPath = model.getPath(),
+        .collisionGeometry = collisionGeometry,
     });
 }
 
 void Scene::addCubemappedModel(Handle handle, const Model &model, const std::filesystem::path &imagePath,
-                               const Transform &transform, ShaderType shaderType, const std::string &name)
+                               const Transform &transform, ShaderType shaderType,
+                               const std::optional<Collision::Geometry> &collisionGeometry, const std::string &name)
 {
     if (!name.empty())
         entriesByName_.emplace(name, entries_.size());
@@ -319,12 +314,12 @@ void Scene::addCubemappedModel(Handle handle, const Model &model, const std::fil
         .primitives = model.getPrimitives(),
         .worldTransforms = {transform},
         .entryAnimation = createEntryAnimation(model),
-        .modelPath = model.getPath(),
+        .collisionGeometry = collisionGeometry,
     });
 }
 
 void Scene::addInstancedModel(Handle handle, const InstancedModel &model, ShaderType shaderType,
-                              const std::string &name)
+                              const std::optional<Collision::Geometry> &collisionGeometry, const std::string &name)
 {
     if (!name.empty())
         entriesByName_.emplace(name, entries_.size());
@@ -339,7 +334,7 @@ void Scene::addInstancedModel(Handle handle, const InstancedModel &model, Shader
         .primitives = model.getPrimitives(),
         .worldTransforms = std::move(transforms),
         .entryAnimation = createEntryAnimation(model),
-        .modelPath = model.getPath(),
+        .collisionGeometry = collisionGeometry,
     });
 }
 
@@ -406,18 +401,18 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
                        },
                        [&](const ModelEntry &entry) {
                            Model model{entry.modelPath};
-                           addModel(handle, model, entry.transform, entry.shader, entry.name);
+                           addModel(handle, model, entry.transform, entry.shader, entry.collisionGeometry, entry.name);
                        },
                        [&](const InstancedModelEntry &entry) {
                            InstancedModel model{
                                entry.modelPath, entry.positionsPath,
                                InstancedModel::Randomize{.minScale = entry.minScale, .maxScale = entry.maxScale}};
-                           addInstancedModel(handle, model, entry.shader, entry.name);
+                           addInstancedModel(handle, model, entry.shader, entry.collisionGeometry, entry.name);
                        },
                        [&](const CubeMappedModelEntry &entry) {
                            Model model{entry.modelPath};
                            addCubemappedModel(handle, model, entry.cubemapPath, entry.transform, entry.shader,
-                                              entry.name);
+                                              entry.collisionGeometry, entry.name);
                        },
                    },
                    sceneEntry);
