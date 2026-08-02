@@ -23,6 +23,7 @@ void Renderer::renderScene()
     for (std::size_t i{0}; i < drawBuckets_.size(); ++i)
     {
         using enum ShaderType;
+        using enum AlphaMode;
 
         MultiDrawBucket &mdb{drawBuckets_[i]};
 
@@ -30,6 +31,13 @@ void Renderer::renderScene()
             glState_.setDepthFunction(GL_LEQUAL);
         else
             glState_.setDepthFunction(GL_LESS);
+
+        // Disable depth writing for blended objects, otherwise Hi-Z culling gets falsely triggered for objects
+        // behind the blend
+        if (mdb.alphaMode == blend)
+            glState_.setDepthWrite(false);
+        else
+            glState_.setDepthWrite(true);
 
         glState_.setAlphaMode(mdb.alphaMode);
         glState_.bindProgram(shaders_[shaderIndex(mdb.shaderType)]);
@@ -44,8 +52,12 @@ void Renderer::renderScene()
 
 void Renderer::renderShadowMaps(const Scene &scene, bool lightChanged)
 {
+    // Shadow pass setup
     glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
     shadowPassTarget_.bind();
+    glState_.setDepthWrite(true);
+    glState_.setVAO(VAOs_.shadowVAO);
+    glState_.setAlphaMode(AlphaMode::opaque);
 
     updateCascades(scene, lightChanged);
     const Cascades &cascades{cascadeShadow_.getCascades()};
@@ -67,8 +79,7 @@ void Renderer::renderShadowMaps(const Scene &scene, bool lightChanged)
     // Opaque geometry first (positions only)
     GraphicsShader &shadowShader{shaders_[shaderIndex(ShaderType::shadowMap)]};
     glState_.bindProgram(shadowShader);
-    glState_.setVAO(VAOs_.shadowVAO);
-    glCullFace(GL_FRONT);
+    glState_.setFaceCull(GL_FRONT);
 
     for (int i{0}; i < cascadeCount; ++i)
     {
@@ -85,7 +96,7 @@ void Renderer::renderShadowMaps(const Scene &scene, bool lightChanged)
     GraphicsShader &shadowAlphaShader{shaders_[shaderIndex(ShaderType::shadowMapAlpha)]};
     glState_.bindProgram(shadowAlphaShader);
     glState_.setVAO(VAOs_.vao);
-    glCullFace(GL_BACK);
+    glState_.setFaceCull(GL_BACK);
     glEnable(GL_POLYGON_OFFSET_FILL);
 
     for (int i{0}; i < cascadeCount; ++i)

@@ -4,8 +4,8 @@
 #include <glad/glad.h>
 #include <stdexcept>
 
-#include "renderer/shader/shader_base.h"
 #include "models/primitive.h"
+#include "renderer/shader/shader_base.h"
 
 constexpr GLuint maxTextureUnits{16u};
 
@@ -110,4 +110,22 @@ void GLState::bindProgram(Shader &shader)
 
     shader.use();
     currentProgram_ = id;
+}
+
+void GLState::setDepthWrite(bool enableDepth)
+{
+    if (depthWriteEnabled_ == enableDepth)
+        return;
+
+    glDepthMask(enableDepth ? GL_TRUE : GL_FALSE);
+    depthWriteEnabled_ = enableDepth;
+}
+
+void GLState::setFaceCull(GLenum mode)
+{
+    if (currentFaceCull_ == mode)
+        return;
+
+    glCullFace(mode);
+    currentFaceCull_ = mode;
 }

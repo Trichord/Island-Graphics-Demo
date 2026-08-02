@@ -303,6 +303,7 @@ void Renderer::renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarge
         target.setTextureLayer(i);
         blitTarget.setTextureLayer(i);
 
+        glState_.setDepthWrite(true);
         target.clear();
         renderFace(faces[i], camera);
 

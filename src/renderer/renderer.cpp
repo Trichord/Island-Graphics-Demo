@@ -125,6 +125,7 @@ Renderer::~Renderer()
 
 void Renderer::renderScene(const Scene &scene, float deltaTime)
 {
+    glState_.setDepthWrite(true);
     frameBuffer_.clear();
 
     // Updates from scene first

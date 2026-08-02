@@ -8,20 +8,19 @@
 
 /* When a scene is passed to the renderer, these enums will be rendered in order.
  */
-
 enum class ShaderType
 {
+    shadowMap,
+    shadowMapAlpha,
     baseColor,
     directionalPBR,
     reflective,
     trees,
     grass,
     particles,
-    water,
     ocean,
     skybox,
-    shadowMap,
-    shadowMapAlpha,
+    water, // Blended, after all opaque
     fboResolve,
     count
 };
