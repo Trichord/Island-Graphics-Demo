@@ -15,6 +15,7 @@
 #include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Collision/Shape/ScaledShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/EActivation.h>
@@ -109,8 +110,12 @@ physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::B
                                                    .Create()
                                                    .Get();
 
+                                  // Add a model space transform before world space transform
+                                  auto offsetShape{new JPH::RotatedTranslatedShape(toJPHVec3(capsule.offset),
+                                                                                   JPH::Quat::sIdentity(), shape)};
+
                                   for (const Transform &transform : entry.worldTransforms)
-                                      addBody(bodies, interface, shape, transform);
+                                      addBody(bodies, interface, offsetShape, transform);
                               }},
                    *entry.collisionGeometry);
     }

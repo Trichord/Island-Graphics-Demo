@@ -153,6 +153,7 @@ inline void from_json(const nlohmann::json &j, Geometry &geometry)
         geometry = Collision::Capsule{
             .radius = j.value("radius", 0.0f),
             .height = j.value("height", 0.0f),
+            .offset = j.contains("offset") ? parseVec3(j.at("offset")) : glm::vec3{0.0f},
         };
     else
         throw nlohmann::json::type_error::create(302, "Unknown collision type: " + type, &j);

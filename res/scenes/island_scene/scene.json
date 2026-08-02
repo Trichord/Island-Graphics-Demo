@@ -239,7 +239,8 @@
       "collisionGeometry": {
         "type": "capsule",
         "height": 8.524,
-	"radius": 0.4172
+	"radius": 0.3172,
+	"offset": [0.0, 3.862, 0.0]
     }
     },
     {
@@ -252,7 +253,8 @@
       "collisionGeometry": {
         "type": "capsule",
         "height": 6.419,
-	"radius": 0.398
+	"radius": 0.258,
+	"offset": [0.0, 2.8095, 0.0]
     }
     },
     {
@@ -264,8 +266,9 @@
       "shader": "trees",
       "collisionGeometry": {
         "type": "capsule",
-        "height": 6.684,
-	"radius": 0.406
+        "height": 5.684,
+	"radius": 0.19,
+	"offset": [0.0, 2.4, 0.0]
     }
     },
     {
@@ -278,7 +281,8 @@
       "collisionGeometry": {
         "type": "capsule",
         "height": 5.818,
-	"radius": 0.398
+	"radius": 0.32,
+	"offset": [0.0, 2.409, -0.1]
     }
     },
     {
