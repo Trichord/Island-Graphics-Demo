@@ -6,10 +6,6 @@
 #include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
-#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
-#include <Jolt/Physics/Collision/Shape/Shape.h>
-#include <Jolt/Physics/Collision/Shape/SphereShape.h>
-#include <Jolt/Physics/Collision/ShapeCast.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <algorithm>
 #include <cmath>
@@ -22,11 +18,25 @@
 #include "scene/scene.h"
 #include "utilities/world_vectors.h"
 
+namespace
+{
+constexpr CharacterCapsule::Settings capsuleSettings{
+    .radius = 0.3f,
+    .standingHeight = 1.35f,
+    .crouchingHeight = 0.8f,
+    .innerShapeFraction = 0.9f,
+    .speed = 3.5f,
+    .jumpSpeed = 2.75f,
+    .sprintSpeedMultiplier = 1.45f,
+    .crouchSpeedMultiplier = 0.4f,
+};
+}
+
 PlayerPhysics::PlayerPhysics(const Scene &scene, JPH::PhysicsSystem &physicsSystem,
                              JPH::TempAllocatorImpl &tempAllocator)
     : resetPosition_{toJPHVec3(scene.getCamera().getPosition())}, physicsSystem_{physicsSystem},
       tempAllocator_{tempAllocator}, bodyInterface_{&physicsSystem.GetBodyInterface()},
-      player_{physicsSystem, tempAllocator}
+      player_{physicsSystem, tempAllocator, capsuleSettings}
 {
     using namespace JPH;
 
@@ -53,44 +63,63 @@ PlayerPhysics::~PlayerPhysics()
 
 void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float deltaTime)
 {
+    using namespace JPH;
+
+    constexpr float impactSpeedTrigger{4.5f};
+
     // Avoid feedback loop when framerate drops
     timeAccumulator_ = std::min(timeAccumulator_ + deltaTime, maxAccumulator_);
     const bool jump{(direction & CharacterMovement::UP) != 0};
-    const bool wasGrounded{player_.isGrounded()};
 
     while (timeAccumulator_ > physicsTick_)
     {
+        const bool wasSupported{player_.isSupported()};
+        Vec3 preVelocity{player_.getVelocity()};
+
         previousPosition_ = player_.getCenter();
         tick(direction, front, jump, physicsTick_);
         timeAccumulator_ -= physicsTick_;
 
-        if (player_.isGrounded())
-            footstepAccumulator_ += (player_.getCenter() - previousPosition_).Length();
-    }
+        const bool isSupported{player_.isSupported()};
 
-    // Player just left the ground, queue up a landing event flag and reset footstep tracking
-    if (wasGrounded && !player_.isGrounded())
-    {
-        footstepAccumulator_ = 0.0f;
-        landingTriggered_ = false;
+        if (isSupported)
+            footstepAccumulator_ += (player_.getCenter() - previousPosition_).Length();
+
+        // Player just left the ground, reset footstep tracking
+        if (wasSupported && !isSupported)
+            footstepAccumulator_ = 0.0f;
+
+        if (isSupported && !wasSupported)
+        {
+            const float impactSpeed{-preVelocity.Dot(player_.getGroundNormal())};
+
+            if (impactSpeed >= impactSpeedTrigger)
+                landingTriggered_ = true;
+        }
     }
 }
 
 void PlayerPhysics::tick(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
 {
+    using namespace JPH;
+
     constexpr float maxFallVelocity{-30.0f};
+    constexpr float resetHeight{5.0f};
 
     // Player has fallen through the world
     if (player_.getPosition().GetY() < resetHeight_)
     {
-        player_.setCenter(resetPosition_);
+        player_.setCenter(resetPosition_ + Vec3{0.0f, resetHeight, 0.0f});
 
         // Override last position too, so we don't interpolate between two wildly different points
         previousPosition_ = player_.getCenter();
 
-        JPH::Vec3 velocity{player_.getVelocity()};
-        JPH::Vec3 newVelocity{velocity.GetX(), std::max(velocity.GetY(), maxFallVelocity), velocity.GetZ()};
+        Vec3 velocity{player_.getVelocity()};
+        Vec3 newVelocity{velocity.GetX(), std::max(velocity.GetY(), maxFallVelocity), velocity.GetZ()};
         player_.setVelocity(newVelocity);
+
+        footstepAccumulator_ = 0.0f;
+        landingTriggered_ = false;
 
         return;
     }
@@ -174,31 +203,5 @@ bool PlayerPhysics::jumpEvent()
 
 bool PlayerPhysics::landingEvent()
 {
-    using namespace JPH;
-
-    constexpr float earlyTriggerTime{0.2f};
-    constexpr float fallSpeedTrigger{-3.0f};
-    static const SphereShape detectionShape{player_.getRadius()};
-
-    if (landingTriggered_)
-        return false;
-
-    const Vec3 velocity{player_.getVelocity()};
-
-    if (velocity.GetY() > fallSpeedTrigger)
-        return false;
-
-    const Vec3 direction{velocity * earlyTriggerTime};
-    const RShapeCast shapeCast{&detectionShape, Vec3::sReplicate(1.0f), RMat44::sTranslation(player_.getPosition()),
-                               direction};
-
-    ShapeCastSettings settings;
-    ClosestHitCollisionCollector<CastShapeCollector> collector;
-    physicsSystem_.GetNarrowPhaseQuery().CastShape(shapeCast, settings, player_.getPosition(), collector);
-
-    if (!collector.HadHit())
-        return false;
-
-    landingTriggered_ = true;
-    return true;
+    return std::exchange(landingTriggered_, false);
 }

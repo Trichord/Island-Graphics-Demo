@@ -19,8 +19,21 @@
 class CharacterCapsule : public JPH::CharacterContactListener
 {
   public:
+    struct Settings
+    {
+            float radius{0.3f};
+            float standingHeight{1.0f};
+            float crouchingHeight{0.8f};
+            float innerShapeFraction{0.9f};
+
+            float speed{1.0f};
+            float jumpSpeed{1.0f};
+            float sprintSpeedMultiplier{1.5f};
+            float crouchSpeedMultiplier{0.75f};
+    };
+
     CharacterCapsule() = default;
-    CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator);
+    CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator, Settings capsuleSettings);
     CharacterCapsule(const CharacterCapsule &) = delete;
     CharacterCapsule &operator=(const CharacterCapsule &) = delete;
     CharacterCapsule(CharacterCapsule &&other) = delete;
@@ -30,10 +43,11 @@ class CharacterCapsule : public JPH::CharacterContactListener
     JPH::Vec3 getCenter() const;
     JPH::Vec3 getPosition() const;
     JPH::Vec3 getVelocity() const;
-    bool isGrounded() const;
+    JPH::Vec3 getGroundNormal() const;
+    bool isSupported() const;
 
     void setCenter(const JPH::Vec3 &center);
-    void setPosition(const JPH::Vec3& position);
+    void setPosition(const JPH::Vec3 &position);
     void setVelocity(const JPH::Vec3 &velocity);
     void toggleCrouch(bool enable);
     void toggleSprint(bool enable);
@@ -50,20 +64,8 @@ class CharacterCapsule : public JPH::CharacterContactListener
     bool OnContactValidate(const JPH::CharacterVirtual *inCharacter, const JPH::CharacterContact &inContact) override;
 
   private:
-    // Character size
-    static constexpr float characterRadius_{0.3f};
-    static constexpr float characterHeightStanding_{1.35f};
-    static constexpr float characterHeightCrouching_{0.8f};
-    static constexpr float innerShapeFraction_{0.9f};
-
     // Terrain interaction
     static constexpr float maxSlopeAngle_{JPH::DegreesToRadians(50.0f)};
-
-    // Character movement properties
-    static constexpr float jumpSpeed_{2.75f};
-    static constexpr float characterSpeed_{3.5f};
-    static constexpr float characterCrouchSpeedMultiplier_{0.4f};
-    static constexpr float characterSprintSpeedMultiplier_{1.45f};
 
     bool crouched_{false};
     bool allowSliding_{false};
@@ -71,6 +73,7 @@ class CharacterCapsule : public JPH::CharacterContactListener
     bool controlMovementDuringJump_{true};
 
     JPH::Vec3 desiredVelocity_{0.0f, 0.0f, 0.0f};
+    Settings capsuleSettings_;
 
     // Non-owning pointers
     JPH::PhysicsSystem *physicsSystem_{nullptr};

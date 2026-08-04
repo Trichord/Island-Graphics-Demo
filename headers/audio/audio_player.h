@@ -12,6 +12,10 @@ class AudioPlayer
   public:
     AudioPlayer() = default;
     AudioPlayer(const std::filesystem::path &jsonFile);
+    AudioPlayer(const AudioPlayer &) = delete;
+    AudioPlayer &operator=(const AudioPlayer &) = delete;
+    AudioPlayer(AudioPlayer &&) = delete;
+    AudioPlayer &operator=(AudioPlayer &&) = delete;
     ~AudioPlayer();
 
     void update(const glm::vec3 &listenerPos, const glm::vec3 &listenerFront);
@@ -35,11 +39,10 @@ class AudioPlayer
     };
 
     ma_engine audioEngine_ = {};
-    std::vector<Trigger> trigger_;
+    std::vector<Trigger> triggers_;
     std::vector<SoundEffect> footsteps_;
     std::vector<SoundEffect> landings_;
     std::vector<bool> hasPlayed_;
 
-    void playRandomSound(std::vector<SoundEffect> &sounds, float pitchLow, float pitchHigh, float volumeLow,
-                         float volumeHigh);
+    void playSound(ma_sound &sound, float volume, float pitch);
 };

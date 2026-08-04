@@ -29,7 +29,6 @@ struct AudioFile
 {
     std::vector<AudioEntry> audioEntries;
     SoundEffectEntry footsteps;
-    SoundEffectEntry landings;
 };
 
 inline glm::vec3 parseVec3(const nlohmann::json &j)
@@ -63,5 +62,4 @@ inline void from_json(const nlohmann::json &j, AudioFile &audioFile)
 {
     audioFile.audioEntries = j.value("entries", std::vector<AudioEntry>{});
     audioFile.footsteps = j.value("footsteps", SoundEffectEntry{});
-    audioFile.landings = j.value("landings", SoundEffectEntry{});
 }

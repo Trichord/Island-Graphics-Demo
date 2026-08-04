@@ -12,9 +12,30 @@
 #include "scene/audio_file.h"
 #include "utilities/world_vectors.h"
 
+namespace
+{
+std::minstd_rand &rnd()
+{
+    static std::minstd_rand gen{std::random_device{}()};
+    return gen;
+}
+
+int randomIndex(std::size_t size)
+{
+    return std::uniform_int_distribution<int>(0, static_cast<int>(size) - 1)(rnd());
+}
+
+float randomFloat(float low, float high)
+{
+    return std::uniform_real_distribution<float>(low, high)(rnd());
+}
+} // namespace
+
 AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
 {
     using namespace nlohmann;
+
+    constexpr ma_uint32 footstepFlags{MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_NO_SPATIALIZATION};
 
     if (jsonFile.empty() || !std::filesystem::exists(jsonFile))
     {
@@ -59,14 +80,16 @@ AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
     ma_engine_listener_set_world_up(&audioEngine_, 0, WorldVectors::worldUp.x, WorldVectors::worldUp.y,
                                     WorldVectors::worldUp.z);
 
-    trigger_.reserve(audio.audioEntries.size());
+    triggers_.reserve(audio.audioEntries.size());
     hasPlayed_.resize(audio.audioEntries.size());
     footsteps_.reserve(audio.footsteps.soundPaths.size());
-    landings_.reserve(audio.landings.soundPaths.size());
+
+    // Reserve enough space that so that a single footstep can be duplicated without invalidating internal pointers
+    landings_.reserve(std::max(audio.footsteps.soundPaths.size(), std::size_t{2}));
 
     for (const AudioEntry &entry : audio.audioEntries)
     {
-        trigger_.emplace_back(Trigger{
+        triggers_.emplace_back(Trigger{
             .aabb = entry.zone,
             .enabled = entry.playImmediate,
             .oneShot = entry.oneShot,
@@ -81,7 +104,7 @@ AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
         if (!entry.spatialization)
             flags |= MA_SOUND_FLAG_NO_SPATIALIZATION;
 
-        ma_sound &sound{trigger_.back().sound};
+        ma_sound &sound{triggers_.back().sound};
         ma_result result;
         result =
             ma_sound_init_from_file(&audioEngine_, entry.soundPath.string().c_str(), flags, nullptr, nullptr, &sound);
@@ -89,7 +112,8 @@ AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
         if (result != MA_SUCCESS)
         {
             std::cerr << ma_result_description(result) << std::endl;
-            throw std::runtime_error("Failed to load sound");
+            throw std::runtime_error("Failed to load sound from " + entry.soundPath.string() + " : " +
+                                     ma_result_description(result));
         }
 
         glm::vec3 pos{entry.zone.getCenter()};
@@ -105,50 +129,54 @@ AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
     }
 
     auto addSoundEffect = [](ma_engine &engine, std::vector<SoundEffect> &sounds, const std::filesystem::path &path,
-                             const float volume) {
-        sounds.emplace_back(SoundEffect{
-            .volume = volume,
-            .sound = ma_sound{},
-        });
+                             ma_uint32 flags, float volume) {
+        SoundEffect &soundEffect{sounds.emplace_back(SoundEffect{.volume = volume, .sound = {}})};
 
         ma_result result;
-        result = ma_sound_init_from_file(&engine, path.string().c_str(),
-                                         MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_NO_SPATIALIZATION, nullptr, nullptr,
-                                         &sounds.back().sound);
+        result = ma_sound_init_from_file(&engine, path.string().c_str(), flags, nullptr, nullptr, &soundEffect.sound);
 
         if (result != MA_SUCCESS)
         {
             std::cerr << ma_result_description(result) << std::endl;
-            throw std::runtime_error("Failed to load footstep sound");
+            throw std::runtime_error("Failed to load soundEffect from " + path.string() + ": " +
+                                     ma_result_description(result));
         }
     };
 
     for (const std::filesystem::path &path : audio.footsteps.soundPaths)
-        addSoundEffect(audioEngine_, footsteps_, path, audio.footsteps.volume);
+    {
+        addSoundEffect(audioEngine_, footsteps_, path, footstepFlags, audio.footsteps.volume);
+        addSoundEffect(audioEngine_, landings_, path, footstepFlags, audio.footsteps.volume);
+    }
 
-    for (const std::filesystem::path &path : audio.landings.soundPaths)
-        addSoundEffect(audioEngine_, landings_, path, audio.landings.volume);
+    // Landings need two footsteps to play simultaneously
+    if (footsteps_.size() == 1)
+        addSoundEffect(audioEngine_, landings_, audio.footsteps.soundPaths.front(), footstepFlags,
+                       audio.footsteps.volume);
 }
 
 AudioPlayer::~AudioPlayer()
 {
-    for (Trigger &zone : trigger_)
+    for (Trigger &zone : triggers_)
         ma_sound_uninit(&zone.sound);
 
     for (SoundEffect &footstep : footsteps_)
         ma_sound_uninit(&footstep.sound);
+
+    for (SoundEffect &landing : landings_)
+        ma_sound_uninit(&landing.sound);
 
     ma_engine_uninit(&audioEngine_);
 }
 
 void AudioPlayer::update(const glm::vec3 &listenerPos, const glm::vec3 &listenerFront)
 {
-    if (trigger_.empty())
+    if (triggers_.empty())
         return;
 
-    for (std::size_t i{0}; i < trigger_.size(); ++i)
+    for (std::size_t i{0}; i < triggers_.size(); ++i)
     {
-        Trigger &trigger{trigger_[i]};
+        Trigger &trigger{triggers_[i]};
 
         if (ma_sound_at_end(&trigger.sound))
             hasPlayed_[i] = true;
@@ -182,34 +210,52 @@ void AudioPlayer::playFootstep()
     constexpr float pitchVariation{0.2f};
     constexpr float volumeVariation{0.4f};
 
+    if (footsteps_.empty())
+        return;
+
+    const int index{randomIndex(footsteps_.size())};
+    SoundEffect &soundEffect{footsteps_[index]};
+
     // Only make footsteps randomly softer. Normal footstep volume is already plenty.
-    playRandomSound(footsteps_, 1.0f - pitchVariation, 1.0f + pitchVariation, 1.0f - volumeVariation, 1.0f);
+    const float volume{randomFloat(soundEffect.volume - volumeVariation, soundEffect.volume)};
+    const float pitch{randomFloat(1.0f - pitchVariation, 1.0f + pitchVariation)};
+
+    playSound(soundEffect.sound, volume, pitch);
 }
 
 void AudioPlayer::playLanding()
 {
-    constexpr float pitchVariation{0.1f};
-    constexpr float volumeVariation{0.2f};
+    constexpr float landingPitch{0.7f};
+    constexpr float pitchVariation{0.15f};
+    constexpr float volumeLow{0.2f};
+    constexpr float volumeHigh{0.4f};
 
-    playRandomSound(landings_, 1.0f - pitchVariation, 1.0f + pitchVariation, 1.0f - volumeVariation,
-                    1.0f + volumeVariation);
-}
-
-void AudioPlayer::playRandomSound(std::vector<SoundEffect> &sounds, float pitchLow, float pitchHigh, float volumeLow,
-                                  float volumeHigh)
-{
-    if (sounds.empty())
+    if (landings_.empty())
         return;
 
-    static std::minstd_rand gen{std::random_device{}()};
+    const int index{randomIndex(landings_.size())};
+    int otherIndex{randomIndex(landings_.size() - 1)};
 
-    float randomPitch{std::uniform_real_distribution<float>(pitchLow, pitchHigh)(gen)};
-    float randomVolume{std::uniform_real_distribution<float>(volumeLow, volumeHigh)(gen)};
-    int randomIndex{std::uniform_int_distribution<int>(0, sounds.size() - 1)(gen)};
-    SoundEffect &randomSound{sounds[randomIndex]};
+    if (otherIndex >= index)
+        ++otherIndex;
 
-    ma_sound_set_volume(&randomSound.sound, randomVolume);
-    ma_sound_set_pitch(&randomSound.sound, randomPitch);
-    ma_sound_seek_to_pcm_frame(&randomSound.sound, 0);
-    ma_sound_start(&randomSound.sound);
+    SoundEffect &first{landings_[index]};
+    SoundEffect &second{landings_[otherIndex]};
+
+    // Landing sounds should be lower pitched and louder
+    const float firstVolume{randomFloat(first.volume + volumeLow, first.volume + volumeHigh)};
+    const float secondVolume{randomFloat(second.volume + volumeLow, second.volume + volumeHigh)};
+    const float firstPitch{randomFloat(landingPitch - pitchVariation, landingPitch + pitchVariation)};
+    const float secondPitch{randomFloat(landingPitch - pitchVariation, landingPitch + pitchVariation)};
+
+    playSound(first.sound, firstVolume, firstPitch);
+    playSound(second.sound, secondVolume, secondPitch);
+}
+
+void AudioPlayer::playSound(ma_sound &sound, float volume, float pitch)
+{
+    ma_sound_set_volume(&sound, volume);
+    ma_sound_set_pitch(&sound, pitch);
+    ma_sound_seek_to_pcm_frame(&sound, 0);
+    ma_sound_start(&sound);
 }

@@ -49,13 +49,14 @@ class PlayerPhysics
   private:
     static constexpr float physicsTick_{1.0f / 60.0f};
     static constexpr float footstepDistance_{2.0f};
-    static constexpr float firstStepDistance_{0.1f};
+    static constexpr float distancePrimer_{0.1f};
     static constexpr float maxAccumulator_{physicsTick_ * 3.0f};
 
     bool jumpTriggered_{false};
     bool landingTriggered_{false};
     float timeAccumulator_{0.0f};
-    float footstepAccumulator_{footstepDistance_ - firstStepDistance_};
+    float footstepAccumulator_{footstepDistance_ -
+                               distancePrimer_}; // Prime accumulator so that a footstep fires quickly
     float resetHeight_{0.0f};
     JPH::Vec3 previousPosition_{0.0f, 0.0f, 0.0f};
     JPH::Vec3 resetPosition_{0.0f, 0.0f, 0.0f};

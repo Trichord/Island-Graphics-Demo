@@ -32,14 +32,15 @@ JPH::ShapeRefC createShape(float height, float radius)
 }
 } // namespace
 
-CharacterCapsule::CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator)
-    : physicsSystem_{&physicsSystem}, tempAllocator_{&tempAllocator},
-      standingShape_{createShape(characterHeightStanding_, characterRadius_)},
-      crouchingShape_{createShape(characterHeightCrouching_, characterRadius_)},
-      innerStandingShape_{
-          createShape(innerShapeFraction_ * characterHeightStanding_, innerShapeFraction_ * characterRadius_)},
-      innerCrouchingShape_{
-          createShape(innerShapeFraction_ * characterHeightCrouching_, innerShapeFraction_ * characterRadius_)}
+CharacterCapsule::CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator,
+                                   Settings capsuleSettings)
+    : physicsSystem_{&physicsSystem}, tempAllocator_{&tempAllocator}, capsuleSettings_{capsuleSettings},
+      standingShape_{createShape(capsuleSettings.standingHeight, capsuleSettings.radius)},
+      crouchingShape_{createShape(capsuleSettings.crouchingHeight, capsuleSettings.radius)},
+      innerStandingShape_{createShape(capsuleSettings.innerShapeFraction * capsuleSettings.standingHeight,
+                                      capsuleSettings.innerShapeFraction * capsuleSettings.radius)},
+      innerCrouchingShape_{createShape(capsuleSettings.innerShapeFraction * capsuleSettings.crouchingHeight,
+                                       capsuleSettings.innerShapeFraction * capsuleSettings.radius)}
 {
     using namespace JPH;
 
@@ -47,7 +48,7 @@ CharacterCapsule::CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempA
     settings->mMaxSlopeAngle = maxSlopeAngle_;
     settings->mShape = standingShape_;
     settings->mSupportingVolume =
-        Plane(Vec3::sAxisY(), -characterRadius_); // Accept contacts that touch the lower sphere of the capsule
+        Plane(Vec3::sAxisY(), -capsuleSettings_.radius); // Accept contacts that touch the lower sphere of the capsule
     settings->mEnhancedInternalEdgeRemoval = true;
     settings->mInnerBodyShape = innerStandingShape_;
     settings->mInnerBodyLayer = Layers::MOVING;
@@ -59,7 +60,7 @@ CharacterCapsule::CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempA
 
 float CharacterCapsule::getRadius() const
 {
-    return characterRadius_;
+    return capsuleSettings_.radius;
 }
 
 // Returns the center of mass of the capsule
@@ -134,12 +135,12 @@ void CharacterCapsule::handleInput(const JPH::Vec3 &direction, bool jump, float 
         float speed{0.0f};
 
         if (characterSprinting_ && !crouched_)
-            speed = characterSpeed_ * characterSprintSpeedMultiplier_;
+            speed = capsuleSettings_.speed * capsuleSettings_.sprintSpeedMultiplier;
         else
-            speed = characterSpeed_;
+            speed = capsuleSettings_.speed;
 
         if (crouched_ && capsule_->IsSupported())
-            speed *= characterCrouchSpeedMultiplier_;
+            speed *= capsuleSettings_.crouchSpeedMultiplier;
 
         // Smooth the player input
         desiredVelocity_ = 0.3f * direction * speed + 0.7f * desiredVelocity_;
@@ -158,10 +159,10 @@ void CharacterCapsule::handleInput(const JPH::Vec3 &direction, bool jump, float 
     Vec3 currentVerticalVelocity{capsule_->GetLinearVelocity().Dot(capsule_->GetUp()) * capsule_->GetUp()};
     bool movingTowardsGround{currentVerticalVelocity.GetY() < 0.1f};
 
-    if (isGrounded() && movingTowardsGround)
+    if (isSupported() && movingTowardsGround)
     {
         if (jump)
-            newVelocity = jumpSpeed_ * capsule_->GetUp();
+            newVelocity = capsuleSettings_.jumpSpeed * capsule_->GetUp();
     }
     else
         newVelocity = currentVerticalVelocity;
@@ -235,7 +236,12 @@ JPH::Vec3 CharacterCapsule::getVelocity() const
     return capsule_->GetLinearVelocity();
 }
 
-bool CharacterCapsule::isGrounded() const
+JPH::Vec3 CharacterCapsule::getGroundNormal() const
 {
-    return capsule_->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround;
+    return capsule_->GetGroundNormal();
+}
+
+bool CharacterCapsule::isSupported() const
+{
+    return capsule_->IsSupported();
 }
