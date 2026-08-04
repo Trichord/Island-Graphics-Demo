@@ -10,14 +10,18 @@
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Character/CharacterBase.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
+#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 #include <Jolt/Physics/Collision/PhysicsMaterial.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/Shape/SubShapeID.h>
+#include <Jolt/Physics/Collision/ShapeCast.h>
 #include <Jolt/Physics/PhysicsSystem.h>
+#include <optional>
 
 #include "physics/jolt_impl.h"
+#include <Jolt/Physics/Body/BodyFilter.h>
 
 namespace
 {
@@ -154,13 +158,14 @@ void CharacterCapsule::handleInput(const JPH::Vec3 &direction, bool jump, float 
         allowSliding_ = true;
     }
 
-    // New velocity starts at zero and is built up through conditions
+    // New velocity must start at 0
     Vec3 newVelocity{JPH::Vec3::sZero()};
     Vec3 currentVerticalVelocity{capsule_->GetLinearVelocity().Dot(capsule_->GetUp()) * capsule_->GetUp()};
     bool movingTowardsGround{currentVerticalVelocity.GetY() < 0.1f};
 
-    if (isSupported() && movingTowardsGround)
+    if (isGrounded() && movingTowardsGround)
     {
+        // Leave new velocity zero'd unless jumping
         if (jump)
             newVelocity = capsuleSettings_.jumpSpeed * capsule_->GetUp();
     }
@@ -236,12 +241,58 @@ JPH::Vec3 CharacterCapsule::getVelocity() const
     return capsule_->GetLinearVelocity();
 }
 
-JPH::Vec3 CharacterCapsule::getGroundNormal() const
-{
-    return capsule_->GetGroundNormal();
-}
-
 bool CharacterCapsule::isSupported() const
 {
     return capsule_->IsSupported();
+}
+
+bool CharacterCapsule::isGrounded() const
+{
+    return capsule_->GetGroundState() == JPH::CharacterBase::EGroundState::OnGround;
+}
+
+std::optional<float> CharacterCapsule::predictImpactSpeed(float lookAheadTime) const
+{
+    using namespace JPH;
+
+    if (isSupported())
+        return std::nullopt;
+
+    const Vec3 velocity{capsule_->GetLinearVelocity()};
+    const Vec3 gravity{physicsSystem_->GetGravity()};
+    const Vec3 up{capsule_->GetUp()};
+    const Vec3 sweep{velocity * lookAheadTime + 0.5f * gravity * lookAheadTime * lookAheadTime};
+
+    // Not falling
+    if (sweep.Dot(up) >= 0.0f)
+        return std::nullopt;
+
+    RShapeCast shapeCast{
+        RShapeCast::sFromWorldTransform(capsule_->GetShape(), Vec3::sOne(), capsule_->GetWorldTransform(), sweep)};
+
+    ShapeCastSettings settings;
+    ClosestHitCollisionCollector<CastShapeCollector> collector;
+    physicsSystem_->GetNarrowPhaseQuery().CastShape(
+        shapeCast, settings, shapeCast.mCenterOfMassStart.GetTranslation(), collector,
+        physicsSystem_->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
+        physicsSystem_->GetDefaultLayerFilter(Layers::MOVING), IgnoreSingleBodyFilter{capsule_->GetInnerBodyID()});
+
+    if (!collector.HadHit())
+        return std::nullopt;
+
+    const Vec3 normal{-collector.mHit.mPenetrationAxis.Normalized()};
+
+    // Not a true landing, capsule will be sliding and bouncing down the slope
+    if (capsule_->IsSlopeTooSteep(normal))
+        return std::nullopt;
+
+    // Approximate time to impact
+    const float timeToImpact{collector.mHit.mFraction * lookAheadTime};
+    const Vec3 impactVelocity{velocity + gravity * timeToImpact};
+    const float impactSpeed{-impactVelocity.Dot(normal)};
+
+    if (impactSpeed > 0.0f)
+        return impactSpeed;
+
+    return std::nullopt;
 }

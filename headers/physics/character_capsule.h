@@ -15,25 +15,27 @@
 #include <Jolt/Physics/Collision/Shape/SubShapeID.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <glm/glm.hpp>
+#include <optional>
 
 class CharacterCapsule : public JPH::CharacterContactListener
 {
   public:
     struct Settings
     {
-            float radius{0.3f};
-            float standingHeight{1.0f};
-            float crouchingHeight{0.8f};
-            float innerShapeFraction{0.9f};
+        float radius{0.3f};
+        float standingHeight{1.0f};
+        float crouchingHeight{0.8f};
+        float innerShapeFraction{0.9f};
 
-            float speed{1.0f};
-            float jumpSpeed{1.0f};
-            float sprintSpeedMultiplier{1.5f};
-            float crouchSpeedMultiplier{0.75f};
+        float speed{1.0f};
+        float jumpSpeed{1.0f};
+        float sprintSpeedMultiplier{1.5f};
+        float crouchSpeedMultiplier{0.75f};
     };
 
     CharacterCapsule() = default;
-    CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator, Settings capsuleSettings);
+    CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator,
+                     Settings capsuleSettings);
     CharacterCapsule(const CharacterCapsule &) = delete;
     CharacterCapsule &operator=(const CharacterCapsule &) = delete;
     CharacterCapsule(CharacterCapsule &&other) = delete;
@@ -43,8 +45,8 @@ class CharacterCapsule : public JPH::CharacterContactListener
     JPH::Vec3 getCenter() const;
     JPH::Vec3 getPosition() const;
     JPH::Vec3 getVelocity() const;
-    JPH::Vec3 getGroundNormal() const;
     bool isSupported() const;
+    bool isGrounded() const;
 
     void setCenter(const JPH::Vec3 &center);
     void setPosition(const JPH::Vec3 &position);
@@ -54,14 +56,7 @@ class CharacterCapsule : public JPH::CharacterContactListener
 
     void physicsUpdate(float deltaTime);
     void handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime);
-
-    void OnContactSolve(const JPH::CharacterVirtual *inCharacter, const JPH::BodyID &inBodyID2,
-                        const JPH::SubShapeID &inSubShapeID2, JPH::RVec3Arg inContactPosition,
-                        JPH::Vec3Arg inContactNormal, JPH::Vec3Arg inContactVelocity,
-                        const JPH::PhysicsMaterial *inContactMaterial, JPH::Vec3Arg inCharacterVelocity,
-                        JPH::Vec3 &ioNewCharacterVelocity) override;
-
-    bool OnContactValidate(const JPH::CharacterVirtual *inCharacter, const JPH::CharacterContact &inContact) override;
+    std::optional<float> predictImpactSpeed(float lookAheadTime) const;
 
   private:
     // Terrain interaction
@@ -87,4 +82,12 @@ class CharacterCapsule : public JPH::CharacterContactListener
 
     // Capsule
     JPH::Ref<JPH::CharacterVirtual> capsule_;
+
+    void OnContactSolve(const JPH::CharacterVirtual *inCharacter, const JPH::BodyID &inBodyID2,
+                        const JPH::SubShapeID &inSubShapeID2, JPH::RVec3Arg inContactPosition,
+                        JPH::Vec3Arg inContactNormal, JPH::Vec3Arg inContactVelocity,
+                        const JPH::PhysicsMaterial *inContactMaterial, JPH::Vec3Arg inCharacterVelocity,
+                        JPH::Vec3 &ioNewCharacterVelocity) override;
+
+    bool OnContactValidate(const JPH::CharacterVirtual *inCharacter, const JPH::CharacterContact &inContact) override;
 };

@@ -13,6 +13,7 @@
 #include <glm/glm.hpp>
 #include <utility>
 
+#include "physics/character_capsule.h"
 #include "physics/jolt_impl.h"
 #include "physics/physics_utilities.h"
 #include "scene/scene.h"
@@ -65,7 +66,8 @@ void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float
 {
     using namespace JPH;
 
-    constexpr float impactSpeedTrigger{4.5f};
+    constexpr int lookAheadTicks{4};
+    constexpr float impactTrigger{4.5f};
 
     // Avoid feedback loop when framerate drops
     timeAccumulator_ = std::min(timeAccumulator_ + deltaTime, maxAccumulator_);
@@ -74,28 +76,29 @@ void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float
     while (timeAccumulator_ > physicsTick_)
     {
         const bool wasSupported{player_.isSupported()};
-        Vec3 preVelocity{player_.getVelocity()};
+        const Vec3 preVelocity{player_.getVelocity()};
 
         previousPosition_ = player_.getCenter();
         tick(direction, front, jump, physicsTick_);
         timeAccumulator_ -= physicsTick_;
 
-        const bool isSupported{player_.isSupported()};
-
-        if (isSupported)
+        // Ignore footstep accumulator on steep slopes
+        if (player_.isGrounded())
             footstepAccumulator_ += (player_.getCenter() - previousPosition_).Length();
 
-        // Player just left the ground, reset footstep tracking
-        if (wasSupported && !isSupported)
-            footstepAccumulator_ = 0.0f;
+        // Skip the prediction if we already detected a landing
+        const std::optional<float> impactSpeed{
+            landingTriggered_ ? std::nullopt : player_.predictImpactSpeed(lookAheadTicks * physicsTick_)};
 
-        if (isSupported && !wasSupported)
+        if (impactSpeed && impactSpeed.value() >= impactTrigger)
         {
-            const float impactSpeed{-preVelocity.Dot(player_.getGroundNormal())};
-
-            if (impactSpeed >= impactSpeedTrigger)
-                landingTriggered_ = true;
+            // Player is hitting hard enough to trigger a landing event, reset footsteps
+            footstepAccumulator_ = 0.0f;
+            landingTriggered_ = true;
         }
+
+        if (jump && wasSupported && !player_.isSupported())
+            jumpTriggered_ = true;
     }
 }
 
@@ -120,6 +123,7 @@ void PlayerPhysics::tick(std::uint8_t direction, const glm::vec3 &front, bool ju
 
         footstepAccumulator_ = 0.0f;
         landingTriggered_ = false;
+        jumpTriggered_ = false;
 
         return;
     }
@@ -198,7 +202,7 @@ bool PlayerPhysics::footstepEvent()
 
 bool PlayerPhysics::jumpEvent()
 {
-    return jumpTriggered_;
+    return std::exchange(jumpTriggered_, false);
 }
 
 bool PlayerPhysics::landingEvent()
