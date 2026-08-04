@@ -5,7 +5,6 @@
 #include <Jolt/Core/Reference.h>
 #include <Jolt/Geometry/AABox.h>
 #include <Jolt/Geometry/Triangle.h>
-#include <Jolt/Math/Mat44.h>
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Real.h>
 #include <Jolt/Math/Vec3.h>
@@ -18,6 +17,7 @@
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Collision/Shape/ScaledShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
+#include <Jolt/Physics/Collision/TransformedShape.h>
 #include <Jolt/Physics/EActivation.h>
 #include <algorithm>
 #include <cstdint>
@@ -36,7 +36,7 @@
 namespace
 {
 
-JPH::TriangleList buildMesh(physics::StaticBodies &staticBodies, const std::vector<Primitive> &primitives)
+JPH::TriangleList buildMesh(const std::vector<Primitive> &primitives)
 {
     JPH::TriangleList mesh;
 
@@ -74,9 +74,7 @@ void addBody(physics::StaticBodies &bodies, JPH::BodyInterface &interface, const
 
     JPH::BodyID id{interface.CreateAndAddBody(settings, JPH::EActivation::DontActivate)};
 
-    JPH::AABox bounds{
-        scaledShape->GetWorldSpaceBounds(JPH::Mat44::sRotationTranslation(rotation, pos), JPH::Vec3::sReplicate(1.0f))};
-
+    JPH::AABox bounds{interface.GetTransformedShape(id).GetWorldSpaceBounds()};
     bodies.minimumHeight = std::min(bodies.minimumHeight, bounds.mMin.GetY());
     bodies.ids.emplace_back(id);
 }
@@ -94,7 +92,7 @@ physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::B
         std::visit(overloaded{[&](const Collision::Mesh &mesh) {
                                   fastgltf::Asset asset{loader::loadAsset(mesh.path)};
                                   const std::vector<Primitive> primitives{loader::loadMeshes(asset)};
-                                  JPH::TriangleList collisionMesh{buildMesh(bodies, primitives)};
+                                  JPH::TriangleList collisionMesh{buildMesh(primitives)};
 
                                   if (collisionMesh.empty())
                                       return;
