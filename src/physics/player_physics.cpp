@@ -6,10 +6,16 @@
 #include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
+#include <Jolt/Physics/Collision/Shape/Shape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/ShapeCast.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <glm/glm.hpp>
+#include <utility>
 
 #include "physics/jolt_impl.h"
 #include "physics/physics_utilities.h"
@@ -31,7 +37,7 @@ PlayerPhysics::PlayerPhysics(const Scene &scene, JPH::PhysicsSystem &physicsSyst
 
     // Set start position
     glm::vec3 cameraPos{scene.getCamera().getPosition()};
-    player_.setPosition(JPH::Vec3{cameraPos.x, cameraPos.y, cameraPos.z});
+    player_.setCenter(JPH::Vec3{cameraPos.x, cameraPos.y, cameraPos.z});
 }
 
 PlayerPhysics::~PlayerPhysics()
@@ -50,6 +56,7 @@ void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float
     // Avoid feedback loop when framerate drops
     timeAccumulator_ = std::min(timeAccumulator_ + deltaTime, maxAccumulator_);
     const bool jump{(direction & CharacterMovement::UP) != 0};
+    const bool wasGrounded{player_.isGrounded()};
 
     while (timeAccumulator_ > physicsTick_)
     {
@@ -60,6 +67,13 @@ void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float
         if (player_.isGrounded())
             footstepAccumulator_ += (player_.getCenter() - previousPosition_).Length();
     }
+
+    // Player just left the ground, queue up a landing event flag and reset footstep tracking
+    if (wasGrounded && !player_.isGrounded())
+    {
+        footstepAccumulator_ = 0.0f;
+        landingTriggered_ = false;
+    }
 }
 
 void PlayerPhysics::tick(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
@@ -69,10 +83,10 @@ void PlayerPhysics::tick(std::uint8_t direction, const glm::vec3 &front, bool ju
     // Player has fallen through the world
     if (player_.getPosition().GetY() < resetHeight_)
     {
-        player_.setPosition(resetPosition_);
+        player_.setCenter(resetPosition_);
 
         // Override last position too, so we don't interpolate between two wildly different points
-        previousPosition_ = resetPosition_;
+        previousPosition_ = player_.getCenter();
 
         JPH::Vec3 velocity{player_.getVelocity()};
         JPH::Vec3 newVelocity{velocity.GetX(), std::max(velocity.GetY(), maxFallVelocity), velocity.GetZ()};
@@ -142,7 +156,7 @@ void PlayerPhysics::toggleSprint(bool enable)
     player_.toggleSprint(enable);
 }
 
-bool PlayerPhysics::footstepTriggered()
+bool PlayerPhysics::footstepEvent()
 {
     if (footstepAccumulator_ >= footstepDistance_)
     {
@@ -151,4 +165,40 @@ bool PlayerPhysics::footstepTriggered()
     }
 
     return false;
+}
+
+bool PlayerPhysics::jumpEvent()
+{
+    return jumpTriggered_;
+}
+
+bool PlayerPhysics::landingEvent()
+{
+    using namespace JPH;
+
+    constexpr float earlyTriggerTime{0.2f};
+    constexpr float fallSpeedTrigger{-3.0f};
+    static const SphereShape detectionShape{player_.getRadius()};
+
+    if (landingTriggered_)
+        return false;
+
+    const Vec3 velocity{player_.getVelocity()};
+
+    if (velocity.GetY() > fallSpeedTrigger)
+        return false;
+
+    const Vec3 direction{velocity * earlyTriggerTime};
+    const RShapeCast shapeCast{&detectionShape, Vec3::sReplicate(1.0f), RMat44::sTranslation(player_.getPosition()),
+                               direction};
+
+    ShapeCastSettings settings;
+    ClosestHitCollisionCollector<CastShapeCollector> collector;
+    physicsSystem_.GetNarrowPhaseQuery().CastShape(shapeCast, settings, player_.getPosition(), collector);
+
+    if (!collector.HadHit())
+        return false;
+
+    landingTriggered_ = true;
+    return true;
 }

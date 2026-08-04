@@ -2,7 +2,6 @@
 
 #include <Jolt/Jolt.h>
 
-#include <glm/glm.hpp>
 #include <Jolt/Core/Reference.h>
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Math/Math.h>
@@ -15,6 +14,7 @@
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/Shape/SubShapeID.h>
 #include <Jolt/Physics/PhysicsSystem.h>
+#include <glm/glm.hpp>
 
 class CharacterCapsule : public JPH::CharacterContactListener
 {
@@ -26,13 +26,15 @@ class CharacterCapsule : public JPH::CharacterContactListener
     CharacterCapsule(CharacterCapsule &&other) = delete;
     CharacterCapsule &operator=(CharacterCapsule &&other) = delete;
 
+    float getRadius() const;
     JPH::Vec3 getCenter() const;
     JPH::Vec3 getPosition() const;
     JPH::Vec3 getVelocity() const;
     bool isGrounded() const;
 
-    void setPosition(JPH::Vec3 position);
-    void setVelocity(JPH::Vec3 velocity);
+    void setCenter(const JPH::Vec3 &center);
+    void setPosition(const JPH::Vec3& position);
+    void setVelocity(const JPH::Vec3 &velocity);
     void toggleCrouch(bool enable);
     void toggleSprint(bool enable);
 
@@ -49,10 +51,9 @@ class CharacterCapsule : public JPH::CharacterContactListener
 
   private:
     // Character size
+    static constexpr float characterRadius_{0.3f};
     static constexpr float characterHeightStanding_{1.35f};
-    static constexpr float characterRadiusStanding_{0.3f};
     static constexpr float characterHeightCrouching_{0.8f};
-    static constexpr float characterRadiusCrouching_{0.3f};
     static constexpr float innerShapeFraction_{0.9f};
 
     // Terrain interaction

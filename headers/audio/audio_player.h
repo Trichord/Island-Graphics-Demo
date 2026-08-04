@@ -16,6 +16,7 @@ class AudioPlayer
 
     void update(const glm::vec3 &listenerPos, const glm::vec3 &listenerFront);
     void playFootstep();
+    void playLanding();
 
   private:
     struct Trigger
@@ -26,7 +27,7 @@ class AudioPlayer
         bool oneShot{false};
     };
 
-    struct Footstep
+    struct SoundEffect
     {
         // Store the volume locally so it can be randomly altered
         float volume{1.0f};
@@ -35,8 +36,10 @@ class AudioPlayer
 
     ma_engine audioEngine_ = {};
     std::vector<Trigger> trigger_;
-    std::vector<Footstep> footsteps_;
+    std::vector<SoundEffect> footsteps_;
+    std::vector<SoundEffect> landings_;
     std::vector<bool> hasPlayed_;
 
-    void playSounds() const;
+    void playRandomSound(std::vector<SoundEffect> &sounds, float pitchLow, float pitchHigh, float volumeLow,
+                         float volumeHigh);
 };

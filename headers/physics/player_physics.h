@@ -42,7 +42,9 @@ class PlayerPhysics
     void toggleSprint(bool enable);
 
     void update(std::uint8_t direction, const glm::vec3 &front, float deltaTime);
-    bool footstepTriggered();
+    bool footstepEvent();
+    bool jumpEvent();
+    bool landingEvent();
 
   private:
     static constexpr float physicsTick_{1.0f / 60.0f};
@@ -51,6 +53,7 @@ class PlayerPhysics
     static constexpr float maxAccumulator_{physicsTick_ * 3.0f};
 
     bool jumpTriggered_{false};
+    bool landingTriggered_{false};
     float timeAccumulator_{0.0f};
     float footstepAccumulator_{footstepDistance_ - firstStepDistance_};
     float resetHeight_{0.0f};

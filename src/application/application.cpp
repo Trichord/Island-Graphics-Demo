@@ -80,14 +80,14 @@ void Application::run()
     TextureManager textureManager{threadPool, graphicsSettings};
     Renderer renderer(textureManager, graphicsSettings, windowWidth_, windowHeight_);
 
+    std::cout << "Loading Audio... ";
+    AudioPlayer audioPlayer{"./res/scenes/island_scene/audio.json"};
+    std::cout << "Done" << std::endl;
+
     std::cout << "Loading Models... ";
     IslandScene islandScene(textureManager, graphicsSettings, "./res/scenes/island_scene/scene.json");
     std::cout << "Done" << std::endl;
     scenePtr_ = &islandScene;
-
-    std::cout << "Loading Audio... ";
-    AudioPlayer audioPlayer{"./res/scenes/island_scene/audio.json"};
-    std::cout << "Done" << std::endl;
 
     // Initialize scene dependent resources
     renderer.initializeResources(islandScene);
@@ -301,8 +301,10 @@ void Application::updateScene(std::uint8_t movementFlags, Camera &camera, Player
     camera.setPosition(pos);
     audio.update(pos, camera.getFront());
 
-    if (physics.footstepTriggered())
+    if (physics.footstepEvent())
         audio.playFootstep();
+    if (physics.landingEvent())
+        audio.playLanding();
 }
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)

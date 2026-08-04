@@ -34,12 +34,12 @@ JPH::ShapeRefC createShape(float height, float radius)
 
 CharacterCapsule::CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator)
     : physicsSystem_{&physicsSystem}, tempAllocator_{&tempAllocator},
-      standingShape_{createShape(characterHeightStanding_, characterRadiusStanding_)},
-      crouchingShape_{createShape(characterHeightCrouching_, characterRadiusCrouching_)},
+      standingShape_{createShape(characterHeightStanding_, characterRadius_)},
+      crouchingShape_{createShape(characterHeightCrouching_, characterRadius_)},
       innerStandingShape_{
-          createShape(innerShapeFraction_ * characterHeightStanding_, innerShapeFraction_ * characterRadiusStanding_)},
+          createShape(innerShapeFraction_ * characterHeightStanding_, innerShapeFraction_ * characterRadius_)},
       innerCrouchingShape_{
-          createShape(innerShapeFraction_ * characterHeightCrouching_, innerShapeFraction_ * characterRadiusCrouching_)}
+          createShape(innerShapeFraction_ * characterHeightCrouching_, innerShapeFraction_ * characterRadius_)}
 {
     using namespace JPH;
 
@@ -47,7 +47,7 @@ CharacterCapsule::CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempA
     settings->mMaxSlopeAngle = maxSlopeAngle_;
     settings->mShape = standingShape_;
     settings->mSupportingVolume =
-        Plane(Vec3::sAxisY(), -characterRadiusStanding_); // Accept contacts that touch the lower sphere of the capsule
+        Plane(Vec3::sAxisY(), -characterRadius_); // Accept contacts that touch the lower sphere of the capsule
     settings->mEnhancedInternalEdgeRemoval = true;
     settings->mInnerBodyShape = innerStandingShape_;
     settings->mInnerBodyLayer = Layers::MOVING;
@@ -55,6 +55,11 @@ CharacterCapsule::CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempA
     // Create the player's capsule
     capsule_ = new CharacterVirtual(settings, RVec3::sZero(), Quat::sIdentity(), 0, &physicsSystem);
     capsule_->SetListener(this);
+}
+
+float CharacterCapsule::getRadius() const
+{
+    return characterRadius_;
 }
 
 // Returns the center of mass of the capsule
@@ -69,12 +74,19 @@ JPH::Vec3 CharacterCapsule::getPosition() const
     return capsule_->GetPosition();
 }
 
-void CharacterCapsule::setPosition(JPH::Vec3 position)
+void CharacterCapsule::setCenter(const JPH::Vec3 &center)
+{
+    // Distance from bottom of capsule to center
+    JPH::Vec3 offset{capsule_->GetCenterOfMassPosition() - capsule_->GetPosition()};
+    capsule_->SetPosition(center - offset);
+}
+
+void CharacterCapsule::setPosition(const JPH::Vec3 &position)
 {
     capsule_->SetPosition(position);
 }
 
-void CharacterCapsule::setVelocity(JPH::Vec3 velocity)
+void CharacterCapsule::setVelocity(const JPH::Vec3 &velocity)
 {
     capsule_->SetLinearVelocity(velocity);
     desiredVelocity_ = JPH::Vec3::sZero();

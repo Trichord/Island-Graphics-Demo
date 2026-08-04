@@ -19,7 +19,7 @@ struct AudioEntry
     bool spatialization{false};
 };
 
-struct FootstepEntry
+struct SoundEffectEntry
 {
     float volume{1.0f};
     std::vector<std::filesystem::path> soundPaths;
@@ -28,7 +28,8 @@ struct FootstepEntry
 struct AudioFile
 {
     std::vector<AudioEntry> audioEntries;
-    FootstepEntry footsteps;
+    SoundEffectEntry footsteps;
+    SoundEffectEntry landings;
 };
 
 inline glm::vec3 parseVec3(const nlohmann::json &j)
@@ -36,7 +37,7 @@ inline glm::vec3 parseVec3(const nlohmann::json &j)
     return {j.at(0).get<float>(), j.at(1).get<float>(), j.at(2).get<float>()};
 }
 
-inline void from_json(const nlohmann::json &j, FootstepEntry &footsteps)
+inline void from_json(const nlohmann::json &j, SoundEffectEntry &footsteps)
 {
     footsteps.volume = j.value("volume", 1.0f);
     footsteps.soundPaths = j.value("soundPaths", std::vector<std::filesystem::path>{});
@@ -61,5 +62,6 @@ inline void from_json(const nlohmann::json &j, AudioEntry &entry)
 inline void from_json(const nlohmann::json &j, AudioFile &audioFile)
 {
     audioFile.audioEntries = j.value("entries", std::vector<AudioEntry>{});
-    audioFile.footsteps = j.value("footsteps", FootstepEntry{});
+    audioFile.footsteps = j.value("footsteps", SoundEffectEntry{});
+    audioFile.landings = j.value("landings", SoundEffectEntry{});
 }

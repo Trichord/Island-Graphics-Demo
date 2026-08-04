@@ -62,6 +62,7 @@ AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
     trigger_.reserve(audio.audioEntries.size());
     hasPlayed_.resize(audio.audioEntries.size());
     footsteps_.reserve(audio.footsteps.soundPaths.size());
+    landings_.reserve(audio.landings.soundPaths.size());
 
     for (const AudioEntry &entry : audio.audioEntries)
     {
@@ -103,24 +104,30 @@ AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
         ma_sound_set_volume(&sound, entry.volume);
     }
 
-    for (const std::filesystem::path &path : audio.footsteps.soundPaths)
-    {
-        footsteps_.emplace_back(Footstep{
-            .volume = audio.footsteps.volume,
+    auto addSoundEffect = [](ma_engine &engine, std::vector<SoundEffect> &sounds, const std::filesystem::path &path,
+                             const float volume) {
+        sounds.emplace_back(SoundEffect{
+            .volume = volume,
             .sound = ma_sound{},
         });
 
         ma_result result;
-        result = ma_sound_init_from_file(&audioEngine_, path.string().c_str(),
+        result = ma_sound_init_from_file(&engine, path.string().c_str(),
                                          MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_NO_SPATIALIZATION, nullptr, nullptr,
-                                         &footsteps_.back().sound);
+                                         &sounds.back().sound);
 
         if (result != MA_SUCCESS)
         {
             std::cerr << ma_result_description(result) << std::endl;
             throw std::runtime_error("Failed to load footstep sound");
         }
-    }
+    };
+
+    for (const std::filesystem::path &path : audio.footsteps.soundPaths)
+        addSoundEffect(audioEngine_, footsteps_, path, audio.footsteps.volume);
+
+    for (const std::filesystem::path &path : audio.landings.soundPaths)
+        addSoundEffect(audioEngine_, landings_, path, audio.landings.volume);
 }
 
 AudioPlayer::~AudioPlayer()
@@ -128,7 +135,7 @@ AudioPlayer::~AudioPlayer()
     for (Trigger &zone : trigger_)
         ma_sound_uninit(&zone.sound);
 
-    for (Footstep &footstep : footsteps_)
+    for (SoundEffect &footstep : footsteps_)
         ma_sound_uninit(&footstep.sound);
 
     ma_engine_uninit(&audioEngine_);
@@ -175,21 +182,34 @@ void AudioPlayer::playFootstep()
     constexpr float pitchVariation{0.2f};
     constexpr float volumeVariation{0.4f};
 
-    static std::minstd_rand gen{std::random_device{}()};
+    // Only make footsteps randomly softer. Normal footstep volume is already plenty.
+    playRandomSound(footsteps_, 1.0f - pitchVariation, 1.0f + pitchVariation, 1.0f - volumeVariation, 1.0f);
+}
 
-    if (footsteps_.empty())
+void AudioPlayer::playLanding()
+{
+    constexpr float pitchVariation{0.1f};
+    constexpr float volumeVariation{0.2f};
+
+    playRandomSound(landings_, 1.0f - pitchVariation, 1.0f + pitchVariation, 1.0f - volumeVariation,
+                    1.0f + volumeVariation);
+}
+
+void AudioPlayer::playRandomSound(std::vector<SoundEffect> &sounds, float pitchLow, float pitchHigh, float volumeLow,
+                                  float volumeHigh)
+{
+    if (sounds.empty())
         return;
 
-    float randomPitch{std::uniform_real_distribution<float>(-pitchVariation, pitchVariation)(gen)};
-    float randomVolume{std::uniform_real_distribution<float>(0.0f, volumeVariation)(gen)};
-    int randomIndex{std::uniform_int_distribution<int>(0, footsteps_.size() - 1)(gen)};
+    static std::minstd_rand gen{std::random_device{}()};
 
-    Footstep &footstep{footsteps_[randomIndex]};
+    float randomPitch{std::uniform_real_distribution<float>(pitchLow, pitchHigh)(gen)};
+    float randomVolume{std::uniform_real_distribution<float>(volumeLow, volumeHigh)(gen)};
+    int randomIndex{std::uniform_int_distribution<int>(0, sounds.size() - 1)(gen)};
+    SoundEffect &randomSound{sounds[randomIndex]};
 
-    // Only make footsteps randomly softer. Normal footstep volume is already plenty.
-    ma_sound_set_volume(&footstep.sound, footstep.volume - randomVolume);
-    ma_sound_set_pitch(&footstep.sound, 1.0f + randomPitch);
-
-    ma_sound_seek_to_pcm_frame(&footstep.sound, 0);
-    ma_sound_start(&footstep.sound);
+    ma_sound_set_volume(&randomSound.sound, randomVolume);
+    ma_sound_set_pitch(&randomSound.sound, randomPitch);
+    ma_sound_seek_to_pcm_frame(&randomSound.sound, 0);
+    ma_sound_start(&randomSound.sound);
 }
