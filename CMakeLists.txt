@@ -25,6 +25,7 @@ set(SOURCES
     src/application/settings_window.cpp
     src/audio/audio_player.cpp
     src/audio/miniaudio_impl.cpp
+    src/audio/sound_effect.cpp
     src/models/aabb.cpp
     src/models/animator.cpp
     src/models/instanced_model.cpp
@@ -68,7 +69,10 @@ set(HEADERS
     headers/application/glfw_callbacks.h
     headers/application/graphics_settings.h
     headers/application/settings_window.h
+    headers/audio/audio_engine.h
+    headers/audio/audio_file.h
     headers/audio/audio_player.h
+    headers/audio/sound_effect.h
     headers/models/aabb.h
     headers/models/instanced_model.h
     headers/models/model.h
@@ -95,7 +99,6 @@ set(HEADERS
     headers/renderer/shader/shader_base.h
     headers/renderer/textures.h
     headers/renderer/texture_view.h
-    headers/scene/audio_file.h
     headers/scene/camera.h
     headers/scene/directional_light.h
     headers/scene/handle.h

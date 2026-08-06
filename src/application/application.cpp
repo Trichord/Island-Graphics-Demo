@@ -302,9 +302,11 @@ void Application::updateScene(std::uint8_t movementFlags, Camera &camera, Player
     audio.update(pos, camera.getFront());
 
     if (physics.footstepEvent())
-        audio.playFootstep();
+        audio.playFootstepEffect();
     if (physics.landingEvent())
-        audio.playLanding();
+        audio.playLandingEffect();
+    if (physics.jumpEvent())
+        audio.playJumpEffect();
 }
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)

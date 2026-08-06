@@ -2,47 +2,49 @@
 
 #include <filesystem>
 #include <glm/glm.hpp>
-#include <miniaudio.h>
+#include <memory>
 #include <vector>
 
+#include "audio/audio_engine.h"
+#include "audio/sound_effect.h"
 #include "models/aabb.h"
 
 class AudioPlayer
 {
   public:
-    AudioPlayer() = default;
-    AudioPlayer(const std::filesystem::path &jsonFile);
-    AudioPlayer(const AudioPlayer &) = delete;
-    AudioPlayer &operator=(const AudioPlayer &) = delete;
-    AudioPlayer(AudioPlayer &&) = delete;
-    AudioPlayer &operator=(AudioPlayer &&) = delete;
-    ~AudioPlayer();
+    explicit AudioPlayer(const std::filesystem::path &jsonFile);
 
     void update(const glm::vec3 &listenerPos, const glm::vec3 &listenerFront);
-    void playFootstep();
-    void playLanding();
+    void playFootstepEffect();
+    void playLandingEffect();
+    void playJumpEffect();
 
   private:
     struct Trigger
     {
         AABB aabb;
-        ma_sound sound;
+        std::size_t soundIndex{0};
         bool enabled{false};
         bool oneShot{false};
+        bool loop{false};
+        bool hasPlayed{false};
     };
 
-    struct SoundEffect
+    struct SoundRange
     {
-        // Store the volume locally so it can be randomly altered
-        float volume{1.0f};
-        ma_sound sound;
+        std::size_t start{0};
+        std::size_t count{0};
     };
 
-    ma_engine audioEngine_ = {};
-    std::vector<Trigger> triggers_;
-    std::vector<SoundEffect> footsteps_;
-    std::vector<SoundEffect> landings_;
-    std::vector<bool> hasPlayed_;
+    struct CharacterSounds
+    {
+        SoundRange footsteps;
+        SoundRange landings;
+        SoundRange jumps;
+    };
 
-    void playSound(ma_sound &sound, float volume, float pitch);
+    AudioEngine engine_;
+    std::vector<Trigger> triggers_;
+    CharacterSounds characterSounds_;
+    std::vector<std::unique_ptr<SoundEffect>> soundEffects_;
 };
