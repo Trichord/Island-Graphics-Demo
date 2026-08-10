@@ -14,8 +14,10 @@ class AABB
     glm::vec3 getMin() const;
     glm::vec3 getMax() const;
     const glm::vec3& getCenter() const;
-    const glm::vec3& getExtent() const;
+    const glm::vec3& getHalfExtent() const;
 
+    void setCenter(const glm::vec3 &center);
+    void setHalfExtent(const glm::vec3 &extent);
     void resize(float scale);
 
     // Intersect methods are credit: Fabian “ryg” Giesen
@@ -29,5 +31,5 @@ class AABB
 
   private:
     glm::vec3 center_{0.0f};
-    glm::vec3 extent_{0.0f};
+    glm::vec3 halfExtent_{0.0f};
 };

@@ -373,7 +373,6 @@ This work is based on ["Seagull – Stylized Animated 3D Model"](https://sketchf
 <h1>Audio</h1>
 
 <h2>Hilltop Music</h2>
-
 <details>
 <summary>By penguinmusic</summary>
 
@@ -398,3 +397,19 @@ Audio License:
 * license type:	[CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 
 </details>
+
+<h2>Seagulls</h2>
+<details>
+<summary>By Thomas Ryder Payne</summary>
+
+Audio Information:
+* title:	XC636430 · Glaucous Gull · Larus hyperboreus
+* source:	https://xeno-canto.org/636430
+* author:	[Thomas Ryder Payne](https://xeno-canto.org/contributor/NWXCLJYBDK)
+* changes:	Split audio into separate clips.
+
+Audio License:
+* license type:	[Creative Commons Attribution-NonCommercial-ShareAlike 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+</details>
+

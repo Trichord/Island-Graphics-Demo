@@ -87,7 +87,7 @@ struct SceneCamera
     float yaw{0.0f};
     float nearPlane{0.1f};
     float farPlane{1000.0f};
-    float FOV{45.0f};
+    float fov{45.0f};
 };
 
 using SceneEntry = std::variant<ModelEntry, InstancedModelEntry, CubeMappedModelEntry, SkyboxEntry, ParticlesEntry>;
@@ -231,7 +231,7 @@ inline void from_json(const nlohmann::json &j, SceneCamera &c)
     c.yaw = j.value("yaw", -90.0f);
     c.nearPlane = j.value("nearPlane", 0.1f);
     c.farPlane = j.value("farPlane", 1000.0f);
-    c.FOV = j.value("FOV", 45.0f);
+    c.fov = j.value("fov", 45.0f);
 }
 
 inline SceneEntry parseSceneEntry(const nlohmann::json &j)

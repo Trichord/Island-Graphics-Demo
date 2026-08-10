@@ -80,20 +80,21 @@ void Application::run()
     TextureManager textureManager{threadPool, graphicsSettings};
     Renderer renderer(textureManager, graphicsSettings, windowWidth_, windowHeight_);
 
-    std::cout << "Loading Audio... ";
-    AudioPlayer audioPlayer{"./res/scenes/island_scene/audio.json"};
-    std::cout << "Done" << std::endl;
-
     std::cout << "Loading Models... ";
-    IslandScene islandScene(textureManager, graphicsSettings, "./res/scenes/island_scene/scene.json");
+    IslandScene islandScene(textureManager, "./res/scenes/island_scene/scene.json");
     std::cout << "Done" << std::endl;
-    scenePtr_ = &islandScene;
 
     // Initialize scene dependent resources
-    renderer.initializeResources(islandScene);
+    playerCamera_ = {islandScene.getCameraDescription(),
+                     graphicsSettings.renderWidth / static_cast<float>(graphicsSettings.renderHeight)};
+    renderer.initializeResources(islandScene, playerCamera_);
+
+    std::cout << "Loading Audio... ";
+    AudioPlayer audioPlayer{islandScene, "./res/scenes/island_scene/audio.json"};
+    std::cout << "Done" << std::endl;
 
     std::cout << "Creating Collision Mesh... ";
-    PlayerPhysics physicsHandler(islandScene, physicsSystem, tempAllocator);
+    PlayerPhysics physicsHandler(physicsSystem, tempAllocator, islandScene, playerCamera_.getPosition());
     std::cout << "Done" << std::endl;
 
     threadPool.stopAllThreads();
@@ -107,8 +108,10 @@ void Application::run()
 
         // Update
         glfwPollEvents();
-        updateScene(processKeyboard(), islandScene.getCamera(), physicsHandler, audioPlayer);
-        islandScene.onUpdate(currentFrame_, deltaTime_);
+        std::uint8_t keyboardInput{processKeyboard()};
+        islandScene.onUpdate(playerCamera_, static_cast<float>(currentFrame_), deltaTime_);
+        updatePhysics(keyboardInput, playerCamera_, physicsHandler);
+        updateAudio(audioPlayer, physicsHandler, playerCamera_, islandScene.getUpdatedEntries());
 
         if (windowResized_)
         {
@@ -117,7 +120,7 @@ void Application::run()
         }
 
         // Draw
-        renderer.renderScene(islandScene, deltaTime_);
+        renderer.renderScene(islandScene, playerCamera_, deltaTime_);
 
         // Clear
         islandScene.clearUpdates();
@@ -290,7 +293,7 @@ std::uint8_t Application::processKeyboard()
     return direction;
 }
 
-void Application::updateScene(std::uint8_t movementFlags, Camera &camera, PlayerPhysics &physics, AudioPlayer &audio)
+void Application::updatePhysics(std::uint8_t movementFlags, Camera &camera, PlayerPhysics &physics)
 {
     // Debounced input
     physics.toggleCrouch(leftCtrlToggle_);
@@ -299,14 +302,20 @@ void Application::updateScene(std::uint8_t movementFlags, Camera &camera, Player
 
     const glm::vec3 pos{physics.getInterpolatedPosition()};
     camera.setPosition(pos);
-    audio.update(pos, camera.getFront());
+}
+
+void Application::updateAudio(AudioPlayer &audioPlayer, PlayerPhysics &physics, Camera &camera,
+                              UpdatedEntriesView updatedEntries)
+{
+    audioPlayer.updateTriggers(updatedEntries);
+    audioPlayer.playTriggers(camera.getPosition(), camera.getFront(), deltaTime_);
 
     if (physics.footstepEvent())
-        audio.playFootstepEffect();
+        audioPlayer.playFootstepEffect();
     if (physics.landingEvent())
-        audio.playLandingEffect();
+        audioPlayer.playLandingEffect();
     if (physics.jumpEvent())
-        audio.playJumpEffect();
+        audioPlayer.playJumpEffect();
 }
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
@@ -324,10 +333,12 @@ void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
     lastMouseX_ = static_cast<float>(xPos);
     lastMouseY_ = static_cast<float>(yPos);
 
-    auto appPtr = static_cast<Application *>(glfwGetWindowUserPointer(window));
+    auto appPtr = static_cast<Camera *>(glfwGetWindowUserPointer(window));
 
-    if (appPtr && appPtr->scenePtr_)
-        appPtr->scenePtr_->getCamera().processMouseMovement(xOffset, yOffset);
+    if (!appPtr)
+        return;
+
+    appPtr->processMouseMovement(xOffset, yOffset);
 }
 
 void Application::registerCallbacks()
@@ -337,7 +348,7 @@ void Application::registerCallbacks()
     glfwSetCursorPosCallback(window_, Application::mouse_callback);
     glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetWindowIconifyCallback(window_, window_iconify_callback);
-    glfwSetWindowUserPointer(window_, this);
+    glfwSetWindowUserPointer(window_, &playerCamera_);
 }
 
 void Application::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)

@@ -262,7 +262,6 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
         Dummy(dummySpacing);
 
         float tableWidth{GetContentRegionAvail().x / numColumns};
-        float yCursorPos{GetCursorPosY()};
 
         if (BeginTable("##qualityTable", 2, ImGuiTableFlags_None, ImVec2{tableWidth, 0.0f}))
         {

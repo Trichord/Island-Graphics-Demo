@@ -53,7 +53,7 @@ std::size_t getNumDynamicCubemaps(const Scene &scene)
 }
 } // namespace
 
-void Renderer::initializeResources(const Scene &scene)
+void Renderer::initializeResources(const Scene &scene, const Camera& camera)
 {
     if (scene.getAllSceneEntries().empty())
         return;
@@ -82,7 +82,7 @@ void Renderer::initializeResources(const Scene &scene)
     std::vector<std::uint32_t> metadataBridge{std::move(processed.bufferDescriptors.metadataBridge)};
 
     // Setup for cascade shadow maps
-    float nearPlane{scene.getCamera().getNearPlane()};
+    float nearPlane{camera.getNearPlane()};
     const DirectionalLight &light{scene.getGlobalLight()};
     cascadeShadow_ = {light, sceneAABB, nearPlane};
 
@@ -95,11 +95,11 @@ void Renderer::initializeResources(const Scene &scene)
         setupShader(shader);
 
     // Set the light based uniforms and draw shadows
-    setSceneShaderUniforms(scene);
-    setupComputeShaders(processed);
+    setSceneShaderUniforms(scene, camera);
+    setupComputeShaders(processed, camera.getNearPlane());
 
-    if (graphicsSettings_.shadowResolution)
-        renderShadowMaps(scene, true);
+    if (shadowsEnabled)
+        renderShadowMaps(scene, camera, true);
 
     // Assign the skybox to any ocean shaders before any cubemaps are rendered, so they are captured.
     borrowSkybox(drawBuckets_, bucketHandles);
@@ -112,7 +112,7 @@ void Renderer::initializeResources(const Scene &scene)
 
     // Get ready for first frame
     bindBufferRanges(0);
-    updateCameraUBO(scene.getCamera());
+    updateCameraUBO(camera);
 
     // Unbind for Hi-Z at start of frame and prime texture so everything passes
     frameBuffer_.unbind();
@@ -142,7 +142,7 @@ void Renderer::takeBufferData(SceneProcessor::ProcessedScene &processed)
     visibleInstancesSize_ = static_cast<std::uint32_t>(processed.bufferDescriptors.visibleInstancesSize);
 }
 
-void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &processed)
+void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &processed, float nearPlane)
 {
     cullWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numInstances);
     compactionWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numPrimitives);
@@ -158,17 +158,15 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
     cullShader_.setIVec2("renderResolution", glm::ivec2{graphicsSettings_.renderWidth, graphicsSettings_.renderHeight});
     cullShader_.setIVec2("hiZResolution", hiZRes);
     cullShader_.setInt("hiZMaxMip", static_cast<int>(hiZViews_.getMipViews().size() - 1));
+    cullShader_.setFloat("nearPlane", nearPlane);
     msaaDepthResolveShader_.setInt("resReduction", hiZResolutionReduction);
     msaaDepthResolveShader_.setIVec2("mipRes", hiZRes);
 }
 
-void Renderer::setSceneShaderUniforms(const Scene &scene)
+void Renderer::setSceneShaderUniforms(const Scene &scene, const Camera& camera)
 {
     const DirectionalLight &light{scene.getGlobalLight()};
-
-    const Camera &camera{scene.getCamera()};
     const float fov{camera.getFOV()};
-    const float nearPlane{camera.getNearPlane()};
 
     for (auto &shader : shaders_)
     {
@@ -181,8 +179,6 @@ void Renderer::setSceneShaderUniforms(const Scene &scene)
 
         shader.setFloat("fov", fov);
     }
-
-    cullShader_.setFloat("nearPlane", nearPlane);
 }
 
 void Renderer::borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
@@ -224,12 +220,10 @@ void Renderer::createCubemaps(const Scene &scene, const std::vector<MultiDrawBuc
             break;
         }
 
-    // 90 degrees for cubemap
-    Camera camera;
-    camera.setFOV(90.0f);
-    camera.setAspectRatio(1.0f);
-
+    // 1:1 aspect with a 90 degree fov for cubemap face rendering
+    Camera camera{{.fov = 90.0f}, 1.0f};
     int faceSize{graphicsSettings_.reflectionResolution};
+    
     glViewport(0, 0, faceSize, faceSize);
 
     GLenum colorFormat{DynamicCubemaps::internalFormat};
@@ -264,7 +258,7 @@ void Renderer::createCubemaps(const Scene &scene, const std::vector<MultiDrawBuc
         renderCubeFaces(camera, cubeFaces, blitTarget, parameterBufferIndex);
 
         // Assign the texture
-        std::vector<int> materialIndices;
+        std::vector<std::size_t> materialIndices;
         materialIndices.reserve(entry.primitives.size());
 
         for (const Primitive &primitive : entry.primitives)

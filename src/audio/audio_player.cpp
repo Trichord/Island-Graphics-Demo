@@ -8,6 +8,8 @@
 #include <ios>
 #include <iostream>
 #include <memory>
+#include <string>
+#include <unordered_map>
 
 #include <miniaudio.h>
 #include <nlohmann/json.hpp>
@@ -16,6 +18,7 @@
 
 #include "audio/audio_file.h"
 #include "audio/sound_effect.h"
+#include "scene/scene.h"
 #include "utilities/world_vectors.h"
 
 namespace
@@ -38,21 +41,21 @@ float randomFloat(float low, float high)
 }
 } // namespace
 
-AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
+AudioPlayer::AudioPlayer(const Scene &scene, const std::filesystem::path &audioJson)
 {
     using namespace nlohmann;
 
-    if (jsonFile.empty() || !std::filesystem::exists(jsonFile))
+    if (audioJson.empty() || !std::filesystem::exists(audioJson))
     {
-        std::cerr << "ERROR: Could not load scene " << jsonFile << std::endl;
+        std::cerr << "ERROR: Could not load scene " << audioJson << std::endl;
         throw std::runtime_error("Invalid Scene");
     }
 
-    std::ifstream file{jsonFile};
+    std::ifstream file{audioJson};
 
     if (!file.is_open())
     {
-        std::cerr << "ERROR: Failed to open " << jsonFile << std::endl;
+        std::cerr << "ERROR: Failed to open " << audioJson << std::endl;
         throw std::runtime_error("Failed to open file");
     }
 
@@ -72,58 +75,68 @@ AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
         throw;
     }
 
-    // Initialize the audio engine now that the json has been loaded
-
     ma_engine_listener_set_world_up(&engine_.engine, 0, WorldVectors::worldUp.x, WorldVectors::worldUp.y,
                                     WorldVectors::worldUp.z);
 
-    // Reserve the max of footsteps and 2, since a landing event plays 2 simultaneous footsteps
-    const std::size_t landingsSize{std::max(audio.characterSounds.footsteps.size(), std::size_t{2})};
+    // Reserve one extra footstep if size is one, since landings require one extra footstep sound
+    const std::size_t footstepsSize{audio.characterSounds.footsteps.size()};
+    const std::size_t totalFootsteps{footstepsSize + (footstepsSize == 1 ? 1 : 0)};
 
     triggers_.reserve(audio.audioTriggers.size());
-    soundEffects_.reserve(audio.audioTriggers.size() + audio.characterSounds.footsteps.size() +
-                          audio.characterSounds.jumps.size() + landingsSize);
+    soundEffects_.reserve(audio.audioTriggers.size() + audio.characterSounds.jumps.size() + totalFootsteps);
 
-    for (const AudioTriggerEntry &entry : audio.audioTriggers)
+    for (const AudioTriggerEntry &triggerEntry : audio.audioTriggers)
     {
-        if (entry.soundEffectEntry.soundPath.empty())
+        if (triggerEntry.soundEffectEntry.soundPath.empty())
             continue;
 
-        if (!std::filesystem::exists(entry.soundEffectEntry.soundPath))
-            throw std::runtime_error("Failed to load sound from " + entry.soundEffectEntry.soundPath.string());
+        if (!std::filesystem::exists(triggerEntry.soundEffectEntry.soundPath))
+            throw std::runtime_error("Failed to load sound from " + triggerEntry.soundEffectEntry.soundPath.string());
 
         ma_uint32 flags{0};
-        if (entry.soundEffectEntry.streaming)
+        if (triggerEntry.soundEffectEntry.streaming)
             flags |= MA_SOUND_FLAG_STREAM;
         else
             flags |= MA_SOUND_FLAG_DECODE;
 
-        if (!entry.soundEffectEntry.spatialization)
+        if (!triggerEntry.soundEffectEntry.spatialization)
             flags |= MA_SOUND_FLAG_NO_SPATIALIZATION;
 
+        // Resolve audio name -> scene name -> handle, for dirty handle updates
+        if (!triggerEntry.name.empty())
+        {
+            const Scene::Entry &sceneEntry{scene.viewEntry(triggerEntry.name)};
+            triggersByHandle_.emplace(sceneEntry.handle, triggers_.size());
+        }
+
+        AABB outer{triggerEntry.triggerZone};
+        outer.setHalfExtent(outer.getHalfExtent() + triggerEntry.fadeDistance);
+
         triggers_.emplace_back(Trigger{
-            .aabb = entry.triggerZone,
+            .innerAABB = triggerEntry.triggerZone,
+            .outerAABB = outer,
             .soundIndex = soundEffects_.size(),
-            .oneShot = entry.playOnce,
-            .loop = entry.loop,
+            .oneShot = triggerEntry.playOnce,
+            .loop = triggerEntry.loop,
+            .repeatDelay = triggerEntry.repeatDelay,
+            .fadeDistance = triggerEntry.fadeDistance,
         });
 
-        soundEffects_.emplace_back(std::make_unique<SoundEffect>(engine_, entry.soundEffectEntry.soundPath,
-                                                                 entry.soundEffectEntry.volume, flags, entry.position));
+        soundEffects_.emplace_back(std::make_unique<SoundEffect>(engine_, triggerEntry.soundEffectEntry.soundPath,
+                                                                 triggerEntry.soundEffectEntry.volume, flags,
+                                                                 triggerEntry.position));
     }
 
     constexpr ma_uint32 characterFlags{MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_NO_SPATIALIZATION};
     characterSounds_.footsteps.start = soundEffects_.size();
-    characterSounds_.footsteps.count = audio.characterSounds.footsteps.size();
-    characterSounds_.landings.start = characterSounds_.footsteps.start;
-    characterSounds_.landings.count = landingsSize;
+    characterSounds_.footsteps.count = totalFootsteps;
 
     for (const SoundEffectEntry &footstep : audio.characterSounds.footsteps)
         soundEffects_.emplace_back(
             std::make_unique<SoundEffect>(engine_, footstep.soundPath, footstep.volume, characterFlags));
 
     // Landings need two footsteps to play simultaneously but only one footstep exists
-    if (characterSounds_.footsteps.count == 1)
+    if (footstepsSize == 1)
     {
         SoundEffectEntry &footstep{audio.characterSounds.footsteps.front()};
         soundEffects_.emplace_back(
@@ -137,38 +150,69 @@ AudioPlayer::AudioPlayer(const std::filesystem::path &jsonFile)
         soundEffects_.emplace_back(std::make_unique<SoundEffect>(engine_, jump.soundPath, jump.volume, characterFlags));
 }
 
-void AudioPlayer::update(const glm::vec3 &listenerPos, const glm::vec3 &listenerFront)
+void AudioPlayer::updateTriggers(UpdatedEntriesView updatedEntries)
 {
-    if (triggers_.empty())
-        return;
+    for (const Scene::Entry &entry : updatedEntries)
+    {
+        auto handleIter = triggersByHandle_.find(entry.handle);
 
+        // Many scene objects will be dirty and not have any audio
+        if (handleIter == triggersByHandle_.end())
+            continue;
+
+        if (entry.worldTransforms.size() != 1)
+            throw std::logic_error("Cannot update instanced audio");
+
+        Trigger &trigger{triggers_[handleIter->second]};
+        trigger.innerAABB.setCenter(entry.worldTransforms.front().getPosition());
+    }
+}
+
+void AudioPlayer::playTriggers(const glm::vec3 &listenerPos, const glm::vec3 &listenerFront, float deltaTime)
+{
     ma_engine_listener_set_position(&engine_.engine, 0, listenerPos.x, listenerPos.y, listenerPos.z);
     ma_engine_listener_set_direction(&engine_.engine, 0, listenerFront.x, listenerFront.y, listenerFront.z);
 
-    for (std::size_t i{0}; i < triggers_.size(); ++i)
+    for (Trigger &trigger : triggers_)
     {
-        Trigger &trigger{triggers_[i]};
+        trigger.timeAccumulator += deltaTime;
 
+        // Must be first to keep hasPlayed from being reset and one-shots as single playbacks
         if (trigger.oneShot && trigger.hasPlayed)
             continue;
 
-        const bool wasEnabled{trigger.enabled};
-        trigger.enabled = trigger.aabb.pointInside(listenerPos);
-
-        if (wasEnabled == trigger.enabled)
-            continue;
+        trigger.enabled = trigger.innerAABB.pointInside(listenerPos);
 
         SoundEffect &effect{*soundEffects_[trigger.soundIndex]};
+        const float volumeMultiplier{trigger.getVolumeMultiplier(listenerPos)};
+        effect.setVolume(effect.getInitialVolume() * volumeMultiplier);
 
-        if (trigger.enabled)
+        // Not audible
+        if (trigger.fadeDistance > 0.0f ? volumeMultiplier <= 0.0f : !trigger.enabled)
         {
-            effect.setLooping(trigger.loop);
-
-            if (effect.play(effect.getInitialVolume()) == MA_SUCCESS)
-                trigger.hasPlayed = true;
-        }
-        else
+            trigger.hasPlayed = false;
+            trigger.timeAccumulator = 0.0f;
             effect.setLooping(false);
+
+            continue;
+        }
+
+        const bool delayedRepeat{trigger.loop && trigger.repeatDelay > 0.0f};
+
+        if (trigger.hasPlayed)
+        {
+            if (!delayedRepeat)
+                continue;
+
+            if (trigger.timeAccumulator < effect.getLengthInSeconds() + trigger.repeatDelay)
+                continue;
+        }
+
+        trigger.timeAccumulator = 0.0f;
+        effect.setLooping(trigger.loop && !delayedRepeat);
+
+        if (effect.play() == MA_SUCCESS)
+            trigger.hasPlayed = true;
     }
 }
 
@@ -185,10 +229,10 @@ void AudioPlayer::playFootstepEffect()
 
     // Only make footsteps randomly softer. Normal footstep volume is already plenty.
     const float initialVolume{effect.getInitialVolume()};
-    const float volume{randomFloat(initialVolume - volumeVariation, initialVolume)};
-    const float pitch{randomFloat(1.0f - pitchVariation, 1.0f + pitchVariation)};
+    effect.setVolume(randomFloat(initialVolume - volumeVariation, initialVolume));
+    effect.setPitch(randomFloat(1.0f - pitchVariation, 1.0f + pitchVariation));
 
-    effect.play(volume, pitch, true);
+    effect.play(true);
 }
 
 void AudioPlayer::playLandingEffect()
@@ -198,29 +242,29 @@ void AudioPlayer::playLandingEffect()
     constexpr float volumeLow{0.2f};
     constexpr float volumeHigh{0.4f};
 
-    if (!characterSounds_.footsteps.count)
+    if (characterSounds_.footsteps.count < 2)
         return;
 
-    const std::size_t index{randomIndex(characterSounds_.landings.count)};
-    std::size_t otherIndex{randomIndex(characterSounds_.landings.count - 1)};
+    const std::size_t index{randomIndex(characterSounds_.footsteps.count)};
+    std::size_t otherIndex{randomIndex(characterSounds_.footsteps.count - 1)};
 
     if (otherIndex >= index)
         ++otherIndex;
 
-    SoundEffect &first{*soundEffects_[characterSounds_.landings.start + index]};
-    SoundEffect &second{*soundEffects_[characterSounds_.landings.start + otherIndex]};
+    SoundEffect &first{*soundEffects_[characterSounds_.footsteps.start + index]};
+    SoundEffect &second{*soundEffects_[characterSounds_.footsteps.start + otherIndex]};
 
     // Landing sounds should be lower pitched and louder
     const float firstInitialVolume{first.getInitialVolume()};
-    const float firstVolume{randomFloat(firstInitialVolume + volumeLow, firstInitialVolume + volumeHigh)};
-    const float firstPitch{randomFloat(landingPitch - pitchVariation, landingPitch + pitchVariation)};
+    first.setVolume(randomFloat(firstInitialVolume + volumeLow, firstInitialVolume + volumeHigh));
+    first.setPitch(randomFloat(landingPitch - pitchVariation, landingPitch + pitchVariation));
 
     const float secondInitialVolume{second.getInitialVolume()};
-    const float secondVolume{randomFloat(secondInitialVolume + volumeLow, secondInitialVolume + volumeHigh)};
-    const float secondPitch{randomFloat(landingPitch - pitchVariation, landingPitch + pitchVariation)};
+    second.setVolume(randomFloat(secondInitialVolume + volumeLow, secondInitialVolume + volumeHigh));
+    second.setPitch(randomFloat(landingPitch - pitchVariation, landingPitch + pitchVariation));
 
-    first.play(firstVolume, firstPitch, true);
-    second.play(secondVolume, secondPitch, true);
+    first.play(true);
+    second.play(true);
 }
 
 void AudioPlayer::playJumpEffect()
@@ -235,9 +279,9 @@ void AudioPlayer::playJumpEffect()
     SoundEffect &effect{*soundEffects_[characterSounds_.jumps.start + index]};
 
     const float initialVolume{effect.getInitialVolume()};
-    const float volume{randomFloat(initialVolume - volumeVariation, initialVolume + volumeVariation)};
-    const float pitch{randomFloat(1.0f - pitchVariation, 1.0f + pitchVariation)};
+    effect.setVolume(randomFloat(initialVolume - volumeVariation, initialVolume + volumeVariation));
+    effect.setPitch(randomFloat(1.0f - pitchVariation, 1.0f + pitchVariation));
 
     playFootstepEffect();
-    effect.play(volume, pitch, true);
+    effect.play(true);
 }

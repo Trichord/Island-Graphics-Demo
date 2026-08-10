@@ -180,7 +180,7 @@ void loadTRS(const fastgltf::Asset &asset, Skeleton &skeleton)
         if (const auto *trs = std::get_if<fastgltf::TRS>(&node.transform))
         {
             auto uniformScale = [](const glm::vec3 &scale) {
-                constexpr float epsilon{0.0001};
+                constexpr float epsilon{0.0001f};
                 return std::abs(scale.x - scale.y) < epsilon && std::abs(scale.y - scale.z) < epsilon;
             };
 

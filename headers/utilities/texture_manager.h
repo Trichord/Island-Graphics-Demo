@@ -32,7 +32,7 @@ class TextureManager
 
     // Borrow a cubemap after the scene has been built
     void borrowCubemaps(Handle self, Handle other);
-    void setCubemap(Handle handle, std::vector<int> overrideIndices, RenderTarget &renderTarget);
+    void setCubemap(Handle handle, std::vector<std::size_t> overrideIndices, RenderTarget &renderTarget);
 
     void buildAllTextures();
     bool allTexturesBuilt() const;

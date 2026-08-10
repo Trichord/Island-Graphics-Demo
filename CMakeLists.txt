@@ -113,6 +113,7 @@ set(HEADERS
     headers/utilities/ktx_texture.h
     headers/utilities/overloaded.h
     headers/utilities/scene_processor.h
+    headers/utilities/string_hash.h
     headers/utilities/texture_loader.h
     headers/utilities/texture_manager.h
     headers/utilities/texture_utilities.h

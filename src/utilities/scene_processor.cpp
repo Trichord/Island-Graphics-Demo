@@ -625,7 +625,7 @@ std::vector<Primitive::VertexSkin> SceneProcessor::createVertexSkins(
         {
             glm::uvec4 boneIDs{vertexSkins[i].boneIDs};
 
-            for (std::size_t j{0}; j < 4; ++j)
+            for (glm::length_t j{0}; j < 4; ++j)
                 if (vertexSkins[i].weights[j] > 0.0f)
                     boneIDs[j] += static_cast<unsigned int>(bufferOffset);
 

@@ -69,8 +69,8 @@ class Application
     ObjectLayerPairFilterImpl objectLayerPairFilter_;
     ObjectVsBroadPhaseLayerFilterImpl objectVsBroadPhaseLayerFilter_;
 
-    // Scene pointer, for GLFW callbacks
-    Scene *scenePtr_{nullptr};
+    // Main playable camera
+    Camera playerCamera_;
 
     /**
      * @brief Creates a GLFW window.  Display settings from the config window are
@@ -84,14 +84,15 @@ class Application
     std::uint8_t processKeyboard();
 
     /**
-     * @brief Updates scene components based on this frame's captured keyboard input.
+     * @brief Updates scene's camera based on this frame's captured keyboard input.
      *
      * @param movementFlags The bit flags representing cardinal directions.
      * @param camera The main scene camera.
      * @param physics The physics handler for the scene camera.
-     * @param audio The audio player responsible for handling player footsteps.
      */
-    void updateScene(std::uint8_t movementFlags, Camera &camera, PlayerPhysics &physics, AudioPlayer &audio);
+    void updatePhysics(std::uint8_t movementFlags, Camera &camera, PlayerPhysics &physics);
+
+    void updateAudio(AudioPlayer &player, PlayerPhysics &physics, Camera &camera, UpdatedEntriesView updatedEntries);
 
     /**
      * @brief Registers OpenGL function pointers, checks for supported features, and creates an OpenGL viewport

@@ -50,7 +50,7 @@ void Renderer::renderScene()
     }
 }
 
-void Renderer::renderShadowMaps(const Scene &scene, bool lightChanged)
+void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool lightChanged)
 {
     // Shadow pass setup
     glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
@@ -59,7 +59,7 @@ void Renderer::renderShadowMaps(const Scene &scene, bool lightChanged)
     glState_.setVAO(VAOs_.shadowVAO);
     glState_.setAlphaMode(AlphaMode::opaque);
 
-    updateCascades(scene, lightChanged);
+    updateCascades(scene, camera, lightChanged);
     const Cascades &cascades{cascadeShadow_.getCascades()};
 
     // Only update outer cascade if the light changed

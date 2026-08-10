@@ -13,7 +13,7 @@
     "yaw": -98.0,
     "nearPlane": 0.1,
     "farPlane": 2000.0,
-    "FOV": 45.0
+    "fov": 45.0
   },
   "entries": [
     {

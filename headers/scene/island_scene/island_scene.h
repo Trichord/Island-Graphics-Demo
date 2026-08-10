@@ -2,8 +2,8 @@
 
 #include <filesystem>
 #include <glm/glm.hpp>
-#include <vector>
 #include <random>
+#include <vector>
 
 #include "application/graphics_settings.h"
 #include "scene/island_scene/seagull.h"
@@ -13,10 +13,9 @@
 class IslandScene : public Scene
 {
   public:
-    IslandScene(TextureManager &textureManager, const GraphicsSettings &graphicsSettings,
-                const std::filesystem::path &jsonFile);
+    IslandScene(TextureManager &textureManager, const std::filesystem::path &jsonFile);
 
-    void onUpdate(float time, float deltaTime) override;
+    void onUpdate(const Camera &playerCamera, float time, float deltaTime) override;
 
   private:
     static constexpr int numSeagulls_{6};
@@ -29,5 +28,5 @@ class IslandScene : public Scene
     Animation &randomSeagullIdle(Scene::Entry &entry);
     void updateSpaceModel(Scene::Entry &entry, float deltaTime);
     void updateButterfly(Scene::Entry &butterfly, float time, float deltaTime);
-    void updateSeagull(Seagull& seagull, Scene::Entry &seagullEntry, float deltaTime);
+    void updateSeagull(const glm::vec3 &playerPosition, Seagull &seagull, Scene::Entry &entry, float deltaTime);
 };

@@ -4,13 +4,90 @@
       "soundEffect": {
         "volume": 0.3,
         "soundPath": "./res/audio/music/ambient.mp3",
-        "streaming": true,
-        "spatialization": false
+        "streaming": true
       },
       "triggerCenter": [-6.18625, 14.6561, -171.031],
       "triggerExtent": [31.557, 13.4663, 39.1258],
       "loop": false,
       "playOnce": true
+    },
+    {
+      "soundEffect": {
+        "volume": 1.0,
+        "soundPath": "./res/audio/sfx/seagull1.mp3",
+        "spatialization": true
+      },
+      "name": "seagull1",
+      "loop": true,
+      "repeatDelay": 1.85,
+      "triggerCenter": [-256.874237, -9.704913, 72.669205],
+      "triggerExtent": [18.5, 18.5, 18.5],
+      "fadeDistance": 1.5
+    },
+    {
+      "soundEffect": {
+        "volume": 1.0,
+        "soundPath": "./res/audio/sfx/seagull2.mp3",
+        "spatialization": true
+      },
+      "name": "seagull2",
+      "loop": true,
+      "repeatDelay": 2.9,
+      "triggerCenter": [-262.982117, -9.850640, 72.508682],
+      "triggerExtent": [18.5, 18.5, 18.5],
+      "fadeDistance": 1.5
+    },
+    {
+      "soundEffect": {
+        "volume": 1.0,
+        "soundPath": "./res/audio/sfx/seagull3.mp3",
+        "spatialization": true
+      },
+      "name": "seagull3",
+      "loop": true,
+      "repeatDelay": 2.625,
+      "triggerCenter": [-251.663193, -9.660975, 70.553123],
+      "triggerExtent": [18.5, 18.5, 18.5],
+      "fadeDistance": 1.5
+    },
+    {
+      "soundEffect": {
+        "volume": 1.0,
+        "soundPath": "./res/audio/sfx/seagull4.mp3",
+        "spatialization": true
+      },
+      "name": "seagull4",
+      "loop": true,
+      "repeatDelay": 2.0,
+      "triggerCenter": [-261.249817, -9.863427, 56.218235],
+      "triggerExtent": [18.5, 18.5, 18.5],
+      "fadeDistance": 1.5
+    },
+    {
+      "soundEffect": {
+        "volume": 1.0,
+        "soundPath": "./res/audio/sfx/seagull5.mp3",
+        "spatialization": true
+      },
+      "name": "seagull5",
+      "loop": true,
+      "repeatDelay": 1.82,
+      "triggerCenter": [-256.478699, -9.703675, 64.734009],
+      "triggerExtent": [18.5, 18.5, 18.5],
+      "fadeDistance": 1.5
+    },
+    {
+      "soundEffect": {
+        "volume": 1.0,
+        "soundPath": "./res/audio/sfx/seagull6.mp3",
+        "spatialization": true
+      },
+      "name": "seagull6",
+      "loop": true,
+      "repeatDelay": 2.2,
+      "triggerCenter": [-254.614548, -9.693320, 65.784607],
+      "triggerExtent": [18.5, 18.5, 18.5],
+      "fadeDistance": 1.5
     }
   ],
   "character": {
@@ -21,8 +98,8 @@
       { "volume": 0.5, "soundPath": "./res/audio/sfx/footstep4.wav" }
     ],
     "jumps": [
-      { "volume": 0.2, "soundPath": "./res/audio/sfx/jump1.mp3" },
-      { "volume": 0.2, "soundPath": "./res/audio/sfx/jump2.mp3" }
+      { "volume": 0.15, "soundPath": "./res/audio/sfx/jump1.mp3" },
+      { "volume": 0.15, "soundPath": "./res/audio/sfx/jump2.mp3" }
     ]
   }
 }

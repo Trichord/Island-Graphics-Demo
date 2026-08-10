@@ -1,5 +1,6 @@
 #include "audio/sound_effect.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <miniaudio.h>
@@ -24,6 +25,7 @@ SoundEffect::SoundEffect(AudioEngine &engine, const std::filesystem::path &path,
     initialized_ = true;
     ma_sound_set_volume(&sound_, volume);
     ma_sound_set_position(&sound_, position.x, position.y, position.z);
+    ma_sound_get_length_in_seconds(&sound_, &length_);
 }
 
 SoundEffect::~SoundEffect()
@@ -32,9 +34,24 @@ SoundEffect::~SoundEffect()
         ma_sound_uninit(&sound_);
 }
 
+float SoundEffect::getLengthInSeconds() const
+{
+    return length_;
+}
+
 void SoundEffect::setLooping(bool loop)
 {
     ma_sound_set_looping(&sound_, loop ? MA_TRUE : MA_FALSE);
+}
+
+    void SoundEffect::setPitch(float pitch)
+{
+        ma_sound_set_pitch(&sound_, pitch);
+    }
+
+void SoundEffect::setVolume(float volume)
+{
+    ma_sound_set_volume(&sound_, std::max(0.0f, volume));
 }
 
 float SoundEffect::getInitialVolume() const
@@ -42,11 +59,8 @@ float SoundEffect::getInitialVolume() const
     return initialVolume_;
 }
 
-ma_result SoundEffect::play(float volume, float pitch, bool reset)
-{
-    ma_sound_set_volume(&sound_, volume);
-    ma_sound_set_pitch(&sound_, pitch);
-
+ma_result SoundEffect::play(bool reset)
+{   
     if (reset)
         ma_sound_seek_to_pcm_frame(&sound_, 0);
 

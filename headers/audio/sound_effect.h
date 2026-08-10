@@ -20,12 +20,17 @@ class SoundEffect
     SoundEffect(SoundEffect &&) = delete;
     SoundEffect &operator=(SoundEffect &&) = delete;
 
+    float getLengthInSeconds() const;
+
     void setLooping(bool loop);
+    void setPitch(float pitch);
+    void setVolume(float volume);
     float getInitialVolume() const;
-    ma_result play(float volume, float pitch = defaultPitch, bool reset = false);
+    ma_result play(bool reset = false);
 
   private:
     ma_sound sound_{};
     float initialVolume_{1.0f};
+    float length_{0.0f};
     bool initialized_{false};
 };

@@ -78,17 +78,17 @@ void Model::recalculateAnimatedAABBs()
                 glm::vec3 max{primitive.aabb.getMax()};
 
                 const AABB animatedAABB{primitive.aabb.transform(primitive.modelSpaceTransform)};
-                const std::vector<Primitive::VertexSkin> &skin{primitive.vertexSkins.value()};
+                const std::vector<Primitive::VertexSkin> &vertexSkins{primitive.vertexSkins.value()};
 
                 for (std::size_t i{0}; i < primitive.vertices.size(); ++i)
                 {
                     const glm::vec3 &position{primitive.vertices[i].position};
-                    const glm::uvec4 &boneIDs{skin[i].boneIDs};
-                    const glm::vec4 &weights{skin[i].weights};
+                    const glm::uvec4 &boneIDs{vertexSkins[i].boneIDs};
+                    const glm::vec4 &weights{vertexSkins[i].weights};
 
                     glm::vec4 acc{0.0f};
 
-                    for (std::size_t j{0}; j < 4; ++j)
+                    for (glm::length_t j{0}; j < 4; ++j)
                     {
                         if (weights[j] > 0.0f)
                             acc += weights[j] * jointMatrices[boneIDs[j]] * glm::vec4(position, 1.0f);

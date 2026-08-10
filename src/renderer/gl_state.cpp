@@ -92,7 +92,7 @@ void GLState::setDepthFunction(GLenum depthFunction)
     glDepthFunc(depthFunction);
 }
 
-void GLState::setVAO(GLint vao)
+void GLState::setVAO(GLuint vao)
 {
     if (vao == currentVAO_)
         return;

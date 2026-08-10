@@ -33,8 +33,8 @@ class Renderer
     Renderer &operator=(Renderer &&other) = delete;
     ~Renderer();
 
-    void initializeResources(const Scene &scene);
-    void renderScene(const Scene &scene, float deltaTime);
+    void initializeResources(const Scene &scene, const Camera &camera);
+    void renderScene(const Scene &scene, const Camera &camera, float deltaTime);
     void updateExternalResolution(int width, int height);
 
     std::uint32_t getFrameCount() const;
@@ -99,10 +99,10 @@ class Renderer
     GLuint createResolveTexture();
 
     // Setup
-    void setSceneShaderUniforms(const Scene &scene);
+    void setSceneShaderUniforms(const Scene &scene, const Camera &camera);
     void takeBufferData(SceneProcessor::ProcessedScene &processed);
     void takeGPUObjects(SceneProcessor::ProcessedScene &processed);
-    void setupComputeShaders(const SceneProcessor::ProcessedScene &processed);
+    void setupComputeShaders(const SceneProcessor::ProcessedScene &processed, float nearPlane);
 
     // Cubemap Generation
     void borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
@@ -116,8 +116,8 @@ class Renderer
     void blitFrame();
     void renderScene();
     void bindBufferRanges(int index);
-    void renderShadowMaps(const Scene &scene, bool lightChanged);
     void shadowPass(GraphicsShader &shader, int cascade, bool alphaTested);
+    void renderShadowMaps(const Scene &scene, const Camera &camera, bool lightChanged);
     void cullScene(ComputeShader &cullShader, const glm::mat4 &cullMatrix, int bufferSection);
 
     // Updates
@@ -127,8 +127,8 @@ class Renderer
     void updateTimeUBO(float deltaTime);
     void updateCameraUBO(const Camera &camera);
     void updateSceneTransforms(const Scene &scene);
-    void updateCascades(const Scene &scene, bool lightChanged);
     void updateFrustumPlanesUBO(const glm::mat4 &cullMatrix);
     void updateShaderUniforms(const Scene &scene, bool lightChanged);
+    void updateCascades(const Scene &scene, const Camera &camera, bool lightChanged);
     void updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll);
 };

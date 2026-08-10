@@ -3,12 +3,14 @@
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <optional>
+#include <ranges>
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
-#include "application/graphics_settings.h"
 #include "models/animation/animator.h"
 #include "models/animation/skeletal_animation.h"
 #include "models/instanced_model.h"
@@ -21,6 +23,7 @@
 #include "scene/camera.h"
 #include "scene/directional_light.h"
 #include "scene/handle.h"
+#include "utilities/string_hash.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 
@@ -31,7 +34,7 @@ class Scene
     {
         SkeletalAnimation skeletalAnimation;
         Animator animator;
-        std::unordered_map<std::string, std::size_t> animationMap;
+        std::unordered_map<std::string, std::size_t, StringHash, std::equal_to<>> animationMap;
     };
 
     struct Entry
@@ -46,12 +49,11 @@ class Scene
         std::optional<Collision::Geometry> collisionGeometry;
     };
 
-    Scene(TextureManager &_textureManager, const GraphicsSettings &graphicsSettings,
-          const std::filesystem::path &jsonFile);
+    Scene(TextureManager &_textureManager, const std::filesystem::path &jsonFile);
     Scene(const Scene &) = delete;
     Scene &operator=(const Scene &) = delete;
-    Scene(Scene &&other) noexcept = default;
-    Scene &operator=(Scene &&other) noexcept = default;
+    Scene(Scene &&other) noexcept = delete;
+    Scene &operator=(Scene &&other) noexcept = delete;
     virtual ~Scene() = default;
 
     // Environment
@@ -59,23 +61,25 @@ class Scene
     const glm::vec3 &getAmbientLight() const;
     const DirectionalLight &getGlobalLight() const;
     const glm::vec3 &getWindDirection() const;
+    const Camera::Description &getCameraDescription() const;
 
     // Accessors
-    Camera &getCamera();
-    const Camera &getCamera() const;
     const std::vector<Entry> &getAllSceneEntries() const;
-    const Entry &getEntry(std::string_view name) const;
-    const Entry &getEntry(Handle handle) const;
+    const Entry &viewEntry(Handle handle) const;
+    const Entry &viewEntry(std::string_view name) const;
 
-    // Per-frame Update
-    const std::unordered_set<Handle> &getUpdatedHandles() const;
+    // Returns a non-contiguous view of updated scene entries, based on dirty handles. Return value must not outlive
+    // Scene.
+    auto getUpdatedEntries() const
+    {
+        return updatedEntries_ |
+               std::views::transform([this](Handle handle) -> const Entry & { return entries_[findIndex(handle)]; });
+    }
+
+    virtual void onUpdate(const Camera &playerCamera, float time, float deltaTime) = 0;
     void clearUpdates();
 
   protected:
-    Camera camera_;
-
-    virtual void onUpdate(float time, float deltaTime) = 0;
-
     [[nodiscard]] Entry &editEntry(Handle handle);
     [[nodiscard]] Entry &editEntry(std::string_view name);
 
@@ -88,9 +92,12 @@ class Scene
 
   private:
     TextureManager &textureManager_;
+
+    // Handles must start at one. Zero is the sentinal "no handle"
     Handle nextHandle_{1};
 
     // Associated data
+    Camera::Description cameraDescription_;
     std::vector<Entry> entries_;
 
     // Wind
@@ -102,14 +109,12 @@ class Scene
     DirectionalLight globalLightSource_;
 
     // Access points
-    std::unordered_set<Handle> updatedModels_;
-    std::unordered_map<Handle, std::size_t> entriesByHandle_;
-    std::unordered_map<std::string, std::size_t> entriesByName_;
+    std::unordered_set<Handle> updatedEntries_;
+    std::unordered_map<std::string, std::size_t, StringHash, std::equal_to<>> entriesByName_;
 
-    void setupScene(const std::filesystem::path &jsonFile, const GraphicsSettings &graphicsSettings);
+    void setupScene(const std::filesystem::path &jsonFile);
 
     void loadGLTFTextures(Handle handle, const Model &model);
-
     void addSkybox(Handle handle, const Skybox &skybox);
     void addParticles(Handle handle, const Particles &particles);
     void addModel(Handle handle, const Model &model, const Transform &transform, ShaderType shaderType,
@@ -122,6 +127,8 @@ class Scene
                             const std::optional<Collision::Geometry> &collisionGeometry = {},
                             const std::string &name = {});
 
-    std::size_t findHandle(Handle handle) const;
-    std::size_t findName(std::string_view name) const;
+    std::size_t findIndex(Handle handle) const;
+    std::size_t findIndex(std::string_view name) const;
 };
+
+using UpdatedEntriesView = decltype(std::declval<const Scene &>().getUpdatedEntries());

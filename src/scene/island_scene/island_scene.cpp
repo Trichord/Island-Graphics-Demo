@@ -51,9 +51,9 @@ float randomFloat(float low, float high)
 
 } // namespace
 
-IslandScene::IslandScene(TextureManager &textureManager, const GraphicsSettings &graphicsSettings,
+IslandScene::IslandScene(TextureManager &textureManager,
                          const std::filesystem::path &jsonFile)
-    : Scene(textureManager, graphicsSettings, jsonFile)
+    : Scene(textureManager, jsonFile)
 {
     // Cache original positions so that animated models can return or calculate updated positions
     Entry &butterfly{editEntry("butterfly")};
@@ -86,13 +86,13 @@ IslandScene::IslandScene(TextureManager &textureManager, const GraphicsSettings 
     }
 }
 
-void IslandScene::onUpdate(float time, float deltaTime)
+void IslandScene::onUpdate(const Camera &playerCamera, float time, float deltaTime)
 {
     updateSpaceModel(editEntry("spaceModel"), deltaTime);
     updateButterfly(editEntry("butterfly"), time, deltaTime);
 
     for (std::size_t i{0}; i < seagullNames_.size(); ++i)
-        updateSeagull(seagulls_[i], editEntry(seagullNames_[i]), deltaTime);
+        updateSeagull(playerCamera.getPosition(), seagulls_[i], editEntry(seagullNames_[i]), deltaTime);
 }
 
 Animation &IslandScene::randomSeagullIdle(Scene::Entry &entry)
@@ -125,7 +125,7 @@ void IslandScene::updateButterfly(Scene::Entry &butterfly, float time, float del
     for (std::size_t i{0}; i < butterfly.worldTransforms.size(); ++i)
     {
         const glm::vec3 originalPos{butterflyOriginalPos_[i]};
-        const bool reversePattern{static_cast<int>(originalPos.x) % 2 == 1};
+        const bool reversePattern{static_cast<int>(std::abs(originalPos.x)) % 2 == 1};
         const float angle{reversePattern ? -baseAngle : baseAngle};
 
         const float sinTheta{glm::sin(angle)};
@@ -150,9 +150,9 @@ void IslandScene::updateButterfly(Scene::Entry &butterfly, float time, float del
                                               deltaTime * Butterfly::animationTimeScale);
 }
 
-void IslandScene::updateSeagull(Seagull &seagull, Scene::Entry &entry, float deltaTime)
+void IslandScene::updateSeagull(const glm::vec3 &playerPosition, Seagull &seagull, Scene::Entry &entry, float deltaTime)
 {
-    seagull.update(camera_.getPosition(), deltaTime);
+    seagull.update(playerPosition, deltaTime);
 
     if (seagull.stateChanged())
     {

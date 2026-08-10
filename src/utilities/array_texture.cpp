@@ -298,7 +298,7 @@ void ArrayTexture::validate(const KTXTexture &texture)
         valid = false;
     }
 
-    if (texture.maxLevels() != mipLevels_)
+    if (static_cast<int>(texture.maxLevels()) != mipLevels_)
     {
         std::cerr << "ERROR: Texture mip levels (" << texture.maxLevels() << ") incompatible with array mip levels ("
                   << mipLevels_ << ")" << std::endl;

@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "physics/character_capsule.h"
-#include "scene/scene.h"
+#include "physics/physics_utilities.h"
 
 enum CharacterMovement : std::uint8_t
 {
@@ -27,7 +27,8 @@ enum CharacterMovement : std::uint8_t
 class PlayerPhysics
 {
   public:
-    PlayerPhysics(const Scene &scene, JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator);
+    PlayerPhysics(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator, Scene &scene,
+                  const glm::vec3 &startingPosition);
     PlayerPhysics(const PlayerPhysics &) = delete;
     PlayerPhysics &operator=(const PlayerPhysics &) = delete;
     PlayerPhysics(PlayerPhysics &&other) = delete;

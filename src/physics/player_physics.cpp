@@ -33,22 +33,16 @@ constexpr CharacterCapsule::Settings capsuleSettings{
 };
 }
 
-PlayerPhysics::PlayerPhysics(const Scene &scene, JPH::PhysicsSystem &physicsSystem,
-                             JPH::TempAllocatorImpl &tempAllocator)
-    : resetPosition_{toJPHVec3(scene.getCamera().getPosition())}, physicsSystem_{physicsSystem},
-      tempAllocator_{tempAllocator}, bodyInterface_{&physicsSystem.GetBodyInterface()},
-      player_{physicsSystem, tempAllocator, capsuleSettings}
+PlayerPhysics::PlayerPhysics(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator, Scene &scene,
+                             const glm::vec3 &startingPosition)
+    : resetPosition_{toJPHVec3(startingPosition)}, physicsSystem_{physicsSystem}, tempAllocator_{tempAllocator},
+      bodyInterface_{&physicsSystem.GetBodyInterface()}, player_{physicsSystem, tempAllocator, capsuleSettings}
 {
-    using namespace JPH;
-
-    physics::StaticBodies staticBodies{physics::buildCollisionGeometry(scene, *bodyInterface_)};
-    resetHeight_ = staticBodies.minimumHeight;
-    bodyIDs_ = std::move(staticBodies.ids);
+    physics::StaticBodies collisionMeshes{physics::buildCollisionGeometry(scene, physicsSystem.GetBodyInterface())};
+    resetHeight_ = collisionMeshes.minimumHeight;
+    bodyIDs_ = std::move(collisionMeshes.ids);
     physicsSystem_.OptimizeBroadPhase();
-
-    // Set start position
-    glm::vec3 cameraPos{scene.getCamera().getPosition()};
-    player_.setCenter(JPH::Vec3{cameraPos.x, cameraPos.y, cameraPos.z});
+    player_.setCenter(toJPHVec3(startingPosition));
 }
 
 PlayerPhysics::~PlayerPhysics()

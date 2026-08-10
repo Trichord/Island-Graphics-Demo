@@ -12,7 +12,7 @@ class GLState
   public:
     GLState();
 
-    void setVAO(GLint vao);
+    void setVAO(GLuint vao);
     void setFaceCull(GLenum mode);
     void setAlphaMode(AlphaMode mode);
     void setDepthWrite(bool enableDepth);

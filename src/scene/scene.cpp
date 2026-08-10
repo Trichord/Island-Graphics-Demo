@@ -36,6 +36,15 @@ void validateSceneEntry(Scene::Entry &entry)
     using enum ShaderType;
     using enum AlphaMode;
 
+    if (entry.primitives.empty())
+        throw std::runtime_error("Empty primitives");
+
+    for (const Primitive &primitive : entry.primitives)
+    {
+        if (primitive.vertices.empty() || primitive.indices.empty())
+            throw std::runtime_error("Empty vertices or indices");
+    }
+
     if (entry.shaderType == ocean)
     {
         if (entry.primitives.front().alphaMode == opaque)
@@ -76,7 +85,7 @@ std::optional<Scene::EntryAnimation> createEntryAnimation(const Model &model)
 
     auto &skin = skeletalAnimation->skeleton.skin;
 
-    std::unordered_map<std::string, std::size_t> map;
+    std::unordered_map<std::string, std::size_t, StringHash, std::equal_to<>> map;
 
     for (std::size_t i{0}; i < skeletalAnimation->animations.size(); ++i)
     {
@@ -94,11 +103,9 @@ std::optional<Scene::EntryAnimation> createEntryAnimation(const Model &model)
 
 } // namespace
 
-Scene::Scene(TextureManager &textureManager, const GraphicsSettings &graphicsSettings,
-             const std::filesystem::path &jsonFile)
-    : textureManager_{textureManager}
+Scene::Scene(TextureManager &textureManager, const std::filesystem::path &jsonFile) : textureManager_{textureManager}
 {
-    setupScene(jsonFile, graphicsSettings);
+    setupScene(jsonFile);
 }
 
 const std::vector<Scene::Entry> &Scene::getAllSceneEntries() const
@@ -106,22 +113,20 @@ const std::vector<Scene::Entry> &Scene::getAllSceneEntries() const
     return entries_;
 }
 
-std::size_t Scene::findHandle(Handle handle) const
+std::size_t Scene::findIndex(Handle handle) const
 {
-    auto iter = entriesByHandle_.find(handle);
-
-    if (iter == entriesByHandle_.end() || iter->second >= entries_.size())
+    if (handle < 1 || handle > entries_.size() || entries_[handle - 1].handle != handle)
     {
-        std::cerr << "ERROR: Cannot find scene entry with handle " << handle << std::endl;
-        throw std::runtime_error("Invalid key");
+        std::cerr << "ERROR: Could not find handle " << handle << std::endl;
+        throw std::runtime_error("Invalid handle");
     }
 
-    return iter->second;
+    return static_cast<std::size_t>(handle - 1);
 }
 
-std::size_t Scene::findName(std::string_view name) const
+std::size_t Scene::findIndex(std::string_view name) const
 {
-    auto iter = entriesByName_.find(name.data());
+    auto iter = entriesByName_.find(name);
 
     if (iter == entriesByName_.end() || iter->second >= entries_.size())
     {
@@ -132,30 +137,30 @@ std::size_t Scene::findName(std::string_view name) const
     return iter->second;
 }
 
-const Scene::Entry &Scene::getEntry(std::string_view name) const
+const Scene::Entry &Scene::viewEntry(Handle handle) const
 {
-    return entries_[findName(name)];
+    return entries_[findIndex(handle)];
 }
 
-const Scene::Entry &Scene::getEntry(Handle handle) const
+const Scene::Entry &Scene::viewEntry(std::string_view name) const
 {
-    return entries_[findHandle(handle)];
+    return entries_[findIndex(name)];
 }
 
 Scene::Entry &Scene::editEntry(std::string_view name)
 {
-    std::size_t index{findName(name)};
-    updatedModels_.insert(entries_[index].handle);
+    std::size_t index{findIndex(name)};
+    updatedEntries_.insert(entries_[index].handle);
 
-    return entries_[findName(name)];
+    return entries_[index];
 }
 
 Scene::Entry &Scene::editEntry(Handle handle)
 {
-    std::size_t index{findHandle(handle)};
-    updatedModels_.insert(entries_[index].handle);
+    std::size_t index{findIndex(handle)};
+    updatedEntries_.insert(entries_[index].handle);
 
-    return entries_[findHandle(handle)];
+    return entries_[index];
 }
 
 const DirectionalLight &Scene::getGlobalLight() const
@@ -173,16 +178,6 @@ void Scene::setAmbientLight(const glm::vec3 &ambient)
     ambientLight_ = ambient;
 }
 
-Camera &Scene::getCamera()
-{
-    return camera_;
-}
-
-const Camera &Scene::getCamera() const
-{
-    return camera_;
-}
-
 const glm::vec3 &Scene::getWindDirection() const
 {
     return windDirection_;
@@ -193,9 +188,9 @@ float Scene::getWindStrength() const
     return windStrength_;
 }
 
-const std::unordered_set<Handle> &Scene::getUpdatedHandles() const
+const Camera::Description &Scene::getCameraDescription() const
 {
-    return updatedModels_;
+    return cameraDescription_;
 }
 
 Skeleton &Scene::getSkeleton(Scene::Entry &entry)
@@ -211,9 +206,8 @@ Animation &Scene::getAnimation(Scene::Entry &entry, std::string_view name)
     if (!entry.entryAnimation)
         throw std::runtime_error("No animations");
 
-    std::unordered_map<std::string, std::size_t> &map{entry.entryAnimation->animationMap};
-
-    auto nameIter = map.find(name.data());
+    auto &map{entry.entryAnimation->animationMap};
+    auto nameIter = map.find(name);
 
     if (nameIter == map.end())
         throw std::runtime_error("Animation not found");
@@ -238,8 +232,7 @@ Animation &Scene::getAnimation(Scene::Entry &entry, int index)
 
 void Scene::clearUpdates()
 {
-    updatedModels_.clear();
-    camera_.clearFlags();
+    updatedEntries_.clear();
     globalLightSource_.clearFlags();
 }
 
@@ -338,7 +331,7 @@ void Scene::addInstancedModel(Handle handle, const InstancedModel &model, Shader
     });
 }
 
-void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSettings &graphicsSettings)
+void Scene::setupScene(const std::filesystem::path &jsonFile)
 {
     using namespace nlohmann;
 
@@ -371,11 +364,12 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
         throw;
     }
 
-    camera_ = Camera{scene.camera.position, scene.camera.yaw, scene.camera.pitch};
-    camera_.setFOV(scene.camera.FOV);
-    camera_.setNearPlane(scene.camera.nearPlane);
-    camera_.setFarPlane(scene.camera.farPlane);
-    camera_.setAspectRatio(graphicsSettings.renderWidth / static_cast<float>(graphicsSettings.renderHeight));
+    cameraDescription_ = {.position = scene.camera.position,
+                          .yaw = scene.camera.yaw,
+                          .pitch = scene.camera.pitch,
+                          .fov = scene.camera.fov,
+                          .nearPlane = scene.camera.nearPlane,
+                          .farPlane = scene.camera.farPlane};
 
     ambientLight_ = scene.environment.ambientLight;
     globalLightSource_ = DirectionalLight{scene.environment.lightColor, scene.environment.sunDirection};
@@ -385,8 +379,6 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
 
     for (auto &sceneEntry : scene.entries)
     {
-        // Names are optional, entries by handle is not
-        std::size_t entryIndex{entries_.size()};
         Handle handle{nextHandle_++};
 
         std::visit(overloaded{
@@ -418,6 +410,5 @@ void Scene::setupScene(const std::filesystem::path &jsonFile, const GraphicsSett
                    sceneEntry);
 
         validateSceneEntry(entries_.back());
-        entriesByHandle_[handle] = entryIndex;
     }
 }

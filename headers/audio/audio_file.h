@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <nlohmann/json.hpp>
+#include <string>
 #include <vector>
 
 #include "models/aabb.h"
@@ -21,8 +22,12 @@ struct AudioTriggerEntry
     SoundEffectEntry soundEffectEntry;
     AABB triggerZone;
     glm::vec3 position{0.0f};
+    std::string name{};
+
     bool loop{false};
     bool playOnce{false};
+    float repeatDelay{0.0f};
+    float fadeDistance{0.0f};
 };
 
 struct CharacterSoundEntry
@@ -53,15 +58,17 @@ inline void from_json(const nlohmann::json &j, SoundEffectEntry &sfx)
 
 inline void from_json(const nlohmann::json &j, AudioTriggerEntry &entry)
 {
-    entry.soundEffectEntry = j.value("soundEffect", SoundEffectEntry{});
-
     glm::vec3 center{j.contains("triggerCenter") ? parseVec3(j.at("triggerCenter")) : glm::vec3{0.0f}};
     glm::vec3 extent{j.contains("triggerExtent") ? parseVec3(j.at("triggerExtent")) : glm::vec3{0.0f}};
     entry.triggerZone = {center - extent, center + extent};
+   
+    entry.soundEffectEntry = j.value("soundEffect", SoundEffectEntry{});
     entry.position = j.contains("position") ? parseVec3(j.at("position")) : center;
-
+    entry.name = j.value("name", std::string{});
     entry.loop = j.value("loop", false);
     entry.playOnce = j.value("playOnce", false);
+    entry.repeatDelay = j.value("repeatDelay", 0.0f);
+    entry.fadeDistance = j.value("fadeDistance", 0.0f);
 }
 
 inline void from_json(const nlohmann::json &j, CharacterSoundEntry &character)

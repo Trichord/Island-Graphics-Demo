@@ -158,7 +158,7 @@ void TextureManager::borrowCubemaps(Handle self, Handle other)
 }
 
 // Unconditionally sets a cubemap for this model, overwriting existing ArrayTexture indices
-void TextureManager::setCubemap(Handle handle, std::vector<int> overrideIndices, RenderTarget &renderTarget)
+void TextureManager::setCubemap(Handle handle, std::vector<std::size_t> overrideIndices, RenderTarget &renderTarget)
 {
     const int resolution{renderTarget.getWidth()};
     ArrayReference arrayRef{findCubemapArray(resolution, renderTarget.getInternalFormat())};
@@ -170,9 +170,9 @@ void TextureManager::setCubemap(Handle handle, std::vector<int> overrideIndices,
 
     std::span<Material> materials{findMaterials(handle)};
 
-    for (int materialIndex : overrideIndices)
+    for (std::size_t materialIndex : overrideIndices)
     {
-        if (materialIndex >= static_cast<int>(materials.size()))
+        if (materialIndex >= materials.size())
             continue;
 
         Material &material{materials[materialIndex]};

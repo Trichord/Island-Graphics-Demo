@@ -60,7 +60,6 @@ class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
             return true; // Moving collides with everything
         default:
             throw std::runtime_error("ERROR: Unknown Jolt ObjectLayer");
-            return false;
         }
     }
 };
@@ -108,7 +107,6 @@ class ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFil
             return true;
         default:
             throw std::runtime_error("ERROR: Uknown Jolt ObjectVsObject layer");
-            return false;
         }
     }
 };
