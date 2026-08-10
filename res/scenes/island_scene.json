@@ -29,7 +29,7 @@
       "type": "model",
       "transform": {
         "translation": [-220.61097, -6.58, -140.05396],
-        "rotation": [0.0, -65.0, 0.0]
+        "rotation": -65.0
       },
       "modelPath": "./res/models/set_pieces/statue/statue.gltf",
       "shader": "directionalPBR",
@@ -45,13 +45,13 @@
       "positionsPath": "./res/positions/butterflies.txt",
       "shader": "baseColor"
     },
-    {
+     {
       "type": "model",
       "name": "seagull1",
       "transform": {
         "translation": [-256.874237, -9.704913, 72.669205],
-        "rotation": [-0.184779, -129.805565, 0.488397],
-	"scale": 0.22
+        "rotation": [0.003175722, -0.905582911, 0.003268021, 0.424144817],
+        "scale": 0.22
       },
       "modelPath": "./res/models/animated/seagull/seagull.gltf",
       "shader": "baseColor"
@@ -61,8 +61,8 @@
       "name": "seagull2",
       "transform": {
         "translation": [-262.982117, -9.850640, 72.508682],
-        "rotation": [0.285964, 9.000033, 1.538309],
-	"scale": 0.25
+        "rotation": [0.001434361, 0.078485465, 0.013578230, 0.996821752],
+        "scale": 0.25
       },
       "modelPath": "./res/models/animated/seagull/seagull.gltf",
       "shader": "baseColor"
@@ -72,8 +72,8 @@
       "name": "seagull3",
       "transform": {
         "translation": [-251.663193, -9.660975, 70.553123],
-        "rotation": [0.047384, 99.010296, 0.624766],
-	"scale": 0.26
+        "rotation": [-0.003877599, 0.760454412, 0.003854923, 0.649368302],
+        "scale": 0.26
       },
       "modelPath": "./res/models/animated/seagull/seagull.gltf",
       "shader": "baseColor"
@@ -83,8 +83,8 @@
       "name": "seagull4",
       "transform": {
         "translation": [-261.249817, -9.863427, 56.218235],
-        "rotation": [-1.297287, 80.361448, 0.493048],
-	"scale": 0.27
+        "rotation": [-0.011424991, 0.645116156, -0.004017006, 0.763988533],
+        "scale": 0.27
       },
       "modelPath": "./res/models/animated/seagull/seagull.gltf",
       "shader": "baseColor"
@@ -94,8 +94,8 @@
       "name": "seagull5",
       "transform": {
         "translation": [-256.478699, -9.703675, 64.734009],
-        "rotation": [0.467883, -94.872212, 0.452886],
-	"scale": 0.25
+        "rotation": [0.004838300, -0.215331518, 0.002980124, 0.976524473],
+        "scale": 0.25
       },
       "modelPath": "./res/models/animated/seagull/seagull.gltf",
       "shader": "baseColor"
@@ -105,8 +105,8 @@
       "name": "seagull6",
       "transform": {
         "translation": [-254.614548, -9.693320, 65.784607],
-        "rotation": [0.302638, -116.389584, 0.529772],
-	"scale": 0.24
+        "rotation": [0.005001022, -0.645369784, 0.001826917, 0.763851749],
+        "scale": 0.24
       },
       "modelPath": "./res/models/animated/seagull/seagull.gltf",
       "shader": "baseColor"
@@ -115,7 +115,7 @@
       "type": "model",
       "transform": {
         "translation": [-256.687, -9.91824, 35.649],
-        "rotation": [1.19411, -6.05362, -19.0008],
+        "rotation": [0.0278558, -0.175372, -0.118262, 0.976976],
         "scale": 0.02
       },
       "modelPath": "./res/models/set_pieces/boat/boat.gltf",
@@ -289,7 +289,7 @@
       "type": "model",
       "transform": {
         "translation": [196.18584, -0.93, 154.62890],
-        "rotation": [0.0, 45.0, 0.0]
+        "rotation": 45.0
       },
       "modelPath": "./res/models/trees/dead_tree/dead_tree.gltf",
       "shader": "directionalPBR",

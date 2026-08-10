@@ -55,13 +55,6 @@ void Transform::setRelativeTranslation(glm::vec3 relativeTranslation)
     isDirty_ = true;
 }
 
-void Transform::setRelativeRotation(glm::vec3 relativeRotation)
-{
-    glm::quat updatedRotation{quaternion_ * glm::quat(glm::radians(relativeRotation))};
-    quaternion_ = glm::normalize(updatedRotation);
-    isDirty_ = true;
-}
-
 void Transform::setRelativeScale(float relativeScale)
 {
     scale_ *= relativeScale;

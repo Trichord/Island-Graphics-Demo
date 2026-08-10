@@ -22,7 +22,6 @@ class Transform
     void setRelativeScale(float relativeScale);
     void setRelativeScale(const glm::vec3 &relativeScale);
     void setRelativeTranslation(glm::vec3 relativeTranslation);
-    void setRelativeRotation(glm::vec3 relativeRotation);
 
     void rotateAroundAxisLocal(float degrees, glm::vec3 axis);
     void rotateAroundAxisWorld(float degrees, glm::vec3 axis);

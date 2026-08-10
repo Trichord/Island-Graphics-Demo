@@ -81,7 +81,7 @@ void Application::run()
     Renderer renderer(textureManager, graphicsSettings, windowWidth_, windowHeight_);
 
     std::cout << "Loading Models... ";
-    IslandScene islandScene(textureManager, "./res/scenes/island_scene/scene.json");
+    IslandScene islandScene(textureManager, "./res/scenes/island_scene.json");
     std::cout << "Done" << std::endl;
 
     // Initialize scene dependent resources
@@ -90,7 +90,7 @@ void Application::run()
     renderer.initializeResources(islandScene, playerCamera_);
 
     std::cout << "Loading Audio... ";
-    AudioPlayer audioPlayer{islandScene, "./res/scenes/island_scene/audio.json"};
+    AudioPlayer audioPlayer{islandScene, "./res/scenes/island_audio.json"};
     std::cout << "Done" << std::endl;
 
     std::cout << "Creating Collision Mesh... ";

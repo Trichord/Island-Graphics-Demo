@@ -121,23 +121,20 @@ inline void from_json(const nlohmann::json &j, Transform &t)
     {
         auto &rot = j.at("rotation");
 
-        if (rot.size() != 4 && rot.size() != 3)
-            throw nlohmann::json::type_error::create(302, "rotation must be array of size 3 or 4", &rot);
-
-        if (rot.size() == 4)
+        if (rot.is_number())
+            t.setAbsoluteRotation(glm::angleAxis(glm::radians(rot.get<float>()), WorldVectors::worldUp));
+        else if (rot.size() == 4 && rot.is_array())
         {
-            glm::vec4 quat{parseVec4(rot)};
-            t.setAbsoluteRotation(glm::quat{quat.w, quat.x, quat.y, quat.z});
+            const glm::vec4 vec{parseVec4(rot)};
+            const glm::quat quat{vec.w, vec.x, vec.y, vec.z};
+
+            if (glm::length(quat) < 0.001f)
+                throw nlohmann::json::type_error::create(302, "rotation quaternion is degenerate", &rot);
+
+            t.setAbsoluteRotation(glm::normalize(quat));
         }
         else
-        {
-            glm::vec3 rotations{glm::radians(parseVec3(rot))};
-            const glm::quat yaw{glm::angleAxis(rotations.y, WorldVectors::worldUp)};
-            const glm::quat pitch{glm::angleAxis(rotations.x, WorldVectors::worldRight)};
-            const glm::quat roll{glm::angleAxis(rotations.z, WorldVectors::worldFront)};
-
-            t.setAbsoluteRotation(roll * pitch * yaw);
-        }
+            throw nlohmann::json::type_error::create(302, "rotation must be a single yaw or quat", &rot);
     }
 }
 
