@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "models/model.h"
+#include "utilities/random.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 #include "utilities/world_vectors.h"
@@ -61,28 +62,14 @@ std::vector<glm::vec3> InstancedModel::loadPositions() const
 
 std::vector<Transform> InstancedModel::randomizeRotationScale(std::vector<glm::vec3> &positions) const
 {
-    auto randomFloat = [](float min, float max, std::mt19937 &mt) {
-        if (min == max)
-            return min;
-
-        if (max < min)
-            std::swap(max, min);
-
-        std::uniform_real_distribution<float> rnd{min, max};
-        return rnd(mt);
-    };
-
-    std::random_device rd;
-    std::mt19937 mt(rd());
-
     std::vector<Transform> transforms;
     transforms.reserve(positions.size() / 2);
 
     for (std::size_t i{0}; i < positions.size(); i += 2)
     {
         // Rotate the model somewhere in the 360 degree range
-        float instanceRotation{randomFloat(0.0f, 360.0f, mt)};
-        float instanceScale{randomFloat(randomize_.minScale, randomize_.maxScale, mt)};
+        float instanceRotation{random::floatMT(0.0f, 360.0f)};
+        float instanceScale{random::floatMT(randomize_.minScale, randomize_.maxScale)};
 
         Transform transform{positions[i]};
 

@@ -55,6 +55,7 @@ set(SOURCES
     src/utilities/buffer_builder.cpp
     src/utilities/json_loader.cpp
     src/utilities/ktx_texture.cpp
+    src/utilities/random.cpp
     src/utilities/scene_processor.cpp
     src/utilities/texture_loader.cpp
     src/utilities/texture_manager.cpp
@@ -112,6 +113,7 @@ set(HEADERS
     headers/utilities/json_loader.h
     headers/utilities/ktx_texture.h
     headers/utilities/overloaded.h
+    headers/utilities/random.h
     headers/utilities/scene_processor.h
     headers/utilities/string_hash.h
     headers/utilities/texture_loader.h

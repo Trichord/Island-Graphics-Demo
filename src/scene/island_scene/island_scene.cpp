@@ -8,6 +8,7 @@
 #include "models/animation/animation.h"
 #include "scene/island_scene/seagull.h"
 #include "scene/scene.h"
+#include "utilities/random.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 #include "utilities/world_vectors.h"
@@ -42,17 +43,9 @@ constexpr float degreesPerSecond{2.0f};
 constexpr glm::vec3 oddAxisAngle{0.2926f, 0.8048f, 0.5164f};
 constexpr glm::vec3 oddAxisAngle2{-0.3197f, 0.7975f, 0.5117f};
 } // namespace SpaceModel
-
-float randomFloat(float low, float high)
-{
-    static std::minstd_rand gen{std::random_device{}()};
-    return std::uniform_real_distribution<float>(low, high)(gen);
-}
-
 } // namespace
 
-IslandScene::IslandScene(TextureManager &textureManager,
-                         const std::filesystem::path &jsonFile)
+IslandScene::IslandScene(TextureManager &textureManager, const std::filesystem::path &jsonFile)
     : Scene(textureManager, jsonFile)
 {
     // Cache original positions so that animated models can return or calculate updated positions
@@ -69,20 +62,20 @@ IslandScene::IslandScene(TextureManager &textureManager,
     // Seed the gulls with some randomness for some variety in their interactions
     for (std::size_t i{0}; i < seagullNames_.size(); ++i)
     {
-        Scene::Entry &seagull{editEntry(seagullNames_[i].data())};
+        Scene::Entry &seagull{editEntry(seagullNames_[i])};
 
         seagulls_[i] = Seagull{seagull.worldTransforms.front(),
                                Seagull::State::resting,
-                               SeagullConstants::panicDist + randomFloat(-0.125f, 0.125f),
-                               SeagullConstants::orbitHeight + randomFloat(-3.0f, 3.0f),
-                               SeagullConstants::orbitTime + randomFloat(-2.0f, 8.0f),
-                               SeagullConstants::orbitRadius + randomFloat(-2.0f, 2.0f),
-                               SeagullConstants::restTime + randomFloat(0.0f, 0.2f)};
+                               SeagullConstants::panicDist + random::floatMS(-0.125f, 0.125f),
+                               SeagullConstants::orbitHeight + random::floatMS(-3.0f, 3.0f),
+                               SeagullConstants::orbitTime + random::floatMS(-2.0f, 8.0f),
+                               SeagullConstants::orbitRadius + random::floatMS(-2.0f, 2.0f),
+                               SeagullConstants::restTime + random::floatMS(0.0f, 0.2f)};
 
         seagull.entryAnimation->animator.setAnimation(randomSeagullIdle(seagull));
 
         // Simulate just a bit of a starting animation to desync
-        seagull.entryAnimation->animator.update(getSkeleton(seagull), seagull.primitives, randomFloat(0.1f, 0.3f));
+        seagull.entryAnimation->animator.update(getSkeleton(seagull), seagull.primitives, random::floatMS(0.1f, 0.3f));
     }
 }
 
@@ -97,7 +90,7 @@ void IslandScene::onUpdate(const Camera &playerCamera, float time, float deltaTi
 
 Animation &IslandScene::randomSeagullIdle(Scene::Entry &entry)
 {
-    float random{randomFloat(0.0f, 100.0f)};
+    float random{random::floatMS(0.0f, 100.0f)};
 
     if (random <= 33.0f)
         return getAnimation(entry, "eat");

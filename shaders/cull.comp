@@ -155,7 +155,7 @@ void main()
     if (!aabbIntersectsFrustum(worldCenter, worldExtent))
         return;
 
-    // Use local space AABB since the world space one is already a bit loose from the ABS trick
+    // Use local space AABB since the world space one is already a bit loose from any rotations + the ABS trick
     vec4 uvBox;
     float minZ;
     if (!projectBox(aabb.center.xyz - aabb.extent.xyz, aabb.center.xyz + aabb.extent.xyz, nearPlane, lastFrameVP * modelMatrix, uvBox, minZ))

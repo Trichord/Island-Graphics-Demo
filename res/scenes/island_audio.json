@@ -109,6 +109,14 @@
       "triggerCenter": [-259.492, -5.46789, 52.8995],
       "triggerExtent": [27.318, 5.36022, 32.2151],
       "fadeDistance": 35.0
+    },
+    {
+      "soundEffect": {
+        "volume": 0.4,
+        "soundPath": "./res/audio/sfx/wading.wav"
+      },
+      "triggerCenter": [121.80589, -5.72636, 145.36897],
+      "triggerExtent": [22.5, 0.5, 22.5]
     }
   ],
   "character": {

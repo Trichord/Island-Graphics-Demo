@@ -239,11 +239,31 @@ Sourced from Vecteezy.com — https://www.vecteezy.com/free-vector/sphere
 Used under Vecteezy Free License
 </details>
 
-
-<h2>Tree Leaf Textures</h2>
+<h2>Elm Branch Textures</h2>
 
 <details>
 <summary>By Saigatka</summary>
+
+Texture Information:
+* title:	Elm Branch
+* source:	https://rawcatalog.com/en/asset/2897/
+* author:	[Saigatka](https://rawcatalog.com/)
+
+Texture Information:
+* title:	Elm Branch
+* source:	https://rawcatalog.com/en/asset/2898/
+* author:	[Saigatka](https://rawcatalog.com/)
+
+* changes:	Albedo resized from 4096 x 4096 to 2048 x 2048; atlases combined into a single sheet.
+
+Texture License:
+* license type:	[Raw Catalog EULA](https://rawcatalog.com/terms/)
+* requirements:	Credit must be included in the product and PR materials. Redistribution of the assets themselves, or of derivatives that are substantially the asset, is not permitted.
+
+If you use these textures in your project be sure to copy paste this credit wherever you share it:
+
+Uses Raw Catalog (rawcatalog.com), © Saigatka.
+</details>
 
 * source: [Raw Catalog](https://rawcatalog.com/)
 </details>
@@ -444,4 +464,17 @@ Audio Information:
 
 Audio License:
 * license type:	[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
+</details>
+
+<h2>Water Wading</h2>
+<details>
+<summary>By ConnorM94</summary>
+
+Audio Information:
+* title:	Wading_Through_Water.wav
+* source:	https://freesound.org/people/ConnorM94/sounds/386884/
+* author:	[ConnorM94](https://freesound.org/people/ConnorM94/)
+
+Audio License:
+* license type:	[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
 </details>

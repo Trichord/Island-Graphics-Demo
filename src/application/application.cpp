@@ -105,11 +105,12 @@ void Application::run()
         currentFrame_ = glfwGetTime();
         deltaTime_ = static_cast<float>(currentFrame_ - lastFrame_);
         lastFrame_ = currentFrame_;
+        const float time{static_cast<float>(currentFrame_)};
 
         // Update
         glfwPollEvents();
         std::uint8_t keyboardInput{processKeyboard()};
-        islandScene.onUpdate(playerCamera_, static_cast<float>(currentFrame_), deltaTime_);
+        islandScene.onUpdate(playerCamera_, time, deltaTime_);
         updatePhysics(keyboardInput, playerCamera_, physicsHandler);
         updateAudio(audioPlayer, physicsHandler, playerCamera_, islandScene.getUpdatedEntries());
 
@@ -120,7 +121,7 @@ void Application::run()
         }
 
         // Draw
-        renderer.renderScene(islandScene, playerCamera_, deltaTime_);
+        renderer.render(islandScene, playerCamera_, time, deltaTime_);
 
         // Clear
         islandScene.clearUpdates();

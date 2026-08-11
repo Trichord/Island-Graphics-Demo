@@ -36,7 +36,7 @@ SoundEffect::~SoundEffect()
 
 float SoundEffect::getLengthInSeconds() const
 {
-    return length_;
+    return length_ / ma_sound_get_pitch(&sound_);
 }
 
 void SoundEffect::setLooping(bool loop)
@@ -44,10 +44,11 @@ void SoundEffect::setLooping(bool loop)
     ma_sound_set_looping(&sound_, loop ? MA_TRUE : MA_FALSE);
 }
 
-    void SoundEffect::setPitch(float pitch)
+void SoundEffect::setPitch(float pitch)
 {
-        ma_sound_set_pitch(&sound_, pitch);
-    }
+    constexpr float minPitch{0.001f};
+    ma_sound_set_pitch(&sound_, std::max(pitch, minPitch));
+}
 
 void SoundEffect::setVolume(float volume)
 {
@@ -60,7 +61,7 @@ float SoundEffect::getInitialVolume() const
 }
 
 ma_result SoundEffect::play(bool reset)
-{   
+{
     if (reset)
         ma_sound_seek_to_pcm_frame(&sound_, 0);
 

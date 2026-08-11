@@ -206,19 +206,11 @@ void Renderer::createCubemaps(const Scene &scene, const std::vector<MultiDrawBuc
 {
     using enum ShaderType;
 
+    // Find which parameter buffer index to 0, so that water never tries to self-draw
     auto [waterIndex, found] = findBucket(drawBuckets, water);
 
     if (!found)
         return;
-
-    // Find which parameter buffer index to 0, so that water never tries to self-draw
-    std::size_t parameterBufferIndex{0};
-    for (std::size_t i{0}; i < drawBuckets.size(); ++i)
-        if (drawBuckets[i].shaderType == water)
-        {
-            parameterBufferIndex = i;
-            break;
-        }
 
     // 1:1 aspect with a 90 degree fov for cubemap face rendering
     Camera camera{{.fov = 90.0f}, 1.0f};
@@ -255,7 +247,7 @@ void Renderer::createCubemaps(const Scene &scene, const std::vector<MultiDrawBuc
 
         // Set the camera in the center of the water plane
         camera.setPosition(transform.getPosition());
-        renderCubeFaces(camera, cubeFaces, blitTarget, parameterBufferIndex);
+        renderCubeFaces(camera, cubeFaces, blitTarget, waterIndex);
 
         // Assign the texture
         std::vector<std::size_t> materialIndices;

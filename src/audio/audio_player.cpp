@@ -20,26 +20,8 @@
 #include "audio/sound_effect.h"
 #include "scene/scene.h"
 #include "utilities/world_vectors.h"
+#include "utilities/random.h"
 
-namespace
-{
-std::minstd_rand &rnd()
-{
-    static std::minstd_rand gen{std::random_device{}()};
-    return gen;
-}
-
-std::size_t randomIndex(std::size_t size)
-{
-    assert(size > 0);
-    return std::uniform_int_distribution<size_t>(std::size_t{0}, std::size_t{size - 1})(rnd());
-}
-
-float randomFloat(float low, float high)
-{
-    return std::uniform_real_distribution<float>(low, high)(rnd());
-}
-} // namespace
 
 AudioPlayer::AudioPlayer(const Scene &scene, const std::filesystem::path &audioJson)
 {
@@ -225,13 +207,13 @@ void AudioPlayer::playFootstepEffect()
     if (!characterSounds_.footsteps.count)
         return;
 
-    const std::size_t index{randomIndex(characterSounds_.footsteps.count)};
+    const std::size_t index{random::index(characterSounds_.footsteps.count)};
     SoundEffect &effect{*soundEffects_[characterSounds_.footsteps.start + index]};
 
     // Only make footsteps randomly softer. Normal footstep volume is already plenty.
     const float initialVolume{effect.getInitialVolume()};
-    effect.setVolume(randomFloat(initialVolume - volumeVariation, initialVolume));
-    effect.setPitch(randomFloat(1.0f - pitchVariation, 1.0f + pitchVariation));
+    effect.setVolume(random::floatMS(initialVolume - volumeVariation, initialVolume));
+    effect.setPitch(random::floatMS(1.0f - pitchVariation, 1.0f + pitchVariation));
 
     effect.play(true);
 }
@@ -246,8 +228,8 @@ void AudioPlayer::playLandingEffect()
     if (characterSounds_.footsteps.count < 2)
         return;
 
-    const std::size_t index{randomIndex(characterSounds_.footsteps.count)};
-    std::size_t otherIndex{randomIndex(characterSounds_.footsteps.count - 1)};
+    const std::size_t index{random::index(characterSounds_.footsteps.count)};
+    std::size_t otherIndex{random::index(characterSounds_.footsteps.count - 1)};
 
     if (otherIndex >= index)
         ++otherIndex;
@@ -257,12 +239,12 @@ void AudioPlayer::playLandingEffect()
 
     // Landing sounds should be lower pitched and louder
     const float firstInitialVolume{first.getInitialVolume()};
-    first.setVolume(randomFloat(firstInitialVolume + volumeLow, firstInitialVolume + volumeHigh));
-    first.setPitch(randomFloat(landingPitch - pitchVariation, landingPitch + pitchVariation));
+    first.setVolume(random::floatMS(firstInitialVolume + volumeLow, firstInitialVolume + volumeHigh));
+    first.setPitch(random::floatMS(landingPitch - pitchVariation, landingPitch + pitchVariation));
 
     const float secondInitialVolume{second.getInitialVolume()};
-    second.setVolume(randomFloat(secondInitialVolume + volumeLow, secondInitialVolume + volumeHigh));
-    second.setPitch(randomFloat(landingPitch - pitchVariation, landingPitch + pitchVariation));
+    second.setVolume(random::floatMS(secondInitialVolume + volumeLow, secondInitialVolume + volumeHigh));
+    second.setPitch(random::floatMS(landingPitch - pitchVariation, landingPitch + pitchVariation));
 
     first.play(true);
     second.play(true);
@@ -276,12 +258,12 @@ void AudioPlayer::playJumpEffect()
     if (!characterSounds_.jumps.count)
         return;
 
-    const std::size_t index{randomIndex(characterSounds_.jumps.count)};
+    const std::size_t index{random::index(characterSounds_.jumps.count)};
     SoundEffect &effect{*soundEffects_[characterSounds_.jumps.start + index]};
 
     const float initialVolume{effect.getInitialVolume()};
-    effect.setVolume(randomFloat(initialVolume - volumeVariation, initialVolume + volumeVariation));
-    effect.setPitch(randomFloat(1.0f - pitchVariation, 1.0f + pitchVariation));
+    effect.setVolume(random::floatMS(initialVolume - volumeVariation, initialVolume + volumeVariation));
+    effect.setPitch(random::floatMS(1.0f - pitchVariation, 1.0f + pitchVariation));
 
     playFootstepEffect();
     effect.play(true);

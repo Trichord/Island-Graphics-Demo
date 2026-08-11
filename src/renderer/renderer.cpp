@@ -123,14 +123,14 @@ Renderer::~Renderer()
         glDeleteTextures(1, &hiZTexture_);
 }
 
-void Renderer::renderScene(const Scene &scene, const Camera &camera, float deltaTime)
+void Renderer::render(const Scene &scene, const Camera &camera, float time, float deltaTime)
 {
     glState_.setDepthWrite(true);
     frameBuffer_.clear();
 
     // Updates from scene first
     updateSceneTransforms(scene);
-    updateTimeUBO(deltaTime);
+    updateTimeUBO(time, deltaTime);
 
     const bool lightChanged{scene.getGlobalLight().directionHasUpdated()};
     updateShaderUniforms(scene, lightChanged);
@@ -224,14 +224,14 @@ void Renderer::updateFrustumPlanesUBO(const glm::mat4 &cullMatrix)
     glNamedBufferSubData(UBOs_.frustumPlanes, 0, static_cast<GLsizeiptr>(6 * sizeof(glm::vec4)), planes.data());
 }
 
-void Renderer::updateTimeUBO(float deltaTime)
+void Renderer::updateTimeUBO(float time, float deltaTime)
 {
-    PackedTime time{
+    PackedTime packed{
         .deltaTime = framesRendered_ == 0 ? 0.0f : deltaTime,
-        .timeElapsed = static_cast<float>(glfwGetTime()),
+        .timeElapsed = time,
     };
 
-    glNamedBufferSubData(UBOs_.time, 0, static_cast<GLsizeiptr>(sizeof(PackedTime)), &time);
+    glNamedBufferSubData(UBOs_.time, 0, static_cast<GLsizeiptr>(sizeof(PackedTime)), &packed);
 }
 
 void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll)
@@ -266,13 +266,13 @@ void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChange
 
 void Renderer::updateShaderUniforms(const Scene &scene, bool lightChanged)
 {
+    if (!lightChanged)
+        return;
+
     const DirectionalLight &globalLight{scene.getGlobalLight()};
 
     for (auto &shader : shaders_)
-    {
-        if (lightChanged)
-            shader.setVec3("lightDir", globalLight.getDirection());
-    }
+        shader.setVec3("lightDir", globalLight.getDirection());
 }
 
 void Renderer::updateSceneTransforms(const Scene &scene)

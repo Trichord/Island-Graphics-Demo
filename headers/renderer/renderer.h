@@ -34,7 +34,7 @@ class Renderer
     ~Renderer();
 
     void initializeResources(const Scene &scene, const Camera &camera);
-    void renderScene(const Scene &scene, const Camera &camera, float deltaTime);
+    void render(const Scene &scene, const Camera &camera, float time, float deltaTime);
     void updateExternalResolution(int width, int height);
 
     std::uint32_t getFrameCount() const;
@@ -124,7 +124,7 @@ class Renderer
     void updateHiZ();
     void updateParticles();
     void updateSkinnedVertices();
-    void updateTimeUBO(float deltaTime);
+    void updateTimeUBO(float time, float deltaTime);
     void updateCameraUBO(const Camera &camera);
     void updateSceneTransforms(const Scene &scene);
     void updateFrustumPlanesUBO(const glm::mat4 &cullMatrix);
