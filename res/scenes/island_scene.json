@@ -23,7 +23,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/island/collision/island_collision.gltf"
-    }
+    	}
     },
     {
       "type": "model",
@@ -36,7 +36,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/set_pieces/statue/collision/statue_collision.gltf"
-    }
+    	}
     },
     {
       "type": "instanced",
@@ -123,7 +123,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/set_pieces/boat/collision/boat_collision.gltf"
-    }
+    	}
     },
     {
       "type": "cubemapped",
@@ -145,7 +145,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock1/collision/rock1_collision.gltf"
-    }
+    	}
     },
     {
       "type": "instanced",
@@ -169,7 +169,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock3/collision/rock3_collision.gltf"
-    }
+    	}
     },
     {
       "type": "instanced",
@@ -193,7 +193,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock5/collision/rock5_collision.gltf"
-    }
+    	}
     },
     {
       "type": "model",
@@ -211,7 +211,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock6/collision/rock6_collision.gltf"
-    }
+    	}
     },
     {
       "type": "model",
@@ -227,7 +227,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock7/collision/rock7_collision.gltf"
-    }
+    	}
     },
     {
       "type": "instanced",
@@ -241,7 +241,7 @@
         "height": 8.524,
 	"radius": 0.3172,
 	"offset": [0.0, 3.862, 0.0]
-    }
+    	}
     },
     {
       "type": "instanced",
@@ -255,7 +255,7 @@
         "height": 6.419,
 	"radius": 0.258,
 	"offset": [0.0, 2.8095, 0.0]
-    }
+    	}
     },
     {
       "type": "instanced",
@@ -269,7 +269,7 @@
         "height": 5.684,
 	"radius": 0.19,
 	"offset": [0.0, 2.4, 0.0]
-    }
+    	}
     },
     {
       "type": "instanced",
@@ -283,7 +283,7 @@
         "height": 5.818,
 	"radius": 0.32,
 	"offset": [0.0, 2.409, -0.1]
-    }
+    	}
     },
     {
       "type": "model",
@@ -296,7 +296,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/trees/dead_tree/collision/dead_tree_collision.gltf"
-    }
+    	}
     },
     {
       "type": "instanced",

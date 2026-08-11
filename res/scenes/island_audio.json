@@ -99,6 +99,16 @@
       "triggerCenter": [-23.049316, 5.0, 266.231873],
       "triggerExtent": [28, 28, 28],
       "fadeDistance": 20.0
+    },
+    {
+      "soundEffect": {
+        "volume": 0.1,
+        "soundPath": "./res/audio/sfx/beach.wav"
+      },
+      "loop": true,
+      "triggerCenter": [-259.492, -5.46789, 52.8995],
+      "triggerExtent": [27.318, 5.36022, 32.2151],
+      "fadeDistance": 35.0
     }
   ],
   "character": {

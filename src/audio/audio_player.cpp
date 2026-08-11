@@ -165,6 +165,7 @@ void AudioPlayer::updateTriggers(UpdatedEntriesView updatedEntries)
 
         Trigger &trigger{triggers_[handleIter->second]};
         trigger.innerAABB.setCenter(entry.worldTransforms.front().getPosition());
+        trigger.outerAABB.setCenter(trigger.innerAABB.getCenter());
     }
 }
 
