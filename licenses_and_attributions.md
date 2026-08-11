@@ -1,6 +1,14 @@
-**A huge thank you to Joey de Vries for his work with https://learnopengl.com/ <br> Without him, this project would not exist.** <br>
+**A huge thank you to Joey de Vries for his work with <a href="https://learnopengl.com/">learnopengl.com</a> 
+<br> Without him, this project would not exist.** <br>
 <br> If your work is not in this list, please let me know right away and I will add you! 
 <br> This software contains source code provided by NVIDIA Corporation.
+
+<h2>LearnOpenGL</h2>
+<details>
+<summary>Copyright (c) <a href="https://twitter.com/JoeyDeVriez">Joey de Vries</a></summary>
+<br>Code samples licensed under
+<a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a>
+</details>
 
 <h1>Libraries</h1>
 
@@ -410,6 +418,18 @@ Audio Information:
 
 Audio License:
 * license type:	[Creative Commons Attribution-NonCommercial-ShareAlike 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-
 </details>
 
+<h2>Black Hole</h2>
+<details>
+<summary>By qubodup</summary>
+
+Audio Information:
+* title:	Soft Subtle Sci-Fi Hovercract Engine Humm
+* source:	https://freesound.org/people/qubodup/sounds/861960/
+* author:	[qubodup](https://freesound.org/people/qubodup/)
+* changes:	Split audio into separate clips.
+
+Audio License:
+* license type:	[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
+</details>

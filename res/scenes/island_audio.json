@@ -88,6 +88,17 @@
       "triggerCenter": [-254.614548, -9.693320, 65.784607],
       "triggerExtent": [18.5, 18.5, 18.5],
       "fadeDistance": 1.5
+    },
+    {
+      "soundEffect": {
+        "volume": 2.0,
+        "soundPath": "./res/audio/sfx/black_hole.wav",
+        "spatialization": true
+      },
+      "loop": true,
+      "triggerCenter": [-23.049316, 5.0, 266.231873],
+      "triggerExtent": [28, 28, 28],
+      "fadeDistance": 20.0
     }
   ],
   "character": {
