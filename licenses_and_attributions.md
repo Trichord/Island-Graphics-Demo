@@ -428,7 +428,6 @@ Audio Information:
 * title:	Soft Subtle Sci-Fi Hovercract Engine Humm
 * source:	https://freesound.org/people/qubodup/sounds/861960/
 * author:	[qubodup](https://freesound.org/people/qubodup/)
-* changes:	Split audio into separate clips.
 
 Audio License:
 * license type:	[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
