@@ -54,6 +54,8 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
 {
     // Shadow pass setup
     glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+
     shadowPassTarget_.bind();
     glState_.setDepthWrite(true);
     glState_.setVAO(VAOs_.shadowVAO);
@@ -79,7 +81,6 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
     // Opaque geometry first (positions only)
     GraphicsShader &shadowShader{shaders_[shaderIndex(ShaderType::shadowMap)]};
     glState_.bindProgram(shadowShader);
-    glState_.setFaceCull(GL_FRONT);
 
     for (int i{0}; i < cascadeCount; ++i)
     {
@@ -96,8 +97,6 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
     GraphicsShader &shadowAlphaShader{shaders_[shaderIndex(ShaderType::shadowMapAlpha)]};
     glState_.bindProgram(shadowAlphaShader);
     glState_.setVAO(VAOs_.vao);
-    glState_.setFaceCull(GL_BACK);
-    glEnable(GL_POLYGON_OFFSET_FILL);
 
     for (int i{0}; i < cascadeCount; ++i)
     {

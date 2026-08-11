@@ -61,8 +61,6 @@ void Renderer::initializeResources(const Scene &scene, const Camera& camera)
     BufferBuilder builder;
     UBOs_ = builder.buildUBOs();
 
-    const bool shadowsEnabled{graphicsSettings_.shadowResolution > 1};
-
     // Cubemaps. Reserve space up front for any load-time generated cubemaps
     std::size_t numCubemaps{getNumDynamicCubemaps(scene)};
     GLenum colorFormat{DynamicCubemaps::internalFormat};
@@ -70,7 +68,8 @@ void Renderer::initializeResources(const Scene &scene, const Camera& camera)
 
     textureManager_.buildAllTextures();
 
-    SceneProcessor::ProcessedScene processed{SceneProcessor::processScene(scene, textureManager_, shadowsEnabled)};
+    SceneProcessor::ProcessedScene processed{
+        SceneProcessor::processScene(scene, textureManager_, graphicsSettings_.shadowResolution)};
 
     // Take ownership of everything before shadow map draw call
     takeGPUObjects(processed);
@@ -98,7 +97,7 @@ void Renderer::initializeResources(const Scene &scene, const Camera& camera)
     setSceneShaderUniforms(scene, camera);
     setupComputeShaders(processed, camera.getNearPlane());
 
-    if (shadowsEnabled)
+    if (graphicsSettings_.shadowResolution)
         renderShadowMaps(scene, camera, true);
 
     // Assign the skybox to any ocean shaders before any cubemaps are rendered, so they are captured.
