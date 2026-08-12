@@ -44,9 +44,9 @@ void mediumScaleWind(inout vec3 worldPos, vec4 vertexColor, vec3 noise, float wi
 	worldPos += mediumWindPower;
 }
 
-void smallScaleWind(inout vec3 worldPos, vec4 vertexColor, vec3 normal, vec3 noise, float noise2, float windFactor, float windStrength)
+void smallScaleWind(inout vec3 worldPos, vec4 vertexColor, vec3 normal, vec3 noise, float secNoise, float windFactor, float windStrength)
 {
-	float smallWindPower = (0.125 * sin(2.0 * windFactor + noise2));
+	float smallWindPower = (0.125 * sin(2.0 * windFactor + secNoise));
 	smallWindPower *= windStrength;
 
 	vec3 smallJitter = vec3(smallWindPower);

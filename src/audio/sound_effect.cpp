@@ -3,27 +3,43 @@
 #include <algorithm>
 #include <filesystem>
 #include <glm/glm.hpp>
+#include <iostream>
 #include <miniaudio.h>
 #include <stdexcept>
 #include <string>
 
 #include "audio/audio_engine.h"
+#include "utilities/random.h"
 
-SoundEffect::SoundEffect(AudioEngine &engine, const std::filesystem::path &path, float volume, ma_uint32 flags,
-                         const glm::vec3 &position)
-    : initialVolume_{volume}
+SoundEffect::SoundEffect(AudioEngine &engine, const SoundEffectEntry &entry, const glm::vec3 &position)
+    : volumeLow_{entry.volumeLow}, volumeHigh_{entry.volumeHigh}, pitchLow_{entry.pitchLow}, pitchHigh_{entry.pitchHigh}
 {
-    if (path.empty())
+    if (entry.soundPath.empty())
         throw std::runtime_error("Empty filepath");
 
-    const std::string pathStr{path.string()};
+    if (volumeLow_ > volumeHigh_ || pitchLow_ > pitchHigh_)
+    {
+        std::cerr << "ERROR: min value greater than max value from Sound Effect: " << entry.soundPath << std::endl;
+        throw std::runtime_error("Undefined sound effect range");
+    }
+
+    ma_uint32 flags{0};
+    if (entry.streaming)
+        flags |= MA_SOUND_FLAG_STREAM;
+    else
+        flags |= MA_SOUND_FLAG_DECODE;
+
+    if (!entry.spatialization)
+        flags |= MA_SOUND_FLAG_NO_SPATIALIZATION;
+
+    const std::string pathStr{entry.soundPath.string()};
     ma_result result{ma_sound_init_from_file(&engine.engine, pathStr.c_str(), flags, nullptr, nullptr, &sound_)};
 
     if (result != MA_SUCCESS)
         throw std::runtime_error("Failed to load sound from " + pathStr + ": " + ma_result_description(result));
 
     initialized_ = true;
-    ma_sound_set_volume(&sound_, volume);
+    varyVolume();
     ma_sound_set_position(&sound_, position.x, position.y, position.z);
     ma_sound_get_length_in_seconds(&sound_, &length_);
 }
@@ -55,9 +71,26 @@ void SoundEffect::setVolume(float volume)
     ma_sound_set_volume(&sound_, std::max(0.0f, volume));
 }
 
-float SoundEffect::getInitialVolume() const
+void SoundEffect::setDistanceFade(float factor)
 {
-    return initialVolume_;
+    const float currentVolume{ma_sound_get_volume(&sound_)};
+    setVolume(currentVolume * factor);
+}
+
+float SoundEffect::varyPitch()
+{
+    const float pitch{random::floatMS(pitchLow_, pitchHigh_)};
+    setPitch(pitch);
+
+    return pitch;
+}
+
+float SoundEffect::varyVolume()
+{
+    const float volume{random::floatMS(volumeLow_, volumeHigh_)};
+    setVolume(volume);
+
+    return volume;
 }
 
 ma_result SoundEffect::play(bool reset)

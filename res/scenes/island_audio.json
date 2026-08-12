@@ -2,7 +2,8 @@
   "triggers": [
     {
       "soundEffect": {
-        "volume": 0.3,
+        "volumeLow": 0.3,
+        "volumeHigh": 0.3,
         "soundPath": "./res/audio/music/ambient.mp3",
         "streaming": true
       },
@@ -13,7 +14,8 @@
     },
     {
       "soundEffect": {
-        "volume": 1.0,
+        "volumeLow": 1.0,
+        "volumeHigh": 1.0,
         "soundPath": "./res/audio/sfx/seagull1.mp3",
         "spatialization": true
       },
@@ -26,7 +28,8 @@
     },
     {
       "soundEffect": {
-        "volume": 1.0,
+        "volumeLow": 1.0,
+        "volumeHigh": 1.0,
         "soundPath": "./res/audio/sfx/seagull2.mp3",
         "spatialization": true
       },
@@ -39,7 +42,8 @@
     },
     {
       "soundEffect": {
-        "volume": 1.0,
+        "volumeLow": 1.0,
+        "volumeHigh": 1.0,
         "soundPath": "./res/audio/sfx/seagull3.mp3",
         "spatialization": true
       },
@@ -52,7 +56,8 @@
     },
     {
       "soundEffect": {
-        "volume": 1.0,
+        "volumeLow": 1.0,
+        "volumeHigh": 1.0,
         "soundPath": "./res/audio/sfx/seagull4.mp3",
         "spatialization": true
       },
@@ -65,7 +70,8 @@
     },
     {
       "soundEffect": {
-        "volume": 1.0,
+        "volumeLow": 1.0,
+        "volumeHigh": 1.0,
         "soundPath": "./res/audio/sfx/seagull5.mp3",
         "spatialization": true
       },
@@ -78,7 +84,8 @@
     },
     {
       "soundEffect": {
-        "volume": 1.0,
+        "volumeLow": 1.0,
+        "volumeHigh": 1.0,
         "soundPath": "./res/audio/sfx/seagull6.mp3",
         "spatialization": true
       },
@@ -91,7 +98,8 @@
     },
     {
       "soundEffect": {
-        "volume": 2.0,
+        "volumeLow": 2.0,
+        "volumeHigh": 2.0,
         "soundPath": "./res/audio/sfx/black_hole.wav",
         "spatialization": true
       },
@@ -102,7 +110,8 @@
     },
     {
       "soundEffect": {
-        "volume": 0.1,
+        "volumeLow": 0.1,
+        "volumeHigh": 0.1,
         "soundPath": "./res/audio/sfx/beach.wav"
       },
       "loop": true,
@@ -112,7 +121,10 @@
     },
     {
       "soundEffect": {
-        "volume": 0.4,
+        "volumeLow": 0.3,
+        "volumeHigh": 0.5,
+        "pitchLow": 0.7,
+        "pitchHigh": 1.3,
         "soundPath": "./res/audio/sfx/wading.wav"
       },
       "triggerCenter": [121.80589, -5.72636, 145.36897],
@@ -120,15 +132,53 @@
     }
   ],
   "character": {
+    "landingPitchScale": 0.7,
+    "landingVolumeScale": 2.0,
     "footsteps": [
-      { "volume": 0.5, "soundPath": "./res/audio/sfx/footstep1.wav" },
-      { "volume": 0.5, "soundPath": "./res/audio/sfx/footstep2.wav" },
-      { "volume": 0.5, "soundPath": "./res/audio/sfx/footstep3.wav" },
-      { "volume": 0.5, "soundPath": "./res/audio/sfx/footstep4.wav" }
+      {
+        "soundPath": "./res/audio/sfx/footstep1.wav",
+        "volumeLow": 0.2, 
+        "volumeHigh": 0.5,
+        "pitchLow": 0.8, 
+        "pitchHigh": 1.2
+      },
+      {
+        "soundPath": "./res/audio/sfx/footstep2.wav",
+        "volumeLow": 0.2, 
+        "volumeHigh": 0.5,
+        "pitchLow": 0.8, 
+        "pitchHigh": 1.2
+      },
+      {
+        "soundPath": "./res/audio/sfx/footstep3.wav",
+        "volumeLow": 0.2, 
+        "volumeHigh": 0.5,
+        "pitchLow": 0.8, 
+        "pitchHigh": 1.2
+      },
+      {
+        "soundPath": "./res/audio/sfx/footstep4.wav",
+        "volumeLow": 0.2, 
+        "volumeHigh": 0.5,
+        "pitchLow": 0.8, 
+        "pitchHigh": 1.2
+      }
     ],
     "jumps": [
-      { "volume": 0.15, "soundPath": "./res/audio/sfx/jump1.mp3" },
-      { "volume": 0.15, "soundPath": "./res/audio/sfx/jump2.mp3" }
+      {
+        "soundPath": "./res/audio/sfx/jump1.mp3",
+        "volumeLow": 0.14, 
+        "volumeHigh": 0.16,
+        "pitchLow": 0.8, 
+        "pitchHigh": 1.2
+      },
+      {
+        "soundPath": "./res/audio/sfx/jump2.mp3",
+        "volumeLow": 0.14, 
+        "volumeHigh": 0.16,
+        "pitchLow": 0.8, 
+        "pitchHigh": 1.2
+      }
     ]
   }
 }

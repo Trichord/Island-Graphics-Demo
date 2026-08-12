@@ -356,8 +356,9 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
 
     try
     {
-        scene = json::parse(file).get<SceneFile>();
+        json::parse(file).get_to(scene);
     }
+
     catch (const json::exception &e)
     {
         std::cerr << e.what() << std::endl;

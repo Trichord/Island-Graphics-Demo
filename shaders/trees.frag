@@ -42,7 +42,6 @@ void main()
 	// Materials
 	vec4 albedo = texture(textures[meta.albedoArray], vec3(texCoords, meta.albedoLayer));
 	vec3 ARM = texture(textures[meta.armArray], vec3(texCoords, meta.armLayer)).rgb;
-	vec3 normal = normalize(normal);
 
 	float ao = ARM.r;
 	float roughness = ARM.g;

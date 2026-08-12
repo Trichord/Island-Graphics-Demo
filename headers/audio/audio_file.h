@@ -12,7 +12,11 @@ struct SoundEffectEntry
 {
     std::filesystem::path soundPath;
 
-    float volume{1.0f};
+    float volumeLow{1.0f};
+    float volumeHigh{1.0f};
+    float pitchLow{1.0f};
+    float pitchHigh{1.0f};
+
     bool streaming{false};
     bool spatialization{false};
 };
@@ -32,6 +36,9 @@ struct AudioTriggerEntry
 
 struct CharacterSoundEntry
 {
+    float landingPitchScale{1.0f};
+    float landingVolumeScale{1.0f};
+
     std::vector<SoundEffectEntry> footsteps;
     std::vector<SoundEffectEntry> jumps;
 };
@@ -51,7 +58,11 @@ inline void from_json(const nlohmann::json &j, SoundEffectEntry &sfx)
 {
     sfx.soundPath = j.value("soundPath", std::filesystem::path{});
 
-    sfx.volume = j.value("volume", 1.0f);
+    sfx.volumeLow = j.value("volumeLow", 1.0f);
+    sfx.volumeHigh = j.value("volumeHigh", 1.0f);
+    sfx.pitchLow = j.value("pitchLow", 1.0f);
+    sfx.pitchHigh = j.value("pitchHigh", 1.0f);
+
     sfx.streaming = j.value("streaming", false);
     sfx.spatialization = j.value("spatialization", false);
 }
@@ -73,6 +84,9 @@ inline void from_json(const nlohmann::json &j, AudioTriggerEntry &entry)
 
 inline void from_json(const nlohmann::json &j, CharacterSoundEntry &character)
 {
+    character.landingPitchScale = j.value("landingPitchScale", 1.0f);
+    character.landingVolumeScale = j.value("landingVolumeScale", 1.0f);
+
     character.footsteps = j.value("footsteps", std::vector<SoundEffectEntry>{});
     character.jumps = j.value("jumps", std::vector<SoundEffectEntry>{});
 }

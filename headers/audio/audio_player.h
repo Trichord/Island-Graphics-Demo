@@ -43,7 +43,7 @@ class AudioPlayer
 
         float fadeDistance{0.0f};
 
-        float getVolumeMultiplier(const glm::vec3 &position) const
+        float getFadeFactor(const glm::vec3 &position) const
         {
             // No fade distance defined
             if (fadeDistance <= 0.0f)
@@ -68,6 +68,7 @@ class AudioPlayer
     struct CharacterSounds
     {
         SoundRange footsteps;
+        SoundRange landings;
         SoundRange jumps;
     };
 
@@ -76,4 +77,8 @@ class AudioPlayer
     CharacterSounds characterSounds_;
     std::vector<std::unique_ptr<SoundEffect>> soundEffects_;
     std::unordered_map<Handle, std::size_t> triggersByHandle_;
+
+    SoundRange addSounds();
+    std::vector<SoundEffectEntry> createLandings(const std::vector<SoundEffectEntry> &footsteps, float volumeMultiplier,
+                                                 float pitchMultiplier);
 };
