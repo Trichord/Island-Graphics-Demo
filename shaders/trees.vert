@@ -55,7 +55,7 @@ void main()
 	vec4 worldPosition = modelMatrix * vec4(aPos, 1.0);
 	
 	// Wind
-	vec2 noise = getNoise(textures[meta.normalArray], meta.normalLayer, worldPosition.xyz, time);
+	vec2 noise = getNoise(worldPosition.xyz, time);
 	float windFactor = getWindFactor(worldPosition.xyz, time);
 
 	largeScaleWind(worldPosition.xyz, aColor, windDirection, windFactor, noise.x);

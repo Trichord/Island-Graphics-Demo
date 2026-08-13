@@ -1,10 +1,12 @@
 // Functions for wind effects
 
+#include "shared/samplers.glsl"
+
 const float windWaveLength = 5.75;
 
-vec2 getNoise(sampler2DArray sampler, int layer, vec3 worldPos, float time)
+vec2 getNoise(vec3 worldPos, float time)
 {
-	return texture(sampler, vec3(worldPos.xy + time * 0.05, layer)).rg;
+	return texture(noise, worldPos.xy + time * 0.05).rg;
 }
 
 float getWindFactor(vec3 worldPos, float time)

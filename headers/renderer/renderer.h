@@ -60,6 +60,7 @@ class Renderer
     UBOs UBOs_;
     SSBOs SSBOs_;
     GLuint hiZTexture_{0};
+    GLuint noiseTexture_{0};
     TextureView hiZViews_;
 
     // Scene Updates

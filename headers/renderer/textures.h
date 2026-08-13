@@ -13,6 +13,7 @@ static constexpr int shadow{15};
 static constexpr int resolvedColor{16};
 static constexpr int depthMap{17};
 static constexpr int hiZ{18};
+static constexpr int noise{19};
 static constexpr int max{32};
 } // namespace TextureUnit
 

@@ -101,7 +101,6 @@ void main()
 
 	// Shadows
 	float shadow = ShadowContribution(lightMatrices[layer], fsIn.worldFragPos, layer);
-	float bias = max(0.05 * (1.0 - NdotL), 0.005);  
 	vec3 color = ambient + Lo * shadow;
 	
 	#else

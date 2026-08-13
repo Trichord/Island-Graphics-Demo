@@ -76,6 +76,7 @@ std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
 
     return {left, right, top, bottom, near, far};
 }
+
 } // namespace
 
 Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &settings, int windowWidth, int windowHeight)
@@ -104,14 +105,16 @@ Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &setti
       hiZTexture_{texture::createTextureID(settings.renderWidth / hiZResolutionReduction,
                                            settings.renderHeight / hiZResolutionReduction, hiZInternalFormat,
                                            hiZSampler, true, false)},
+      noiseTexture_{texture::textureFromFile("./res/textures/perlin.ktx2", {})},
       hiZViews_{hiZTexture_, hiZSampler, hiZInternalFormat,
-                texture::calculateMipmapLevels(settings.renderWidth / hiZResolutionReduction,
-                                               settings.renderHeight / hiZResolutionReduction, false)}
+                                 texture::calculateMipmapLevels(settings.renderWidth / hiZResolutionReduction,
+                                                                settings.renderHeight / hiZResolutionReduction, false)}
 {
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::depthMap), frameBuffer_.getDepthMapTextureID());
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::resolvedColor), msaaResolveTarget_.getColorTextureID());
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getDepthMapTextureID());
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::hiZ), hiZTexture_);
+    glBindTextureUnit(static_cast<GLuint>(TextureUnit::noise), noiseTexture_);
     glPolygonOffsetClamp(polygonFactor, polygonUnits, polygonClamp);
 
     frameBuffer_.bind();
@@ -121,6 +124,9 @@ Renderer::~Renderer()
 {
     if (hiZTexture_)
         glDeleteTextures(1, &hiZTexture_);
+
+    if (noiseTexture_)
+        glDeleteTextures(1, &noiseTexture_);
 }
 
 void Renderer::render(const Scene &scene, const Camera &camera, float time, float deltaTime)

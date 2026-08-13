@@ -59,7 +59,7 @@ void main()
 	vec3 normal = normalize(normalMatrix * aNormal.xyz);
 	
 	// Wind
-	vec2 noise = getNoise(textures[meta.normalArray], meta.normalLayer, worldPosition.xyz, time);
+	vec2 noise = getNoise(worldPosition.xyz, time);
 	float windFactor = getWindFactor(worldPosition.xyz, time);
 
 	largeScaleWind(worldPosition.xyz, aColor, windDirection, windFactor, noise.x);
