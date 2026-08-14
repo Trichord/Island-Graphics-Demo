@@ -41,50 +41,27 @@ void main()
 
 	// Materials
 	vec4 albedo = texture(textures[meta.albedoArray], vec3(texCoords, meta.albedoLayer));
-	vec3 ARM = texture(textures[meta.armArray], vec3(texCoords, meta.armLayer)).rgb;
-
-	float ao = ARM.r;
-	float roughness = ARM.g;
-	float metallic = ARM.b;
 
 	// Scale alpha by mip level
     vec2 texSize = textureSize(textures[meta.albedoArray], 0).xy;
     albedo.a *= 1 + max(0, calcMipLevel(texCoords * texSize)) * mipScale;
-
-	// Rescale alpha by partial derivative. Credit: Ben Golus
-    albedo.a = (albedo.a - alphaCutoff) / max(fwidth(albedo.a), 0.0001) + 0.5;
-
-	// Vectors
-	vec3 N = normalize(normal);
-	vec3 V = normalize(cameraPosition.xyz - worldPos.xyz);
-	vec3 L = normalize(-lightDir);
-	vec3 H = normalize(L + V);
+	albedo.a = rescaleAlpha(albedo.a);
 	
-	// Dot products
-	float NdotV = max(dot(N, V), 0.0);
-	float NdotL = max(dot(N, L), 0.0);
-	float HdotV = max(dot(H, V), 0.0);
-
-	// Alter diffuse by metallic-ness of the material
-	vec3 kD = vec3(1.0);
-	kD *= 1.0 - metallic;
-
-	// Burley diffuse
-	float FD90 = 0.5 + 2 * roughness * (HdotV * HdotV);
-	float burleyFactor = burleyDiffuseFactor(FD90, NdotL, NdotV);
-	vec3 diffuse = kD * albedo.rgb * inversePi * burleyFactor;
+	float NdotL = max(dot(normalize(normal), normalize(-lightDir)), 0.0);
+	vec3 diffuse = albedo.rgb * inversePi * NdotL;
 
 	#ifdef ALPHA_TESTED_SHADOWS
 	int layer = calculateCascadeIndex(-viewPos.z);
 	float shadow = ShadowContribution(lightMatrices[layer], worldPos, layer);
-	vec3 accumulatedLight = diffuse * lightColor * shadow * NdotL;
+
+	vec3 accumulatedLight = diffuse * lightColor * shadow;
 
 	#else
-	vec3 accumulatedLight = diffuse * lightColor * NdotL;
+	vec3 accumulatedLight = diffuse * lightColor;
 	#endif
 	
 	// Ambient
-	vec3 ambient = ambientLight * albedo.rgb * ao;
+	vec3 ambient = ambientLight * albedo.rgb;
 	
 	// Final color
 	vec3 color = ambient + accumulatedLight;

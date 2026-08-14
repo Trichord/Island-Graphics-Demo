@@ -3,29 +3,34 @@
 #include <filesystem>
 #include <fstream>
 #include <glm/glm.hpp>
+#include <ios>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <stdexcept>
 #include <string>
-#include <unordered_set>
+#include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
 
-#include "application/graphics_settings.h"
+#include "models/animation/animation.h"
 #include "models/animation/animator.h"
+#include "models/animation/skeleton.h"
 #include "models/instanced_model.h"
 #include "models/model.h"
 #include "models/particles.h"
 #include "models/primitive.h"
 #include "models/skybox.h"
+#include "physics/collision_shapes.h"
 #include "renderer/shader/graphics_shader.h"
 #include "scene/camera.h"
 #include "scene/directional_light.h"
 #include "scene/handle.h"
 #include "scene/scene_file.h"
 #include "utilities/overloaded.h"
+#include "utilities/string_hash.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 
@@ -39,40 +44,57 @@ void validateSceneEntry(Scene::Entry &entry)
     if (entry.primitives.empty())
         throw std::runtime_error("Empty primitives");
 
-    for (const Primitive &primitive : entry.primitives)
+    const bool isInstanced{entry.worldTransforms.size() > 1};
+
+    for (Primitive &primitive : entry.primitives)
     {
         if (primitive.vertices.empty() || primitive.indices.empty())
             throw std::runtime_error("Empty vertices or indices");
-    }
 
-    if (entry.shaderType == ocean)
-    {
-        if (entry.primitives.front().alphaMode == opaque)
-            return;
-
-        for (Primitive &primitive : entry.primitives)
+        switch (primitive.shaderType)
         {
-            if (primitive.alphaMode == opaque)
-                continue;
+        case ocean:
+            if (isInstanced)
+                std::cerr << "WARNING: Multiple ocean instances sharing one reflection" << std::endl;
 
-            std::cerr << "WARNING: Overriding ocean shader primitive alpha mode with Opaque" << std::endl;
-            primitive.alphaMode = opaque;
+            if (primitive.alphaMode != opaque)
+            {
+                std::cerr << "WARNING: Overriding ocean shader primitive alpha mode with Opaque" << std::endl;
+                primitive.alphaMode = opaque;
+            }
+
+            break;
+
+        case water:
+            if (isInstanced)
+                std::cerr << "WARNING: Multiple water instances sharing one reflection" << std::endl;
+
+            if (primitive.alphaMode != blend)
+            {
+                std::cerr << "WARNING: Overriding water shader primitive alpha mode with Blend" << std::endl;
+                primitive.alphaMode = blend;
+            }
+
+            break;
+
+        default:
+            break;
         }
     }
+}
 
-    if (entry.shaderType == water)
+void splitOnShaderType(Scene::Entry &entry)
+{
+    using enum ShaderType;
+    using enum AlphaMode;
+
+    for (Primitive &primitive : entry.primitives)
     {
-        if (entry.primitives.front().alphaMode == blend)
-            return;
+        if (primitive.shaderType != trees)
+            continue;
 
-        for (Primitive &primitive : entry.primitives)
-        {
-            if (primitive.alphaMode == blend)
-                continue;
-
-            std::cerr << "WARNING: Overriding water shader primitive alpha mode with Blend" << std::endl;
-            primitive.alphaMode = blend;
-        }
+        if (primitive.alphaMode == opaque)
+            primitive.shaderType = directionalPBR;
     }
 }
 
@@ -252,7 +274,6 @@ void Scene::addParticles(Handle handle, const Particles &particles)
 
     entries_.emplace_back(Entry{
         .handle = handle,
-        .shaderType = ShaderType::particles,
         .primitives = particles.getPrimitives(),
         .worldTransforms = {{}},
     });
@@ -267,13 +288,12 @@ void Scene::addSkybox(Handle handle, const Skybox &skybox)
 
     entries_.emplace_back(Entry{
         .handle = handle,
-        .shaderType = ShaderType::skybox,
         .primitives = skybox.getPrimitives(),
         .worldTransforms = {{}},
     });
 }
 
-void Scene::addModel(Handle handle, const Model &model, const Transform &transform, ShaderType shaderType,
+void Scene::addModel(Handle handle, const Model &model, const Transform &transform,
                      const std::optional<Collision::Geometry> &collisionGeometry, const std::string &name)
 {
     if (!name.empty())
@@ -283,7 +303,6 @@ void Scene::addModel(Handle handle, const Model &model, const Transform &transfo
 
     entries_.emplace_back(Entry{
         .handle = handle,
-        .shaderType = shaderType,
         .primitives = model.getPrimitives(),
         .worldTransforms = {transform},
         .entryAnimation = createEntryAnimation(model),
@@ -292,8 +311,8 @@ void Scene::addModel(Handle handle, const Model &model, const Transform &transfo
 }
 
 void Scene::addCubemappedModel(Handle handle, const Model &model, const std::filesystem::path &imagePath,
-                               const Transform &transform, ShaderType shaderType,
-                               const std::optional<Collision::Geometry> &collisionGeometry, const std::string &name)
+                               const Transform &transform, const std::optional<Collision::Geometry> &collisionGeometry,
+                               const std::string &name)
 {
     if (!name.empty())
         entriesByName_.emplace(name, entries_.size());
@@ -303,7 +322,6 @@ void Scene::addCubemappedModel(Handle handle, const Model &model, const std::fil
 
     entries_.emplace_back(Entry{
         .handle = handle,
-        .shaderType = shaderType,
         .primitives = model.getPrimitives(),
         .worldTransforms = {transform},
         .entryAnimation = createEntryAnimation(model),
@@ -311,7 +329,7 @@ void Scene::addCubemappedModel(Handle handle, const Model &model, const std::fil
     });
 }
 
-void Scene::addInstancedModel(Handle handle, const InstancedModel &model, ShaderType shaderType,
+void Scene::addInstancedModel(Handle handle, const InstancedModel &model,
                               const std::optional<Collision::Geometry> &collisionGeometry, const std::string &name)
 {
     if (!name.empty())
@@ -323,7 +341,6 @@ void Scene::addInstancedModel(Handle handle, const InstancedModel &model, Shader
 
     entries_.emplace_back(Entry{
         .handle = handle,
-        .shaderType = shaderType,
         .primitives = model.getPrimitives(),
         .worldTransforms = std::move(transforms),
         .entryAnimation = createEntryAnimation(model),
@@ -393,23 +410,25 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
                            addSkybox(handle, skybox);
                        },
                        [&](const ModelEntry &entry) {
-                           Model model{entry.modelPath};
-                           addModel(handle, model, entry.transform, entry.shader, entry.collisionGeometry, entry.name);
+                           Model model{entry.modelPath, entry.shader};
+                           addModel(handle, model, entry.transform, entry.collisionGeometry, entry.name);
                        },
                        [&](const InstancedModelEntry &entry) {
                            InstancedModel model{
-                               entry.modelPath, entry.positionsPath,
+                               entry.modelPath, entry.shader, entry.positionsPath,
                                InstancedModel::Randomize{.minScale = entry.minScale, .maxScale = entry.maxScale}};
-                           addInstancedModel(handle, model, entry.shader, entry.collisionGeometry, entry.name);
+                           addInstancedModel(handle, model, entry.collisionGeometry, entry.name);
                        },
                        [&](const CubeMappedModelEntry &entry) {
-                           Model model{entry.modelPath};
-                           addCubemappedModel(handle, model, entry.cubemapPath, entry.transform, entry.shader,
+                           Model model{entry.modelPath, entry.shader};
+                           addCubemappedModel(handle, model, entry.cubemapPath, entry.transform,
                                               entry.collisionGeometry, entry.name);
                        },
                    },
                    sceneEntry);
 
-        validateSceneEntry(entries_.back());
+        Scene::Entry &last{entries_.back()};
+        validateSceneEntry(last);
+        splitOnShaderType(last);
     }
 }

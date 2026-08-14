@@ -46,14 +46,18 @@ std::size_t getNumDynamicCubemaps(const Scene &scene)
     std::size_t cubemaps{0};
 
     for (const Scene::Entry &entry : scene.getAllSceneEntries())
-        if (entry.shaderType == ShaderType::water)
-            ++cubemaps;
+        for (const Primitive &primitive : entry.primitives)
+            if (primitive.shaderType == ShaderType::water)
+            {
+                ++cubemaps;
+                break;
+            }
 
     return cubemaps;
 }
 } // namespace
 
-void Renderer::initializeResources(const Scene &scene, const Camera& camera)
+void Renderer::initializeResources(const Scene &scene, const Camera &camera)
 {
     if (scene.getAllSceneEntries().empty())
         return;
@@ -104,7 +108,7 @@ void Renderer::initializeResources(const Scene &scene, const Camera& camera)
     borrowSkybox(drawBuckets_, bucketHandles);
 
     // Dynamic cubemap generation. The scene must be ready to render, except water / ocean.
-    createCubemaps(scene, drawBuckets_);
+    createCubemaps(scene, drawBuckets_, bucketHandles);
 
     // Update the GPU metadata buffers for the freshly created cubemaps
     updateMetadataCubemaps(scene, metadataBridge);
@@ -162,7 +166,7 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
     msaaDepthResolveShader_.setIVec2("mipRes", hiZRes);
 }
 
-void Renderer::setSceneShaderUniforms(const Scene &scene, const Camera& camera)
+void Renderer::setSceneShaderUniforms(const Scene &scene, const Camera &camera)
 {
     const DirectionalLight &light{scene.getGlobalLight()};
     const float fov{camera.getFOV()};
@@ -201,7 +205,8 @@ void Renderer::borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
         textureManager_.borrowCubemaps(oceanHandle, skyboxHandle);
 }
 
-void Renderer::createCubemaps(const Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets)
+void Renderer::createCubemaps(const Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets,
+                              const std::vector<std::set<Handle>> &bucketHandles)
 {
     using enum ShaderType;
 
@@ -214,7 +219,7 @@ void Renderer::createCubemaps(const Scene &scene, const std::vector<MultiDrawBuc
     // 1:1 aspect with a 90 degree fov for cubemap face rendering
     Camera camera{{.fov = 90.0f}, 1.0f};
     int faceSize{graphicsSettings_.reflectionResolution};
-    
+
     glViewport(0, 0, faceSize, faceSize);
 
     GLenum colorFormat{DynamicCubemaps::internalFormat};
@@ -235,13 +240,11 @@ void Renderer::createCubemaps(const Scene &scene, const std::vector<MultiDrawBuc
 
     cubeFaces.bind();
 
-    // Water should not be instanced, limit one cubemap per model. By walking the scene instead of draw entries,
-    // we ensure each model gets one cubemap
-    for (const Scene::Entry &entry : scene.getAllSceneEntries())
+    for (Handle handle : bucketHandles[waterIndex])
     {
-        if (entry.shaderType != water)
-            continue;
+        const Scene::Entry &entry{scene.viewEntry(handle)};
 
+        // Water should not be instanced, limit one cubemap per model.
         const Transform &transform{entry.worldTransforms.front()};
 
         // Set the camera in the center of the water plane
@@ -302,31 +305,28 @@ void Renderer::updateMetadataCubemaps(const Scene &scene, const std::vector<std:
 
     for (const Scene::Entry &entry : scene.getAllSceneEntries())
     {
-        using enum ShaderType;
-
-        const std::size_t numPrimitives{entry.primitives.size()};
-
-        if (entry.shaderType != ocean && entry.shaderType != water)
-        {
-            primitiveOffset += numPrimitives;
-            continue;
-        }
-
         std::span<const Material> materials{textureManager_.getMaterials(entry.handle)};
 
         for (std::size_t i{0}; i < entry.primitives.size(); ++i)
         {
-            const Material &material{materials[entry.primitives[i].materialIndex]};
-            const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
+            using enum ShaderType;
 
-            const std::uint32_t bufferIndex{metadataBridge[primitiveOffset + i]};
-            const std::size_t bufferOffset{offsetof(PrimitiveMetadata, cubemap)};
+            const Primitive &primitive{entry.primitives[i]};
 
-            glNamedBufferSubData(SSBOs_.metadata,
-                                 static_cast<GLintptr>(bufferIndex * sizeof(PrimitiveMetadata) + bufferOffset),
-                                 sizeof(SamplerArrayIndex), &cubemap);
+            if (primitive.shaderType == ocean || primitive.shaderType == water)
+            {
+                const Material &material{materials[entry.primitives[i].materialIndex]};
+                const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
+
+                const std::uint32_t bufferIndex{metadataBridge[primitiveOffset + i]};
+                const std::size_t bufferOffset{offsetof(PrimitiveMetadata, cubemap)};
+
+                glNamedBufferSubData(SSBOs_.metadata,
+                                     static_cast<GLintptr>(bufferIndex * sizeof(PrimitiveMetadata) + bufferOffset),
+                                     sizeof(SamplerArrayIndex), &cubemap);
+            }
+
+            ++primitiveOffset;
         }
-
-        primitiveOffset += numPrimitives;
     }
 }

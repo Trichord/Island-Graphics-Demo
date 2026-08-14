@@ -108,7 +108,8 @@ class Renderer
     // Cubemap Generation
     void borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
                       const std::vector<std::set<Handle>> &bucketHandles);
-    void createCubemaps(const Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets);
+    void createCubemaps(const Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets,
+                        const std::vector<std::set<Handle>> &bucketHandles);
     void renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarget &blitTarget,
                          std::size_t parameterBufferIndex);
     void updateMetadataCubemaps(const Scene &scene, const std::vector<std::uint32_t> &metadataBridge);

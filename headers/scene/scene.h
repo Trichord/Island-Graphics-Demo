@@ -4,22 +4,23 @@
 #include <glm/glm.hpp>
 #include <optional>
 #include <ranges>
-#include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
+#include "models/animation/animation.h"
 #include "models/animation/animator.h"
 #include "models/animation/skeletal_animation.h"
+#include "models/animation/skeleton.h"
 #include "models/instanced_model.h"
 #include "models/model.h"
 #include "models/particles.h"
 #include "models/primitive.h"
 #include "models/skybox.h"
 #include "physics/collision_shapes.h"
-#include "renderer/shader/graphics_shader.h"
 #include "scene/camera.h"
 #include "scene/directional_light.h"
 #include "scene/handle.h"
@@ -40,7 +41,6 @@ class Scene
     struct Entry
     {
         Handle handle{0};
-        ShaderType shaderType{ShaderType::directionalPBR};
 
         std::vector<Primitive> primitives;
         std::vector<Transform> worldTransforms;
@@ -117,13 +117,13 @@ class Scene
     void loadGLTFTextures(Handle handle, const Model &model);
     void addSkybox(Handle handle, const Skybox &skybox);
     void addParticles(Handle handle, const Particles &particles);
-    void addModel(Handle handle, const Model &model, const Transform &transform, ShaderType shaderType,
+    void addModel(Handle handle, const Model &model, const Transform &transform,
                   const std::optional<Collision::Geometry> & = {}, const std::string &name = {});
-    void addInstancedModel(Handle handle, const InstancedModel &model, ShaderType shaderType,
+    void addInstancedModel(Handle handle, const InstancedModel &model,
                            const std::optional<Collision::Geometry> &collisionGeometry = {},
                            const std::string &name = {});
     void addCubemappedModel(Handle handle, const Model &model, const std::filesystem::path &imagePath,
-                            const Transform &transform, ShaderType shaderType,
+                            const Transform &transform,
                             const std::optional<Collision::Geometry> &collisionGeometry = {},
                             const std::string &name = {});
 

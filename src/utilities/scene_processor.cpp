@@ -41,13 +41,13 @@ AABB getSceneBounds(const Scene &scene)
     {
         using enum ShaderType;
 
-        if (entry.shaderType == ocean || entry.shaderType == skybox)
-            continue;
-
         hasGeometry = true;
 
         for (const Primitive &primitive : entry.primitives)
         {
+            if (primitive.shaderType == ocean || primitive.shaderType == skybox)
+                continue;
+
             for (const Transform &transform : entry.worldTransforms)
             {
                 const AABB worldAABB{primitive.aabb.transform(transform.getModelMatrix())};
@@ -152,7 +152,7 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(const Scene &scene)
             totals.indices += primitive.indices.size();
             totals.vertices += primitive.vertices.size();
 
-            if (entry.shaderType == ShaderType::particles)
+            if (primitive.shaderType == ShaderType::particles)
                 totals.particles += primitive.vertices.size();
 
             if (hasSkin)
@@ -187,7 +187,7 @@ std::vector<SceneProcessor::BucketEntry> SceneProcessor::createBucketEntries(con
                                                    .primitive = &primitive,
                                                    .transforms = entry.worldTransforms,
                                                    .animation = entry.entryAnimation,
-                                                   .shaderType = entry.shaderType,
+                                                   .shaderType = primitive.shaderType,
                                                    .alphaMode = primitive.alphaMode,
                                                    .originalSceneIndex = originalIndex++,
                                                    .originalPrimitiveIndex = primitiveIndex++});

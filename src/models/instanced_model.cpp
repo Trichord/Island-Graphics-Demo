@@ -14,9 +14,9 @@
 #include "utilities/transform.h"
 #include "utilities/world_vectors.h"
 
-InstancedModel::InstancedModel(const std::filesystem::path &modelPath, const std::filesystem::path &positionsPath,
-                               Randomize randomize)
-    : Model{modelPath}, positionsPath_{positionsPath}, randomize_{randomize}
+InstancedModel::InstancedModel(const std::filesystem::path &modelPath, ShaderType shader,
+                               const std::filesystem::path &positionsPath, Randomize randomize)
+    : Model{modelPath, shader}, positionsPath_{positionsPath}, randomize_{randomize}
 {
 }
 

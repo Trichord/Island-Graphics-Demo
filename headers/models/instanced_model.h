@@ -1,8 +1,8 @@
 #pragma once
 
 #include <filesystem>
-#include <vector>
 #include <glm/glm.hpp>
+#include <vector>
 
 #include "models/model.h"
 #include "utilities/transform.h"
@@ -16,7 +16,7 @@ class InstancedModel : public Model
         float maxScale{1.0f};
     };
 
-    InstancedModel(const std::filesystem::path &modelPath,
+    InstancedModel(const std::filesystem::path &modelPath, ShaderType shader,
                    const std::filesystem::path &positionsPath, Randomize randomize);
 
     // Load positions from storage and generate matrices

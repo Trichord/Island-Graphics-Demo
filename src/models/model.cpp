@@ -17,15 +17,19 @@
 #include "models/animation/animator.h"
 #include "models/animation/skeletal_animation.h"
 #include "models/primitive.h"
+#include "renderer/shader/graphics_shader.h"
 #include "utilities/asset_loader.h"
 #include "utilities/texture_manager.h"
 
-Model::Model(const std::filesystem::path &path)
+Model::Model(const std::filesystem::path &path, ShaderType shader)
     : asset_{loader::loadAsset(path)}, filePath_{path}, primitives_{loader::loadMeshes(asset_)},
       skeletalAnimation_{loader::loadSkeletalAnimation(asset_)}
 {
     if (skeletalAnimation_ && skeletalAnimation_->skeleton.skin)
         recalculateAnimatedAABBs();
+
+    for (Primitive &primitive : primitives_)
+        primitive.shaderType = shader;
 }
 
 const std::vector<Primitive> &Model::getPrimitives() const
