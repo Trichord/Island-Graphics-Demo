@@ -12,6 +12,9 @@
 #include "shared/shadows.glsl"
 #endif
 
+// Constants
+const float minShadow = 0.3;
+
 // SSBOs
 layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
 {
@@ -52,7 +55,9 @@ void main()
 
 	#ifdef ALPHA_TESTED_SHADOWS
 	int layer = calculateCascadeIndex(-viewPos.z);
-	float shadow = ShadowContribution(lightMatrices[layer], worldPos, layer);
+
+	// Fully shadowed leaves look too dark, cheap effect to brighten the canopies
+	float shadow = clamp(shadowContribution(lightMatrices[layer], worldPos, layer), minShadow, 1.0);
 
 	vec3 accumulatedLight = diffuse * lightColor * shadow;
 

@@ -69,7 +69,7 @@ void main()
     #ifdef ALPHA_TESTED_SHADOWS
 	// Pick shadow cascade off frag depth
 	int layer = calculateCascadeIndex(-fsIn.viewPos.z);
-	float shadow = ShadowContribution(lightMatrices[layer], fsIn.worldPos, layer);
+	float shadow = shadowContribution(lightMatrices[layer], fsIn.worldPos, layer);
     shadow = clamp(shadow + 0.1, 0.0, 1.0);
     vec3 color = ambient + albedo.rgb * diffuseFactor * lightColor * shadow;
     

@@ -44,9 +44,10 @@ void Renderer::renderScene()
 
         GLenum mode{static_cast<GLenum>(mdb.shaderType == particles ? GL_POINTS : GL_TRIANGLES)};
 
-        glMultiDrawElementsIndirectCount(mode, GL_UNSIGNED_INT,
-                                         (void *)(mdb.drawCommandsBaseIndex * sizeof(DrawElementsIndirectCommand)),
-                                         static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.maxDrawCalls, 0);
+        glMultiDrawElementsIndirectCount(
+            mode, GL_UNSIGNED_INT,
+            reinterpret_cast<void *>(mdb.drawCommandsBaseIndex * sizeof(DrawElementsIndirectCommand)),
+            static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.maxDrawCalls, 0);
     }
 }
 
@@ -144,7 +145,7 @@ void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)
         std::size_t parameterBufferOffset{i * sizeof(std::uint32_t)};
         std::size_t parameterBufferIndex{parameterBufferSection + parameterBufferOffset};
 
-        glMultiDrawElementsIndirectCount(mode, GL_UNSIGNED_INT, (void *)(drawCommandIndex),
+        glMultiDrawElementsIndirectCount(mode, GL_UNSIGNED_INT, reinterpret_cast<void *>(drawCommandIndex),
                                          static_cast<GLintptr>(parameterBufferIndex), mdb.maxDrawCalls, 0);
     }
 }

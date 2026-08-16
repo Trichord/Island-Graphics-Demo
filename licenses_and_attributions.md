@@ -5,9 +5,12 @@
 
 <h2>LearnOpenGL</h2>
 <details>
-<summary>Copyright (c) <a href="https://twitter.com/JoeyDeVriez">Joey de Vries</a></summary>
+<summary>Copyright © <a href="https://twitter.com/JoeyDeVriez">Joey de Vries</a></summary>
+
 <br>Code samples licensed under
 <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a>
+<br><br> This project started as LearnOpenGL tutorials. Most recognizable are the camera, shader base class, and several shaders (PBR, shadow implementation). Treat anything resembling LearnOpenGL material as derived.
+
 </details>
 
 <h1>Libraries</h1>
@@ -15,7 +18,7 @@
 <h2>GLM</h2>
 <details>
 
-<summary>Copyright (c) 2005 - G-Truc Creation</summary>
+<summary>Copyright © 2005 - G-Truc Creation</summary>
 
 <a href="#mit-license">The MIT License</a>
 </details>
@@ -44,8 +47,7 @@ The file lib/etcdec.cxx is not open source. It is made available under the terms
 <h2>GLFW</h2>
 
 <details>
-<summary>Copyright (c) 2002-2006 Marcus Geelnard
-Copyright (c) 2006-2019 Camilla Löwy</summary>
+<summary>Copyright © 2002-2006 Marcus Geelnard, Copyright © 2006-2019 Camilla Löwy</summary>
 
 This software is provided 'as-is', without any express or implied warranty. In no event will the authors be held liable for any damages arising from the use of this software.
 
@@ -62,7 +64,7 @@ This notice may not be removed or altered from any source distribution.
 <h2>fastgltf</h2>
 
 <details>
-<summary>Copyright (c) 2022 - 2026 Sean Apeler. All rights reserved.</summary>
+<summary>Copyright © 2022 - 2026 Sean Apeler. All rights reserved.</summary>
 
 <a href="#mit-license">MIT License</a>
 
@@ -71,7 +73,7 @@ This notice may not be removed or altered from any source distribution.
 <h2>imgui</h2>
 
 <details>
-<summary>Copyright (c) 2014-2026 Omar Cornut</summary>
+<summary>Copyright © 2014-2026 Omar Cornut</summary>
 
 <a href="#mit-license">MIT License</a>
 
@@ -105,7 +107,7 @@ Object Code:  Developer agrees not to disassemble, decompile or reverse engineer
 
 Art Assets:  Developer shall have the right to modify and create Derivatives of the Art Assets, but may not distribute any of the Art Assets or Derivatives created therefrom without NVIDIA s prior written consent.
 
-Government End Users: If you are acquiring the Software on behalf of any unit or agency of the United States Government, the following provisions apply. The Government agrees the Software and documentation were developed at private expense and are provided with  RESTRICTED RIGHTS . Use, duplication, or disclosure by the Government is subject to restrictions as set forth in DFARS 227.7202-1(a) and 227.7202-3(a) (1995), DFARS 252.227-7013(c)(1)(ii) (Oct 1988), FAR 12.212(a)(1995), FAR 52.227-19, (June 1987) or FAR 52.227-14(ALT III) (June 1987),as amended from time to time. In the event that this License, or any part thereof, is deemed inconsistent with the minimum rights identified in the Restricted Rights provisions, the minimum rights shall prevail.
+Government End Users: If you are acquiring the Software on behalf of any unit or agency of the United States Government, the following provisions apply. The Government agrees the Software and documentation were developed at private expense and are provided with  RESTRICTED RIGHTS . Use, duplication, or disclosure by the Government is subject to restrictions as set forth in DFARS 227.7202-1(a) and 227.7202-3(a) (1995), DFARS 252.227-7013©(1)(ii) (Oct 1988), FAR 12.212(a)(1995), FAR 52.227-19, (June 1987) or FAR 52.227-14(ALT III) (June 1987),as amended from time to time. In the event that this License, or any part thereof, is deemed inconsistent with the minimum rights identified in the Restricted Rights provisions, the minimum rights shall prevail.
 
 No Other License. No rights or licenses are granted by NVIDIA under this License, expressly or by implication, with respect to any proprietary information or patent, copyright, trade secret or other intellectual property right owned or controlled by NVIDIA, except as expressly provided in this License.
 
@@ -121,7 +123,7 @@ LIMITATION OF LIABILITY:  NVIDIA SHALL NOT BE LIABLE TO DEVELOPER, DEVELOPER S C
 <h2>LWJGL 3</h2>
 
 <details>
-<summary>Copyright (c) 2012-present Lightweight Java Game Library All rights reserved.</summary>
+<summary>Copyright © 2012-present Lightweight Java Game Library All rights reserved.</summary>
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -146,7 +148,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 <h2>GLAD</h2>
 
 <details>
-<summary>Copyright (c) 2013-2022 David Herberth</summary>
+<summary>Copyright © 2013-2022 David Herberth</summary>
 
 <a href="#mit-license">MIT License</a>
 
@@ -155,7 +157,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 The Khronos Specifications:
 
 <details>
-<summary>Copyright (c) 2013-2020 The Khronos Group Inc.</summary>
+<summary>Copyright © 2013-2020 The Khronos Group Inc.</summary>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -174,7 +176,7 @@ limitations under the License.
 The EGL Specification and various headers:
 
 <details>
-<summary>Copyright (c) 2007-2016 The Khronos Group Inc.</summary>
+<summary>Copyright © 2007-2016 The Khronos Group Inc.</summary>
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and/or associated documentation files (the
@@ -232,37 +234,35 @@ SOFTWARE.
 
 <details>
 
-<summary>Sphere texture by Boon Yong Ang</summary>
+<summary>By dordy</summary>
 
-Sourced from Vecteezy.com — https://www.vecteezy.com/free-vector/sphere
+Image Information:
+* title:	ASTRATTO 2
+* source:	https://openclipart.org/detail/289892/astratto-2
+* author:	[dordy](https://openclipart.org/artist/dordy)
 
-Used under Vecteezy Free License
+Image License:
+* license type:	[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
+
 </details>
 
 <h2>Elm Branch Textures</h2>
 
 <details>
-<summary>By Saigatka</summary>
+<summary>By pbrpx</summary>
 
 Texture Information:
-* title:	Elm Branch
-* source:	https://rawcatalog.com/en/asset/2897/
-* author:	[Saigatka](https://rawcatalog.com/)
-* changes:	Resized from 4096 x 4096 to 2048 x 2048; atlases combined into a single sheet.
+* title:	PX_Prunus_x_yedoensis_Atlas_04
+* source:	https://library.pbrpx.com/asset?asset=153&category=144
+* author:	[pbrpx](https://pbrpx.com/)
 
 Texture Information:
-* title:	Elm Branch
-* source:	https://rawcatalog.com/en/asset/2898/
-* author:	[Saigatka](https://rawcatalog.com/)
-* changes:	Resized from 4096 x 4096 to 2048 x 2048; atlases combined into a single sheet.
+* title:	PX_Prunus_x_yedoensis_Atlas_05
+* source:	https://library.pbrpx.com/asset?asset=154&category=144
+* author:	[pbrpx](https://pbrpx.com/)
 
 Texture License:
-* license type:	[Raw Catalog EULA](https://rawcatalog.com/terms/)
-
-If you use these textures in your project be sure to copy paste this credit wherever you share it:
-
-Uses Raw Catalog (rawcatalog.com), © Saigatka.
-* source: [Raw Catalog](https://rawcatalog.com/)
+* license type:	[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
 </details>
 
 <h2>Trees 1 - 4</h2>
@@ -273,7 +273,8 @@ Uses Raw Catalog (rawcatalog.com), © Saigatka.
 Model Information:
 * title:	Maple trees pack (lowpoly, game ready, LODs)
 * source:	https://sketchfab.com/3d-models/maple-trees-pack-lowpoly-game-ready-lods-b5d2833c258f4054a01ee2b4ef85adf0
-* author:	[LOLIPOP](https://sketchfab.com/lolipop\_1707)
+* author:	[LOLIPOP](https://sketchfab.com/lolipop_1707)
+* changes:	Changed bark and branch textures. Reduced leaf card count, hand placed cards.
 
 Model License:
 * license type:	[CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
