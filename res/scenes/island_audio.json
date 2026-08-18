@@ -1,0 +1,227 @@
+{
+  "triggers": [
+    {
+      "soundEffect": {
+        "volumeLow": 0.3,
+        "volumeHigh": 0.3,
+        "soundPath": "./res/audio/music/set_piece.wav",
+        "streaming": true
+      },
+      "triggerCenter": [-6.18625, 14.6561, -171.031],
+      "triggerExtent": [31.557, 13.4663, 39.1258],
+      "loop": false,
+      "playOnce": true
+    },
+    {
+      "soundEffect": {
+        "volumeLow": 0.3,
+        "volumeHigh": 0.3,
+        "soundPath": "./res/audio/sfx/env/leaves.wav"
+      },
+      "triggerExtent": [2000.0, 2000.0, 2000.0],
+      "loop": true
+    },
+    {
+      "soundEffect": {
+        "volumeLow": 0.3,
+        "volumeHigh": 0.3,
+        "soundPath": "./res/audio/sfx/env/birds.wav",
+        "streaming": true
+      },
+      "loop": true,
+      "triggerCenter": [54.7856, -0.775, 207],
+      "triggerExtent": [216.987, 87.8764, 230.384],
+      "fadeDistance": 45.0
+    },
+    {
+      "soundEffect": {
+        "volumeLow": 0.2,
+        "volumeHigh": 0.2,
+        "soundPath": "./res/audio/sfx/env/beach.wav"
+      },
+      "loop": true,
+      "triggerCenter": [-259.492, -5.46789, 52.8995],
+      "triggerExtent": [27.318, 5.36022, 32.2151],
+      "fadeDistance": 30.0
+    },
+    {
+      "soundEffect": {
+        "volumeLow": 1.0,
+        "volumeHigh": 1.0,
+        "soundPath": "./res/audio/sfx/env/seagull1.mp3",
+        "spatialization": true
+      },
+      "name": "seagull1",
+      "loop": true,
+      "repeatDelay": 1.85,
+      "triggerCenter": [-256.874237, -9.704913, 72.669205],
+      "triggerExtent": [18.5, 18.5, 18.5],
+      "fadeDistance": 1.5
+    },
+    {
+      "soundEffect": {
+        "volumeLow": 1.0,
+        "volumeHigh": 1.0,
+        "soundPath": "./res/audio/sfx/env/seagull2.mp3",
+        "spatialization": true
+      },
+      "name": "seagull2",
+      "loop": true,
+      "repeatDelay": 2.9,
+      "triggerCenter": [-262.982117, -9.850640, 72.508682],
+      "triggerExtent": [18.5, 18.5, 18.5],
+      "fadeDistance": 1.5
+    },
+    {
+      "soundEffect": {
+        "volumeLow": 1.0,
+        "volumeHigh": 1.0,
+        "soundPath": "./res/audio/sfx/env/seagull3.mp3",
+        "spatialization": true
+      },
+      "name": "seagull3",
+      "loop": true,
+      "repeatDelay": 2.625,
+      "triggerCenter": [-251.663193, -9.660975, 70.553123],
+      "triggerExtent": [18.5, 18.5, 18.5],
+      "fadeDistance": 1.5
+    },
+    {
+      "soundEffect": {
+        "volumeLow": 1.0,
+        "volumeHigh": 1.0,
+        "soundPath": "./res/audio/sfx/env/seagull4.mp3",
+        "spatialization": true
+      },
+      "name": "seagull4",
+      "loop": true,
+      "repeatDelay": 2.0,
+      "triggerCenter": [-261.249817, -9.863427, 56.218235],
+      "triggerExtent": [18.5, 18.5, 18.5],
+      "fadeDistance": 1.5
+    },
+    {
+      "soundEffect": {
+        "volumeLow": 1.0,
+        "volumeHigh": 1.0,
+        "soundPath": "./res/audio/sfx/env/seagull5.mp3",
+        "spatialization": true
+      },
+      "name": "seagull5",
+      "loop": true,
+      "repeatDelay": 1.82,
+      "triggerCenter": [-256.478699, -9.703675, 64.734009],
+      "triggerExtent": [18.5, 18.5, 18.5],
+      "fadeDistance": 1.5
+    },
+    {
+      "soundEffect": {
+        "volumeLow": 1.0,
+        "volumeHigh": 1.0,
+        "soundPath": "./res/audio/sfx/env/seagull6.mp3",
+        "spatialization": true
+      },
+      "name": "seagull6",
+      "loop": true,
+      "repeatDelay": 2.2,
+      "triggerCenter": [-254.614548, -9.693320, 65.784607],
+      "triggerExtent": [18.5, 18.5, 18.5],
+      "fadeDistance": 1.5
+    },
+    {
+      "soundEffect": {
+        "volumeLow": 2.0,
+        "volumeHigh": 2.0,
+        "soundPath": "./res/audio/sfx/env/black_hole.wav",
+        "spatialization": true
+      },
+      "loop": true,
+      "triggerCenter": [-23.049316, 5.0, 266.231873],
+      "triggerExtent": [28, 28, 28],
+      "fadeDistance": 20.0
+    },
+    {
+      "soundEffect": {
+        "volumeLow": 0.3,
+        "volumeHigh": 0.5,
+        "pitchLow": 0.6,
+        "pitchHigh": 1.4,
+        "soundPath": "./res/audio/sfx/env/pond.wav"
+      },
+      "triggerCenter": [121.80589, -5.72636, 145.36897],
+      "triggerExtent": [22.5, 0.5, 22.5]
+    },
+    {
+      "soundEffect": {
+        "volumeLow": 0.3,
+        "volumeHigh": 0.5,
+        "pitchLow": 0.7,
+        "pitchHigh": 1.3,
+        "soundPath": "./res/audio/sfx/env/puddle.wav"
+      },
+      "triggerCenter": [102.09975, -0.42979, -67.76979],
+      "triggerExtent": [5.0, 0.5, 5.0]
+    },
+    {
+      "soundEffect": {
+        "volumeLow": 0.2,
+        "volumeHigh": 0.24,
+        "pitchLow": 0.8,
+        "pitchHigh": 1.2,
+        "soundPath": "./res/audio/sfx/env/splash.wav"
+      },
+      "triggerCenter": [7.10777, -9.7078, 0],
+      "triggerExtent": [274.693, 0.5, 322.168]
+    }
+  ],
+  "character": {
+    "landingPitchScale": 0.7,
+    "landingVolumeScale": 2.0,
+    "footsteps": [
+      {
+        "soundPath": "./res/audio/sfx/char/footstep1.wav",
+        "volumeLow": 0.2, 
+        "volumeHigh": 0.5,
+        "pitchLow": 0.8, 
+        "pitchHigh": 1.2
+      },
+      {
+        "soundPath": "./res/audio/sfx/char/footstep2.wav",
+        "volumeLow": 0.2, 
+        "volumeHigh": 0.5,
+        "pitchLow": 0.8, 
+        "pitchHigh": 1.2
+      },
+      {
+        "soundPath": "./res/audio/sfx/char/footstep3.wav",
+        "volumeLow": 0.2, 
+        "volumeHigh": 0.5,
+        "pitchLow": 0.8, 
+        "pitchHigh": 1.2
+      },
+      {
+        "soundPath": "./res/audio/sfx/char/footstep4.wav",
+        "volumeLow": 0.2, 
+        "volumeHigh": 0.5,
+        "pitchLow": 0.8, 
+        "pitchHigh": 1.2
+      }
+    ],
+    "jumps": [
+      {
+        "soundPath": "./res/audio/sfx/char/jump1.mp3",
+        "volumeLow": 0.14, 
+        "volumeHigh": 0.16,
+        "pitchLow": 0.8, 
+        "pitchHigh": 1.2
+      },
+      {
+        "soundPath": "./res/audio/sfx/char/jump2.mp3",
+        "volumeLow": 0.14, 
+        "volumeHigh": 0.16,
+        "pitchLow": 0.8, 
+        "pitchHigh": 1.2
+      }
+    ]
+  }
+}

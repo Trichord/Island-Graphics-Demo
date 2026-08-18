@@ -75,7 +75,7 @@ void TextureManager::loadModelTextures(const Handle handle, const fastgltf::Asse
 {
     addMaterials(handle, asset.materials.size());
 
-    const std::vector<AssetLoader::DeferredTexture> loaded{AssetLoader::texturesFromAsset(asset, parentPath, handle)};
+    const std::vector<loader::DeferredTexture> loaded{loader::texturesFromAsset(asset, parentPath, handle)};
     deferredTextures_.insert(deferredTextures_.end(), loaded.begin(), loaded.end());
 }
 
@@ -93,7 +93,7 @@ void TextureManager::loadCubemapTextures(const Handle handle, const std::filesys
     materialIndices.resize(materials.size());
     std::iota(materialIndices.begin(), materialIndices.end(), std::size_t{0});
 
-    deferredTextures_.emplace_back(AssetLoader::DeferredTexture{
+    deferredTextures_.emplace_back(loader::DeferredTexture{
         .handle = handle,
         .path = cubePath,
         .textureRepeat = false,
@@ -158,7 +158,7 @@ void TextureManager::borrowCubemaps(Handle self, Handle other)
 }
 
 // Unconditionally sets a cubemap for this model, overwriting existing ArrayTexture indices
-void TextureManager::setCubemap(Handle handle, std::vector<int> overrideIndices, RenderTarget &renderTarget)
+void TextureManager::setCubemap(Handle handle, std::vector<std::size_t> overrideIndices, RenderTarget &renderTarget)
 {
     const int resolution{renderTarget.getWidth()};
     ArrayReference arrayRef{findCubemapArray(resolution, renderTarget.getInternalFormat())};
@@ -170,9 +170,9 @@ void TextureManager::setCubemap(Handle handle, std::vector<int> overrideIndices,
 
     std::span<Material> materials{findMaterials(handle)};
 
-    for (int materialIndex : overrideIndices)
+    for (std::size_t materialIndex : overrideIndices)
     {
-        if (materialIndex >= static_cast<int>(materials.size()))
+        if (materialIndex >= materials.size())
             continue;
 
         Material &material{materials[materialIndex]};
@@ -231,13 +231,13 @@ void TextureManager::buildAllTextures()
     deferredTextures_.clear();
 }
 
-std::vector<KTXTexture> TextureManager::loadTexturesFromPool(const std::vector<AssetLoader::DeferredTexture> &textures)
+std::vector<KTXTexture> TextureManager::loadTexturesFromPool(const std::vector<loader::DeferredTexture> &textures)
 {
     std::vector<std::filesystem::path> paths;
 
     paths.reserve(textures.size());
 
-    for (const AssetLoader::DeferredTexture &texture : textures)
+    for (const loader::DeferredTexture &texture : textures)
         paths.emplace_back(texture.path);
 
     TextureLoader loader{threadPool_, paths};
@@ -245,7 +245,7 @@ std::vector<KTXTexture> TextureManager::loadTexturesFromPool(const std::vector<A
     return loader.getTextures();
 }
 
-void TextureManager::countTexture(const AssetLoader::DeferredTexture &deferred, const KTXTexture &texture)
+void TextureManager::countTexture(const loader::DeferredTexture &deferred, const KTXTexture &texture)
 {
     if (!texture)
         return;
@@ -255,7 +255,7 @@ void TextureManager::countTexture(const AssetLoader::DeferredTexture &deferred, 
 }
 
 // Insert into a ArrayTexture. Texture atlases can be shared across models
-void TextureManager::insertTexture(const AssetLoader::DeferredTexture &deferred, const KTXTexture &texture)
+void TextureManager::insertTexture(const loader::DeferredTexture &deferred, const KTXTexture &texture)
 {
     std::span<Material> materials{findMaterials(deferred.handle)};
     auto fileCacheIter = filepathCache_.find(deferred.path.filename());
@@ -293,13 +293,13 @@ void TextureManager::insertTexture(const AssetLoader::DeferredTexture &deferred,
     filepathCache_.emplace(deferred.path.filename(), arrayIndex);
 }
 
-TextureManager::ArrayReference TextureManager::findArray(const AssetLoader::DeferredTexture &deferred,
+TextureManager::ArrayReference TextureManager::findArray(const loader::DeferredTexture &deferred,
                                                          const KTXTexture &texture)
 {
     const bool isCubemap{deferred.type == Material::cubemap};
     std::vector<ArrayTexture> &arrayTextures{isCubemap ? arrayCubemaps_ : arrayTextures_};
 
-    GLenum internalFormat{TextureUtilities::vkFormatToGL(texture->vkFormat)};
+    GLenum internalFormat{texture::vkFormatToGL(texture->vkFormat)};
     int width{static_cast<int>(texture->baseWidth)};
     int height{static_cast<int>(texture->baseHeight)};
 
@@ -336,7 +336,7 @@ void TextureManager::validateState()
         throw std::logic_error("Duplicate function call");
     }
 
-    for (AssetLoader::DeferredTexture &texture : deferredTextures_)
+    for (loader::DeferredTexture &texture : deferredTextures_)
     {
         auto iter = materialLookup_.find(texture.handle);
 
@@ -383,7 +383,7 @@ void TextureManager::assignFallbacks()
 
     for (int i{0}; i < static_cast<int>(arrayTextures_.size()); ++i)
     {
-        if (arrayTextures_[i].getFallbackLayer().has_value())
+        if (arrayTextures_[i].getFallbackLayer())
         {
             fallbackTexture.array = i;
             fallbackTexture.layer = arrayTextures_[i].getFallbackLayer().value();
@@ -395,7 +395,7 @@ void TextureManager::assignFallbacks()
 
     for (int i{0}; i < static_cast<int>(arrayCubemaps_.size()); ++i)
     {
-        if (arrayCubemaps_[i].getFallbackLayer().has_value())
+        if (arrayCubemaps_[i].getFallbackLayer())
         {
             fallbackCubemap.array = i;
             fallbackCubemap.layer = arrayCubemaps_[i].getFallbackLayer().value();

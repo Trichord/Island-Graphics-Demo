@@ -7,7 +7,18 @@
 class Camera
 {
   public:
-    Camera(glm::vec3 position = glm::vec3{0.0f}, float yaw = -90.0f, float pitch = 0.0f);
+    struct Description
+    {
+        glm::vec3 position{0.0f};
+        float yaw{-90.0f};
+        float pitch{0.0f};
+        float fov{45.0f};
+        float nearPlane{0.1f};
+        float farPlane{1000.0f};
+    };
+
+    Camera() = default;
+    Camera(const Camera::Description &description, float aspectRatio);
 
     float getFOV() const;
     float getYaw() const;
@@ -16,7 +27,7 @@ class Camera
     float getNearPlane() const;
     float getAspectRatio() const;
 
-    const glm::vec3 getFront() const;
+    glm::vec3 getFront() const;
     const glm::vec3 &getPosition() const;
     const glm::mat4 &getViewMatrix() const;
     const glm::mat4 &getProjectionMatrix() const;
@@ -46,7 +57,6 @@ class Camera
     mutable glm::mat4 viewMatrix_{1.0f};
     mutable glm::mat4 projectionMatrix_{1.0f};
     mutable glm::mat4 viewProjectionMatrix_{1.0f};
-    mutable glm::mat4 inverseVPMatrix_{1.0f};
 
     // State tracking
     mutable bool hasChanged_{false};

@@ -153,8 +153,8 @@ void ArrayTexture::allocate(bool cubemaps, bool textureRepeat, bool mipmaps, flo
     GLsizei depth{static_cast<GLsizei>(cubemaps ? capacity_ * 6 : capacity_)};
     GLenum repeat{static_cast<GLenum>(textureRepeat ? GL_REPEAT : GL_CLAMP_TO_EDGE)};
 
-    const bool isCompressed{TextureUtilities::isCompressed(internalFormat_)};
-    mipLevels_ = mipmaps ? TextureUtilities::calculateMipmapLevels(width_, height_, isCompressed) : 1;
+    const bool isCompressed{texture::isCompressed(internalFormat_)};
+    mipLevels_ = mipmaps ? texture::calculateMipmapLevels(width_, height_, isCompressed) : 1;
 
     glCreateTextures(target, 1, &id_);
     glTextureStorage3D(id_, static_cast<GLsizei>(mipLevels_), internalFormat_, static_cast<GLsizei>(width_),
@@ -290,7 +290,7 @@ void ArrayTexture::validate(const KTXTexture &texture)
         valid = false;
     }
 
-    GLenum format{TextureUtilities::vkFormatToGL(texture->vkFormat)};
+    GLenum format{texture::vkFormatToGL(texture->vkFormat)};
 
     if (format != internalFormat_)
     {
@@ -298,7 +298,7 @@ void ArrayTexture::validate(const KTXTexture &texture)
         valid = false;
     }
 
-    if (texture.maxLevels() != mipLevels_)
+    if (static_cast<int>(texture.maxLevels()) != mipLevels_)
     {
         std::cerr << "ERROR: Texture mip levels (" << texture.maxLevels() << ") incompatible with array mip levels ("
                   << mipLevels_ << ")" << std::endl;
@@ -353,7 +353,7 @@ void ArrayTexture::createRGRGTC2Fallback()
     constexpr std::uint8_t block[16] = {255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     int numFaces{cubemaps_ ? 6 : 1};
-    int levels{TextureUtilities::calculateMipmapLevels(width_, height_, true)};
+    int levels{texture::calculateMipmapLevels(width_, height_, true)};
 
     for (int level{0}; level < levels; ++level)
     {

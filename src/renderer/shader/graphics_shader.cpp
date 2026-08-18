@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-GraphicsShader::GraphicsShader(ShaderType type, const std::filesystem::path &vertexPath,
+GraphicsShader::GraphicsShader(const std::filesystem::path &vertexPath,
                                const std::filesystem::path &fragmentPath, const std::vector<std::string> &defines)
 {
     std::array<GLuint, 2> sourceIDs;
@@ -15,9 +15,4 @@ GraphicsShader::GraphicsShader(ShaderType type, const std::filesystem::path &ver
     sourceIDs[1] = createShaderID(GL_FRAGMENT_SHADER, fragmentPath, defines);
 
     linkShader(sourceIDs, vertexPath.stem().string());
-}
-
-ShaderType GraphicsShader::getType() const
-{
-    return type_;
 }

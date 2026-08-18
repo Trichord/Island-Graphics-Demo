@@ -10,3 +10,5 @@ layout(binding = 16) uniform sampler2D resolvedColor;
 layout(binding = 17) uniform sampler2DMS depthMap;
 
 layout(binding = 18) uniform sampler2D hiZ;
+
+layout(binding = 19) uniform sampler2D noise;

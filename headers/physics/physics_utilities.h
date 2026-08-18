@@ -1,19 +1,21 @@
 #pragma once
 
-#include <jolt/Jolt.h>
+#include <Jolt/Jolt.h>
 
-#include <jolt/Geometry/Triangle.h>
+#include <Jolt/Physics/Body/BodyID.h>
+#include <Jolt/Physics/Body/BodyInterface.h>
 #include <limits>
+#include <vector>
 
 #include "scene/scene.h"
 
-namespace physicsUtilities
+namespace physics
 {
-struct CollisionMesh
+struct StaticBodies
 {
-    JPH::TriangleList mesh;
+    std::vector<JPH::BodyID> ids;
     float minimumHeight{std::numeric_limits<float>::infinity()};
 };
 
-CollisionMesh buildCollisionMesh(Scene &scene);
-} // namespace physicsUtilities
+StaticBodies buildCollisionGeometry(const Scene &scene, JPH::BodyInterface &interface);
+} // namespace physics

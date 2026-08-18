@@ -15,12 +15,13 @@ class Transform
               glm::quat quat = glm::identity<glm::quat>());
 
     void setAbsoluteScale(float absoluteScale);
+    void setAbsoluteScale(const glm::vec3 &absoluteScale);
     void setAbsoluteTranslation(glm::vec3 absoluteTranslation);
     void setAbsoluteRotation(glm::quat quat);
 
     void setRelativeScale(float relativeScale);
+    void setRelativeScale(const glm::vec3 &relativeScale);
     void setRelativeTranslation(glm::vec3 relativeTranslation);
-    void setRelativeRotation(glm::vec3 relativeRotation);
 
     void rotateAroundAxisLocal(float degrees, glm::vec3 axis);
     void rotateAroundAxisWorld(float degrees, glm::vec3 axis);

@@ -2,6 +2,7 @@
   "name": "island-demo",
   "version-string": "1.0.0",
   "dependencies": [
+    "fastgltf",
     "glfw3",
     {
       "name": "glad",
@@ -18,11 +19,9 @@
         "opengl3-binding"
       ]
     },
-    "fastgltf",
+    "joltphysics",
+    "ktx",
     "nlohmann-json",
-    {
-      "name": "joltphysics"
-    },
-    "ktx"
+    "miniaudio"
   ]
 }

@@ -51,7 +51,7 @@ void RenderTarget::createRenderTarget(int width, int height, const Settings &set
         target = GL_TEXTURE_2D_ARRAY;
 
     if (settings.mipmaps)
-        mipLevels = TextureUtilities::calculateMipmapLevels(width, height, false);
+        mipLevels = texture::calculateMipmapLevels(width, height, false);
 
     if (settings.internalFormat != GL_NONE)
         createColorTexture(width, height, mipLevels, target, settings);

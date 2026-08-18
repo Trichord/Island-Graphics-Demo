@@ -8,20 +8,19 @@
 
 /* When a scene is passed to the renderer, these enums will be rendered in order.
  */
-
 enum class ShaderType
 {
+    shadowMap,
+    shadowMapAlpha,
     baseColor,
     directionalPBR,
     reflective,
     trees,
     grass,
     particles,
-    water,
     ocean,
     skybox,
-    shadowMap,
-    shadowMapAlpha,
+    water, // Blended, after all opaque
     fboResolve,
     count
 };
@@ -35,13 +34,10 @@ class GraphicsShader : public Shader
 {
   public:
     GraphicsShader() = default;
-    GraphicsShader(ShaderType type, const std::filesystem::path &vertexPath, const std::filesystem::path &fragmentPath,
+    GraphicsShader(const std::filesystem::path &vertexPath, const std::filesystem::path &fragmentPath,
                    const std::vector<std::string> &defines = {});
     GraphicsShader(GraphicsShader &&other) = default;
     GraphicsShader &operator=(GraphicsShader &&other) = default;
 
     ShaderType getType() const;
-
-  private:
-    ShaderType type_{ShaderType::directionalPBR};
 };

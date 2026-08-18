@@ -32,7 +32,7 @@ class TextureManager
 
     // Borrow a cubemap after the scene has been built
     void borrowCubemaps(Handle self, Handle other);
-    void setCubemap(Handle handle, std::vector<int> overrideIndices, RenderTarget &renderTarget);
+    void setCubemap(Handle handle, std::vector<std::size_t> overrideIndices, RenderTarget &renderTarget);
 
     void buildAllTextures();
     bool allTexturesBuilt() const;
@@ -64,17 +64,17 @@ class TextureManager
     std::unordered_map<std::filesystem::path, SamplerArrayIndex> filepathCache_;
 
     // Textures to be uploaded
-    std::vector<AssetLoader::DeferredTexture> deferredTextures_;
+    std::vector<loader::DeferredTexture> deferredTextures_;
 
     // Textures from disk
-    std::vector<KTXTexture> loadTexturesFromPool(const std::vector<AssetLoader::DeferredTexture> &textures);
+    std::vector<KTXTexture> loadTexturesFromPool(const std::vector<loader::DeferredTexture> &textures);
 
     // Helpers for assigning to texture buckets
     ArrayReference findCubemapArray(int size, GLenum internalFormat);
-    ArrayReference findArray(const AssetLoader::DeferredTexture &deferred, const KTXTexture &texture);
+    ArrayReference findArray(const loader::DeferredTexture &deferred, const KTXTexture &texture);
 
-    void countTexture(const AssetLoader::DeferredTexture &deferred, const KTXTexture &texture);
-    void insertTexture(const AssetLoader::DeferredTexture &deferred, const KTXTexture &texture);
+    void countTexture(const loader::DeferredTexture &deferred, const KTXTexture &texture);
+    void insertTexture(const loader::DeferredTexture &deferred, const KTXTexture &texture);
 
     // Private helper for material lookups. Mirrors the public API, except its not const
     std::span<Material> findMaterials(Handle handle);

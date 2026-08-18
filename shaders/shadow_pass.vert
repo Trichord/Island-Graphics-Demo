@@ -59,22 +59,13 @@ void main()
 	vec3 normal = normalize(normalMatrix * aNormal.xyz);
 	
 	// Wind
-	vec2 noise = getNoise(textures[meta.normalArray], meta.normalLayer, worldPosition.xyz, time);
+	vec2 noise = getNoise(worldPosition.xyz, time);
 	float windFactor = getWindFactor(worldPosition.xyz, time);
 
 	largeScaleWind(worldPosition.xyz, aColor, windDirection, windFactor, noise.x);
 	mediumScaleWind(worldPosition.xyz, aColor, vec3(noise.rg, -noise.r), windFactor);
 	smallScaleWind(worldPosition.xyz, aColor, normal, vec3(noise.gr, noise.g), aPos.y, windFactor, windStrength);
-	
-	
-	float NdotL = dot(normal, lightDir);
-	float normalBias = max(0.002 * (1.0 - NdotL), 0.005);
-	
-	if (NdotL < 0.0)
-		worldPosition.xyz += -normal * normalBias;
-	else
-		worldPosition.xyz += normal * normalBias;
-
+			
 	texCoords = aTexCoords;
 	metadataIndex = gl_BaseInstance;
 #endif

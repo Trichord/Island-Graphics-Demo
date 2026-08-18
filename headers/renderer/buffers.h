@@ -15,7 +15,7 @@
  *
  * AABB: Per primitive. Local-space bounding boxes.
  *
- * Matrices: Per primitive. World-space transforms.
+ * Matrices: Per (primitive × instance) pair. World-space transforms.
  *
  * Metadata: Per primitive. Material textures, visibility buffer base index.
  *

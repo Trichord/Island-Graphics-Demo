@@ -1,27 +1,35 @@
 #pragma once
 
+#include <Jolt/Jolt.h>
+
+#include <Jolt/Core/Core.h>
+#include <Jolt/Math/Float3.h>
+#include <Jolt/Math/Quat.h>
+#include <Jolt/Math/Vec3.h>
+#include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
+#include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <glm/glm.hpp>
-#include <jolt/Core/Core.h>
-#include <jolt/Jolt.h>
-#include <jolt/Math/Float3.h>
-#include <jolt/Math/Vec3.h>
-#include <jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
-#include <jolt/Physics/Collision/ObjectLayer.h>
+#include <glm/gtc/quaternion.hpp>
 #include <stdexcept>
 
 static inline glm::vec3 toGLM(const JPH::Vec3 &vec)
 {
-    return glm::vec3{vec.GetX(), vec.GetY(), vec.GetZ()};
+    return {vec.GetX(), vec.GetY(), vec.GetZ()};
 }
 
 static inline JPH::Vec3 toJPHVec3(const glm::vec3 &vec)
 {
-    return JPH::Vec3(vec.x, vec.y, vec.z);
+    return {vec.x, vec.y, vec.z};
 }
 
 static inline JPH::Float3 toJPHFloat3(const glm::vec3 &vec)
 {
-    return JPH::Float3(vec.x, vec.y, vec.z);
+    return {vec.x, vec.y, vec.z};
+}
+
+static inline JPH::Quat toJPHQuat(const glm::quat &quat)
+{
+    return {quat.x, quat.y, quat.z, quat.w};
 }
 
 namespace Layers
@@ -52,7 +60,6 @@ class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
             return true; // Moving collides with everything
         default:
             throw std::runtime_error("ERROR: Unknown Jolt ObjectLayer");
-            return false;
         }
     }
 };
@@ -100,7 +107,6 @@ class ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFil
             return true;
         default:
             throw std::runtime_error("ERROR: Uknown Jolt ObjectVsObject layer");
-            return false;
         }
     }
 };

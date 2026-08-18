@@ -6,13 +6,14 @@
 #include <vector>
 
 #include "models/aabb.h"
-#include "models/primitive.h"
 #include "models/animation/skeletal_animation.h"
+#include "models/primitive.h"
+#include "renderer/shader/graphics_shader.h"
 
 class Model
 {
   public:
-    Model(const std::filesystem::path &path);
+    Model(const std::filesystem::path &path, ShaderType shader);
 
     const std::filesystem::path &getPath() const;
     const fastgltf::Asset &getAsset() const;

@@ -12,9 +12,11 @@ constexpr float maxPitch{85.0f};
 constexpr float minPitch{-maxPitch};
 constexpr float sensitivity{0.1f};
 
-Camera::Camera(glm::vec3 position, float yaw, float pitch)
-    : yaw_{yaw}, pitch_{pitch}, position_{position},
-      projectionMatrix_{glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_)}
+Camera::Camera(const Camera::Description &description, float aspectRatio)
+    : yaw_{description.yaw}, pitch_{description.pitch}, position_{description.position},
+      projectionMatrix_{glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_)},
+      fov_{description.fov}, nearPlane_{description.nearPlane}, farPlane_{description.farPlane},
+      aspectRatio_{aspectRatio}
 {
 }
 
@@ -142,7 +144,6 @@ void Camera::setWorldOrientation(WorldOrientation orientation)
     projectionMatrix_ = glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_);
     viewMatrix_ = glm::lookAt(position_, position_ + front, up);
     viewProjectionMatrix_ = projectionMatrix_ * viewMatrix_;
-    inverseVPMatrix_ = glm::inverse(viewProjectionMatrix_);
 
     hasChanged_ = true;
     dirtyMatrices_ = false;
@@ -173,9 +174,7 @@ void Camera::updateMatrices() const
 
     viewMatrix_ = glm::lookAt(position_, position_ + front, up);
     projectionMatrix_ = glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_);
-
     viewProjectionMatrix_ = projectionMatrix_ * viewMatrix_;
-    inverseVPMatrix_ = glm::inverse(viewProjectionMatrix_);
 
     dirtyMatrices_ = false;
 }
@@ -199,7 +198,7 @@ float Camera::getFOV() const
     return fov_;
 }
 
-const glm::vec3 Camera::getFront() const
+glm::vec3 Camera::getFront() const
 {
     return createFront();
 }
@@ -239,7 +238,7 @@ glm::mat4 Camera::getResizedViewProjectionMatrix(float ratio) const
 {
     if (dirtyMatrices_)
         updateMatrices();
-    
+
     const glm::mat4 projectionMatrix{glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_ * ratio)};
     return projectionMatrix * viewMatrix_;
 }

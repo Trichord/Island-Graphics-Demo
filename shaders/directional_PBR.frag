@@ -100,9 +100,8 @@ void main()
 	int layer = calculateCascadeIndex(-fsIn.viewFragPos.z);
 
 	// Shadows
-	float shadow = ShadowContribution(lightMatrices[layer], fsIn.worldFragPos, layer);
-	float bias = max(0.05 * (1.0 - NdotL), 0.005);  
-	vec3 color = ambient + Lo * (shadow + bias);
+	float shadow = shadowContribution(lightMatrices[layer], fsIn.worldFragPos, layer);
+	vec3 color = ambient + Lo * shadow;
 	
 	#else
 	vec3 color = ambient + Lo;

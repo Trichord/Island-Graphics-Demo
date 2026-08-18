@@ -1,13 +1,24 @@
-**A huge thank you to Joey de Vries for his work with https://learnopengl.com/ <br> Without him, this project would not exist.** <br>
+**A huge thank you to Joey de Vries for his work with <a href="https://learnopengl.com/">learnopengl.com</a> 
+<br> Without him, this project would not exist.** <br>
 <br> If your work is not in this list, please let me know right away and I will add you! 
 <br> This software contains source code provided by NVIDIA Corporation.
+
+<h2>LearnOpenGL</h2>
+<details>
+<summary>Copyright © <a href="https://twitter.com/JoeyDeVriez">Joey de Vries</a></summary>
+
+<br>Code samples licensed under
+<a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a>
+<br><br> This project started as LearnOpenGL tutorials. Most recognizable are the camera, shader base class, and several shaders (PBR, shadow implementation). Treat anything resembling LearnOpenGL material as derived.
+
+</details>
 
 <h1>Libraries</h1>
 
 <h2>GLM</h2>
 <details>
 
-<summary>Copyright (c) 2005 - G-Truc Creation</summary>
+<summary>Copyright © 2005 - G-Truc Creation</summary>
 
 <a href="#mit-license">The MIT License</a>
 </details>
@@ -36,8 +47,7 @@ The file lib/etcdec.cxx is not open source. It is made available under the terms
 <h2>GLFW</h2>
 
 <details>
-<summary>Copyright (c) 2002-2006 Marcus Geelnard
-Copyright (c) 2006-2019 Camilla Löwy</summary>
+<summary>Copyright © 2002-2006 Marcus Geelnard, Copyright © 2006-2019 Camilla Löwy</summary>
 
 This software is provided 'as-is', without any express or implied warranty. In no event will the authors be held liable for any damages arising from the use of this software.
 
@@ -54,7 +64,7 @@ This notice may not be removed or altered from any source distribution.
 <h2>fastgltf</h2>
 
 <details>
-<summary>Copyright (c) 2022 - 2026 Sean Apeler. All rights reserved.</summary>
+<summary>Copyright © 2022 - 2026 Sean Apeler. All rights reserved.</summary>
 
 <a href="#mit-license">MIT License</a>
 
@@ -63,7 +73,7 @@ This notice may not be removed or altered from any source distribution.
 <h2>imgui</h2>
 
 <details>
-<summary>Copyright (c) 2014-2026 Omar Cornut</summary>
+<summary>Copyright © 2014-2026 Omar Cornut</summary>
 
 <a href="#mit-license">MIT License</a>
 
@@ -97,7 +107,7 @@ Object Code:  Developer agrees not to disassemble, decompile or reverse engineer
 
 Art Assets:  Developer shall have the right to modify and create Derivatives of the Art Assets, but may not distribute any of the Art Assets or Derivatives created therefrom without NVIDIA s prior written consent.
 
-Government End Users: If you are acquiring the Software on behalf of any unit or agency of the United States Government, the following provisions apply. The Government agrees the Software and documentation were developed at private expense and are provided with  RESTRICTED RIGHTS . Use, duplication, or disclosure by the Government is subject to restrictions as set forth in DFARS 227.7202-1(a) and 227.7202-3(a) (1995), DFARS 252.227-7013(c)(1)(ii) (Oct 1988), FAR 12.212(a)(1995), FAR 52.227-19, (June 1987) or FAR 52.227-14(ALT III) (June 1987),as amended from time to time. In the event that this License, or any part thereof, is deemed inconsistent with the minimum rights identified in the Restricted Rights provisions, the minimum rights shall prevail.
+Government End Users: If you are acquiring the Software on behalf of any unit or agency of the United States Government, the following provisions apply. The Government agrees the Software and documentation were developed at private expense and are provided with  RESTRICTED RIGHTS . Use, duplication, or disclosure by the Government is subject to restrictions as set forth in DFARS 227.7202-1(a) and 227.7202-3(a) (1995), DFARS 252.227-7013©(1)(ii) (Oct 1988), FAR 12.212(a)(1995), FAR 52.227-19, (June 1987) or FAR 52.227-14(ALT III) (June 1987),as amended from time to time. In the event that this License, or any part thereof, is deemed inconsistent with the minimum rights identified in the Restricted Rights provisions, the minimum rights shall prevail.
 
 No Other License. No rights or licenses are granted by NVIDIA under this License, expressly or by implication, with respect to any proprietary information or patent, copyright, trade secret or other intellectual property right owned or controlled by NVIDIA, except as expressly provided in this License.
 
@@ -113,7 +123,7 @@ LIMITATION OF LIABILITY:  NVIDIA SHALL NOT BE LIABLE TO DEVELOPER, DEVELOPER S C
 <h2>LWJGL 3</h2>
 
 <details>
-<summary>Copyright (c) 2012-present Lightweight Java Game Library All rights reserved.</summary>
+<summary>Copyright © 2012-present Lightweight Java Game Library All rights reserved.</summary>
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -138,7 +148,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 <h2>GLAD</h2>
 
 <details>
-<summary>Copyright (c) 2013-2022 David Herberth</summary>
+<summary>Copyright © 2013-2022 David Herberth</summary>
 
 <a href="#mit-license">MIT License</a>
 
@@ -147,7 +157,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 The Khronos Specifications:
 
 <details>
-<summary>Copyright (c) 2013-2020 The Khronos Group Inc.</summary>
+<summary>Copyright © 2013-2020 The Khronos Group Inc.</summary>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -166,7 +176,7 @@ limitations under the License.
 The EGL Specification and various headers:
 
 <details>
-<summary>Copyright (c) 2007-2016 The Khronos Group Inc.</summary>
+<summary>Copyright © 2007-2016 The Khronos Group Inc.</summary>
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and/or associated documentation files (the
@@ -217,28 +227,7 @@ SOFTWARE.
 
 </details>
 
-
 <h1>Art</h1>
-
-<h2>Configuration Window Image</h2>
-
-<details>
-
-<summary>Sphere texture by Boon Yong Ang</summary>
-
-Sourced from Vecteezy.com — https://www.vecteezy.com/free-vector/sphere
-
-Used under Vecteezy Free License
-</details>
-
-
-<h2>Tree Leaf Textures</h2>
-
-<details>
-
-<summary>Uses Raw Catalog (rawcatalog.com), © Saigatka.</summary>
-
-</details>
 
 <h2>Trees 1 - 4</h2>
 
@@ -248,15 +237,16 @@ Used under Vecteezy Free License
 Model Information:
 * title:	Maple trees pack (lowpoly, game ready, LODs)
 * source:	https://sketchfab.com/3d-models/maple-trees-pack-lowpoly-game-ready-lods-b5d2833c258f4054a01ee2b4ef85adf0
-* author:	LOLIPOP (https://sketchfab.com/lolipop\_1707)
+* author:	[LOLIPOP](https://sketchfab.com/lolipop_1707)
+* changes:	Changed bark and branch textures. Reduced leaf card count, hand placed cards.
 
 Model License:
-* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* license type:	[CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 * requirements:	Author must be credited. Commercial use is allowed.
 
 If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
 
-This work is based on "Maple trees pack (lowpoly, game ready, LODs)" (https://sketchfab.com/3d-models/maple-trees-pack-lowpoly-game-ready-lods-b5d2833c258f4054a01ee2b4ef85adf0) by LOLIPOP (https://sketchfab.com/lolipop\_1707) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+This work is based on ["Maple trees pack (lowpoly, game ready, LODs)"](https://sketchfab.com/3d-models/maple-trees-pack-lowpoly-game-ready-lods-b5d2833c258f4054a01ee2b4ef85adf0) by [LOLIPOP](https://sketchfab.com/lolipop\_1707) licensed under [CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 </details>
 
 <h2>Space Torus</h2>
@@ -267,15 +257,15 @@ This work is based on "Maple trees pack (lowpoly, game ready, LODs)" (https://sk
 Model Information:
 * title:	Sverchok animated torus
 * source:	https://sketchfab.com/3d-models/sverchok-animated-torus-b9908e1b27cc411fad3890f0c1137701
-* author:	smice (https://sketchfab.com/smice)
+* author:	[smice](https://sketchfab.com/smice)
 
 Model License:
-* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* license type:	[CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 * requirements:	Author must be credited. Commercial use is allowed.
 
 If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
 
-This work is based on "Sverchok animated torus" (https://sketchfab.com/3d-models/sverchok-animated-torus-b9908e1b27cc411fad3890f0c1137701) by smice (https://sketchfab.com/smice) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+This work is based on ["Sverchok animated torus"](https://sketchfab.com/3d-models/sverchok-animated-torus-b9908e1b27cc411fad3890f0c1137701) by [smice](https://sketchfab.com/smice) licensed under [CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 </details>
 
 <h2>Thinking Man Statue</h2>
@@ -286,15 +276,15 @@ This work is based on "Sverchok animated torus" (https://sketchfab.com/3d-models
 Model Information:
 * title:	The Thinker by Auguste Rodin
 * source:	https://sketchfab.com/3d-models/the-thinker-by-auguste-rodin-08a1e693c9674a3292dec2298b09e0ae
-* author:	Rigsters (https://sketchfab.com/rigsters)
+* author:	[Rigsters](https://sketchfab.com/rigsters)
 
 Model License:
-* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* license type:	[CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 * requirements:	Author must be credited. Commercial use is allowed.
 
 If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
 
-This work is based on "The Thinker by Auguste Rodin" (https://sketchfab.com/3d-models/the-thinker-by-auguste-rodin-08a1e693c9674a3292dec2298b09e0ae) by Rigsters (https://sketchfab.com/rigsters) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+This work is based on ["The Thinker by Auguste Rodin"](https://sketchfab.com/3d-models/the-thinker-by-auguste-rodin-08a1e693c9674a3292dec2298b09e0ae) by [Rigsters](https://sketchfab.com/rigsters) licensed under [CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 </details>
 
 <h2>Rocks 1 - 8</h2>
@@ -305,15 +295,15 @@ This work is based on "The Thinker by Auguste Rodin" (https://sketchfab.com/3d-m
 Model Information:
 * title:	Set of Modular Rocks
 * source:	https://sketchfab.com/3d-models/set-of-modular-rocks-f435208fadd24363ad285d8e505a794d
-* author:	Cleuza Costa (https://sketchfab.com/CleuzaCosta)
+* author:	[Cleuza Costa](https://sketchfab.com/CleuzaCosta)
 
 Model License:
-* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* license type:	[CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 * requirements:	Author must be credited. Commercial use is allowed.
 
 If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
 
-This work is based on "Set of Modular Rocks" (https://sketchfab.com/3d-models/set-of-modular-rocks-f435208fadd24363ad285d8e505a794d) by Cleuza Costa (https://sketchfab.com/CleuzaCosta) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+This work is based on ["Set of Modular Rocks"](https://sketchfab.com/3d-models/set-of-modular-rocks-f435208fadd24363ad285d8e505a794d) by [Cleuza Costa](https://sketchfab.com/CleuzaCosta) licensed under [CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 </details>
 
 <h2>Wooden Boat</h2>
@@ -324,14 +314,14 @@ This work is based on "Set of Modular Rocks" (https://sketchfab.com/3d-models/se
 Model Information:
 * title:	Wooden Boat
 * source:	https://sketchfab.com/3d-models/wooden-boat-55118b23a5494e4b81eed831b9f8c871
-* author:	o0ozexo0o (https://sketchfab.com/dadndan0091)
+* author:	[o0ozexo0o](https://sketchfab.com/dadndan0091)
 
 Model License:
-* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* license type:	[CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 * requirements:	Author must be credited. Commercial use is allowed.
 
 If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
-This work is based on "Wooden Boat" (https://sketchfab.com/3d-models/wooden-boat-55118b23a5494e4b81eed831b9f8c871) by o0ozexo0o (https://sketchfab.com/dadndan0091) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+This work is based on ["Wooden Boat"](https://sketchfab.com/3d-models/wooden-boat-55118b23a5494e4b81eed831b9f8c871) by [o0ozexo0o](https://sketchfab.com/dadndan0091) licensed under [CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 </details>
 
 <h2>Butterfly</h2>
@@ -342,14 +332,14 @@ This work is based on "Wooden Boat" (https://sketchfab.com/3d-models/wooden-boat
 Model Information:
 * title:	Butterflies - Poster 2
 * source:	https://sketchfab.com/3d-models/butterflies-poster-2-444a930949e44c3abaa085fbb5a63e0c
-* author:	SR_Spark (https://sketchfab.com/SR_Spark)
+* author:	[SR_Spark](https://sketchfab.com/SR_Spark)
 
 Model License:
-* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* license type:	[CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 * requirements:	Author must be credited. Commercial use is allowed.
 
 If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
-This work is based on "Butterflies - Poster 2" (https://sketchfab.com/3d-models/butterflies-poster-2-444a930949e44c3abaa085fbb5a63e0c) by SR_Spark (https://sketchfab.com/SR_Spark) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+This work is based on ["Butterflies - Poster 2"](https://sketchfab.com/3d-models/butterflies-poster-2-444a930949e44c3abaa085fbb5a63e0c) by [SR_Spark](https://sketchfab.com/SR_Spark) licensed under [CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 </details>
 
 <h2>Seagull</h2>
@@ -360,12 +350,103 @@ This work is based on "Butterflies - Poster 2" (https://sketchfab.com/3d-models/
 Model Information:
 * title:	Seagull – Stylized Animated 3D Model
 * source:	https://sketchfab.com/3d-models/seagull-stylized-animated-3d-model-b331b360c0064536a6e517c1a93a349d
-* author:	AnimalMesh 3D (https://sketchfab.com/AnimalMesh3D)
+* author:	[AnimalMesh 3D](https://sketchfab.com/AnimalMesh3D)
 
 Model License:
-* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* license type:	[CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 * requirements:	Author must be credited. Commercial use is allowed.
 
 If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
-This work is based on "Seagull – Stylized Animated 3D Model" (https://sketchfab.com/3d-models/seagull-stylized-animated-3d-model-b331b360c0064536a6e517c1a93a349d) by AnimalMesh 3D (https://sketchfab.com/AnimalMesh3D) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+This work is based on ["Seagull – Stylized Animated 3D Model"](https://sketchfab.com/3d-models/seagull-stylized-animated-3d-model-b331b360c0064536a6e517c1a93a349d) by [AnimalMesh 3D](https://sketchfab.com/AnimalMesh3D) licensed under [CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 </details>
+
+<h1>Audio</h1>
+
+<h2>Hilltop Music</h2>
+<details>
+<summary>By Andrewkn</summary>
+
+Audio Information:
+* title:	Ambient, Pad Piano - Event Horizon
+* source:	https://freesound.org/people/Andrewkn/sounds/827922/
+* author:	[Andrewkn](https://freesound.org/people/Andrewkn/)
+
+Audio License:
+* license type:	[CC BY 4.0](http://creativecommons.org/licenses/by/4.0/)
+</details>
+
+<h2>Grass Footsteps</h2>
+<details>
+<summary>By Mechanics Mechanics</summary>
+
+Audio Information:
+* title:	Footsteps Mini Sound Pack
+* source:	https://www.fab.com/listings/baf07baa-d485-4d37-bf73-dab6a50ed4bb
+* author:	[Mechanics Mechanics](https://www.fab.com/sellers/Mechanics%20Mechanics)
+
+Audio License:
+* license type:	[CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
+
+</details>
+
+<h2>Seagulls</h2>
+<details>
+<summary>By Thomas Ryder Payne</summary>
+
+Audio Information:
+* title:	XC636430 · Glaucous Gull · Larus hyperboreus
+* source:	https://xeno-canto.org/636430
+* author:	[Thomas Ryder Payne](https://xeno-canto.org/contributor/NWXCLJYBDK)
+* changes:	Split audio into separate clips.
+
+Audio License:
+* license type:	[Creative Commons Attribution-NonCommercial-ShareAlike 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+</details>
+
+<h2>Pond Sound</h2>
+<details>
+<summary>By LittleRobotSoundFactory</summary>
+
+Audio Information:
+* title:	Footstep_Water_03.wav
+* source:	https://freesound.org/people/LittleRobotSoundFactory/sounds/270429/
+* author:	[LittleRobotSoundFactory](https://freesound.org/people/LittleRobotSoundFactory/)
+
+Audio License:
+* license type:	[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+</details>
+
+<h2>Puddle Sound</h2>
+<details>
+<summary>By ConnorM94</summary>
+
+Audio Information:
+* title:	Wading_Through_Water.wav
+* source:	https://freesound.org/people/ConnorM94/sounds/386884/
+* author:	[ConnorM94](https://freesound.org/people/ConnorM94/)
+
+Audio License:
+* license type:	[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
+</details>
+
+<h2>Beach Sounds</h2>
+<details>
+<summary>By smokingsound</summary>
+
+Audio Information:
+* title:	water_waves_rocks.aif
+* source:	https://freesound.org/people/smokingsound/sounds/331700/
+* author:	[smokingsound](https://freesound.org/people/smokingsound/)
+
+Audio License:
+* license type:	[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+</details>
+
+<h1>CC0 Assets</h1>
+
+- Configuration Window Image - [ASTRATTO 2](https://openclipart.org/detail/289892/astratto-2)
+- Tree Branch Textures - [PX_Prunus_x_yedoensis_Atlas_04](https://library.pbrpx.com/asset?asset=153&category=144) and [PX_Prunus_x_yedoensis_Atlas_05](https://library.pbrpx.com/asset?asset=154&category=144)
+- Black Hole Sound - [Soft Subtle Sci-Fi Hovercract Engine Humm](https://freesound.org/people/qubodup/sounds/861960/)
+- Wind - [Autumn wind and dry leaves](https://freesound.org/people/Stek59/sounds/457318/)
+- Birds - [Birds Forest 1](https://www.youtube.com/watch?v=J6OGbkl4Vrs)
+- Splash - [Splash.ogg](https://freesound.org/people/egomassive/sounds/536740/)

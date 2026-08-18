@@ -43,20 +43,25 @@ void Transform::setAbsoluteScale(float absoluteScale)
     isDirty_ = true;
 }
 
+void Transform::setAbsoluteScale(const glm::vec3 &absoluteScale)
+{
+    scale_ = glm::vec3(absoluteScale);
+    isDirty_ = true;
+}
+
 void Transform::setRelativeTranslation(glm::vec3 relativeTranslation)
 {
     translation_ += relativeTranslation;
     isDirty_ = true;
 }
 
-void Transform::setRelativeRotation(glm::vec3 relativeRotation)
+void Transform::setRelativeScale(float relativeScale)
 {
-    glm::quat updatedRotation{quaternion_ * glm::quat(glm::radians(relativeRotation))};
-    quaternion_ = glm::normalize(updatedRotation);
+    scale_ *= relativeScale;
     isDirty_ = true;
 }
 
-void Transform::setRelativeScale(float relativeScale)
+void Transform::setRelativeScale(const glm::vec3 &relativeScale)
 {
     scale_ *= relativeScale;
     isDirty_ = true;

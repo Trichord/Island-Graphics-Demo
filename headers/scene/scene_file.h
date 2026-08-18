@@ -8,6 +8,7 @@
 #include <variant>
 #include <vector>
 
+#include "physics/collision_shapes.h"
 #include "renderer/shader/graphics_shader.h"
 #include "utilities/transform.h"
 
@@ -27,6 +28,7 @@ struct ModelEntry
     Transform transform;
     std::filesystem::path modelPath;
     ShaderType shader{ShaderType::baseColor};
+    std::optional<Collision::Geometry> collisionGeometry{std::nullopt};
 };
 
 struct InstancedModelEntry
@@ -37,6 +39,7 @@ struct InstancedModelEntry
     std::filesystem::path modelPath;
     std::filesystem::path positionsPath;
     ShaderType shader{ShaderType::baseColor};
+    std::optional<Collision::Geometry> collisionGeometry{std::nullopt};
 };
 
 struct CubeMappedModelEntry
@@ -46,6 +49,7 @@ struct CubeMappedModelEntry
     std::filesystem::path modelPath;
     std::filesystem::path cubemapPath;
     ShaderType shader{ShaderType::baseColor};
+    std::optional<Collision::Geometry> collisionGeometry{std::nullopt};
 };
 
 struct ParticlesEntry
@@ -83,12 +87,12 @@ struct SceneCamera
     float yaw{0.0f};
     float nearPlane{0.1f};
     float farPlane{1000.0f};
-    float FOV{45.0f};
+    float fov{45.0f};
 };
 
 using SceneEntry = std::variant<ModelEntry, InstancedModelEntry, CubeMappedModelEntry, SkyboxEntry, ParticlesEntry>;
 
-struct SceneDescription
+struct SceneFile
 {
     SceneEnvironment environment;
     SceneWind wind;
@@ -117,25 +121,41 @@ inline void from_json(const nlohmann::json &j, Transform &t)
     {
         auto &rot = j.at("rotation");
 
-        if (rot.size() != 4 && rot.size() != 3)
-            throw nlohmann::json::type_error::create(302, "rotation must be array of size 3 or 4", &rot);
-
-        if (rot.size() == 4)
+        if (rot.is_number())
+            t.setAbsoluteRotation(glm::angleAxis(glm::radians(rot.get<float>()), WorldVectors::worldUp));
+        else if (rot.size() == 4 && rot.is_array())
         {
-            glm::vec4 quat{parseVec4(rot)};
-            t.setAbsoluteRotation(glm::quat{quat.w, quat.x, quat.y, quat.z});
+            const glm::vec4 vec{parseVec4(rot)};
+            const glm::quat quat{vec.w, vec.x, vec.y, vec.z};
+
+            if (glm::length(quat) < 0.001f)
+                throw nlohmann::json::type_error::create(302, "rotation quaternion is degenerate", &rot);
+
+            t.setAbsoluteRotation(glm::normalize(quat));
         }
         else
-        {
-            glm::vec3 rotations{glm::radians(parseVec3(rot))};
-            const glm::quat yaw{glm::angleAxis(rotations.y, WorldVectors::worldUp)};
-            const glm::quat pitch{glm::angleAxis(rotations.x, WorldVectors::worldRight)};
-            const glm::quat roll{glm::angleAxis(rotations.z, WorldVectors::worldFront)};
-
-            t.setAbsoluteRotation(roll * pitch * yaw);
-        }
+            throw nlohmann::json::type_error::create(302, "rotation must be a single yaw or quat", &rot);
     }
 }
+
+namespace Collision
+{
+inline void from_json(const nlohmann::json &j, Geometry &geometry)
+{
+    const auto &type = j.at("type").get<std::string>();
+
+    if (type == "mesh")
+        geometry = Collision::Mesh{.path = j.value("path", std::filesystem::path{})};
+    else if (type == "capsule")
+        geometry = Collision::Capsule{
+            .radius = j.value("radius", 0.0f),
+            .height = j.value("height", 0.0f),
+            .offset = j.contains("offset") ? parseVec3(j.at("offset")) : glm::vec3{0.0f},
+        };
+    else
+        throw nlohmann::json::type_error::create(302, "Unknown collision type: " + type, &j);
+}
+} // namespace Collision
 
 inline void from_json(const nlohmann::json &j, ModelEntry &model)
 {
@@ -143,6 +163,9 @@ inline void from_json(const nlohmann::json &j, ModelEntry &model)
     model.transform = j.value("transform", Transform{});
     model.modelPath = j.value("modelPath", std::filesystem::path{});
     model.shader = j.value("shader", ShaderType::directionalPBR);
+
+    if (j.contains("collisionGeometry"))
+        model.collisionGeometry = j.at("collisionGeometry").get<Collision::Geometry>();
 }
 
 inline void from_json(const nlohmann::json &j, InstancedModelEntry &model)
@@ -153,6 +176,9 @@ inline void from_json(const nlohmann::json &j, InstancedModelEntry &model)
     model.modelPath = j.value("modelPath", std::filesystem::path{});
     model.positionsPath = j.value("positionsPath", std::filesystem::path{});
     model.shader = j.value("shader", ShaderType::directionalPBR);
+
+    if (j.contains("collisionGeometry"))
+        model.collisionGeometry = j.at("collisionGeometry").get<Collision::Geometry>();
 }
 
 inline void from_json(const nlohmann::json &j, CubeMappedModelEntry &model)
@@ -162,6 +188,9 @@ inline void from_json(const nlohmann::json &j, CubeMappedModelEntry &model)
     model.modelPath = j.value("modelPath", std::filesystem::path{});
     model.cubemapPath = j.value("cubemapPath", std::filesystem::path{});
     model.shader = j.value("shader", ShaderType::directionalPBR);
+
+    if (j.contains("collisionGeometry"))
+        model.collisionGeometry = j.at("collisionGeometry").get<Collision::Geometry>();
 }
 
 inline void from_json(const nlohmann::json &j, ParticlesEntry &particle)
@@ -199,7 +228,7 @@ inline void from_json(const nlohmann::json &j, SceneCamera &c)
     c.yaw = j.value("yaw", -90.0f);
     c.nearPlane = j.value("nearPlane", 0.1f);
     c.farPlane = j.value("farPlane", 1000.0f);
-    c.FOV = j.value("FOV", 45.0f);
+    c.fov = j.value("fov", 45.0f);
 }
 
 inline SceneEntry parseSceneEntry(const nlohmann::json &j)
@@ -221,7 +250,7 @@ inline SceneEntry parseSceneEntry(const nlohmann::json &j)
     throw nlohmann::json::type_error::create(302, "Unknown model type: " + type, &j);
 }
 
-inline void from_json(const nlohmann::json &j, SceneDescription &s)
+inline void from_json(const nlohmann::json &j, SceneFile &s)
 {
     s.environment = j.value("environment", SceneEnvironment{});
     s.wind = j.value("wind", SceneWind{});

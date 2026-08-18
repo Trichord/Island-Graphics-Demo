@@ -14,7 +14,7 @@ struct TextureDetails
     float anisotropicFiltering{0.0f};
 };
 
-namespace TextureUtilities
+namespace texture
 {
 bool isCompressed(GLenum internalFormat);
 bool transcodeKTX(KTXTexture &texture);

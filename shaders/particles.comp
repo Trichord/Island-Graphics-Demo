@@ -5,12 +5,11 @@
 #include "shared/ubo.glsl"
 
 // Constants
-const float gravity = 90.0f;
-const float mass = 0.1f;
+const float gravity = 83.0;
+const float mass = 0.1;
 const float invMass = 1.0 / mass;
 const float timeScale = 0.75;
 const float blackHolePosScale = 0.33;
-const float minLifetimePercent = 0.75;
 const float resetVelocityDamper = 0.005;
 
 // Attributes

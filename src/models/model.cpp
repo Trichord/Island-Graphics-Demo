@@ -17,15 +17,19 @@
 #include "models/animation/animator.h"
 #include "models/animation/skeletal_animation.h"
 #include "models/primitive.h"
+#include "renderer/shader/graphics_shader.h"
 #include "utilities/asset_loader.h"
 #include "utilities/texture_manager.h"
 
-Model::Model(const std::filesystem::path &path)
-    : asset_{AssetLoader::loadAsset(path)}, filePath_{path}, primitives_{AssetLoader::loadMeshes(asset_)},
-      skeletalAnimation_{AssetLoader::loadSkeletalAnimation(asset_)}
+Model::Model(const std::filesystem::path &path, ShaderType shader)
+    : asset_{loader::loadAsset(path)}, filePath_{path}, primitives_{loader::loadMeshes(asset_)},
+      skeletalAnimation_{loader::loadSkeletalAnimation(asset_)}
 {
-    if (skeletalAnimation_.has_value() && skeletalAnimation_->skeleton.skin.has_value())
+    if (skeletalAnimation_ && skeletalAnimation_->skeleton.skin)
         recalculateAnimatedAABBs();
+
+    for (Primitive &primitive : primitives_)
+        primitive.shaderType = shader;
 }
 
 const std::vector<Primitive> &Model::getPrimitives() const
@@ -55,7 +59,7 @@ void Model::recalculateAnimatedAABBs()
     const auto &skin = skeletalAnimation_->skeleton.skin;
     std::vector<Animation> &animations{skeletalAnimation_->animations};
 
-    const std::size_t numJoints{skin.has_value() ? skin->invBindMatrices.size() : 0};
+    const std::size_t numJoints{skin ? skin->invBindMatrices.size() : 0};
     const std::size_t numNodes{skeletalAnimation_->skeleton.parents.size()};
     Animator animator{numNodes, numJoints};
 
@@ -71,24 +75,24 @@ void Model::recalculateAnimatedAABBs()
 
             for (Primitive &primitive : primitives_)
             {
-                if (!primitive.vertexSkins.has_value())
+                if (!primitive.vertexSkins)
                     continue;
 
                 glm::vec3 min{primitive.aabb.getMin()};
                 glm::vec3 max{primitive.aabb.getMax()};
 
                 const AABB animatedAABB{primitive.aabb.transform(primitive.modelSpaceTransform)};
-                const std::vector<Primitive::VertexSkin> &skin{primitive.vertexSkins.value()};
+                const std::vector<Primitive::VertexSkin> &vertexSkins{primitive.vertexSkins.value()};
 
                 for (std::size_t i{0}; i < primitive.vertices.size(); ++i)
                 {
                     const glm::vec3 &position{primitive.vertices[i].position};
-                    const glm::uvec4 &boneIDs{skin[i].boneIDs};
-                    const glm::vec4 &weights{skin[i].weights};
+                    const glm::uvec4 &boneIDs{vertexSkins[i].boneIDs};
+                    const glm::vec4 &weights{vertexSkins[i].weights};
 
                     glm::vec4 acc{0.0f};
 
-                    for (std::size_t j{0}; j < 4; ++j)
+                    for (glm::length_t j{0}; j < 4; ++j)
                     {
                         if (weights[j] > 0.0f)
                             acc += weights[j] * jointMatrices[boneIDs[j]] * glm::vec4(position, 1.0f);

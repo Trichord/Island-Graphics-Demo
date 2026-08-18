@@ -8,6 +8,7 @@
 #include "models/aabb.h"
 #include "models/animation/animation.h"
 #include "models/animation/skeleton.h"
+#include "renderer/shader/graphics_shader.h"
 
 enum class AlphaMode : std::uint8_t
 {
@@ -42,4 +43,5 @@ struct Primitive
     glm::mat4 modelSpaceTransform{1.0f};
     std::size_t materialIndex{0};
     AlphaMode alphaMode{AlphaMode::opaque};
+    ShaderType shaderType{ShaderType::directionalPBR};
 };

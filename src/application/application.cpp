@@ -1,24 +1,26 @@
 #include "application/application.h"
 
+#include <Jolt/Core/Factory.h>
+#include <Jolt/Core/JobSystemSingleThreaded.h>
+#include <Jolt/Core/Memory.h>
+#include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Physics/PhysicsSystem.h>
+#include <Jolt/registerTypes.h>
 #include <algorithm>
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <iostream>
-#include <jolt/Core/Factory.h>
-#include <jolt/Core/JobSystemSingleThreaded.h>
-#include <jolt/Core/Memory.h>
-#include <jolt/Core/TempAllocator.h>
-#include <jolt/Physics/PhysicsSystem.h>
-#include <jolt/registerTypes.h>
 #include <thread>
 
 #include "application/gl_context.h"
 #include "application/glfw_callbacks.h"
 #include "application/graphics_settings.h"
 #include "application/settings_window.h"
+#include "audio/audio_player.h"
 #include "physics/player_physics.h"
 #include "renderer/buffers.h"
 #include "renderer/renderer.h"
+#include "renderer/textures.h"
 #include "scene/camera.h"
 #include "scene/island_scene/island_scene.h"
 #include "scene/scene.h"
@@ -68,9 +70,9 @@ void Application::run()
     // Jolt Physics
     registerJolt();
     JPH::PhysicsSystem physicsSystem;
-    JPH::TempAllocatorImpl tempAllocator{joltStackSize};
+    JPH::TempAllocatorImpl tempAllocator{joltStackSize_};
     JPH::JobSystemSingleThreaded jobSystem_{maxPhysicsJobs_};
-    physicsSystem.Init(maxBodies, 0, maxBodyPairs, maxContactConstraints, broadPhaseLayer_,
+    physicsSystem.Init(maxBodies_, 0, maxBodyPairs_, maxContactConstraints_, broadPhaseLayer_,
                        objectVsBroadPhaseLayerFilter_, objectLayerPairFilter_);
 
     // Create resources
@@ -79,16 +81,20 @@ void Application::run()
     Renderer renderer(textureManager, graphicsSettings, windowWidth_, windowHeight_);
 
     std::cout << "Loading Models... ";
-    IslandScene islandScene(textureManager, graphicsSettings, "./res/scenes/island_scene.json");
+    IslandScene islandScene(textureManager, "./res/scenes/island_scene.json");
     std::cout << "Done" << std::endl;
 
-    scenePtr_ = &islandScene;
-
     // Initialize scene dependent resources
-    renderer.initializeResources(islandScene);
+    playerCamera_ = {islandScene.getCameraDescription(),
+                     graphicsSettings.renderWidth / static_cast<float>(graphicsSettings.renderHeight)};
+    renderer.initializeResources(islandScene, playerCamera_);
+
+    std::cout << "Loading Audio... ";
+    AudioPlayer audioPlayer{islandScene, "./res/scenes/island_audio.json"};
+    std::cout << "Done" << std::endl;
 
     std::cout << "Creating Collision Mesh... ";
-    PlayerPhysics physicsHandler(islandScene, physicsSystem, tempAllocator);
+    PlayerPhysics physicsHandler(physicsSystem, tempAllocator, islandScene, playerCamera_.getPosition());
     std::cout << "Done" << std::endl;
 
     threadPool.stopAllThreads();
@@ -96,15 +102,17 @@ void Application::run()
     while (!glfwWindowShouldClose(window_))
     {
         // Delta Time
-        currentFrame_ = static_cast<float>(glfwGetTime());
-        deltaTime_ = currentFrame_ - lastFrame_;
+        currentFrame_ = glfwGetTime();
+        deltaTime_ = static_cast<float>(currentFrame_ - lastFrame_);
         lastFrame_ = currentFrame_;
+        const float time{static_cast<float>(currentFrame_)};
 
         // Update
-        islandScene.onUpdate(currentFrame_, deltaTime_);
-
         glfwPollEvents();
-        processKeyboard(islandScene.getCamera(), physicsHandler);
+        std::uint8_t keyboardInput{processKeyboard()};
+        islandScene.onUpdate(playerCamera_, time, deltaTime_);
+        updatePhysics(keyboardInput, playerCamera_, physicsHandler);
+        updateAudio(audioPlayer, physicsHandler, playerCamera_, islandScene.getUpdatedEntries());
 
         if (windowResized_)
         {
@@ -113,7 +121,7 @@ void Application::run()
         }
 
         // Draw
-        renderer.renderScene(islandScene, deltaTime_);
+        renderer.render(islandScene, playerCamera_, time, deltaTime_);
 
         // Clear
         islandScene.clearUpdates();
@@ -259,24 +267,14 @@ bool Application::createOpenGLViewport()
     return supported;
 }
 
-void Application::processKeyboard(Camera& camera, PlayerPhysics &physicsHandler)
+std::uint8_t Application::processKeyboard()
 {
     using enum CharacterMovement;
 
-    std::uint8_t direction{0};
-    bool jump{false};
-
-    const glm::vec3 front{camera.getFront()};
-
-    glm::vec3 previousPos{physicsHandler.getPreviousPosition()};
-
-    accumulator_ += deltaTime_;
+    std::uint8_t direction{NONE};
 
     if (glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    {
         glfwSetWindowShouldClose(window_, GLFW_TRUE);
-        return;
-    }
 
     if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS)
         direction |= FORWARD;
@@ -291,23 +289,34 @@ void Application::processKeyboard(Camera& camera, PlayerPhysics &physicsHandler)
         direction |= RIGHT;
 
     if (glfwGetKey(window_, GLFW_KEY_SPACE) == GLFW_PRESS)
-        jump = true;
+        direction |= UP;
 
-    physicsHandler.toggleCrouch(leftCtrlToggle_);
-    physicsHandler.toggleSprint(leftShiftToggle_);
+    return direction;
+}
 
-    while (accumulator_ > physicsTick)
-    {
-        previousPos = physicsHandler.getPosition();
-        physicsHandler.update(direction, front, jump, leftCtrlToggle_, physicsTick);
-        accumulator_ -= physicsTick;
-    }
+void Application::updatePhysics(std::uint8_t movementFlags, Camera &camera, PlayerPhysics &physics)
+{
+    // Debounced input
+    physics.toggleCrouch(leftCtrlToggle_);
+    physics.toggleSprint(leftShiftToggle_);
+    physics.update(movementFlags, camera.getFront(), deltaTime_);
 
-    // Interpolate camera between last position and latest physics tick (Glenn Fiedler)
-    float alpha{accumulator_ / physicsTick};
-    glm::vec3 interpolatedPos{glm::mix(previousPos, physicsHandler.getPosition(), alpha)};
+    const glm::vec3 pos{physics.getInterpolatedPosition()};
+    camera.setPosition(pos);
+}
 
-    camera.setPosition(interpolatedPos);
+void Application::updateAudio(AudioPlayer &audioPlayer, PlayerPhysics &physics, Camera &camera,
+                              UpdatedEntriesView updatedEntries)
+{
+    audioPlayer.updateTriggers(updatedEntries);
+    audioPlayer.playTriggers(camera.getPosition(), camera.getFront(), deltaTime_);
+
+    if (physics.footstepEvent())
+        audioPlayer.playFootstepEffect();
+    if (physics.landingEvent())
+        audioPlayer.playLandingEffect();
+    if (physics.jumpEvent())
+        audioPlayer.playJumpEffect();
 }
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
@@ -325,10 +334,12 @@ void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
     lastMouseX_ = static_cast<float>(xPos);
     lastMouseY_ = static_cast<float>(yPos);
 
-    auto appPtr = static_cast<Application *>(glfwGetWindowUserPointer(window));
+    auto appPtr = static_cast<Camera *>(glfwGetWindowUserPointer(window));
 
-    if (appPtr && appPtr->scenePtr_)
-        appPtr->scenePtr_->getCamera().processMouseMovement(xOffset, yOffset);
+    if (!appPtr)
+        return;
+
+    appPtr->processMouseMovement(xOffset, yOffset);
 }
 
 void Application::registerCallbacks()
@@ -338,7 +349,7 @@ void Application::registerCallbacks()
     glfwSetCursorPosCallback(window_, Application::mouse_callback);
     glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetWindowIconifyCallback(window_, window_iconify_callback);
-    glfwSetWindowUserPointer(window_, this);
+    glfwSetWindowUserPointer(window_, &playerCamera_);
 }
 
 void Application::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)

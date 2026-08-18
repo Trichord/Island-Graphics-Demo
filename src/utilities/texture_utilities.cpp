@@ -29,7 +29,7 @@ GLuint magentaTexture()
 }
 } // namespace
 
-bool TextureUtilities::isCompressed(GLenum internalFormat)
+bool texture::isCompressed(GLenum internalFormat)
 {
     switch (internalFormat)
     {
@@ -46,7 +46,7 @@ bool TextureUtilities::isCompressed(GLenum internalFormat)
     }
 }
 
-GLenum TextureUtilities::vkFormatToGL(const ktx_uint32_t vkFormat)
+GLenum texture::vkFormatToGL(const ktx_uint32_t vkFormat)
 {
     switch (vkFormat)
     {
@@ -71,7 +71,7 @@ GLenum TextureUtilities::vkFormatToGL(const ktx_uint32_t vkFormat)
     }
 }
 
-int TextureUtilities::calculateMipmapLevels(int width, int height, bool compressed)
+int texture::calculateMipmapLevels(int width, int height, bool compressed)
 {
     int mipCount{1};
     int maxDimension{std::max(width, height)};
@@ -83,7 +83,7 @@ int TextureUtilities::calculateMipmapLevels(int width, int height, bool compress
     return mipCount;
 }
 
-bool TextureUtilities::transcodeKTX(KTXTexture &texture)
+bool texture::transcodeKTX(KTXTexture &texture)
 {
     if (!texture)
     {
@@ -122,7 +122,7 @@ bool TextureUtilities::transcodeKTX(KTXTexture &texture)
 }
 
 // Loads single 2D images from disk into Intended for User Interface, Logos, etc.
-GLuint TextureUtilities::textureFromFile(std::filesystem::path path, TextureDetails details)
+GLuint texture::textureFromFile(std::filesystem::path path, TextureDetails details)
 {
     if (path.empty() || !std::filesystem::exists(path))
     {
@@ -176,11 +176,11 @@ GLuint TextureUtilities::textureFromFile(std::filesystem::path path, TextureDeta
     return id;
 }
 
-GLuint TextureUtilities::createTextureID(int width, int height, GLenum internalFormat, Sampler sampler, bool mipmaps,
+GLuint texture::createTextureID(int width, int height, GLenum internalFormat, Sampler sampler, bool mipmaps,
                                          float anisoLevel)
 {
     GLuint id{0};
-    int mipLevels{mipmaps ? TextureUtilities::calculateMipmapLevels(width, height, false) : 1};
+    int mipLevels{mipmaps ? texture::calculateMipmapLevels(width, height, false) : 1};
 
     glCreateTextures(GL_TEXTURE_2D, 1, &id);
 

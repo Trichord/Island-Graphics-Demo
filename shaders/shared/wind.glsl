@@ -1,10 +1,12 @@
 // Functions for wind effects
 
+#include "shared/samplers.glsl"
+
 const float windWaveLength = 5.75;
 
-vec2 getNoise(sampler2DArray sampler, int layer, vec3 worldPos, float time)
+vec2 getNoise(vec3 worldPos, float time)
 {
-	return texture(sampler, vec3(worldPos.xy + time * 0.05, layer)).rg;
+	return texture(noise, worldPos.xy + time * 0.05).rg;
 }
 
 float getWindFactor(vec3 worldPos, float time)
@@ -44,9 +46,9 @@ void mediumScaleWind(inout vec3 worldPos, vec4 vertexColor, vec3 noise, float wi
 	worldPos += mediumWindPower;
 }
 
-void smallScaleWind(inout vec3 worldPos, vec4 vertexColor, vec3 normal, vec3 noise, float noise2, float windFactor, float windStrength)
+void smallScaleWind(inout vec3 worldPos, vec4 vertexColor, vec3 normal, vec3 noise, float secNoise, float windFactor, float windStrength)
 {
-	float smallWindPower = (0.125 * sin(2.0 * windFactor + noise2));
+	float smallWindPower = (0.125 * sin(2.0 * windFactor + secNoise));
 	smallWindPower *= windStrength;
 
 	vec3 smallJitter = vec3(smallWindPower);

@@ -2,14 +2,17 @@
 
 #include <filesystem>
 
-#include <jolt/Jolt.h>
+#include <Jolt/Jolt.h>
 
-#include <jolt/Core/Core.h>
+#include <Jolt/Core/Core.h>
+#include <cstdint>
 
 #include "application/gl_context.h"
 #include "application/graphics_settings.h"
+#include "audio/audio_player.h"
 #include "physics/jolt_impl.h"
 #include "physics/player_physics.h"
+#include "scene/camera.h"
 #include "scene/scene.h"
 
 /**
@@ -32,14 +35,11 @@ class Application
 
     void run();
 
-    static constexpr float physicsTick{1.0f / 60.0f};
-
   private:
     // Frame timing
     float deltaTime_{0.0f};
-    float lastFrame_{0.0f};
-    float currentFrame_{0.0f};
-    float accumulator_{0.0f};
+    double lastFrame_{0.0f};
+    double currentFrame_{0.0f};
 
     // Window
     GLFWwindow *window_{nullptr};
@@ -58,19 +58,19 @@ class Application
     std::filesystem::path savePath{"./settings.json"};
 
     // Physics engine constants
-    static constexpr JPH::uint maxBodies{1024};
-    static constexpr JPH::uint maxBodyPairs{1024};
+    static constexpr JPH::uint maxBodies_{1024};
+    static constexpr JPH::uint maxBodyPairs_{1024};
     static constexpr JPH::uint maxPhysicsJobs_{2048};
-    static constexpr JPH::uint maxContactConstraints{1024};
-    static constexpr size_t joltStackSize{10 * 1024 * 1024}; // 10 MB
+    static constexpr JPH::uint maxContactConstraints_{1024};
+    static constexpr size_t joltStackSize_{10 * 1024 * 1024}; // 10 MB
 
     // Jolt Physics
     BPLayerInterfaceImpl broadPhaseLayer_;
     ObjectLayerPairFilterImpl objectLayerPairFilter_;
     ObjectVsBroadPhaseLayerFilterImpl objectVsBroadPhaseLayerFilter_;
 
-    // Scene pointer, for GLFW callbacks
-    Scene *scenePtr_{nullptr};
+    // Main playable camera
+    Camera playerCamera_;
 
     /**
      * @brief Creates a GLFW window.  Display settings from the config window are
@@ -79,11 +79,20 @@ class Application
     void createWindow(const GraphicsSettings &graphicsSettings);
 
     /**
-     * @brief Checks for GLFW key presses and passes info to the scene.
-     *
-     * @param scene The target scene.
+     * @brief Checks for GLFW key presses and returns the bit flags representing movement.
      */
-    void processKeyboard(Camera &camera, PlayerPhysics &physicsHandler);
+    std::uint8_t processKeyboard();
+
+    /**
+     * @brief Updates scene's camera based on this frame's captured keyboard input.
+     *
+     * @param movementFlags The bit flags representing cardinal directions.
+     * @param camera The main scene camera.
+     * @param physics The physics handler for the scene camera.
+     */
+    void updatePhysics(std::uint8_t movementFlags, Camera &camera, PlayerPhysics &physics);
+
+    void updateAudio(AudioPlayer &player, PlayerPhysics &physics, Camera &camera, UpdatedEntriesView updatedEntries);
 
     /**
      * @brief Registers OpenGL function pointers, checks for supported features, and creates an OpenGL viewport

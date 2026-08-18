@@ -76,6 +76,7 @@ std::array<glm::vec4, 6> getFrustumPlanes(const glm::mat4 &matrix)
 
     return {left, right, top, bottom, near, far};
 }
+
 } // namespace
 
 Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &settings, int windowWidth, int windowHeight)
@@ -101,17 +102,19 @@ Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &setti
                                                                      .shadowMap = true,
                                                                  }}
                                                   : RenderTarget{}},
-      hiZTexture_{TextureUtilities::createTextureID(settings.renderWidth / hiZResolutionReduction,
-                                                    settings.renderHeight / hiZResolutionReduction, hiZInternalFormat,
-                                                    hiZSampler, true, false)},
+      hiZTexture_{texture::createTextureID(settings.renderWidth / hiZResolutionReduction,
+                                           settings.renderHeight / hiZResolutionReduction, hiZInternalFormat,
+                                           hiZSampler, true, false)},
+      noiseTexture_{texture::textureFromFile("./res/textures/perlin.ktx2", {})},
       hiZViews_{hiZTexture_, hiZSampler, hiZInternalFormat,
-                TextureUtilities::calculateMipmapLevels(settings.renderWidth / hiZResolutionReduction,
-                                                        settings.renderHeight / hiZResolutionReduction, false)}
+                                 texture::calculateMipmapLevels(settings.renderWidth / hiZResolutionReduction,
+                                                                settings.renderHeight / hiZResolutionReduction, false)}
 {
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::depthMap), frameBuffer_.getDepthMapTextureID());
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::resolvedColor), msaaResolveTarget_.getColorTextureID());
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getDepthMapTextureID());
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::hiZ), hiZTexture_);
+    glBindTextureUnit(static_cast<GLuint>(TextureUnit::noise), noiseTexture_);
     glPolygonOffsetClamp(polygonFactor, polygonUnits, polygonClamp);
 
     frameBuffer_.bind();
@@ -121,15 +124,19 @@ Renderer::~Renderer()
 {
     if (hiZTexture_)
         glDeleteTextures(1, &hiZTexture_);
+
+    if (noiseTexture_)
+        glDeleteTextures(1, &noiseTexture_);
 }
 
-void Renderer::renderScene(const Scene &scene, float deltaTime)
+void Renderer::render(const Scene &scene, const Camera &camera, float time, float deltaTime)
 {
+    glState_.setDepthWrite(true);
     frameBuffer_.clear();
 
     // Updates from scene first
     updateSceneTransforms(scene);
-    updateTimeUBO(deltaTime);
+    updateTimeUBO(time, deltaTime);
 
     const bool lightChanged{scene.getGlobalLight().directionHasUpdated()};
     updateShaderUniforms(scene, lightChanged);
@@ -138,9 +145,7 @@ void Renderer::renderScene(const Scene &scene, float deltaTime)
     updateSkinnedVertices();
 
     if (graphicsSettings_.shadowResolution && (framesRendered_ % 2u || lightChanged))
-        renderShadowMaps(scene, lightChanged);
-
-    const Camera &camera{scene.getCamera()};
+        renderShadowMaps(scene, camera, lightChanged);
 
     if (camera.hasUpdated())
         updateCameraUBO(camera);
@@ -168,27 +173,25 @@ void Renderer::loadShaders()
         "MSAA_SAMPLES " + std::to_string(graphicsSettings_.msaa),
     };
 
-    shaders_[shaderIndex(baseColor)] = {baseColor, "./shaders/base_color.vert", "./shaders/base_color.frag", defines};
-    shaders_[shaderIndex(directionalPBR)] = {directionalPBR, "./shaders/directional_PBR.vert",
-                                             "./shaders/directional_PBR.frag", defines};
-    shaders_[shaderIndex(grass)] = {grass, "./shaders/grass.vert", "./shaders/grass.frag", defines};
-    shaders_[shaderIndex(trees)] = {trees, "./shaders/trees.vert", "./shaders/trees.frag", defines};
-    shaders_[shaderIndex(reflective)] = {reflective, "./shaders/reflective.vert", "./shaders/reflective.frag", defines};
-    shaders_[shaderIndex(skybox)] = {skybox, "./shaders/skybox.vert", "./shaders/skybox.frag", defines};
-    shaders_[shaderIndex(water)] = {water, "./shaders/water.vert", "./shaders/water.frag", defines};
-    shaders_[shaderIndex(ocean)] = {ocean, "./shaders/water.vert", "./shaders/ocean.frag", defines};
-    shaders_[shaderIndex(particles)] = {particles, "./shaders/particles.vert", "./shaders/particles.frag", defines};
+    shaders_[shaderIndex(baseColor)] = {"./shaders/base_color.vert", "./shaders/base_color.frag", defines};
+    shaders_[shaderIndex(directionalPBR)] = {"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag",
+                                             defines};
+    shaders_[shaderIndex(grass)] = {"./shaders/grass.vert", "./shaders/grass.frag", defines};
+    shaders_[shaderIndex(trees)] = {"./shaders/trees.vert", "./shaders/trees.frag", defines};
+    shaders_[shaderIndex(reflective)] = {"./shaders/reflective.vert", "./shaders/reflective.frag", defines};
+    shaders_[shaderIndex(skybox)] = {"./shaders/skybox.vert", "./shaders/skybox.frag", defines};
+    shaders_[shaderIndex(water)] = {"./shaders/water.vert", "./shaders/water.frag", defines};
+    shaders_[shaderIndex(ocean)] = {"./shaders/water.vert", "./shaders/ocean.frag", defines};
+    shaders_[shaderIndex(particles)] = {"./shaders/particles.vert", "./shaders/particles.frag", defines};
 
     // Internal use only shaders
     if (graphicsSettings_.shadowResolution)
     {
-        shaders_[shaderIndex(shadowMap)] = {shadowMap, "./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
-        shaders_[shaderIndex(shadowMapAlpha)] = {shadowMapAlpha, "./shaders/shadow_pass.vert",
-                                                 "./shaders/shadow_pass.frag", defines};
+        shaders_[shaderIndex(shadowMap)] = {"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
+        shaders_[shaderIndex(shadowMapAlpha)] = {"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag", defines};
     }
 
-    shaders_[shaderIndex(fboResolve)] = {fboResolve, "./shaders/fbo_resolve.vert", "./shaders/fbo_resolve.frag",
-                                         defines};
+    shaders_[shaderIndex(fboResolve)] = {"./shaders/fbo_resolve.vert", "./shaders/fbo_resolve.frag", defines};
 
     // Compute
     cullShader_ = {"./shaders/cull.comp"};
@@ -227,14 +230,14 @@ void Renderer::updateFrustumPlanesUBO(const glm::mat4 &cullMatrix)
     glNamedBufferSubData(UBOs_.frustumPlanes, 0, static_cast<GLsizeiptr>(6 * sizeof(glm::vec4)), planes.data());
 }
 
-void Renderer::updateTimeUBO(float deltaTime)
+void Renderer::updateTimeUBO(float time, float deltaTime)
 {
-    PackedTime time{
+    PackedTime packed{
         .deltaTime = framesRendered_ == 0 ? 0.0f : deltaTime,
-        .timeElapsed = static_cast<float>(glfwGetTime()),
+        .timeElapsed = time,
     };
 
-    glNamedBufferSubData(UBOs_.time, 0, static_cast<GLsizeiptr>(sizeof(PackedTime)), &time);
+    glNamedBufferSubData(UBOs_.time, 0, static_cast<GLsizeiptr>(sizeof(PackedTime)), &packed);
 }
 
 void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll)
@@ -269,64 +272,57 @@ void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChange
 
 void Renderer::updateShaderUniforms(const Scene &scene, bool lightChanged)
 {
+    if (!lightChanged)
+        return;
+
     const DirectionalLight &globalLight{scene.getGlobalLight()};
 
     for (auto &shader : shaders_)
-    {
-        if (lightChanged)
-            shader.setVec3("lightDir", globalLight.getDirection());
-    }
+        shader.setVec3("lightDir", globalLight.getDirection());
 }
 
 void Renderer::updateSceneTransforms(const Scene &scene)
 {
-    const std::unordered_set<Handle> &updatedTransformHandles{scene.getUpdatedHandles()};
-
-    for (Handle handle : updatedTransformHandles)
+    for (const Scene::Entry &entry : scene.getUpdatedEntries())
     {
-        const std::vector<std::uint32_t> &bufferIndices{matricesBaseIndices_[handle]};
-        const Scene::Entry &sceneEntry{scene.getEntry(handle)};
-        const std::vector<Transform> &worldTransforms{sceneEntry.worldTransforms};
-        auto boneIter = boneTransformsBaseIndexMap_.find(handle);
+        const std::vector<std::uint32_t> &bufferIndices{matricesBaseIndices_[entry.handle]};
+        auto boneIter = boneTransformsBaseIndexMap_.find(entry.handle);
+        const std::size_t numTransforms{entry.worldTransforms.size()};
 
-        updatedMatrices_.reserve(worldTransforms.size());
+        updatedMatrices_.reserve(numTransforms);
 
-        for (std::size_t i{0}; i < sceneEntry.primitives.size(); ++i)
+        for (std::size_t i{0}; i < entry.primitives.size(); ++i)
         {
             updatedMatrices_.clear();
 
-            const Primitive &primitive{sceneEntry.primitives[i]};
+            const Primitive &primitive{entry.primitives[i]};
 
-            for (const Transform &transform : worldTransforms)
+            for (const Transform &transform : entry.worldTransforms)
                 updatedMatrices_.emplace_back(transform.getModelMatrix() * primitive.modelSpaceTransform);
 
             glNamedBufferSubData(SSBOs_.matrices, static_cast<GLintptr>(bufferIndices[i] * sizeof(glm::mat4)),
-                                 static_cast<GLsizeiptr>(worldTransforms.size() * sizeof(glm::mat4)),
-                                 updatedMatrices_.data());
+                                 static_cast<GLsizeiptr>(numTransforms * sizeof(glm::mat4)), updatedMatrices_.data());
         }
 
         if (boneIter == boneTransformsBaseIndexMap_.end())
             continue;
 
         std::uint32_t boneTransformsOffset{boneIter->second};
-        const std::vector<glm::mat4> &jointMatrices{sceneEntry.entryAnimation->animator.getJointMatrices()};
+        const std::vector<glm::mat4> &jointMatrices{entry.entryAnimation->animator.getJointMatrices()};
 
         glNamedBufferSubData(SSBOs_.boneTransforms, static_cast<GLintptr>(boneTransformsOffset * sizeof(glm::mat4)),
                              static_cast<GLsizeiptr>(jointMatrices.size() * sizeof(glm::mat4)), jointMatrices.data());
     }
 }
 
-void Renderer::updateCascades(const Scene &scene, bool lightChanged)
+void Renderer::updateCascades(const Scene &scene, const Camera &camera, bool lightChanged)
 {
-    const Camera &camera{scene.getCamera()};
-    const DirectionalLight &light{scene.getGlobalLight()};
-
     // Move the far plane closer for tighter cascades
     const glm::mat4 cameraVP{camera.getResizedViewProjectionMatrix(farPlaneReduction)};
     float farPlane{camera.getFarPlane() * farPlaneReduction};
 
     // Recalculate frustum splits and light VP matrices
-    cascadeShadow_.updateCascadeShadows(cameraVP, light, graphicsSettings_.shadowResolution, farPlane);
+    cascadeShadow_.updateCascadeShadows(cameraVP, scene.getGlobalLight(), graphicsSettings_.shadowResolution, farPlane);
 
     // Splits never change, only set on renderer initialization
     const bool updateFullUBO{framesRendered_ == 0};

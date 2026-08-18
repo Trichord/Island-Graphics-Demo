@@ -15,7 +15,7 @@ int calculateCascadeIndex(float depth)
 		return 2;
 }
 
-float ShadowContribution(mat4 lightMatrix, vec4 worldFragPos, int layer)
+float shadowContribution(mat4 lightMatrix, vec4 worldFragPos, int layer)
 {	
 	vec3 shadowCoords = vec3(lightMatrix * worldFragPos);
 	shadowCoords = shadowCoords * 0.5 + 0.5;

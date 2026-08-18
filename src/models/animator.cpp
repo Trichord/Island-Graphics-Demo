@@ -157,11 +157,11 @@ void Animator::update(const Skeleton &skeleton, std::vector<Primitive> &primitiv
     // Write any non skeletal transforms back to the primitive's model space transform
     for (auto &[nodeIndex, primitiveIndices] : skeleton.nodeToPrimitives)
         for (std::size_t index : primitiveIndices)
-            if (!primitives[index].vertexSkins.has_value())
+            if (!primitives[index].vertexSkins)
                 primitives[index].modelSpaceTransform = globalTransforms_[nodeIndex];
 
     // Update skinned joints for the SSBO
-    if (!skeleton.skin.has_value())
+    if (!skeleton.skin)
         return;
 
     const Skeleton::Skin &skin{skeleton.skin.value()};

@@ -8,6 +8,7 @@
 
 #include "models/aabb.h"
 #include "models/primitive.h"
+#include "renderer/shader/graphics_shader.h"
 
 constexpr float skyboxSize{1e18f};
 
@@ -24,11 +25,14 @@ Skybox::Skybox(const std::filesystem::path &imagePath) : imagePath_{imagePath}
 
     std::vector<std::uint32_t> indices{0u, 1u, 2u};
 
-    primitives_ = {Primitive{.vertices = std::move(vertices),
-                             .indices = std::move(indices),
-                             .aabb = aabb,
-                             .materialIndex = std::size_t{0},
-                             .alphaMode = AlphaMode::opaque}};
+    primitives_ = {Primitive{
+        .vertices = std::move(vertices),
+        .indices = std::move(indices),
+        .aabb = aabb,
+        .materialIndex = std::size_t{0},
+        .alphaMode = AlphaMode::opaque,
+        .shaderType = ShaderType::skybox,
+    }};
 }
 
 const std::vector<Primitive> &Skybox::getPrimitives() const

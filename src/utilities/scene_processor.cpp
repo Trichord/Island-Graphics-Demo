@@ -41,13 +41,13 @@ AABB getSceneBounds(const Scene &scene)
     {
         using enum ShaderType;
 
-        if (entry.shaderType == ocean || entry.shaderType == skybox)
-            continue;
-
         hasGeometry = true;
 
         for (const Primitive &primitive : entry.primitives)
         {
+            if (primitive.shaderType == ocean || primitive.shaderType == skybox)
+                continue;
+
             for (const Transform &transform : entry.worldTransforms)
             {
                 const AABB worldAABB{primitive.aabb.transform(transform.getModelMatrix())};
@@ -145,15 +145,14 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(const Scene &scene)
         totals.primitives += numPrimitives;
         totals.instances += numTransforms * numPrimitives;
 
-        const bool hasAnimation{entry.entryAnimation.has_value()};
-        const bool hasSkin{hasAnimation && entry.entryAnimation->skeletalAnimation.skeleton.skin.has_value()};
+        const bool hasSkin{entry.entryAnimation && entry.entryAnimation->skeletalAnimation.skeleton.skin};
 
         for (const Primitive &primitive : entry.primitives)
         {
             totals.indices += primitive.indices.size();
             totals.vertices += primitive.vertices.size();
 
-            if (entry.shaderType == ShaderType::particles)
+            if (primitive.shaderType == ShaderType::particles)
                 totals.particles += primitive.vertices.size();
 
             if (hasSkin)
@@ -188,7 +187,7 @@ std::vector<SceneProcessor::BucketEntry> SceneProcessor::createBucketEntries(con
                                                    .primitive = &primitive,
                                                    .transforms = entry.worldTransforms,
                                                    .animation = entry.entryAnimation,
-                                                   .shaderType = entry.shaderType,
+                                                   .shaderType = primitive.shaderType,
                                                    .alphaMode = primitive.alphaMode,
                                                    .originalSceneIndex = originalIndex++,
                                                    .originalPrimitiveIndex = primitiveIndex++});
@@ -214,7 +213,7 @@ SceneProcessor::ProcessedVertices SceneProcessor::createProcessedVertices(const 
     {
         // Particles hijack the vertex, don't overwrite
         const bool updateIndex{entry.shaderType != ShaderType::particles};
-        const bool hasSkin{entry.primitive->vertexSkins.has_value()};
+        const bool hasSkin{entry.primitive->vertexSkins};
 
         for (std::size_t i{0}; i < entry.primitive->vertices.size(); ++i)
         {
@@ -573,7 +572,7 @@ std::unordered_map<Handle, std::uint32_t> SceneProcessor::createBoneTransformMap
     for (const BucketEntry &entry : entries)
     {
         // Check for vertex skins specifically, since animations can exist solely as node transforms
-        if (!entry.primitive->vertexSkins.has_value())
+        if (!entry.primitive->vertexSkins)
             continue;
 
         auto [iter, inserted] = boneTransformsMap.try_emplace(entry.handle, boneBufferOffset);
@@ -607,7 +606,7 @@ std::vector<Primitive::VertexSkin> SceneProcessor::createVertexSkins(
 
     for (const BucketEntry &entry : entries)
     {
-        if (!entry.primitive->vertexSkins.has_value())
+        if (!entry.primitive->vertexSkins)
             continue;
 
         const std::vector<Primitive::VertexSkin> &vertexSkins{entry.primitive->vertexSkins.value()};
@@ -626,7 +625,7 @@ std::vector<Primitive::VertexSkin> SceneProcessor::createVertexSkins(
         {
             glm::uvec4 boneIDs{vertexSkins[i].boneIDs};
 
-            for (std::size_t j{0}; j < 4; ++j)
+            for (glm::length_t j{0}; j < 4; ++j)
                 if (vertexSkins[i].weights[j] > 0.0f)
                     boneIDs[j] += static_cast<unsigned int>(bufferOffset);
 

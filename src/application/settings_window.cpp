@@ -37,9 +37,7 @@ bool SettingsWindow::launchSettingsWindow(GraphicsSettings &settings)
 
     setupImGui();
 
-    matchSettingsToGUI(settings);
-
-    bool settingsConfirmed{renderImGui(settings)};
+    const bool settingsConfirmed{renderImGui(settings)};
 
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
@@ -145,6 +143,9 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
     float windowScale{ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor())};
     const ImVec2 dummySpacing{0.0f, 10.0f * windowScale};
 
+    GraphicsSettings workingCopy{settings};
+    matchSettingsToGUI(workingCopy);
+
     // Loop until settings are confirmed
     while (!glfwWindowShouldClose(window))
     {
@@ -164,187 +165,179 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
         ImVec2 imguiCenter{imGuiViewPort->GetCenter()};
         SetNextWindowPos(imguiCenter, ImGuiCond_Always, ImVec2{0.5f, 0.5f});
 
-        Begin("Island Graphics Demo - Display Settings", NULL,
+        Begin("Island Graphics Demo - Display Settings", nullptr,
               ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
-        PushItemWidth(GetContentRegionAvail().x / numColumns);
-
-        // Start of settings and image row
-        BeginGroup();
-
-        // Start of left column (all settings)
-        BeginGroup();
-
-        SeparatorText("Display Settings");
-        Dummy(dummySpacing);
-
-        Text("Resolution");
-        if (BeginCombo("##resolutionCombo", resolutionPreviewValue_, ImGuiComboFlags_HeightLargest))
+        if (BeginTable("##layoutTable", numColumns, ImGuiTableFlags_None))
         {
-            for (int i = 0; i < resolutions_.size(); ++i)
-            {
-                const bool isResolutionSelected{resolutionSelectedIndex_ == i};
-                if (Selectable(resolutions_[i], isResolutionSelected))
-                {
-                    resolutionSelectedIndex_ = i;
-                    resolutionPreviewValue_ = resolutions_[resolutionSelectedIndex_];
-                    updateResolution(settings, i);
-                }
-                if (isResolutionSelected)
-                    SetItemDefaultFocus();
-            }
-            EndCombo();
-        }
+            TableSetupColumn("##settingsColumn", ImGuiTableColumnFlags_WidthStretch);
+            TableSetupColumn("##imageColumn", ImGuiTableColumnFlags_WidthStretch);
+            TableNextRow();
 
-        Dummy(dummySpacing);
-
-        Text("Gamma");
-        SliderFloat("##gammaSlider", &settings.gamma, 0.8f, 1.3f, "%.2f", ImGuiSliderFlags_ClampOnInput);
-        if (IsItemHovered(ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_NoSharedDelay))
-            SetTooltip("Ctrl + Click to edit");
-
-        Dummy(dummySpacing);
-
-        Checkbox("Fullscreen", &settings.fullscreen);
-
-        SameLine(GetContentRegionAvail().x / (numColumns * 2.0f));
-
-        Checkbox("VSync", &settings.vsync);
-
-        // Spacing to separate Advanced Options
-        Dummy(dummySpacing);
-        Dummy(dummySpacing);
-        Dummy(dummySpacing);
-        Spacing();
-        Spacing();
-
-        SeparatorText("Advanced Options");
-        Dummy(dummySpacing);
-
-        Text("Anisotropic Filtering");
-        if (BeginCombo("##anisoCombo", anisoPreviewValue_))
-        {
-            for (int i{0}; i < anisoLevel_.size(); ++i)
-            {
-                const bool isAnisoSelected{anisoSelectedIndex_ == i};
-                if (Selectable(anisoLevel_[i], isAnisoSelected))
-                {
-                    anisoSelectedIndex_ = i;
-                    anisoPreviewValue_ = anisoLevel_[anisoSelectedIndex_];
-                    updateAniso(settings, i);
-                }
-                if (isAnisoSelected)
-                    SetItemDefaultFocus();
-            }
-            EndCombo();
-        }
-
-        Dummy(dummySpacing);
-
-        Text("MSAA");
-        if (BeginCombo("##msaaCombo", msaaPreviewValue_))
-        {
-            for (int i{0}; i < msaaLevel_.size(); ++i)
-            {
-                const bool isMSAASelected{msaaSelectedIndex_ == i};
-                if (Selectable(msaaLevel_[i], isMSAASelected))
-                {
-                    msaaSelectedIndex_ = i;
-                    msaaPreviewValue_ = msaaLevel_[msaaSelectedIndex_];
-                    updateMSAA(settings, i);
-                }
-                if (isMSAASelected)
-                    SetItemDefaultFocus();
-            }
-            EndCombo();
-        }
-
-        Dummy(dummySpacing);
-
-        float tableWidth{GetContentRegionAvail().x / numColumns};
-        float yCursorPos{GetCursorPosY()};
-
-        if (BeginTable("##qualityTable", 2, ImGuiTableFlags_None, ImVec2{tableWidth, 0.0f}))
-        {
-            TableSetupColumn("##reflection", ImGuiTableColumnFlags_WidthStretch);
-            TableSetupColumn("##shadow", ImGuiTableColumnFlags_WidthStretch);
-
+            // Start of left column (settings)
             TableNextColumn();
-            PushItemWidth(tableWidth / 2.0f - GetStyle().ItemSpacing.x);
-            AlignTextToFramePadding();
-            Text("Reflection Quality");
-            if (BeginCombo("##reflectionCombo", reflectionPreviewValue_))
+            PushItemWidth(-std::numeric_limits<float>::min());
+
+            SeparatorText("Display Settings");
+            Dummy(dummySpacing);
+
+            Text("Resolution");
+            if (BeginCombo("##resolutionCombo", resolutionPreviewValue_, ImGuiComboFlags_HeightLargest))
             {
-                for (int i{0}; i < reflectionQuality_.size(); ++i)
+                for (int i = 0; i < resolutions_.size(); ++i)
                 {
-                    const bool isReflectionSelected{reflectionSelectedIndex_ == i};
-                    if (Selectable(reflectionQuality_[i], isReflectionSelected))
+                    const bool isResolutionSelected{resolutionSelectedIndex_ == i};
+                    if (Selectable(resolutions_[i], isResolutionSelected))
                     {
-                        reflectionSelectedIndex_ = i;
-                        reflectionPreviewValue_ = reflectionQuality_[reflectionSelectedIndex_];
-                        updateReflectionQuality(settings, i);
+                        resolutionSelectedIndex_ = i;
+                        resolutionPreviewValue_ = resolutions_[resolutionSelectedIndex_];
+                        updateResolution(workingCopy, i);
                     }
-                    if (isReflectionSelected)
+                    if (isResolutionSelected)
                         SetItemDefaultFocus();
                 }
                 EndCombo();
             }
 
-            PopItemWidth();
+            Dummy(dummySpacing);
 
-            TableNextColumn();
-            PushItemWidth(tableWidth / 2.0f - GetStyle().ItemSpacing.x);
-            AlignTextToFramePadding();
-            Text("Shadow Quality");
-            if (BeginCombo("##shadowCombo", shadowPreviewValue_))
+            Text("Gamma");
+            SliderFloat("##gammaSlider", &workingCopy.gamma, 0.8f, 1.3f, "%.2f", ImGuiSliderFlags_ClampOnInput);
+            if (IsItemHovered(ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_NoSharedDelay))
+                SetTooltip("Ctrl + click to edit");
+
+            Dummy(dummySpacing);
+
+            Checkbox("Fullscreen", &workingCopy.fullscreen);
+            SameLine(GetContentRegionAvail().x / 2.0f);
+
+            Checkbox("VSync", &workingCopy.vsync);
+
+            // Spacing to separate Advanced Options
+            Dummy(dummySpacing);
+            Dummy(dummySpacing);
+            Dummy(dummySpacing);
+            Spacing();
+            Spacing();
+
+            SeparatorText("Advanced Options");
+            Dummy(dummySpacing);
+
+            Text("Anisotropic Filtering");
+            if (BeginCombo("##anisoCombo", anisoPreviewValue_))
             {
-                for (int i{0}; i < shadowQuality_.size(); ++i)
+                for (int i{0}; i < anisoLevel_.size(); ++i)
                 {
-                    const bool isShadowSelected{shadowSelectedIndex_ == i};
-                    if (Selectable(shadowQuality_[i], isShadowSelected))
+                    const bool isAnisoSelected{anisoSelectedIndex_ == i};
+                    if (Selectable(anisoLevel_[i], isAnisoSelected))
                     {
-                        shadowSelectedIndex_ = i;
-                        shadowPreviewValue_ = shadowQuality_[shadowSelectedIndex_];
-                        updateShadowQuality(settings, i);
+                        anisoSelectedIndex_ = i;
+                        anisoPreviewValue_ = anisoLevel_[anisoSelectedIndex_];
+                        updateAniso(workingCopy, i);
                     }
-                    if (isShadowSelected)
+                    if (isAnisoSelected)
                         SetItemDefaultFocus();
                 }
                 EndCombo();
             }
+
+            Dummy(dummySpacing);
+
+            Text("MSAA");
+            if (BeginCombo("##msaaCombo", msaaPreviewValue_))
+            {
+                for (int i{0}; i < msaaLevel_.size(); ++i)
+                {
+                    const bool isMSAASelected{msaaSelectedIndex_ == i};
+                    if (Selectable(msaaLevel_[i], isMSAASelected))
+                    {
+                        msaaSelectedIndex_ = i;
+                        msaaPreviewValue_ = msaaLevel_[msaaSelectedIndex_];
+                        updateMSAA(workingCopy, i);
+                    }
+                    if (isMSAASelected)
+                        SetItemDefaultFocus();
+                }
+                EndCombo();
+            }
+
+            Dummy(dummySpacing);
+
+            if (BeginTable("##qualityTable", 2, ImGuiTableFlags_None, ImVec2{GetContentRegionAvail().x, 0.0f}))
+            {
+                TableSetupColumn("##reflection", ImGuiTableColumnFlags_WidthStretch);
+                TableSetupColumn("##shadow", ImGuiTableColumnFlags_WidthStretch);
+
+                TableNextColumn();
+                PushItemWidth(-std::numeric_limits<float>::min());
+                AlignTextToFramePadding();
+                Text("Reflection Quality");
+                if (BeginCombo("##reflectionCombo", reflectionPreviewValue_))
+                {
+                    for (int i{0}; i < reflectionQuality_.size(); ++i)
+                    {
+                        const bool isReflectionSelected{reflectionSelectedIndex_ == i};
+                        if (Selectable(reflectionQuality_[i], isReflectionSelected))
+                        {
+                            reflectionSelectedIndex_ = i;
+                            reflectionPreviewValue_ = reflectionQuality_[reflectionSelectedIndex_];
+                            updateReflectionQuality(workingCopy, i);
+                        }
+                        if (isReflectionSelected)
+                            SetItemDefaultFocus();
+                    }
+                    EndCombo();
+                }
+
+                PopItemWidth();
+
+                TableNextColumn();
+                PushItemWidth(-std::numeric_limits<float>::min());
+                AlignTextToFramePadding();
+                Text("Shadow Quality");
+                if (BeginCombo("##shadowCombo", shadowPreviewValue_))
+                {
+                    for (int i{0}; i < shadowQuality_.size(); ++i)
+                    {
+                        const bool isShadowSelected{shadowSelectedIndex_ == i};
+                        if (Selectable(shadowQuality_[i], isShadowSelected))
+                        {
+                            shadowSelectedIndex_ = i;
+                            shadowPreviewValue_ = shadowQuality_[shadowSelectedIndex_];
+                            updateShadowQuality(workingCopy, i);
+                        }
+                        if (isShadowSelected)
+                            SetItemDefaultFocus();
+                    }
+                    EndCombo();
+                }
+
+                PopItemWidth();
+                EndTable();
+            }
+
+            // Items from settings column
             PopItemWidth();
+
+            // Start of right column (image)
+            TableNextColumn();
+
+            Dummy(dummySpacing);
+            Dummy(dummySpacing);
+            Image((ImTextureID)(intptr_t)textureID_, ImVec2(GetContentRegionAvail().x, GetContentRegionAvail().x));
+
+            // Reset button
+            float resetButtonWidth{CalcTextSize("Reset").x + GetStyle().FramePadding.x * 2.0f};
+            SetCursorPosX(GetCursorPosX() + GetContentRegionAvail().x - resetButtonWidth);
+            if (Button("Reset"))
+            {
+                workingCopy = GraphicsSettings{};
+                matchSettingsToGUI(workingCopy);
+            }
+
+            // End of settings and image row
             EndTable();
         }
-
-        PopItemWidth();
-
-        // end of left column
-        EndGroup();
-
-        SameLine();
-
-        // start of right column (image)
-        BeginGroup();
-        Dummy(dummySpacing);
-        Dummy(dummySpacing);
-
-        // Image
-        Image((ImTextureID)(intptr_t)textureID_, ImVec2(GetContentRegionAvail().x, GetContentRegionAvail().x));
-
-        // Reset button
-        float resetButtonWidth{CalcTextSize("Reset").x + GetStyle().FramePadding.x * 2.0f};
-        SetCursorPosX(GetCursorPosX() + GetContentRegionAvail().x - resetButtonWidth);
-        if (Button("Reset"))
-        {
-            settings = GraphicsSettings{};
-            matchSettingsToGUI(settings);
-        }
-
-        // End of right column
-        EndGroup();
-
-        // End of settings and image row
-        EndGroup();
 
         // Buttons
         const float buttonHeight{GetFrameHeight()};
@@ -353,20 +346,16 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
         const ImVec2 windowPosition{GetWindowPos()};
 
         // Cancel button
-        float cancelX{windowPadding.x};
+        float cancelX{windowPosition.x + windowPadding.x};
         float cancelY{windowPosition.y + windowSize.y - buttonHeight - windowPadding.y};
 
         SetCursorScreenPos(ImVec2{cancelX, cancelY});
         if (Button("Cancel"))
             glfwSetWindowShouldClose(window, true);
 
-        SameLine();
-
         // Confirm button
         float confirmButtonWidth{CalcTextSize("Confirm").x};
-
         float confirmXPos{windowPosition.x + windowSize.x - (windowPadding.x * 2.0f) - confirmButtonWidth};
-
         float confirmYPos{windowPosition.y + windowSize.y - buttonHeight - windowPadding.y};
 
         SetCursorScreenPos(ImVec2{confirmXPos, confirmYPos});
@@ -392,6 +381,9 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
         glfwPollEvents();
     }
 
+    if (settingsConfirmed)
+        settings = workingCopy;
+
     return settingsConfirmed;
 }
 
@@ -405,7 +397,7 @@ void SettingsWindow::loadConfigWindowImage()
         .anisotropicFiltering = false,
     };
 
-    textureID_ = TextureUtilities::textureFromFile("./res/textures/wireframe_sphere.ktx2", details);
+    textureID_ = texture::textureFromFile("./res/textures/config.ktx2", details);
 }
 
 void SettingsWindow::updateResolution(GraphicsSettings &settings, int index)

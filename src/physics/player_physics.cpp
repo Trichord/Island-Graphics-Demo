@@ -1,105 +1,137 @@
 #include "physics/player_physics.h"
 
-#include <jolt/Jolt.h>
+#include <Jolt/Jolt.h>
 
+#include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Math/Vec3.h>
+#include <Jolt/Physics/Body/BodyID.h>
+#include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/PhysicsSystem.h>
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
 #include <glm/glm.hpp>
-#include <jolt/Core/TempAllocator.h>
-#include <jolt/Math/Quat.h>
-#include <jolt/Math/Real.h>
-#include <jolt/Math/Vec3.h>
-#include <jolt/Physics/Body/BodyCreationSettings.h>
-#include <jolt/Physics/Body/MotionType.h>
-#include <jolt/Physics/Collision/Shape/MeshShape.h>
-#include <jolt/Physics/Collision/Shape/Shape.h>
-#include <jolt/Physics/EActivation.h>
-#include <jolt/Physics/PhysicsSystem.h>
+#include <utility>
 
+#include "physics/character_capsule.h"
 #include "physics/jolt_impl.h"
 #include "physics/physics_utilities.h"
 #include "scene/scene.h"
 #include "utilities/world_vectors.h"
 
-PlayerPhysics::PlayerPhysics(Scene &scene, JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator)
-    : resetPosition_{toJPHVec3(scene.getCamera().getPosition())}, physicsSystem_{physicsSystem},
-      tempAllocator_{tempAllocator}
+namespace
 {
-    using namespace JPH;
+constexpr CharacterCapsule::Settings capsuleSettings{
+    .radius = 0.3f,
+    .standingHeight = 1.35f,
+    .crouchingHeight = 0.8f,
+    .innerShapeFraction = 0.9f,
+    .speed = 3.5f,
+    .jumpSpeed = 2.75f,
+    .sprintSpeedMultiplier = 1.45f,
+    .crouchSpeedMultiplier = 0.4f,
+};
+}
 
-    // bodyInterface_ = &physicsSystem_.GetBodyInterfaceNoLock();
-    bodyInterface_ = &physicsSystem_.GetBodyInterface();
-
-    // Build the static collision mesh from scene
-    physicsUtilities::CollisionMesh collisionMesh{physicsUtilities::buildCollisionMesh(scene)};
-
-    if (!collisionMesh.mesh.empty())
-    {
-        resetHeight_ = collisionMesh.minimumHeight;
-
-        // Create terrain and flag it to survive this constructor call
-        MeshShapeSettings terrainShapeSettings{collisionMesh.mesh};
-        terrainShapeSettings.SetEmbedded();
-
-        // Create the shape
-        ShapeSettings::ShapeResult terrainResult{terrainShapeSettings.Create()};
-        ShapeRefC terrainShape{terrainResult.Get()};
-
-        // Terrain properties
-        BodyCreationSettings terrainSettings{terrainShape, RVec3::sZero(), Quat::sIdentity(), EMotionType::Static,
-                                             Layers::NON_MOVING};
-
-        // Create the actual rigid body
-        terrain_ = bodyInterface_->CreateBody(terrainSettings);
-
-        // Add it to the world
-        bodyInterface_->AddBody(terrain_->GetID(), EActivation::DontActivate);
-    }
-    else
-    {
-        resetHeight_ = -1000000.0f;
-    }
-
+PlayerPhysics::PlayerPhysics(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator, Scene &scene,
+                             const glm::vec3 &startingPosition)
+    : resetPosition_{toJPHVec3(startingPosition)}, physicsSystem_{physicsSystem}, tempAllocator_{tempAllocator},
+      bodyInterface_{&physicsSystem.GetBodyInterface()}, player_{physicsSystem, tempAllocator, capsuleSettings}
+{
+    physics::StaticBodies collisionMeshes{physics::buildCollisionGeometry(scene, physicsSystem.GetBodyInterface())};
+    resetHeight_ = collisionMeshes.minimumHeight;
+    bodyIDs_ = std::move(collisionMeshes.ids);
     physicsSystem_.OptimizeBroadPhase();
-
-    player_.init(physicsSystem, tempAllocator);
-
-    // Set start position
-    glm::vec3 cameraPos{scene.getCamera().getPosition()};
-    player_.setPosition(JPH::Vec3{cameraPos.x, cameraPos.y, cameraPos.z});
+    player_.setCenter(toJPHVec3(startingPosition));
 }
 
 PlayerPhysics::~PlayerPhysics()
 {
     using namespace JPH;
 
-    if (terrain_)
+    for (JPH::BodyID &id : bodyIDs_)
     {
-        bodyInterface_->RemoveBody(terrain_->GetID());
-        bodyInterface_->DestroyBody(terrain_->GetID());
+        bodyInterface_->RemoveBody(id);
+        bodyInterface_->DestroyBody(id);
     }
 }
 
-void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime)
+void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float deltaTime)
 {
+    using namespace JPH;
+
+    constexpr int lookAheadTicks{4};
+    constexpr float impactTrigger{4.5f};
+    constexpr float jumpDelay{0.7f};
+
+    // Avoid feedback loop when framerate drops
+    timeAccumulator_ = std::min(timeAccumulator_ + deltaTime, maxAccumulator_);
+    jumpAccumulator_ += deltaTime;
+    const bool jump{(direction & CharacterMovement::UP) != 0 && jumpAccumulator_ > jumpDelay};
+
+    while (timeAccumulator_ > physicsTick_)
+    {
+        const bool wasSupported{player_.isSupported()};
+        const Vec3 preVelocity{player_.getVelocity()};
+
+        previousPosition_ = player_.getCenter();
+        tick(direction, front, jump && wasSupported, physicsTick_);
+        timeAccumulator_ -= physicsTick_;
+
+        // Ignore footstep accumulator on steep slopes
+        if (player_.isGrounded())
+            footstepAccumulator_ += (player_.getCenter() - previousPosition_).Length();
+
+        // Skip the prediction if we already detected a landing
+        const std::optional<float> impactSpeed{
+            landingTriggered_ ? std::nullopt : player_.predictImpactSpeed(lookAheadTicks * physicsTick_)};
+
+        if (impactSpeed && impactSpeed.value() >= impactTrigger)
+        {
+            // Player is hitting hard enough to trigger a landing event, reset footsteps
+            footstepAccumulator_ = 0.0f;
+            landingTriggered_ = true;
+        }
+
+        if (jump && wasSupported && !player_.isSupported())
+        {
+            jumpTriggered_ = true;
+            jumpAccumulator_ = 0.0f;
+        }
+    }
+}
+
+void PlayerPhysics::tick(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
+{
+    using namespace JPH;
+
     constexpr float maxFallVelocity{-30.0f};
+    constexpr float resetHeight{5.0f};
 
     // Player has fallen through the world
     if (player_.getPosition().GetY() < resetHeight_)
     {
-        player_.setPosition(resetPosition_);
-        previousPosition_ = toGLM(resetPosition_);
+        player_.setCenter(resetPosition_ + Vec3{0.0f, resetHeight, 0.0f});
 
-        JPH::Vec3 velocity{player_.getVelocity()};
-        JPH::Vec3 newVelocity{velocity.GetX(), std::max(velocity.GetY(), maxFallVelocity), velocity.GetZ()};
+        // Override last position too, so we don't interpolate between two wildly different points
+        previousPosition_ = player_.getCenter();
+
+        Vec3 velocity{player_.getVelocity()};
+        Vec3 newVelocity{velocity.GetX(), std::max(velocity.GetY(), maxFallVelocity), velocity.GetZ()};
         player_.setVelocity(newVelocity);
+
+        footstepAccumulator_ = 0.0f;
+        jumpAccumulator_ = 0.0f;
+        landingTriggered_ = false;
+        jumpTriggered_ = false;
 
         return;
     }
 
-    previousPosition_ = toGLM(player_.getCenter());
-    movePlayer(direction, front, jump, crouch, deltaTime);
+    movePlayer(direction, front, jump, deltaTime);
 }
 
-void PlayerPhysics::movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, bool crouch, float deltaTime)
+void PlayerPhysics::movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
 {
     using enum CharacterMovement;
     using namespace WorldVectors;
@@ -140,10 +172,12 @@ void PlayerPhysics::setPosition(const glm::vec3 &newPosition)
     player_.setPosition(toJPHVec3(newPosition));
 }
 
-const glm::vec3 &PlayerPhysics::getPreviousPosition() const
+glm::vec3 PlayerPhysics::getInterpolatedPosition() const
 {
-    return previousPosition_;
-}
+    // Interpolate camera between last position and latest physics tick (Glenn Fiedler)
+    float alpha{timeAccumulator_ / physicsTick_};
+    return glm::mix(toGLM(previousPosition_), getPosition(), alpha);
+};
 
 void PlayerPhysics::toggleCrouch(bool enable)
 {
@@ -153,4 +187,25 @@ void PlayerPhysics::toggleCrouch(bool enable)
 void PlayerPhysics::toggleSprint(bool enable)
 {
     player_.toggleSprint(enable);
+}
+
+bool PlayerPhysics::footstepEvent()
+{
+    if (footstepAccumulator_ >= footstepDistance_)
+    {
+        footstepAccumulator_ = std::fmod(footstepAccumulator_, footstepDistance_);
+        return true;
+    }
+
+    return false;
+}
+
+bool PlayerPhysics::jumpEvent()
+{
+    return std::exchange(jumpTriggered_, false);
+}
+
+bool PlayerPhysics::landingEvent()
+{
+    return std::exchange(landingTriggered_, false);
 }
