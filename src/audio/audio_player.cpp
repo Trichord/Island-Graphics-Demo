@@ -84,7 +84,11 @@ AudioPlayer::AudioPlayer(const Scene &scene, const std::filesystem::path &audioJ
             continue;
 
         if (!std::filesystem::exists(triggerEntry.soundEffectEntry.soundPath))
-            throw std::runtime_error("Failed to load sound from " + triggerEntry.soundEffectEntry.soundPath.string());
+        {
+            std::cerr << "ERROR: File does not exist: " << triggerEntry.soundEffectEntry.soundPath.string() << std::endl;
+            throw std::runtime_error("Missing file");
+        }
+        
 
         // Resolve audio name -> scene name -> handle, for dirty handle updates
         if (!triggerEntry.name.empty())

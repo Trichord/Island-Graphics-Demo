@@ -55,6 +55,7 @@ class PlayerPhysics
 
     bool jumpTriggered_{false};
     bool landingTriggered_{false};
+    float jumpAccumulator_{0.0f};
     float timeAccumulator_{0.0f};
     float footstepAccumulator_{footstepDistance_ -
                                distancePrimer_}; // Prime accumulator so that a footstep fires quickly

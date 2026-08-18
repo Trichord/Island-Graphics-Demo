@@ -62,10 +62,12 @@ void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float
 
     constexpr int lookAheadTicks{4};
     constexpr float impactTrigger{4.5f};
+    constexpr float jumpDelay{0.7f};
 
     // Avoid feedback loop when framerate drops
     timeAccumulator_ = std::min(timeAccumulator_ + deltaTime, maxAccumulator_);
-    const bool jump{(direction & CharacterMovement::UP) != 0};
+    jumpAccumulator_ += deltaTime;
+    const bool jump{(direction & CharacterMovement::UP) != 0 && jumpAccumulator_ > jumpDelay};
 
     while (timeAccumulator_ > physicsTick_)
     {
@@ -73,7 +75,7 @@ void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float
         const Vec3 preVelocity{player_.getVelocity()};
 
         previousPosition_ = player_.getCenter();
-        tick(direction, front, jump, physicsTick_);
+        tick(direction, front, jump && wasSupported, physicsTick_);
         timeAccumulator_ -= physicsTick_;
 
         // Ignore footstep accumulator on steep slopes
@@ -92,7 +94,10 @@ void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float
         }
 
         if (jump && wasSupported && !player_.isSupported())
+        {
             jumpTriggered_ = true;
+            jumpAccumulator_ = 0.0f;
+        }
     }
 }
 
@@ -116,6 +121,7 @@ void PlayerPhysics::tick(std::uint8_t direction, const glm::vec3 &front, bool ju
         player_.setVelocity(newVelocity);
 
         footstepAccumulator_ = 0.0f;
+        jumpAccumulator_ = 0.0f;
         landingTriggered_ = false;
         jumpTriggered_ = false;
 

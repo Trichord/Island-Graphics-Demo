@@ -36,7 +36,10 @@ SoundEffect::SoundEffect(AudioEngine &engine, const SoundEffectEntry &entry, con
     ma_result result{ma_sound_init_from_file(&engine.engine, pathStr.c_str(), flags, nullptr, nullptr, &sound_)};
 
     if (result != MA_SUCCESS)
-        throw std::runtime_error("Failed to load sound from " + pathStr + ": " + ma_result_description(result));
+    {
+        std::cerr << "Failed to load sound from " << pathStr << ": " << ma_result_description(result) << std::endl;
+        throw std::runtime_error("Fatal sound loading error");
+    }
 
     initialized_ = true;
     varyVolume();
@@ -68,13 +71,14 @@ void SoundEffect::setPitch(float pitch)
 
 void SoundEffect::setVolume(float volume)
 {
-    ma_sound_set_volume(&sound_, std::max(0.0f, volume));
+    currentVolume_ = volume;
+    ma_sound_set_volume(&sound_, std::max(0.0f, currentVolume_ * volumeMultiplier_));
 }
 
 void SoundEffect::setDistanceFade(float factor)
 {
-    const float currentVolume{ma_sound_get_volume(&sound_)};
-    setVolume(currentVolume * factor);
+    volumeMultiplier_ = std::clamp(factor, 0.0f, 1.0f);
+    ma_sound_set_volume(&sound_, std::max(0.0f, currentVolume_ * volumeMultiplier_));
 }
 
 float SoundEffect::varyPitch()

@@ -38,5 +38,7 @@ class SoundEffect
     float pitchLow_{1.0f};
     float pitchHigh_{1.0f};
     float length_{0.0f};
+    float currentVolume_{0.0f};
+    float volumeMultiplier_{1.0f};
     bool initialized_{false};
 };

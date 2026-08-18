@@ -227,43 +227,7 @@ SOFTWARE.
 
 </details>
 
-
 <h1>Art</h1>
-
-<h2>Configuration Window Image</h2>
-
-<details>
-
-<summary>By dordy</summary>
-
-Image Information:
-* title:	ASTRATTO 2
-* source:	https://openclipart.org/detail/289892/astratto-2
-* author:	[dordy](https://openclipart.org/artist/dordy)
-
-Image License:
-* license type:	[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
-
-</details>
-
-<h2>Elm Branch Textures</h2>
-
-<details>
-<summary>By pbrpx</summary>
-
-Texture Information:
-* title:	PX_Prunus_x_yedoensis_Atlas_04
-* source:	https://library.pbrpx.com/asset?asset=153&category=144
-* author:	[pbrpx](https://pbrpx.com/)
-
-Texture Information:
-* title:	PX_Prunus_x_yedoensis_Atlas_05
-* source:	https://library.pbrpx.com/asset?asset=154&category=144
-* author:	[pbrpx](https://pbrpx.com/)
-
-Texture License:
-* license type:	[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
-</details>
 
 <h2>Trees 1 - 4</h2>
 
@@ -400,14 +364,15 @@ This work is based on ["Seagull – Stylized Animated 3D Model"](https://sketchf
 
 <h2>Hilltop Music</h2>
 <details>
-<summary>By penguinmusic</summary>
+<summary>By Andrewkn</summary>
 
 Audio Information:
-* title:	Through the Clouds
-* source:	https://pixabay.com/music/corporate-through-the-clouds-calming-cinematic-ambient-200392
-* author:	[penguinmusic](https://pixabay.com/users/penguinmusic-24940186/)
+* title:	Ambient, Pad Piano - Event Horizon
+* source:	https://freesound.org/people/Andrewkn/sounds/827922/
+* author:	[Andrewkn](https://freesound.org/people/Andrewkn/)
 
-by  via [Pixabay](https://pixabay.com/)
+Audio License:
+* license type:	[CC BY 4.0](http://creativecommons.org/licenses/by/4.0/)
 </details>
 
 <h2>Grass Footsteps</h2>
@@ -438,33 +403,20 @@ Audio License:
 * license type:	[Creative Commons Attribution-NonCommercial-ShareAlike 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 </details>
 
-<h2>Black Hole</h2>
+<h2>Pond Sound</h2>
 <details>
-<summary>By qubodup</summary>
+<summary>By LittleRobotSoundFactory</summary>
 
 Audio Information:
-* title:	Soft Subtle Sci-Fi Hovercract Engine Humm
-* source:	https://freesound.org/people/qubodup/sounds/861960/
-* author:	[qubodup](https://freesound.org/people/qubodup/)
+* title:	Footstep_Water_03.wav
+* source:	https://freesound.org/people/LittleRobotSoundFactory/sounds/270429/
+* author:	[LittleRobotSoundFactory](https://freesound.org/people/LittleRobotSoundFactory/)
 
 Audio License:
-* license type:	[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
+* license type:	[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 </details>
 
-<h2>Beach</h2>
-<details>
-<summary>By kkenny101</summary>
-
-Audio Information:
-* title:	Gentle Ocean Waves Loop
-* source:	https://freesound.org/people/kkenny101/sounds/852826/
-* author:	[kkenny101](https://freesound.org/people/kkenny101/)
-
-Audio License:
-* license type:	[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
-</details>
-
-<h2>Water Wading</h2>
+<h2>Puddle Sound</h2>
 <details>
 <summary>By ConnorM94</summary>
 
@@ -476,3 +428,25 @@ Audio Information:
 Audio License:
 * license type:	[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
 </details>
+
+<h2>Beach Sounds</h2>
+<details>
+<summary>By smokingsound</summary>
+
+Audio Information:
+* title:	water_waves_rocks.aif
+* source:	https://freesound.org/people/smokingsound/sounds/331700/
+* author:	[smokingsound](https://freesound.org/people/smokingsound/)
+
+Audio License:
+* license type:	[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+</details>
+
+<h1>CC0 Assets</h1>
+
+- Configuration Window Image - [ASTRATTO 2](https://openclipart.org/detail/289892/astratto-2)
+- Tree Branch Textures - [PX_Prunus_x_yedoensis_Atlas_04](https://library.pbrpx.com/asset?asset=153&category=144) and [PX_Prunus_x_yedoensis_Atlas_05](https://library.pbrpx.com/asset?asset=154&category=144)
+- Black Hole Sound - [Soft Subtle Sci-Fi Hovercract Engine Humm](https://freesound.org/people/qubodup/sounds/861960/)
+- Wind - [Autumn wind and dry leaves](https://freesound.org/people/Stek59/sounds/457318/)
+- Birds - [Birds Forest 1](https://www.youtube.com/watch?v=J6OGbkl4Vrs)
+- Splash - [Splash.ogg](https://freesound.org/people/egomassive/sounds/536740/)
