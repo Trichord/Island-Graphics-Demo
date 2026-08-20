@@ -113,10 +113,6 @@ void Renderer::initializeResources(const Scene &scene, const Camera &camera)
     // Update the GPU metadata buffers for the freshly created cubemaps
     updateMetadataCubemaps(scene, metadataBridge);
 
-    // Get ready for first frame
-    bindBufferRanges(0);
-    updateCameraUBO(camera);
-
     // Unbind for Hi-Z at start of frame and prime texture so everything passes
     frameBuffer_.unbind();
     GLfloat one{1.0f};
@@ -277,7 +273,7 @@ void Renderer::renderCubeFaces(Camera &camera, RenderTarget &target, RenderTarge
         updateCameraUBO(camera);
 
         // Use buffer section 0 since its a main render pass. Frustum only since Hi-Z is not prepped
-        cullScene(cullFrustumShader_, camera.getViewProjectionMatrix(), 0);
+        cullScene(cullFrustumShader_, camera.getViewProjectionMatrix(), BufferRange::mainPass);
 
         GLuint zero{0};
         glNamedBufferSubData(SSBOs_.drawCounts, static_cast<GLsizeiptr>(parameterBufferIndex * sizeof(std::uint32_t)),

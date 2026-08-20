@@ -20,6 +20,10 @@ void Renderer::renderScene()
 
     glState_.setVAO(VAOs_.vao);
 
+    constexpr int bufferIndex{bufferRangeIndex(BufferRange::mainPass)};
+    const std::size_t drawBufferSection{bufferIndex * drawCommandsSize_};
+    const std::size_t parameterBufferSection{bufferIndex * drawCountsSize_};
+
     for (std::size_t i{0}; i < drawBuckets_.size(); ++i)
     {
         using enum ShaderType;
@@ -44,10 +48,14 @@ void Renderer::renderScene()
 
         GLenum mode{static_cast<GLenum>(mdb.shaderType == particles ? GL_POINTS : GL_TRIANGLES)};
 
-        glMultiDrawElementsIndirectCount(
-            mode, GL_UNSIGNED_INT,
-            reinterpret_cast<void *>(mdb.drawCommandsBaseIndex * sizeof(DrawElementsIndirectCommand)),
-            static_cast<GLintptr>(i * sizeof(std::uint32_t)), mdb.maxDrawCalls, 0);
+        const std::size_t drawCommandOffset{mdb.drawCommandsBaseIndex * sizeof(DrawElementsIndirectCommand)};
+        const std::size_t drawCommandIndex{drawBufferSection + drawCommandOffset};
+
+        const std::size_t parameterBufferOffset{i * sizeof(std::uint32_t)};
+        const std::size_t parameterBufferIndex{parameterBufferSection + parameterBufferOffset};
+
+        glMultiDrawElementsIndirectCount(mode, GL_UNSIGNED_INT, reinterpret_cast<void *>(drawCommandIndex),
+                                         static_cast<GLintptr>(parameterBufferIndex), mdb.maxDrawCalls, 0);
     }
 }
 
@@ -73,10 +81,7 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
     {
         const glm::mat4 lightVP{cascades[i].viewProjection};
 
-        // Main pass is at buffer[0]
-        int bufferSection{1 + i};
-        bindBufferRanges(bufferSection);
-        cullScene(cullFrustumShader_, lightVP, bufferSection);
+        cullScene(cullFrustumShader_, lightVP, BufferRange::cascade0 + i);
     }
 
     // Opaque geometry first (positions only)
@@ -88,10 +93,10 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
         shadowPassTarget_.setTextureLayer(i);
         shadowPassTarget_.clear();
 
-        int bufferSection{1 + i};
-
-        bindBufferRanges(bufferSection);
-        shadowPass(shadowShader, i, false);
+        // Manually re-bind ranges since everything is pre-culled
+        const BufferRange range{BufferRange::cascade0 + i};
+        bindBufferRanges(range);
+        shadowPass(shadowShader, range, i, false);
     }
 
     // Alpha tested geometry (needs vertex paint, uvs, etc)
@@ -101,21 +106,24 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
 
     for (int i{0}; i < cascadeCount; ++i)
     {
-        bindBufferRanges(1 + i);
+        const BufferRange range{BufferRange::cascade0 + i};
+        bindBufferRanges(range);
         shadowPassTarget_.setTextureLayer(i);
-        shadowPass(shadowAlphaShader, i, true);
+        shadowPass(shadowAlphaShader, range, i, true);
     }
 
-    bindBufferRanges(0);
     glDisable(GL_POLYGON_OFFSET_FILL);
     glViewport(0, 0, graphicsSettings_.renderWidth, graphicsSettings_.renderHeight);
     frameBuffer_.bind();
 }
 
-void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)
+void Renderer::shadowPass(GraphicsShader &shader, BufferRange range, int cascade, bool alphaTested)
 {
+    const int bufferIndex{bufferRangeIndex(range)};
+    const std::size_t drawBufferSection{bufferIndex * drawCommandsSize_};
+    const std::size_t parameterBufferSection{bufferIndex * drawCountsSize_};
+
     shader.setInt("cascade", cascade);
-    int bufferIndex{1 + cascade};
 
     for (std::size_t i{0}; i < drawBuckets_.size(); ++i)
     {
@@ -137,30 +145,13 @@ void Renderer::shadowPass(GraphicsShader &shader, int cascade, bool alphaTested)
 
         GLenum mode{static_cast<GLenum>(mdb.shaderType == particles ? GL_POINTS : GL_TRIANGLES)};
 
-        std::size_t drawBufferSection{bufferIndex * drawCommandsSize_};
-        std::size_t drawCommandOffset{mdb.drawCommandsBaseIndex * sizeof(DrawElementsIndirectCommand)};
-        std::size_t drawCommandIndex{drawBufferSection + drawCommandOffset};
+        const std::size_t drawCommandOffset{mdb.drawCommandsBaseIndex * sizeof(DrawElementsIndirectCommand)};
+        const std::size_t drawCommandIndex{drawBufferSection + drawCommandOffset};
 
-        std::size_t parameterBufferSection{bufferIndex * drawCountsSize_};
-        std::size_t parameterBufferOffset{i * sizeof(std::uint32_t)};
-        std::size_t parameterBufferIndex{parameterBufferSection + parameterBufferOffset};
+        const std::size_t parameterBufferOffset{i * sizeof(std::uint32_t)};
+        const std::size_t parameterBufferIndex{parameterBufferSection + parameterBufferOffset};
 
         glMultiDrawElementsIndirectCount(mode, GL_UNSIGNED_INT, reinterpret_cast<void *>(drawCommandIndex),
                                          static_cast<GLintptr>(parameterBufferIndex), mdb.maxDrawCalls, 0);
     }
-}
-
-void Renderer::bindBufferRanges(int index)
-{
-    auto bindSSBO = [](BindingPointSSBO bindingPoint, GLuint buffer, std::uint32_t size, int index) {
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(bindingPoint), buffer,
-                          static_cast<GLintptr>(size * index), static_cast<GLsizeiptr>(size));
-    };
-
-    using enum BindingPointSSBO;
-
-    bindSSBO(drawCommands, SSBOs_.drawCommands, drawCommandsSize_, index);
-    bindSSBO(cullResults, SSBOs_.cullResults, cullResultsSize_, index);
-    bindSSBO(drawCounts, SSBOs_.drawCounts, drawCountsSize_, index);
-    bindSSBO(visibleInstances, SSBOs_.visibleInstances, visibleInstancesSize_, index);
 }

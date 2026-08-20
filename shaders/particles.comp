@@ -26,7 +26,7 @@ layout(binding = SSBO_BINDING_DRAW_COMMANDS_SOURCE, std430) restrict readonly bu
     DrawElementsIndirectCommand commands[];
 };
 
-layout(binding = SSBO_BINDING_VERTEX_MAP, std430) restrict readonly buffer VertexMapSSBO
+layout(binding = SSBO_BINDING_PARTICLE_MAP, std430) restrict readonly buffer VertexMapSSBO
 {
     uint particleMap[];
 };

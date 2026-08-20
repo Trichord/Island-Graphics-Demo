@@ -117,10 +117,10 @@ class Renderer
     // Drawing
     void blitFrame();
     void renderScene();
-    void bindBufferRanges(int index);
-    void shadowPass(GraphicsShader &shader, int cascade, bool alphaTested);
+    void bindBufferRanges(BufferRange range);
+    void shadowPass(GraphicsShader &shader, BufferRange range, int cascade, bool alphaTested);
     void renderShadowMaps(const Scene &scene, const Camera &camera, bool lightChanged);
-    void cullScene(ComputeShader &cullShader, const glm::mat4 &cullMatrix, int bufferSection);
+    void cullScene(ComputeShader &cullShader, const glm::mat4 &cullMatrix, BufferRange range);
 
     // Updates
     void updateHiZ();

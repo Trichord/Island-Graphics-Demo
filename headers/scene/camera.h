@@ -59,7 +59,7 @@ class Camera
     mutable glm::mat4 viewProjectionMatrix_{1.0f};
 
     // State tracking
-    mutable bool hasChanged_{false};
+    mutable bool hasChanged_{true};
     mutable bool dirtyMatrices_{true};
 
     // Frustum

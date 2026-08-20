@@ -107,8 +107,8 @@ Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &setti
                                            hiZSampler, true, false)},
       noiseTexture_{texture::textureFromFile("./res/textures/perlin.ktx2", {})},
       hiZViews_{hiZTexture_, hiZSampler, hiZInternalFormat,
-                                 texture::calculateMipmapLevels(settings.renderWidth / hiZResolutionReduction,
-                                                                settings.renderHeight / hiZResolutionReduction, false)}
+                texture::calculateMipmapLevels(settings.renderWidth / hiZResolutionReduction,
+                                               settings.renderHeight / hiZResolutionReduction, false)}
 {
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::depthMap), frameBuffer_.getDepthMapTextureID());
     glBindTextureUnit(static_cast<GLuint>(TextureUnit::resolvedColor), msaaResolveTarget_.getColorTextureID());
@@ -151,7 +151,7 @@ void Renderer::render(const Scene &scene, const Camera &camera, float time, floa
         updateCameraUBO(camera);
 
     const glm::mat4 &cameraVP{camera.getViewProjectionMatrix()};
-    cullScene(cullShader_, cameraVP, 0);
+    cullScene(cullShader_, cameraVP, BufferRange::mainPass);
     renderScene();
     blitFrame();
 
@@ -336,13 +336,21 @@ std::uint32_t Renderer::getFrameCount() const
 
 // Culls a scene agains the cull matrix, building a new compacted list of draw commands and updating the parameter
 // buffer. Changes active shader program.
-void Renderer::cullScene(ComputeShader &cullShader, const glm::mat4 &cullMatrix, int bufferSection)
+void Renderer::cullScene(ComputeShader &cullShader, const glm::mat4 &cullMatrix, BufferRange range)
 {
     constexpr std::uint32_t shaderLocalSize{64u};
 
-    glClearNamedBufferSubData(SSBOs_.drawCounts, GL_R32UI, static_cast<GLintptr>(bufferSection * drawCountsSize_),
-                              static_cast<GLsizeiptr>(drawCountsSize_), GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
-    glClearNamedBufferSubData(SSBOs_.cullResults, GL_R32UI, static_cast<GLintptr>(bufferSection * cullResultsSize_),
+    // Must bind the range here, otherwise the culling and compaction shaders will happily write into the wrong offset
+    bindBufferRanges(range);
+
+    const GLintptr drawCountOffset{static_cast<GLintptr>(bufferRangeIndex(range)) *
+                                   static_cast<GLintptr>(drawCountsSize_)};
+    const GLintptr cullResultsOffset{static_cast<GLintptr>(bufferRangeIndex(range)) *
+                                     static_cast<GLintptr>(cullResultsSize_)};
+
+    glClearNamedBufferSubData(SSBOs_.drawCounts, GL_R32UI, drawCountOffset, static_cast<GLsizeiptr>(drawCountsSize_),
+                              GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+    glClearNamedBufferSubData(SSBOs_.cullResults, GL_R32UI, cullResultsOffset,
                               static_cast<GLsizeiptr>(cullResultsSize_), GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
 
     updateFrustumPlanesUBO(cullMatrix);
@@ -460,4 +468,21 @@ void Renderer::updateExternalResolution(int width, int height)
 {
     externalWidth_ = width;
     externalHeight_ = height;
+}
+
+void Renderer::bindBufferRanges(BufferRange range)
+{
+    auto bindSSBO = [](BindingPointSSBO bindingPoint, GLuint buffer, std::uint32_t size, BufferRange range) {
+        const GLintptr bufferSize{static_cast<GLintptr>(size)};
+        const GLintptr offset{bufferSize * static_cast<GLintptr>(bufferRangeIndex(range))};
+
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(bindingPoint), buffer, offset, bufferSize);
+    };
+
+    using enum BindingPointSSBO;
+
+    bindSSBO(drawCommands, SSBOs_.drawCommands, drawCommandsSize_, range);
+    bindSSBO(cullResults, SSBOs_.cullResults, cullResultsSize_, range);
+    bindSSBO(drawCounts, SSBOs_.drawCounts, drawCountsSize_, range);
+    bindSSBO(visibleInstances, SSBOs_.visibleInstances, visibleInstancesSize_, range);
 }

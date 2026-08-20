@@ -4,6 +4,8 @@
 #include <iterator>
 #include <utility>
 
+#include "renderer/cascade_shadow.h"
+
 /* Shader Storage Buffer Objects
  * -----------------------------
  *
@@ -130,7 +132,7 @@ struct SSBOs
  * 1 - Normal (uint / vec3)
  * 2 - Tangent (uint / vec4)
  * 3 - Texture coordinates (uint / vec2)
- * 4 - VBO Index (uint) 
+ * 4 - VBO Index (uint)
  * 5 - Color (uint / vec4)
  *
  * Shadow attribute layout:
@@ -261,3 +263,47 @@ inline constexpr int combinedBindings{16};
 inline constexpr int vertexBlocks{8};
 inline constexpr int fragmentBlocks{8};
 } // namespace SSBOMinimum
+
+enum class BufferRange : int
+{
+    mainPass,
+    cascade0,
+    cascade1,
+    cascade2,
+    count
+};
+
+static_assert(static_cast<int>(BufferRange::cascade0) + shadowCascadeCount == static_cast<int>(BufferRange::count));
+
+constexpr int bufferRangeIndex(BufferRange range)
+{
+    using enum BufferRange;
+
+    assert(range >= mainPass && range < count);
+    return static_cast<int>(range);
+}
+
+constexpr BufferRange bufferRangeFromIndex(int index)
+{
+    assert(index >= 0 && index < static_cast<int>(BufferRange::count));
+    return static_cast<BufferRange>(index);
+}
+
+constexpr BufferRange &operator++(BufferRange &r)
+{
+    r = static_cast<BufferRange>(static_cast<int>(r) + 1);
+    return r;
+}
+
+constexpr BufferRange operator+(BufferRange r, int i)
+{
+    const int n{static_cast<int>(r) + i};
+    assert(n >= 0 && n <= static_cast<int>(BufferRange::count));
+    r = static_cast<BufferRange>(n);
+    return r;
+}
+
+constexpr BufferRange operator+(int i, BufferRange r)
+{
+    return r + i;
+}
