@@ -264,7 +264,7 @@ inline constexpr int vertexBlocks{8};
 inline constexpr int fragmentBlocks{8};
 } // namespace SSBOMinimum
 
-enum class BufferRange : int
+enum class BufferRange : std::size_t
 {
     mainPass,
     cascade0,
@@ -273,37 +273,37 @@ enum class BufferRange : int
     count
 };
 
-static_assert(static_cast<int>(BufferRange::cascade0) + shadowCascadeCount == static_cast<int>(BufferRange::count));
+static_assert(static_cast<std::size_t>(BufferRange::cascade0) + shadowCascadeCount ==
+              static_cast<std::size_t>(BufferRange::count));
 
-constexpr int bufferRangeIndex(BufferRange range)
+constexpr std::size_t bufferRangeIndex(BufferRange range)
 {
-    using enum BufferRange;
-
-    assert(range >= mainPass && range < count);
-    return static_cast<int>(range);
+    return static_cast<std::size_t>(range);
 }
 
-constexpr BufferRange bufferRangeFromIndex(int index)
+constexpr BufferRange bufferRangeFromIndex(std::size_t index)
 {
-    assert(index >= 0 && index < static_cast<int>(BufferRange::count));
+    assert(index < static_cast<std::size_t>(BufferRange::count));
     return static_cast<BufferRange>(index);
 }
 
 constexpr BufferRange &operator++(BufferRange &r)
 {
-    r = static_cast<BufferRange>(static_cast<int>(r) + 1);
-    return r;
-}
-
-constexpr BufferRange operator+(BufferRange r, int i)
-{
-    const int n{static_cast<int>(r) + i};
-    assert(n >= 0 && n <= static_cast<int>(BufferRange::count));
+    const std::size_t n{static_cast<std::size_t>(r) + 1};
+    assert(n < static_cast<std::size_t>(BufferRange::count));
     r = static_cast<BufferRange>(n);
     return r;
 }
 
-constexpr BufferRange operator+(int i, BufferRange r)
+constexpr BufferRange operator+(BufferRange r, std::size_t i)
+{
+    const std::size_t n{static_cast<std::size_t>(r) + i};
+    assert(n <= static_cast<std::size_t>(BufferRange::count));
+    r = static_cast<BufferRange>(n);
+    return r;
+}
+
+constexpr BufferRange operator+(std::size_t i, BufferRange r)
 {
     return r + i;
 }

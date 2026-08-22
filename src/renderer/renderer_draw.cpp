@@ -12,7 +12,14 @@
 #include "renderer/shader/graphics_shader.h"
 #include "scene/scene.h"
 
-// Render objects, grouped by shader type
+namespace
+{
+const void *glVoidCast(std::size_t bytes) noexcept
+{
+    return reinterpret_cast<void *>(static_cast<std::uintptr_t>(bytes));
+}
+} // namespace
+
 void Renderer::renderScene()
 {
     if (drawBuckets_.empty())
@@ -20,7 +27,7 @@ void Renderer::renderScene()
 
     glState_.setVAO(VAOs_.vao);
 
-    constexpr int bufferIndex{bufferRangeIndex(BufferRange::mainPass)};
+    constexpr std::size_t bufferIndex{bufferRangeIndex(BufferRange::mainPass)};
     const std::size_t drawBufferSection{bufferIndex * drawCommandsSize_};
     const std::size_t parameterBufferSection{bufferIndex * drawCountsSize_};
 
@@ -53,8 +60,7 @@ void Renderer::renderScene()
 
         const std::size_t parameterBufferOffset{i * sizeof(std::uint32_t)};
         const std::size_t parameterBufferIndex{parameterBufferSection + parameterBufferOffset};
-
-        glMultiDrawElementsIndirectCount(mode, GL_UNSIGNED_INT, reinterpret_cast<void *>(drawCommandIndex),
+        glMultiDrawElementsIndirectCount(mode, GL_UNSIGNED_INT, glVoidCast(drawCommandIndex),
                                          static_cast<GLintptr>(parameterBufferIndex), mdb.maxDrawCalls, 0);
     }
 }
@@ -65,7 +71,7 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
     glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
     glEnable(GL_POLYGON_OFFSET_FILL);
 
-    shadowPassTarget_.bind();
+    glState_.bindFramebuffer(shadowPassTarget_.getID());
     glState_.setDepthWrite(true);
     glState_.setVAO(VAOs_.shadowVAO);
     glState_.setAlphaMode(AlphaMode::opaque);
@@ -114,12 +120,11 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
 
     glDisable(GL_POLYGON_OFFSET_FILL);
     glViewport(0, 0, graphicsSettings_.renderWidth, graphicsSettings_.renderHeight);
-    frameBuffer_.bind();
 }
 
 void Renderer::shadowPass(GraphicsShader &shader, BufferRange range, int cascade, bool alphaTested)
 {
-    const int bufferIndex{bufferRangeIndex(range)};
+    const std::size_t bufferIndex{bufferRangeIndex(range)};
     const std::size_t drawBufferSection{bufferIndex * drawCommandsSize_};
     const std::size_t parameterBufferSection{bufferIndex * drawCountsSize_};
 
@@ -151,7 +156,7 @@ void Renderer::shadowPass(GraphicsShader &shader, BufferRange range, int cascade
         const std::size_t parameterBufferOffset{i * sizeof(std::uint32_t)};
         const std::size_t parameterBufferIndex{parameterBufferSection + parameterBufferOffset};
 
-        glMultiDrawElementsIndirectCount(mode, GL_UNSIGNED_INT, reinterpret_cast<void *>(drawCommandIndex),
+        glMultiDrawElementsIndirectCount(mode, GL_UNSIGNED_INT, glVoidCast(drawCommandIndex),
                                          static_cast<GLintptr>(parameterBufferIndex), mdb.maxDrawCalls, 0);
     }
 }

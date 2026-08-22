@@ -8,7 +8,7 @@ constexpr int minRes{1};
 constexpr int minMSAA{2};
 constexpr int minAniso{0};
 constexpr int minShadowRes{256};
-constexpr float minGamma{0.01};
+constexpr float minGamma{0.01f};
 constexpr int minReflectionRes{64};
 
 constexpr int defaultRenderWidth{1920};

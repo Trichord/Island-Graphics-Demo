@@ -19,6 +19,9 @@ struct DrawElementsIndirectCommand
     unsigned int baseInstance;
 };
 
+static_assert(sizeof(DrawElementsIndirectCommand) == 20);
+static_assert(std::is_standard_layout_v<DrawElementsIndirectCommand>);
+
 // Buffer offset and primitive count for Multi Draw Indirect calls
 struct MultiDrawBucket
 {

@@ -20,7 +20,7 @@ class RenderTarget
         GLenum internalFormat{GL_NONE};
         GLenum depthFormat{GL_NONE};
         bool textureArray{false};
-        GLsizei textureArrayDepth{1};
+        int textureArrayDepth{1};
         bool mipmaps{false};
         bool shadowMap{false};
     };
@@ -33,9 +33,7 @@ class RenderTarget
     RenderTarget &operator=(RenderTarget &&other) noexcept;
     ~RenderTarget();
 
-    void bind();
-    void unbind();
-
+    GLuint getID() const;
     int getWidth() const;
     int getHeight() const;
     int getNumLayers() const;
@@ -53,9 +51,9 @@ class RenderTarget
     static constexpr float depthColor{1.0f};
     static constexpr std::array<float, 4> clearColor{1.0f, 1.0f, 1.0f, 1.0f};
 
-    int layers_{1};
-    int width_{1920};
-    int height_{1080};
+    GLsizei layers_{1};
+    GLsizei width_{1920};
+    GLsizei height_{1080};
 
     GLuint FBO_{0};
     GLuint depthRBO_{0};
@@ -63,14 +61,14 @@ class RenderTarget
     GLuint depthMapTextureID_{0};
     GLenum internalFormat_{GL_NONE};
 
-    void createRenderTarget(int width, int height, const Settings &settings);
-    void createMSAARenderTarget(int width, int height, const Settings &settings);
+    void createRenderTarget(const Settings &settings);
+    void createMSAARenderTarget(const Settings &settings);
 
-    void createRBO(int width, int height, const Settings &settings);
-    void createDepthTexture(int width, int height, GLenum target, const Settings &settings);
-    void createColorTexture(int width, int height, int mipLevels, GLenum target, const Settings &settings);
+    void createRBO(const Settings &settings);
+    void createDepthTexture(GLenum target, const Settings &settings);
+    void createColorTexture(int mipLevels, GLenum target, const Settings &settings);
 
-    void createMultisampleRBO(int width, int height, const Settings &settings);
-    void createMultisampleTexture(int width, int height, const Settings &settings);
-    void createMultisampleColorTexture(int width, int height, const Settings &settings);
+    void createMultisampleRBO(const Settings &settings);
+    void createMultisampleTexture(const Settings &settings);
+    void createMultisampleColorTexture(const Settings &settings);
 };

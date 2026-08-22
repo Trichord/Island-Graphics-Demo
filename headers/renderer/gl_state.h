@@ -20,6 +20,7 @@ class GLState
 
     void bindTexture(GLuint unit, GLuint id);
     void bindProgram(Shader &shader);
+    void bindFramebuffer(GLuint id);
 
   private:
     bool a2cEnabled_{false};
@@ -31,6 +32,7 @@ class GLState
     GLenum currentDepthFunc_{GL_LESS};
     GLuint currentProgram_{0};
     GLuint currentVAO_{0};
+    GLuint currentFramebuffer_{0};
 
     std::vector<GLuint> textureUnits_;
 };

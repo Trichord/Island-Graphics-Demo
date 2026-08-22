@@ -33,7 +33,7 @@ class ArrayTexture
     void addCapacity(std::size_t capacity);
     void allocate(bool cubemaps, bool textureRepeat, bool mipmaps, float anisotropy);
 
-    void bindTextureUnit(int unit);
+    void bindTextureUnit(std::uint32_t unit);
     // Intended for uncompressed textures. Calling this with compressed textures is horribly slow
     void generateMipmaps();
 

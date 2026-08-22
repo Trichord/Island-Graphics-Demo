@@ -113,8 +113,7 @@ void Renderer::initializeResources(const Scene &scene, const Camera &camera)
     // Update the GPU metadata buffers for the freshly created cubemaps
     updateMetadataCubemaps(scene, metadataBridge);
 
-    // Unbind for Hi-Z at start of frame and prime texture so everything passes
-    frameBuffer_.unbind();
+    // Prime Hi-Z texture so everything passes
     GLfloat one{1.0f};
     for (std::size_t i{0}; i < hiZViews_.getMipViews().size(); ++i)
         glClearTexImage(hiZTexture_, static_cast<GLint>(i), GL_RED, GL_FLOAT, &one);
@@ -234,7 +233,7 @@ void Renderer::createCubemaps(const Scene &scene, const std::vector<MultiDrawBuc
                                 .textureArrayDepth = 6,
                             }};
 
-    cubeFaces.bind();
+    glState_.bindFramebuffer(cubeFaces.getID());
 
     for (Handle handle : bucketHandles[waterIndex])
     {
@@ -257,7 +256,6 @@ void Renderer::createCubemaps(const Scene &scene, const std::vector<MultiDrawBuc
         textureManager_.setCubemap(entry.handle, materialIndices, blitTarget);
     }
 
-    cubeFaces.unbind();
     glViewport(0, 0, graphicsSettings_.renderWidth, graphicsSettings_.renderHeight);
 }
 

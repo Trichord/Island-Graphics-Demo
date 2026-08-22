@@ -110,14 +110,13 @@ Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &setti
                 texture::calculateMipmapLevels(settings.renderWidth / hiZResolutionReduction,
                                                settings.renderHeight / hiZResolutionReduction, false)}
 {
-    glBindTextureUnit(static_cast<GLuint>(TextureUnit::depthMap), frameBuffer_.getDepthMapTextureID());
-    glBindTextureUnit(static_cast<GLuint>(TextureUnit::resolvedColor), msaaResolveTarget_.getColorTextureID());
-    glBindTextureUnit(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getDepthMapTextureID());
-    glBindTextureUnit(static_cast<GLuint>(TextureUnit::hiZ), hiZTexture_);
-    glBindTextureUnit(static_cast<GLuint>(TextureUnit::noise), noiseTexture_);
+    glState_.bindTexture(static_cast<GLuint>(TextureUnit::depthMap), frameBuffer_.getDepthMapTextureID());
+    glState_.bindTexture(static_cast<GLuint>(TextureUnit::resolvedColor), msaaResolveTarget_.getColorTextureID());
+    glState_.bindTexture(static_cast<GLuint>(TextureUnit::shadow), shadowPassTarget_.getDepthMapTextureID());
+    glState_.bindTexture(static_cast<GLuint>(TextureUnit::hiZ), hiZTexture_);
+    glState_.bindTexture(static_cast<GLuint>(TextureUnit::noise), noiseTexture_);
+    glState_.bindFramebuffer(frameBuffer_.getID());
     glPolygonOffsetClamp(polygonFactor, polygonUnits, polygonClamp);
-
-    frameBuffer_.bind();
 }
 
 Renderer::~Renderer()
@@ -132,7 +131,6 @@ Renderer::~Renderer()
 void Renderer::render(const Scene &scene, const Camera &camera, float time, float deltaTime)
 {
     glState_.setDepthWrite(true);
-    frameBuffer_.clear();
 
     // Updates from scene first
     updateSceneTransforms(scene);
@@ -150,6 +148,9 @@ void Renderer::render(const Scene &scene, const Camera &camera, float time, floa
     if (camera.hasUpdated())
         updateCameraUBO(camera);
 
+    glState_.bindFramebuffer(frameBuffer_.getID());
+    frameBuffer_.clear();
+
     const glm::mat4 &cameraVP{camera.getViewProjectionMatrix()};
     cullScene(cullShader_, cameraVP, BufferRange::mainPass);
     renderScene();
@@ -158,7 +159,6 @@ void Renderer::render(const Scene &scene, const Camera &camera, float time, floa
     // One frame lag on occlusion culling
     cullShader_.setMat4("lastFrameVP", cameraVP);
     updateHiZ();
-    frameBuffer_.bind();
 
     ++framesRendered_;
 }
@@ -443,12 +443,6 @@ void Renderer::blitFrame()
 {
     frameBuffer_.blitTo(msaaResolveTarget_);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glDisable(GL_DEPTH_TEST);
-
-    Shader &fboResolve{shaders_[shaderIndex(ShaderType::fboResolve)]};
-    glState_.bindProgram(fboResolve);
-
     const int internalWidth{frameBuffer_.getWidth()};
     const int internalHeight{frameBuffer_.getHeight()};
     const bool changeViewport{internalWidth != externalWidth_ || internalHeight != externalHeight_};
@@ -456,6 +450,9 @@ void Renderer::blitFrame()
     if (changeViewport)
         glViewport(0, 0, static_cast<GLsizei>(externalWidth_), static_cast<GLsizei>(externalHeight_));
 
+    glState_.bindFramebuffer(0);
+    glState_.bindProgram(shaders_[shaderIndex(ShaderType::fboResolve)]);
+    glDisable(GL_DEPTH_TEST);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
     if (changeViewport)

@@ -6,17 +6,16 @@
 
 #include "models/primitive.h"
 #include "renderer/shader/shader_base.h"
-
-constexpr GLuint maxTextureUnits{16u};
+#include "renderer/textures.h"
 
 GLState::GLState()
 {
-    textureUnits_.resize(maxTextureUnits);
+    textureUnits_.resize(TextureUnit::max);
 }
 
 void GLState::bindTexture(GLuint unit, GLuint id)
 {
-    if (unit >= maxTextureUnits)
+    if (unit >= TextureUnit::max)
         throw std::runtime_error("Max texture units exceeded.");
 
     if (textureUnits_[unit] == id)
@@ -128,4 +127,13 @@ void GLState::setFaceCull(GLenum mode)
 
     glCullFace(mode);
     currentFaceCull_ = mode;
+}
+
+void GLState::bindFramebuffer(GLuint id)
+{
+    if (currentFramebuffer_ == id)
+        return;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, id);
+    currentFramebuffer_ = id;
 }

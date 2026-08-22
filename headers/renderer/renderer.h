@@ -116,6 +116,8 @@ class Renderer
 
     // Drawing
     void blitFrame();
+
+    // Render objects, grouped by shader type. Caller must ensure the correct framebuffer is bound
     void renderScene();
     void bindBufferRanges(BufferRange range);
     void shadowPass(GraphicsShader &shader, BufferRange range, int cascade, bool alphaTested);

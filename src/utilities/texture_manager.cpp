@@ -1,5 +1,6 @@
 #include "utilities/texture_manager.h"
 
+#include <cstdint>
 #include <fastgltf/types.hpp>
 #include <filesystem>
 #include <glad/glad.h>
@@ -218,11 +219,11 @@ void TextureManager::buildAllTextures()
         insertTexture(deferredTextures_[i], textures[i]);
 
     // Bind all units
-    for (int i{0}; i < static_cast<int>(arrayTextures_.size()); ++i)
+    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(arrayTextures_.size()); ++i)
         if (arrayTextures_[i].getCurrentSize())
             arrayTextures_[i].bindTextureUnit(TextureUnit::array2DBase + i);
 
-    for (int i{0}; i < static_cast<int>(arrayCubemaps_.size()); ++i)
+    for (std::uint32_t i{0}; i < static_cast<std::uint32_t>(arrayCubemaps_.size()); ++i)
         if (arrayCubemaps_[i].getCurrentSize())
             arrayCubemaps_[i].bindTextureUnit(TextureUnit::arrayCubemapBase + i);
 

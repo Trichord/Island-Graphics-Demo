@@ -7,21 +7,21 @@
 // Texture unit bindings
 namespace TextureUnit
 {
-static constexpr int array2DBase{0};
-static constexpr int arrayCubemapBase{12};
-static constexpr int shadow{15};
-static constexpr int resolvedColor{16};
-static constexpr int depthMap{17};
-static constexpr int hiZ{18};
-static constexpr int noise{19};
-static constexpr int max{32};
+static constexpr std::uint32_t array2DBase{0};
+static constexpr std::uint32_t arrayCubemapBase{12};
+static constexpr std::uint32_t shadow{15};
+static constexpr std::uint32_t resolvedColor{16};
+static constexpr std::uint32_t depthMap{17};
+static constexpr std::uint32_t hiZ{18};
+static constexpr std::uint32_t noise{19};
+static constexpr std::uint32_t max{32};
 } // namespace TextureUnit
 
 namespace ImageUnit
 {
-static constexpr int hiZRead{0};
-static constexpr int hiZWrite{1};
-static constexpr int max{8};
+static constexpr std::uint32_t hiZRead{0};
+static constexpr std::uint32_t hiZWrite{1};
+static constexpr std::uint32_t max{8};
 }
 
 namespace DynamicCubemaps

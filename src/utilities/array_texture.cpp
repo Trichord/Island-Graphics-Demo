@@ -116,7 +116,7 @@ void ArrayTexture::addCapacity(std::size_t capacity)
     capacity_ += capacity;
 }
 
-void ArrayTexture::bindTextureUnit(int unit)
+void ArrayTexture::bindTextureUnit(std::uint32_t unit)
 {
     glBindTextureUnit(static_cast<GLuint>(unit), id_);
 }
@@ -194,7 +194,7 @@ std::size_t ArrayTexture::insert(RenderTarget &renderTarget)
     }
 
     const GLuint sourceID{renderTarget.getColorTextureID()};
-    const GLuint layers{static_cast<GLuint>(renderTarget.getNumLayers())};
+    const GLsizei layers{static_cast<GLsizei>(renderTarget.getNumLayers())};
     const GLsizei sourceWidth{static_cast<GLsizei>(renderTarget.getWidth())};
     const GLsizei sourceHeight{static_cast<GLsizei>(renderTarget.getHeight())};
 
@@ -215,7 +215,6 @@ std::size_t ArrayTexture::insert(RenderTarget &renderTarget)
 
     glCopyImageSubData(sourceID, sourceTarget, 0, 0, 0, 0, id_, target, 0, 0, 0, layer, sourceWidth, sourceHeight,
                        layers);
-
     return current_++;
 }
 
@@ -336,14 +335,11 @@ void ArrayTexture::createSRGBFallback()
         pixels[i + 3] = 255;
     }
 
-    int numFaces{cubemaps_ ? 6 : 1};
+    GLint numFaces{cubemaps_ ? 6 : 1};
 
-    for (int face{0}; face < numFaces; ++face)
-    {
+    for (GLint face{0}; face < numFaces; ++face)
         glTextureSubImage3D(id_, 0, 0, 0, face, static_cast<GLsizei>(width_), static_cast<GLsizei>(height_), 1, GL_RGBA,
                             GL_UNSIGNED_BYTE, pixels.data());
-    }
-
     generateMipmaps();
 }
 
