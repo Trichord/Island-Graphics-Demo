@@ -360,6 +360,25 @@ If you use this 3D model in your project be sure to copy paste this credit where
 This work is based on ["Seagull – Stylized Animated 3D Model"](https://sketchfab.com/3d-models/seagull-stylized-animated-3d-model-b331b360c0064536a6e517c1a93a349d) by [AnimalMesh 3D](https://sketchfab.com/AnimalMesh3D) licensed under [CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
 </details>
 
+<h2>Monument</h2>
+
+<details>
+<summary>By Samuel Francis Johnson</summary>
+
+Model Information:
+* title:	Noble Classicism Monument - Garden Folly
+* source:	https://sketchfab.com/3d-models/noble-classicism-monument-garden-folly-e491b1c3afca4bec88ab4a403aad7ee3
+* author:	[Samuel Francis Johnson](https://sketchfab.com/oneironauticus) (Oneironauticus) 
+
+Model License:
+* license type:	[CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on ["Noble Classicism Monument - Garden Folly"](https://sketchfab.com/3d-models/noble-classicism-monument-garden-folly-e491b1c3afca4bec88ab4a403aad7ee3) by [Samuel Francis Johnson](https://sketchfab.com/oneironauticus) (Oneironauticus) licensed under [CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
+
+</details>
+
 <h1>Audio</h1>
 
 <h2>Hilltop Music</h2>

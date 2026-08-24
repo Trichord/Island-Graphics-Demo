@@ -32,8 +32,8 @@ namespace
 {
 // Hardware shadow bias
 constexpr GLfloat polygonFactor{2.0f};
-constexpr GLfloat polygonUnits{1.0f};
-constexpr GLfloat polygonClamp{0.01f};
+constexpr GLfloat polygonUnits{2.0f};
+constexpr GLfloat polygonClamp{0.02f};
 
 // Reduce the distance of the camera's far plane by 80% for shadow cascades.
 constexpr float farPlaneReduction{0.2f};

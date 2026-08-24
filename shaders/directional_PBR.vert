@@ -60,8 +60,8 @@ void main()
 
 	vOut.worldFragPos = modelMatrix * vec4(aPos, 1.0);
 	vOut.viewFragPos = viewMatrix * vOut.worldFragPos;
-	vOut.tangentFragPos = TBN * vOut.worldFragPos.xyz;
 
+	vOut.tangentFragPos = TBN * vOut.worldFragPos.xyz;
 	vOut.lightDir = TBN * lightDir;
 	vOut.cameraPos = TBN * cameraPosition.xyz;
 

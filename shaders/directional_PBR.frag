@@ -47,7 +47,7 @@ void main()
 
 	vec3 N;
 	N.xy = texture(textures[meta.normalArray], vec3(fsIn.texCoords, meta.normalLayer)).rg * 2.0 - 1.0;
-	N.z = sqrt(max(1.0 - dot(N.xy, N.xy), 0.0));
+	N.z = sqrt(1 - dot(N.xy, N.xy));
 
 	// Vectors
 	N = normalize(N);
@@ -74,11 +74,6 @@ void main()
 	float G = geometrySmith(NdotV, NdotL, roughness);
 	vec3 F = fresnelSchlick(HdotV, F0);
 
-	// Specular and diffuse terms
-	vec3 kS = F;
-	vec3 kD = vec3(1.0) - kS;
-	kD *= 1.0 - metallic;
-
 	// Avoid division by 0, using a small constant
 	vec3 numerator = NDF * G * F;
 	float denom = max(4.0 * NdotL * NdotV, 0.0001);
@@ -87,11 +82,8 @@ void main()
 	// Burley diffuse
 	float FD90 = 0.5 + 2 * roughness * (HdotV * HdotV);
 	float burleyFactor = burleyDiffuseFactor(FD90, NdotL, NdotV);
-	vec3 fD = albedo.rgb * inversePi * burleyFactor;
+	vec3 diffuse = (1.0 - metallic) * (albedo.rgb * burleyFactor * inversePi);
 
-	vec3 diffuse = kD * fD;
-
-	// Outgoing light
 	vec3 Lo = (diffuse + specular) * lightColor * NdotL;
 	vec3 ambient = ambientLight * albedo.rgb * ao;
 
@@ -107,5 +99,5 @@ void main()
 	vec3 color = ambient + Lo;
 	#endif
 
-	fragColor = vec4(color, albedo.a);
+    fragColor = vec4(color, albedo.a);
 }

@@ -132,8 +132,12 @@ void AudioPlayer::updateTriggers(UpdatedEntriesView updatedEntries)
             throw std::logic_error("Cannot update instanced audio");
 
         Trigger &trigger{triggers_[handleIter->second]};
-        trigger.innerAABB.setCenter(entry.worldTransforms.front().getPosition());
-        trigger.outerAABB.setCenter(trigger.innerAABB.getCenter());
+
+        //No instanced triggers.
+        const glm::vec3 newPos{entry.worldTransforms.front().getPosition()};
+        trigger.innerAABB.setCenter(newPos);
+        trigger.outerAABB.setCenter(newPos);
+        soundEffects_[trigger.soundIndex]->setPosition(newPos);
     }
 }
 

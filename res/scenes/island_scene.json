@@ -1,7 +1,7 @@
 {
   "environment": {
     "lightColor": [1.2, 1.15, 1.1],
-    "ambientLight": [0.22, 0.22, 0.22],
+    "ambientLight": [0.23, 0.21, 0.22],
     "sunDirection": [-0.36669, -0.731219, -0.575202]
   },
   "wind": {
@@ -23,6 +23,20 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/island/collision/island_collision.gltf"
+    	}
+    },
+    {
+      "type": "model",
+	"name": "monument",
+      "transform": {
+        "translation": [86.1167, -0.784489, -81.8893],
+	"scale":  0.381167
+      },
+      "modelPath": "./res/models/set_pieces/monument/monument.gltf",
+      "shader": "directionalPBR",
+      "collisionGeometry": {
+        "type": "mesh",
+        "path": "./res/models/set_pieces/monument/collision/monument_collision.gltf"
     	}
     },
     {
