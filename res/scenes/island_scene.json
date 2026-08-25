@@ -27,7 +27,6 @@
     },
     {
       "type": "model",
-	"name": "monument",
       "transform": {
         "translation": [86.1167, -0.784489, -81.8893],
 	"scale":  0.381167
@@ -38,6 +37,16 @@
         "type": "mesh",
         "path": "./res/models/set_pieces/monument/collision/monument_collision.gltf"
     	}
+    },
+    {
+      "type": "model",
+      "transform": {
+        "translation": [85.6092, -0.58123, -80.9867],
+	"rotation": [0, -0.105089, 0, 0.994463],
+	"scale":  0.870969
+      },
+      "modelPath": "./res/models/set_pieces/sleeping_bag/sleeping_bag.gltf",
+      "shader": "directionalPBR"
     },
     {
       "type": "model",
