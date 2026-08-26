@@ -2,18 +2,9 @@
 
 #include <filesystem>
 
-#include <Jolt/Jolt.h>
-
-#include <Jolt/Core/Core.h>
-#include <cstdint>
-
 #include "application/gl_context.h"
 #include "application/graphics_settings.h"
-#include "audio/audio_player.h"
-#include "physics/jolt_impl.h"
-#include "physics/player_physics.h"
-#include "scene/camera.h"
-#include "scene/scene.h"
+#include "application/input.h"
 
 /**
  * @brief Handles window creation, user input, and the main loop.
@@ -53,46 +44,13 @@ class Application
     static inline bool firstMouse_{true};
     static inline float lastMouseX_{0.0f};
     static inline float lastMouseY_{0.0f};
+    static inline Input input_;
 
     // Settings Window
     std::filesystem::path savePath{"./settings.json"};
-
-    // Physics engine constants
-    static constexpr JPH::uint maxBodies_{1024};
-    static constexpr JPH::uint maxBodyPairs_{1024};
-    static constexpr JPH::uint maxPhysicsJobs_{2048};
-    static constexpr JPH::uint maxContactConstraints_{1024};
-    static constexpr size_t joltStackSize_{10 * 1024 * 1024}; // 10 MB
-
-    // Jolt Physics
-    BPLayerInterfaceImpl broadPhaseLayer_;
-    ObjectLayerPairFilterImpl objectLayerPairFilter_;
-    ObjectVsBroadPhaseLayerFilterImpl objectVsBroadPhaseLayerFilter_;
-
-    // Main playable camera
-    Camera playerCamera_;
-
-    /**
-     * @brief Creates a GLFW window.  Display settings from the config window are
-     * passed to GLFW here.
-     */
+    
     void createWindow(const GraphicsSettings &graphicsSettings);
-
-    /**
-     * @brief Checks for GLFW key presses and returns the bit flags representing movement.
-     */
-    std::uint8_t processKeyboard();
-
-    /**
-     * @brief Updates scene's camera based on this frame's captured keyboard input.
-     *
-     * @param movementFlags The bit flags representing cardinal directions.
-     * @param camera The main scene camera.
-     * @param physics The physics handler for the scene camera.
-     */
-    void updatePhysics(std::uint8_t movementFlags, Camera &camera, PlayerPhysics &physics);
-
-    void updateAudio(AudioPlayer &player, PlayerPhysics &physics, Camera &camera, UpdatedEntriesView updatedEntries);
+    void processKeyboard(Input &input);
 
     /**
      * @brief Registers OpenGL function pointers, checks for supported features, and creates an OpenGL viewport

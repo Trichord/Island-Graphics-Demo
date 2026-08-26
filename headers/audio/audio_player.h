@@ -10,6 +10,7 @@
 #include "audio/sound_effect.h"
 #include "audio_file.h"
 #include "models/aabb.h"
+#include "physics/player_state.h"
 #include "scene/handle.h"
 #include "scene/scene.h"
 
@@ -18,12 +19,9 @@ class AudioPlayer
   public:
     AudioPlayer(const Scene &scene, const std::filesystem::path &audioJson);
 
-    void playJumpEffect();
-    void playLandingEffect();
-    void playFootstepEffect();
-
+    void playCharacterEffects(const PlayerState &state);
     void updateTriggers(UpdatedEntriesView updatedEntries);
-    void playTriggers(const glm::vec3 &listenerPos, const glm::vec3 &listenerFront, float deltaTime);
+    void playTriggers(const PlayerState &state, float deltaTime);
 
   private:
     struct Trigger
@@ -79,4 +77,8 @@ class AudioPlayer
     SoundRange addSounds();
     std::vector<SoundEffectEntry> createLandings(const std::vector<SoundEffectEntry> &footsteps, float volumeMultiplier,
                                                  float pitchMultiplier);
+
+    void playJumpEffect();
+    void playLandingEffect();
+    void playFootstepEffect();
 };

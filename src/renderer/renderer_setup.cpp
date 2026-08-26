@@ -312,7 +312,7 @@ void Renderer::updateMetadataCubemaps(const Scene &scene, const std::vector<std:
                 const Material &material{materials[entry.primitives[i].materialIndex]};
                 const SamplerArrayIndex &cubemap{material.layers[Material::cubemap]};
 
-                const std::uint32_t bufferIndex{metadataBridge[primitiveOffset + i]};
+                const std::uint32_t bufferIndex{metadataBridge[primitiveOffset]};
                 const std::size_t bufferOffset{offsetof(PrimitiveMetadata, cubemap)};
 
                 glNamedBufferSubData(SSBOs_.metadata,

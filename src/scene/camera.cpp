@@ -10,7 +10,6 @@
 
 constexpr float maxPitch{85.0f};
 constexpr float minPitch{-maxPitch};
-constexpr float sensitivity{0.1f};
 
 Camera::Camera(const Camera::Description &description, float aspectRatio)
     : yaw_{description.yaw}, pitch_{description.pitch}, position_{description.position},
@@ -74,6 +73,22 @@ const glm::mat4 &Camera::getViewProjectionMatrix() const
 void Camera::setYaw(float yaw)
 {
     yaw_ = std::fmod(yaw, 360.0f);
+    hasChanged_ = true;
+    dirtyMatrices_ = true;
+}
+
+void Camera::addYaw(float yaw)
+{
+    yaw_ = std::fmod(yaw_ + yaw, 360.0f);
+
+    hasChanged_ = true;
+    dirtyMatrices_ = true;
+}
+
+void Camera::addPitch(float pitch)
+{
+    pitch_ = std::clamp(pitch_ + pitch, minPitch, maxPitch);
+
     hasChanged_ = true;
     dirtyMatrices_ = true;
 }
@@ -147,20 +162,6 @@ void Camera::setWorldOrientation(WorldOrientation orientation)
 
     hasChanged_ = true;
     dirtyMatrices_ = false;
-}
-
-void Camera::processMouseMovement(float xOffset, float yOffset)
-{
-    xOffset *= sensitivity;
-    yOffset *= sensitivity;
-
-    pitch_ += yOffset;
-    pitch_ = std::clamp(pitch_, minPitch, maxPitch);
-
-    yaw_ = std::fmod(yaw_ + xOffset, 360.0f);
-
-    hasChanged_ = true;
-    dirtyMatrices_ = true;
 }
 
 void Camera::updateMatrices() const

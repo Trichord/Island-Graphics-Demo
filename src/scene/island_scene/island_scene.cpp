@@ -6,6 +6,7 @@
 
 #include "application/graphics_settings.h"
 #include "models/animation/animation.h"
+#include "physics/player_state.h"
 #include "scene/island_scene/seagull.h"
 #include "scene/scene.h"
 #include "utilities/random.h"
@@ -79,13 +80,13 @@ IslandScene::IslandScene(TextureManager &textureManager, const std::filesystem::
     }
 }
 
-void IslandScene::onUpdate(const Camera &playerCamera, float time, float deltaTime)
+void IslandScene::onUpdate(const PlayerState &player, float time, float deltaTime)
 {
     updateSpaceModel(editEntry("spaceModel"), deltaTime);
     updateButterfly(editEntry("butterfly"), time, deltaTime);
 
     for (std::size_t i{0}; i < seagullNames_.size(); ++i)
-        updateSeagull(playerCamera.getPosition(), seagulls_[i], editEntry(seagullNames_[i]), deltaTime);
+        updateSeagull(player.position, seagulls_[i], editEntry(seagullNames_[i]), deltaTime);
 }
 
 Animation &IslandScene::randomSeagullIdle(Scene::Entry &entry)

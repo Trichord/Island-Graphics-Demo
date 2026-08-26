@@ -21,6 +21,7 @@
 #include "models/primitive.h"
 #include "models/skybox.h"
 #include "physics/collision_shapes.h"
+#include "physics/player_state.h"
 #include "scene/camera.h"
 #include "scene/directional_light.h"
 #include "scene/handle.h"
@@ -76,7 +77,7 @@ class Scene
                std::views::transform([this](Handle handle) -> const Entry & { return entries_[findIndex(handle)]; });
     }
 
-    virtual void onUpdate(const Camera &playerCamera, float time, float deltaTime) = 0;
+    virtual void onUpdate(const PlayerState &player, float time, float deltaTime) = 0;
     void clearUpdates();
 
   protected:

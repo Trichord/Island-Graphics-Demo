@@ -26,6 +26,7 @@ set(SOURCES
     src/audio/audio_player.cpp
     src/audio/miniaudio_impl.cpp
     src/audio/sound_effect.cpp
+    src/game/game.cpp
     src/models/aabb.cpp
     src/models/animator.cpp
     src/models/instanced_model.cpp
@@ -69,11 +70,13 @@ set(HEADERS
     headers/application/gl_context.h
     headers/application/glfw_callbacks.h
     headers/application/graphics_settings.h
+    headers/application/input.h
     headers/application/settings_window.h
     headers/audio/audio_engine.h
     headers/audio/audio_file.h
     headers/audio/audio_player.h
     headers/audio/sound_effect.h
+    headers/game/game.h
     headers/models/aabb.h
     headers/models/instanced_model.h
     headers/models/model.h
@@ -89,6 +92,7 @@ set(HEADERS
     headers/physics/jolt_impl.h
     headers/physics/physics_utilities.h
     headers/physics/player_physics.h
+    headers/physics/player_state.h
     headers/renderer/buffers.h
     headers/renderer/cascade_shadow.h
     headers/renderer/gl_state.h

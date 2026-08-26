@@ -395,6 +395,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
     windStrength_ = scene.wind.strength;
     windDirection_ = scene.wind.direction;
 
+    std::cout << "Loading Models... ";
     for (auto &sceneEntry : scene.entries)
     {
         Handle handle{nextHandle_++};
@@ -431,4 +432,6 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
         validateSceneEntry(last);
         splitOnShaderType(last);
     }
+
+    std::cout << "Done" << std::endl;
 }

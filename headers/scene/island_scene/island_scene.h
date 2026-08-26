@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "application/graphics_settings.h"
+#include "physics/player_state.h"
 #include "scene/island_scene/seagull.h"
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
@@ -15,7 +16,7 @@ class IslandScene : public Scene
   public:
     IslandScene(TextureManager &textureManager, const std::filesystem::path &jsonFile);
 
-    void onUpdate(const Camera &playerCamera, float time, float deltaTime) override;
+    void onUpdate(const PlayerState &player, float time, float deltaTime) override;
 
   private:
     static constexpr int numSeagulls_{6};
