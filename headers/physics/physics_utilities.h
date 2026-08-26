@@ -17,5 +17,5 @@ struct StaticBodies
     float minimumHeight{std::numeric_limits<float>::infinity()};
 };
 
-StaticBodies buildCollisionGeometry(const Scene &scene, JPH::BodyInterface &interface);
+StaticBodies buildCollisionGeometry(const Scene &scene, JPH::BodyInterface &bodyInterface);
 } // namespace physics

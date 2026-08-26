@@ -51,6 +51,20 @@
     {
       "type": "model",
       "transform": {
+        "translation": [88.081, -0.413575, -81.1369],
+	"rotation": [0, 0.576793, 0, 0.816891],
+	"scale":  0.840476
+      },
+      "modelPath": "./res/models/set_pieces/chair/chair.gltf",
+      "shader": "directionalPBR",
+      "collisionGeometry": {
+        "type": "mesh",
+        "path": "./res/models/set_pieces/chair/collision/chair_collision.gltf"
+    	}
+    },
+    {
+      "type": "model",
+      "transform": {
         "translation": [-220.61097, -6.58, -140.05396],
         "rotation": -65.0
       },
