@@ -97,6 +97,7 @@ PlayerState Game::updatePhysics(const Input &input, PlayerPhysics &physics, floa
         .jumpTriggered = physics.jumpEvent(),
         .landingTriggered = physics.landingEvent(),
         .footstepTriggered = physics.footstepEvent(),
+        .running = input.sprintToggle,
     };
 }
 

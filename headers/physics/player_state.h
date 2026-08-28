@@ -13,4 +13,5 @@ struct PlayerState
     bool jumpTriggered{false};
     bool landingTriggered{false};
     bool footstepTriggered{false};
+    bool running{false};
 };

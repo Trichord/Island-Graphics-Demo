@@ -246,28 +246,26 @@ void Application::processKeyboard(Input &input)
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
 {
-    constexpr float sensitivity{0.1f};
-
-    if (firstMouse_)
-    {
-        lastMouseX_ = static_cast<float>(xPos);
-        lastMouseY_ = static_cast<float>(yPos);
-        firstMouse_ = false;
-    }
-
     Application *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
 
     if (!app)
         return;
 
-    float xOffset{static_cast<float>(xPos - lastMouseX_)};
-    float yOffset{static_cast<float>(lastMouseY_ - yPos)};
+    if (app->firstMouse_)
+    {
+        app->lastMouseX_ = static_cast<float>(xPos);
+        app->lastMouseY_ = static_cast<float>(yPos);
+        app->firstMouse_ = false;
+    }
 
-    app->input_.mouseDeltaX = xOffset * sensitivity;
-    app->input_.mouseDeltaY = yOffset * sensitivity;
+    float xOffset{static_cast<float>(xPos - app->lastMouseX_)};
+    float yOffset{static_cast<float>(app->lastMouseY_ - yPos)};
 
-    lastMouseX_ = static_cast<float>(xPos);
-    lastMouseY_ = static_cast<float>(yPos);
+    app->input_.mouseDeltaX = xOffset * app->mouseSensitivity_;
+    app->input_.mouseDeltaY = yOffset * app->mouseSensitivity_;
+
+    app->lastMouseX_ = static_cast<float>(xPos);
+    app->lastMouseY_ = static_cast<float>(yPos);
 }
 
 void Application::registerCallbacks()
@@ -284,12 +282,15 @@ void Application::keyCallback(GLFWwindow *window, int key, int scancode, int act
 {
     Application *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
 
+    if (!app)
+        return;
+
     // Anything that needs to avoid key bouncing
     if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS)
-        leftCtrlToggle_ = !leftCtrlToggle_;
+        app->leftCtrlToggle_ = !app->leftCtrlToggle_;
 
     if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
-        leftShiftToggle_ = !leftShiftToggle_;
+        app->leftShiftToggle_ = !app->leftShiftToggle_;
 }
 
 void Application::registerJolt()

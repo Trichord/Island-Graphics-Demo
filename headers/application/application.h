@@ -39,16 +39,17 @@ class Application
     bool windowResized_{false};
 
     // Input tracking
-    static inline bool leftCtrlToggle_{false};
-    static inline bool leftShiftToggle_{false};
-    static inline bool firstMouse_{true};
-    static inline float lastMouseX_{0.0f};
-    static inline float lastMouseY_{0.0f};
-    static inline Input input_;
+    bool leftCtrlToggle_{false};
+    bool leftShiftToggle_{false};
+    bool firstMouse_{true};
+    float lastMouseX_{0.0f};
+    float lastMouseY_{0.0f};
+    float mouseSensitivity_{0.1f};
+    Input input_;
 
     // Settings Window
     std::filesystem::path savePath{"./settings.json"};
-    
+
     void createWindow(const GraphicsSettings &graphicsSettings);
     void processKeyboard(Input &input);
 

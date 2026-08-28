@@ -253,10 +253,10 @@ void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChange
 
     if (uploadAll)
     {
-        cascadeShadows.near = {cascades[0].near, cascades[1].near, cascades[2].near, 0.0f};
-        cascadeShadows.far = {cascades[0].far, cascades[1].far, cascades[2].far, 0.0f};
-        bytes += sizeof(cascadeShadows.far);
-        bytes += sizeof(cascadeShadows.near);
+        cascadeShadows.nearPlane = {cascades[0].near, cascades[1].near, cascades[2].near, 0.0f};
+        cascadeShadows.farPlane = {cascades[0].far, cascades[1].far, cascades[2].far, 0.0f};
+        bytes += sizeof(cascadeShadows.farPlane);
+        bytes += sizeof(cascadeShadows.nearPlane);
     }
 
     int cascadesCount{lightChanged ? shadowCascadeCount : shadowCascadeCount - 1};
