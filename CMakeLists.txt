@@ -26,6 +26,7 @@ set(SOURCES
     src/audio/audio_player.cpp
     src/audio/miniaudio_impl.cpp
     src/audio/sound_effect.cpp
+    src/game/game.cpp
     src/models/aabb.cpp
     src/models/animator.cpp
     src/models/instanced_model.cpp
@@ -46,6 +47,7 @@ set(SOURCES
     src/renderer/shader/graphics_shader.cpp
     src/renderer/shader/shader_base.cpp
     src/scene/camera.cpp
+    src/scene/entry_animation.cpp
     src/scene/directional_light.cpp
     src/scene/scene.cpp
     src/scene/island_scene/island_scene.cpp
@@ -69,11 +71,13 @@ set(HEADERS
     headers/application/gl_context.h
     headers/application/glfw_callbacks.h
     headers/application/graphics_settings.h
+    headers/application/input.h
     headers/application/settings_window.h
     headers/audio/audio_engine.h
     headers/audio/audio_file.h
     headers/audio/audio_player.h
     headers/audio/sound_effect.h
+    headers/game/game.h
     headers/models/aabb.h
     headers/models/instanced_model.h
     headers/models/model.h
@@ -82,13 +86,14 @@ set(HEADERS
     headers/models/skybox.h
     headers/models/animation/animation.h
     headers/models/animation/animator.h
-    headers/models/animation/skeletal_animation.h
+    headers/models/animation/node_graph.h
     headers/models/animation/skeleton.h
     headers/physics/character_capsule.h
     headers/physics/collision_shapes.h
     headers/physics/jolt_impl.h
     headers/physics/physics_utilities.h
     headers/physics/player_physics.h
+    headers/physics/player_state.h
     headers/renderer/buffers.h
     headers/renderer/cascade_shadow.h
     headers/renderer/gl_state.h
@@ -102,6 +107,7 @@ set(HEADERS
     headers/renderer/texture_view.h
     headers/scene/camera.h
     headers/scene/directional_light.h
+    headers/scene/entry_animation.h
     headers/scene/handle.h
     headers/scene/scene.h
     headers/scene/scene_file.h

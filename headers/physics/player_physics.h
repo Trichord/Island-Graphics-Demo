@@ -11,38 +11,30 @@
 #include <glm/glm.hpp>
 #include <vector>
 
+#include "application/input.h"
 #include "physics/character_capsule.h"
-#include "physics/physics_utilities.h"
-
-enum CharacterMovement : std::uint8_t
-{
-    NONE = 0,
-    FORWARD = 1U,
-    BACKWARD = 2U,
-    LEFT = 4U,
-    RIGHT = 8U,
-    UP = 16U
-};
+#include "scene/scene.h"
 
 class PlayerPhysics
 {
   public:
-    PlayerPhysics(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator, Scene &scene,
-                  const glm::vec3 &startingPosition);
+    PlayerPhysics(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator);
     PlayerPhysics(const PlayerPhysics &) = delete;
     PlayerPhysics &operator=(const PlayerPhysics &) = delete;
     PlayerPhysics(PlayerPhysics &&other) = delete;
     PlayerPhysics &operator=(PlayerPhysics &&other) = delete;
     ~PlayerPhysics();
 
+    void initializeScene(Scene &scene);
+
+    bool isGrounded() const;
+    bool isSupported() const;
+    glm::vec3 getVelocity() const;
     glm::vec3 getPosition() const;
     glm::vec3 getInterpolatedPosition() const;
     void setPosition(const glm::vec3 &newPosition);
 
-    void toggleCrouch(bool enable);
-    void toggleSprint(bool enable);
-
-    void update(std::uint8_t direction, const glm::vec3 &front, float deltaTime);
+    void update(const Input &input, const glm::vec3 &front, float deltaTime);
     bool footstepEvent();
     bool jumpEvent();
     bool landingEvent();

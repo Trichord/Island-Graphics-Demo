@@ -32,8 +32,8 @@ namespace
 {
 // Hardware shadow bias
 constexpr GLfloat polygonFactor{2.0f};
-constexpr GLfloat polygonUnits{1.0f};
-constexpr GLfloat polygonClamp{0.01f};
+constexpr GLfloat polygonUnits{2.0f};
+constexpr GLfloat polygonClamp{0.02f};
 
 // Reduce the distance of the camera's far plane by 80% for shadow cascades.
 constexpr float farPlaneReduction{0.2f};
@@ -173,25 +173,25 @@ void Renderer::loadShaders()
         "MSAA_SAMPLES " + std::to_string(graphicsSettings_.msaa),
     };
 
-    shaders_[shaderIndex(baseColor)] = {"./shaders/base_color.vert", "./shaders/base_color.frag", defines};
-    shaders_[shaderIndex(directionalPBR)] = {"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag",
+    graphicsShaders_[shaderIndex(baseColor)] = {"./shaders/base_color.vert", "./shaders/base_color.frag", defines};
+    graphicsShaders_[shaderIndex(directionalPBR)] = {"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag",
                                              defines};
-    shaders_[shaderIndex(grass)] = {"./shaders/grass.vert", "./shaders/grass.frag", defines};
-    shaders_[shaderIndex(trees)] = {"./shaders/trees.vert", "./shaders/trees.frag", defines};
-    shaders_[shaderIndex(reflective)] = {"./shaders/reflective.vert", "./shaders/reflective.frag", defines};
-    shaders_[shaderIndex(skybox)] = {"./shaders/skybox.vert", "./shaders/skybox.frag", defines};
-    shaders_[shaderIndex(water)] = {"./shaders/water.vert", "./shaders/water.frag", defines};
-    shaders_[shaderIndex(ocean)] = {"./shaders/water.vert", "./shaders/ocean.frag", defines};
-    shaders_[shaderIndex(particles)] = {"./shaders/particles.vert", "./shaders/particles.frag", defines};
+    graphicsShaders_[shaderIndex(grass)] = {"./shaders/grass.vert", "./shaders/grass.frag", defines};
+    graphicsShaders_[shaderIndex(trees)] = {"./shaders/trees.vert", "./shaders/trees.frag", defines};
+    graphicsShaders_[shaderIndex(reflective)] = {"./shaders/reflective.vert", "./shaders/reflective.frag", defines};
+    graphicsShaders_[shaderIndex(skybox)] = {"./shaders/skybox.vert", "./shaders/skybox.frag", defines};
+    graphicsShaders_[shaderIndex(water)] = {"./shaders/water.vert", "./shaders/water.frag", defines};
+    graphicsShaders_[shaderIndex(ocean)] = {"./shaders/water.vert", "./shaders/ocean.frag", defines};
+    graphicsShaders_[shaderIndex(particles)] = {"./shaders/particles.vert", "./shaders/particles.frag", defines};
 
     // Internal use only shaders
     if (graphicsSettings_.shadowResolution)
     {
-        shaders_[shaderIndex(shadowMap)] = {"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
-        shaders_[shaderIndex(shadowMapAlpha)] = {"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag", defines};
+        shadowShader_ = {"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
+        shadowAlphaShader_ = {"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag", defines};
     }
 
-    shaders_[shaderIndex(fboResolve)] = {"./shaders/fbo_resolve.vert", "./shaders/fbo_resolve.frag", defines};
+    fboResolveShader_ = {"./shaders/fbo_resolve.vert", "./shaders/fbo_resolve.frag", defines};
 
     // Compute
     cullShader_ = {"./shaders/cull.comp"};
@@ -253,10 +253,10 @@ void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChange
 
     if (uploadAll)
     {
-        cascadeShadows.near = {cascades[0].near, cascades[1].near, cascades[2].near, 0.0f};
-        cascadeShadows.far = {cascades[0].far, cascades[1].far, cascades[2].far, 0.0f};
-        bytes += sizeof(cascadeShadows.far);
-        bytes += sizeof(cascadeShadows.near);
+        cascadeShadows.nearPlane = {cascades[0].near, cascades[1].near, cascades[2].near, 0.0f};
+        cascadeShadows.farPlane = {cascades[0].far, cascades[1].far, cascades[2].far, 0.0f};
+        bytes += sizeof(cascadeShadows.farPlane);
+        bytes += sizeof(cascadeShadows.nearPlane);
     }
 
     int cascadesCount{lightChanged ? shadowCascadeCount : shadowCascadeCount - 1};
@@ -277,7 +277,7 @@ void Renderer::updateShaderUniforms(const Scene &scene, bool lightChanged)
 
     const DirectionalLight &globalLight{scene.getGlobalLight()};
 
-    for (auto &shader : shaders_)
+    for (auto &shader : graphicsShaders_)
         shader.setVec3("lightDir", globalLight.getDirection());
 }
 
@@ -308,7 +308,7 @@ void Renderer::updateSceneTransforms(const Scene &scene)
             continue;
 
         std::uint32_t boneTransformsOffset{boneIter->second};
-        const std::vector<glm::mat4> &jointMatrices{entry.entryAnimation->animator.getJointMatrices()};
+        const std::vector<glm::mat4> &jointMatrices{entry.entryAnimation->getJointMatrices()};
 
         glNamedBufferSubData(SSBOs_.boneTransforms, static_cast<GLintptr>(boneTransformsOffset * sizeof(glm::mat4)),
                              static_cast<GLsizeiptr>(jointMatrices.size() * sizeof(glm::mat4)), jointMatrices.data());
@@ -451,7 +451,7 @@ void Renderer::blitFrame()
         glViewport(0, 0, static_cast<GLsizei>(externalWidth_), static_cast<GLsizei>(externalHeight_));
 
     glState_.bindFramebuffer(0);
-    glState_.bindProgram(shaders_[shaderIndex(ShaderType::fboResolve)]);
+    glState_.bindProgram(fboResolveShader_);
     glDisable(GL_DEPTH_TEST);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 

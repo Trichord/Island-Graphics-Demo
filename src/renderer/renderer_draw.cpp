@@ -51,7 +51,7 @@ void Renderer::renderScene()
             glState_.setDepthWrite(true);
 
         glState_.setAlphaMode(mdb.alphaMode);
-        glState_.bindProgram(shaders_[shaderIndex(mdb.shaderType)]);
+        glState_.bindProgram(graphicsShaders_[shaderIndex(mdb.shaderType)]);
 
         GLenum mode{static_cast<GLenum>(mdb.shaderType == particles ? GL_POINTS : GL_TRIANGLES)};
 
@@ -91,8 +91,7 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
     }
 
     // Opaque geometry first (positions only)
-    GraphicsShader &shadowShader{shaders_[shaderIndex(ShaderType::shadowMap)]};
-    glState_.bindProgram(shadowShader);
+    glState_.bindProgram(shadowShader_);
 
     for (int i{0}; i < cascadeCount; ++i)
     {
@@ -102,12 +101,11 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
         // Manually re-bind ranges since everything is pre-culled
         const BufferRange range{BufferRange::cascade0 + i};
         bindBufferRanges(range);
-        shadowPass(shadowShader, range, i, false);
+        shadowPass(shadowShader_, range, i, false);
     }
 
     // Alpha tested geometry (needs vertex paint, uvs, etc)
-    GraphicsShader &shadowAlphaShader{shaders_[shaderIndex(ShaderType::shadowMapAlpha)]};
-    glState_.bindProgram(shadowAlphaShader);
+    glState_.bindProgram(shadowAlphaShader_);
     glState_.setVAO(VAOs_.vao);
 
     for (int i{0}; i < cascadeCount; ++i)
@@ -115,7 +113,7 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
         const BufferRange range{BufferRange::cascade0 + i};
         bindBufferRanges(range);
         shadowPassTarget_.setTextureLayer(i);
-        shadowPass(shadowAlphaShader, range, i, true);
+        shadowPass(shadowAlphaShader_, range, i, true);
     }
 
     glDisable(GL_POLYGON_OFFSET_FILL);

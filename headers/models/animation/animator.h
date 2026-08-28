@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "models/animation/animation.h"
+#include "models/animation/node_graph.h"
 #include "models/animation/skeleton.h"
 #include "models/primitive.h"
 
@@ -12,15 +13,17 @@ class Animator
 {
   public:
     Animator() = default;
-    Animator(std::size_t numNodes, std::size_t numJoints);
+    Animator(NodeGraph &&nodeGraph, std::size_t numJoints);
 
-    void setAnimation(Animation& animation);
+    void setAnimation(Animation &animation);
     void setTransition(Animation &transitionTo, float blendDuration);
-    void update(const Skeleton &skeleton, std::vector<Primitive> &primitives, float deltaTime);
+    void update(std::vector<Primitive> &primitives, const std::optional<Skeleton> &skeleton, float deltaTime);
 
     const std::vector<glm::mat4> &getJointMatrices() const;
 
   private:
+    NodeGraph nodeGraph_;
+
     float time_{0.0f};
     float blendTime_{0.0f};
     float blendDuration_{0.0f};

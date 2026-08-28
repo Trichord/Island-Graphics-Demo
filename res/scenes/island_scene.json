@@ -1,7 +1,7 @@
 {
   "environment": {
     "lightColor": [1.2, 1.15, 1.1],
-    "ambientLight": [0.22, 0.22, 0.22],
+    "ambientLight": [0.23, 0.21, 0.22],
     "sunDirection": [-0.36669, -0.731219, -0.575202]
   },
   "wind": {
@@ -23,6 +23,43 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/island/collision/island_collision.gltf"
+    	}
+    },
+    {
+      "type": "model",
+      "transform": {
+        "translation": [86.1167, -0.784489, -81.8893],
+	"scale":  0.381167
+      },
+      "modelPath": "./res/models/set_pieces/monument/monument.gltf",
+      "shader": "directionalPBR",
+      "collisionGeometry": {
+        "type": "mesh",
+        "path": "./res/models/set_pieces/monument/collision/monument_collision.gltf"
+    	}
+    },
+    {
+      "type": "model",
+      "transform": {
+        "translation": [85.6092, -0.58123, -80.9867],
+	"rotation": [0, -0.105089, 0, 0.994463],
+	"scale":  0.870969
+      },
+      "modelPath": "./res/models/set_pieces/sleeping_bag/sleeping_bag.gltf",
+      "shader": "directionalPBR"
+    },
+    {
+      "type": "model",
+      "transform": {
+        "translation": [88.081, -0.413575, -81.1369],
+	"rotation": [0, 0.576793, 0, 0.816891],
+	"scale":  0.840476
+      },
+      "modelPath": "./res/models/set_pieces/chair/chair.gltf",
+      "shader": "directionalPBR",
+      "collisionGeometry": {
+        "type": "mesh",
+        "path": "./res/models/set_pieces/chair/collision/chair_collision.gltf"
     	}
     },
     {

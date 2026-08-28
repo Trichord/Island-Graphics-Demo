@@ -1,5 +1,6 @@
 #include "scene/scene.h"
 
+#include <fastgltf/types.hpp>
 #include <filesystem>
 #include <fstream>
 #include <glm/glm.hpp>
@@ -15,9 +16,6 @@
 #include <variant>
 #include <vector>
 
-#include "models/animation/animation.h"
-#include "models/animation/animator.h"
-#include "models/animation/skeleton.h"
 #include "models/instanced_model.h"
 #include "models/model.h"
 #include "models/particles.h"
@@ -27,16 +25,16 @@
 #include "renderer/shader/graphics_shader.h"
 #include "scene/camera.h"
 #include "scene/directional_light.h"
+#include "scene/entry_animation.h"
 #include "scene/handle.h"
 #include "scene/scene_file.h"
 #include "utilities/overloaded.h"
-#include "utilities/string_hash.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 
 namespace
 {
-void validateSceneEntry(Scene::Entry &entry)
+void validatePrimitives(Scene::Entry &entry)
 {
     using enum ShaderType;
     using enum AlphaMode;
@@ -98,29 +96,66 @@ void splitOnShaderType(Scene::Entry &entry)
     }
 }
 
-std::optional<Scene::EntryAnimation> createEntryAnimation(const Model &model)
+void expandAnimatedAABBs(Scene::Entry &entry)
 {
-    const auto &skeletalAnimation = model.getSkeletalAnimation();
+    constexpr float timeStep{0.1f};
 
-    if (!skeletalAnimation)
-        return {};
+    if (!entry.entryAnimation || !entry.entryAnimation->getNumJoints())
+        return;
 
-    auto &skin = skeletalAnimation->skeleton.skin;
-
-    std::unordered_map<std::string, std::size_t, StringHash, std::equal_to<>> map;
-
-    for (std::size_t i{0}; i < skeletalAnimation->animations.size(); ++i)
+    for (std::size_t i{0}; i < entry.entryAnimation->getNumAnimations(); ++i)
     {
-        const auto &animation = skeletalAnimation->animations[i];
+        entry.entryAnimation->setAnimation(i);
+        const float animationLength{entry.entryAnimation->getAnimationLength(i)};
 
-        if (!animation.name.empty())
-            map.emplace(animation.name, i);
+        for (float dt{0.0f}; dt <= animationLength; dt += timeStep)
+        {
+            entry.entryAnimation->updateAnimation(entry.primitives, timeStep);
+            const std::vector<glm::mat4> &jointMatrices{entry.entryAnimation->getJointMatrices()};
+
+            for (Primitive &primitive : entry.primitives)
+            {
+                if (!primitive.vertexSkins)
+                    continue;
+
+                glm::vec3 min{primitive.aabb.getMin()};
+                glm::vec3 max{primitive.aabb.getMax()};
+                const std::vector<Primitive::VertexSkin> &vertexSkins{primitive.vertexSkins.value()};
+
+                for (std::size_t j{0}; j < primitive.vertices.size(); ++j)
+                {
+                    const glm::vec3 &position{primitive.vertices[j].position};
+                    const glm::uvec4 &boneIDs{vertexSkins[j].boneIDs};
+                    const glm::vec4 &weights{vertexSkins[j].weights};
+
+                    glm::vec4 acc{0.0f};
+
+                    for (glm::length_t k{0}; k < 4; ++k)
+                    {
+                        if (weights[k] > 0.0f)
+                            acc += weights[k] * jointMatrices[boneIDs[k]] * glm::vec4(position, 1.0f);
+                    }
+
+                    min = glm::min(min, glm::vec3{acc});
+                    max = glm::max(max, glm::vec3{acc});
+                }
+
+                primitive.aabb = {min, max};
+            }
+        }
     }
 
-    std::size_t numJoints{skin ? skin.value().invBindMatrices.size() : 0};
+    entry.entryAnimation->setAnimation(0);
+}
 
-    return Scene::EntryAnimation{skeletalAnimation.value(),
-                                 Animator{skeletalAnimation->skeleton.parents.size(), numJoints}, map};
+std::optional<EntryAnimation> createEntryAnimation(const Model &model)
+{
+    const fastgltf::Asset &asset{model.getAsset()};
+
+    if (!asset.animations.size())
+        return std::nullopt;
+
+    return EntryAnimation{asset};
 }
 
 } // namespace
@@ -215,43 +250,6 @@ const Camera::Description &Scene::getCameraDescription() const
     return cameraDescription_;
 }
 
-Skeleton &Scene::getSkeleton(Scene::Entry &entry)
-{
-    if (!entry.entryAnimation)
-        throw std::runtime_error("No animations");
-
-    return entry.entryAnimation->skeletalAnimation.skeleton;
-}
-
-Animation &Scene::getAnimation(Scene::Entry &entry, std::string_view name)
-{
-    if (!entry.entryAnimation)
-        throw std::runtime_error("No animations");
-
-    auto &map{entry.entryAnimation->animationMap};
-    auto nameIter = map.find(name);
-
-    if (nameIter == map.end())
-        throw std::runtime_error("Animation not found");
-
-    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
-    return entryAnimation.skeletalAnimation.animations[nameIter->second];
-}
-
-Animation &Scene::getAnimation(Scene::Entry &entry, int index)
-{
-    if (!entry.entryAnimation)
-        throw std::runtime_error("No animations");
-
-    Scene::EntryAnimation &entryAnimation{entry.entryAnimation.value()};
-    std::vector<Animation> &animations{entryAnimation.skeletalAnimation.animations};
-
-    if (index >= static_cast<int>(animations.size()))
-        throw std::runtime_error("Animation not found");
-
-    return animations[index];
-}
-
 void Scene::clearUpdates()
 {
     updatedEntries_.clear();
@@ -268,32 +266,32 @@ void Scene::loadGLTFTextures(Handle handle, const Model &model)
         textureManager_.loadModelTextures(handle, model.getAsset(), modelPath.parent_path());
 }
 
-void Scene::addParticles(Handle handle, const Particles &particles)
+void Scene::addParticles(Handle handle, Particles &particles)
 {
     textureManager_.addDefaultMaterial(handle);
 
-    entries_.emplace_back(Entry{
+    entries_.emplace_back(Scene::Entry{
         .handle = handle,
-        .primitives = particles.getPrimitives(),
+        .primitives = particles.takePrimitives(),
         .worldTransforms = {{}},
     });
 }
 
-void Scene::addSkybox(Handle handle, const Skybox &skybox)
+void Scene::addSkybox(Handle handle, Skybox &skybox)
 {
     const std::filesystem::path image{skybox.getPath()};
 
     textureManager_.addDefaultMaterial(handle);
     textureManager_.loadCubemapTextures(handle, image);
 
-    entries_.emplace_back(Entry{
+    entries_.emplace_back(Scene::Entry{
         .handle = handle,
-        .primitives = skybox.getPrimitives(),
+        .primitives = skybox.takePrimitives(),
         .worldTransforms = {{}},
     });
 }
 
-void Scene::addModel(Handle handle, const Model &model, const Transform &transform,
+void Scene::addModel(Handle handle, Model &model, const Transform &transform,
                      const std::optional<Collision::Geometry> &collisionGeometry, const std::string &name)
 {
     if (!name.empty())
@@ -301,16 +299,16 @@ void Scene::addModel(Handle handle, const Model &model, const Transform &transfo
 
     loadGLTFTextures(handle, model);
 
-    entries_.emplace_back(Entry{
+    entries_.emplace_back(Scene::Entry{
         .handle = handle,
-        .primitives = model.getPrimitives(),
+        .primitives = model.takePrimitives(),
         .worldTransforms = {transform},
         .entryAnimation = createEntryAnimation(model),
         .collisionGeometry = collisionGeometry,
     });
 }
 
-void Scene::addCubemappedModel(Handle handle, const Model &model, const std::filesystem::path &imagePath,
+void Scene::addCubemappedModel(Handle handle, Model &model, const std::filesystem::path &imagePath,
                                const Transform &transform, const std::optional<Collision::Geometry> &collisionGeometry,
                                const std::string &name)
 {
@@ -320,16 +318,16 @@ void Scene::addCubemappedModel(Handle handle, const Model &model, const std::fil
     loadGLTFTextures(handle, model);
     textureManager_.loadCubemapTextures(handle, imagePath);
 
-    entries_.emplace_back(Entry{
+    entries_.emplace_back(Scene::Entry{
         .handle = handle,
-        .primitives = model.getPrimitives(),
+        .primitives = model.takePrimitives(),
         .worldTransforms = {transform},
         .entryAnimation = createEntryAnimation(model),
         .collisionGeometry = collisionGeometry,
     });
 }
 
-void Scene::addInstancedModel(Handle handle, const InstancedModel &model,
+void Scene::addInstancedModel(Handle handle, InstancedModel &model,
                               const std::optional<Collision::Geometry> &collisionGeometry, const std::string &name)
 {
     if (!name.empty())
@@ -339,9 +337,9 @@ void Scene::addInstancedModel(Handle handle, const InstancedModel &model,
 
     std::vector<Transform> transforms{model.loadInstancedTransforms()};
 
-    entries_.emplace_back(Entry{
+    entries_.emplace_back(Scene::Entry{
         .handle = handle,
-        .primitives = model.getPrimitives(),
+        .primitives = model.takePrimitives(),
         .worldTransforms = std::move(transforms),
         .entryAnimation = createEntryAnimation(model),
         .collisionGeometry = collisionGeometry,
@@ -395,7 +393,8 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
     windStrength_ = scene.wind.strength;
     windDirection_ = scene.wind.direction;
 
-    for (auto &sceneEntry : scene.entries)
+    std::cout << "Loading Models... ";
+    for (auto &fileEntry : scene.entries)
     {
         Handle handle{nextHandle_++};
 
@@ -425,10 +424,19 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
                                               entry.collisionGeometry, entry.name);
                        },
                    },
-                   sceneEntry);
+                   fileEntry);
+    }
 
-        Scene::Entry &last{entries_.back()};
-        validateSceneEntry(last);
-        splitOnShaderType(last);
+    validateSceneEntries();
+    std::cout << "Done" << std::endl;
+}
+
+void Scene::validateSceneEntries()
+{
+    for (Scene::Entry &entry : entries_)
+    {
+        validatePrimitives(entry);
+        splitOnShaderType(entry);
+        expandAnimatedAABBs(entry);
     }
 }

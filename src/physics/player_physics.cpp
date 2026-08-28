@@ -11,8 +11,10 @@
 #include <cmath>
 #include <cstdint>
 #include <glm/glm.hpp>
+#include <optional>
 #include <utility>
 
+#include "application/input.h"
 #include "physics/character_capsule.h"
 #include "physics/jolt_impl.h"
 #include "physics/physics_utilities.h"
@@ -33,16 +35,10 @@ constexpr CharacterCapsule::Settings capsuleSettings{
 };
 }
 
-PlayerPhysics::PlayerPhysics(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator, Scene &scene,
-                             const glm::vec3 &startingPosition)
-    : resetPosition_{toJPHVec3(startingPosition)}, physicsSystem_{physicsSystem}, tempAllocator_{tempAllocator},
+PlayerPhysics::PlayerPhysics(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator)
+    : resetPosition_{}, physicsSystem_{physicsSystem}, tempAllocator_{tempAllocator},
       bodyInterface_{&physicsSystem.GetBodyInterface()}, player_{physicsSystem, tempAllocator, capsuleSettings}
 {
-    physics::StaticBodies collisionMeshes{physics::buildCollisionGeometry(scene, physicsSystem.GetBodyInterface())};
-    resetHeight_ = collisionMeshes.minimumHeight;
-    bodyIDs_ = std::move(collisionMeshes.ids);
-    physicsSystem_.OptimizeBroadPhase();
-    player_.setCenter(toJPHVec3(startingPosition));
 }
 
 PlayerPhysics::~PlayerPhysics()
@@ -56,7 +52,19 @@ PlayerPhysics::~PlayerPhysics()
     }
 }
 
-void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float deltaTime)
+void PlayerPhysics::initializeScene(Scene &scene)
+{
+    const glm::vec3 &startingPosition{scene.getCameraDescription().position};
+
+    physics::StaticBodies collisionMeshes{physics::buildCollisionGeometry(scene, physicsSystem_.GetBodyInterface())};
+    resetHeight_ = collisionMeshes.minimumHeight;
+    resetPosition_ = toJPHVec3(startingPosition);
+    player_.setCenter(toJPHVec3(startingPosition));
+    bodyIDs_ = std::move(collisionMeshes.ids);
+    physicsSystem_.OptimizeBroadPhase();
+}
+
+void PlayerPhysics::update(const Input &input, const glm::vec3 &front, float deltaTime)
 {
     using namespace JPH;
 
@@ -67,7 +75,10 @@ void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float
     // Avoid feedback loop when framerate drops
     timeAccumulator_ = std::min(timeAccumulator_ + deltaTime, maxAccumulator_);
     jumpAccumulator_ += deltaTime;
-    const bool jump{(direction & CharacterMovement::UP) != 0 && jumpAccumulator_ > jumpDelay};
+    const bool jump{input.jump && jumpAccumulator_ > jumpDelay};
+
+    player_.toggleCrouch(input.crouchToggle);
+    player_.toggleSprint(input.sprintToggle);
 
     while (timeAccumulator_ > physicsTick_)
     {
@@ -75,7 +86,7 @@ void PlayerPhysics::update(std::uint8_t direction, const glm::vec3 &front, float
         const Vec3 preVelocity{player_.getVelocity()};
 
         previousPosition_ = player_.getCenter();
-        tick(direction, front, jump && wasSupported, physicsTick_);
+        tick(input.direction, front, jump && wasSupported, physicsTick_);
         timeAccumulator_ -= physicsTick_;
 
         // Ignore footstep accumulator on steep slopes
@@ -133,33 +144,48 @@ void PlayerPhysics::tick(std::uint8_t direction, const glm::vec3 &front, bool ju
 
 void PlayerPhysics::movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
 {
-    using enum CharacterMovement;
+    using enum Input::Direction;
     using namespace WorldVectors;
 
     float forwardMove{0.0f};
     float sideMove{0.0f};
 
-    if (direction & FORWARD)
+    if (direction & forward)
         forwardMove += 1.0f;
 
-    if (direction & BACKWARD)
+    if (direction & backward)
         forwardMove -= 1.0f;
 
-    if (direction & RIGHT)
+    if (direction & right)
         sideMove += 1.0f;
 
-    if (direction & LEFT)
+    if (direction & left)
         sideMove -= 1.0f;
 
-    glm::vec3 forward{glm::normalize(glm::vec3{front.x, 0.0f, front.z})};
-    glm::vec3 right{glm::cross(forward, worldUp)};
-    JPH::Vec3 wishDir{toJPHVec3(glm::vec3{forward * forwardMove + right * sideMove})};
+    glm::vec3 flatForward{glm::normalize(glm::vec3{front.x, 0.0f, front.z})};
+    glm::vec3 rightDir{glm::cross(flatForward, worldUp)};
+    JPH::Vec3 wishDir{toJPHVec3(glm::vec3{flatForward * forwardMove + rightDir * sideMove})};
 
     if (wishDir.LengthSq())
         wishDir = wishDir.Normalized();
 
     player_.handleInput(wishDir, jump, deltaTime);
     player_.physicsUpdate(deltaTime);
+}
+
+bool PlayerPhysics::isGrounded() const
+{
+    return player_.isGrounded();
+}
+
+bool PlayerPhysics::isSupported() const
+{
+    return player_.isSupported();
+}
+
+glm::vec3 PlayerPhysics::getVelocity() const
+{
+    return toGLM(player_.getVelocity());
 }
 
 glm::vec3 PlayerPhysics::getPosition() const
@@ -178,16 +204,6 @@ glm::vec3 PlayerPhysics::getInterpolatedPosition() const
     float alpha{timeAccumulator_ / physicsTick_};
     return glm::mix(toGLM(previousPosition_), getPosition(), alpha);
 };
-
-void PlayerPhysics::toggleCrouch(bool enable)
-{
-    player_.toggleCrouch(enable);
-}
-
-void PlayerPhysics::toggleSprint(bool enable)
-{
-    player_.toggleSprint(enable);
-}
 
 bool PlayerPhysics::footstepEvent()
 {

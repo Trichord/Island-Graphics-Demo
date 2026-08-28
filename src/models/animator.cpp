@@ -3,10 +3,13 @@
 #include <algorithm>
 #include <cmath>
 #include <glm/glm.hpp>
+#include <optional>
+#include <utility>
 #include <variant>
 #include <vector>
 
 #include "models/animation/animation.h"
+#include "models/animation/node_graph.h"
 #include "models/animation/skeleton.h"
 #include "models/primitive.h"
 
@@ -20,8 +23,10 @@ glm::mat4 composeTRS(const glm::vec3 &t, const glm::quat &r, const glm::vec3 s)
 
 } // namespace
 
-Animator::Animator(std::size_t numNodes, std::size_t numJoints)
-    : localTranslations_(numNodes), localRotations_(numNodes), localScales_(numNodes), globalTransforms_(numNodes),
+Animator::Animator(NodeGraph &&nodeGraph, std::size_t numJoints)
+    : nodeGraph_{std::move(nodeGraph)}, localTranslations_(nodeGraph_.restTranslations.size()),
+      localRotations_(nodeGraph_.restRotations.size()), localScales_(nodeGraph_.restScales.size()),
+      globalTransforms_(std::max(std::max(localTranslations_.size(), localRotations_.size()), localScales_.size())),
       jointMatrices_(numJoints)
 {
 }
@@ -90,7 +95,7 @@ void Animator::sampleChannels(Animation &animation, std::vector<glm::vec3> &tran
     }
 }
 
-void Animator::update(const Skeleton &skeleton, std::vector<Primitive> &primitives, float deltaTime)
+void Animator::update(std::vector<Primitive> &primitives, const std::optional<Skeleton> &skeleton, float deltaTime)
 {
     if (!currentAnimation_)
         return;
@@ -108,9 +113,9 @@ void Animator::update(const Skeleton &skeleton, std::vector<Primitive> &primitiv
     }
 
     // Copy all rest TRS, for any TRS not targeted by the animation
-    localTranslations_ = skeleton.restTranslations;
-    localRotations_ = skeleton.restRotations;
-    localScales_ = skeleton.restScales;
+    localTranslations_ = nodeGraph_.restTranslations;
+    localRotations_ = nodeGraph_.restRotations;
+    localScales_ = nodeGraph_.restScales;
 
     sampleChannels(*currentAnimation_, localTranslations_, localRotations_, localScales_, time_);
 
@@ -121,9 +126,9 @@ void Animator::update(const Skeleton &skeleton, std::vector<Primitive> &primitiv
         const float nextTime{nextAnimation_->start + std::min(blendTime_, nextDuration)};
         const float blend{std::clamp(blendTime_ / blendDuration_, 0.0f, 1.0f)};
 
-        nextLocalTranslations_ = skeleton.restTranslations;
-        nextLocalRotations_ = skeleton.restRotations;
-        nextLocalScales_ = skeleton.restScales;
+        nextLocalTranslations_ = nodeGraph_.restTranslations;
+        nextLocalRotations_ = nodeGraph_.restRotations;
+        nextLocalScales_ = nodeGraph_.restScales;
 
         sampleChannels(*nextAnimation_, nextLocalTranslations_, nextLocalRotations_, nextLocalScales_, nextTime);
 
@@ -144,30 +149,28 @@ void Animator::update(const Skeleton &skeleton, std::vector<Primitive> &primitiv
     }
 
     // Pre-sorted so parents always come before children
-    for (std::size_t i{0}; i < skeleton.parents.size(); ++i)
+    for (std::size_t i{0}; i < nodeGraph_.parents.size(); ++i)
     {
         glm::mat4 localTRS{composeTRS(localTranslations_[i], localRotations_[i], localScales_[i])};
 
-        if (skeleton.parents[i] < 0)
+        if (nodeGraph_.parents[i] < 0)
             globalTransforms_[i] = localTRS;
         else
-            globalTransforms_[i] = globalTransforms_[skeleton.parents[i]] * localTRS;
+            globalTransforms_[i] = globalTransforms_[nodeGraph_.parents[i]] * localTRS;
     }
 
     // Write any non skeletal transforms back to the primitive's model space transform
-    for (auto &[nodeIndex, primitiveIndices] : skeleton.nodeToPrimitives)
+    for (auto &[nodeIndex, primitiveIndices] : nodeGraph_.nodeToPrimitives)
         for (std::size_t index : primitiveIndices)
             if (!primitives[index].vertexSkins)
                 primitives[index].modelSpaceTransform = globalTransforms_[nodeIndex];
 
     // Update skinned joints for the SSBO
-    if (!skeleton.skin)
+    if (!skeleton)
         return;
 
-    const Skeleton::Skin &skin{skeleton.skin.value()};
-
-    for (std::size_t i{0}; i < skin.jointNodes.size(); ++i)
-        jointMatrices_[i] = globalTransforms_[skin.jointNodes[i]] * skin.invBindMatrices[i];
+    for (std::size_t i{0}; i < skeleton->jointNodes.size(); ++i)
+        jointMatrices_[i] = globalTransforms_[skeleton->jointNodes[i]] * skeleton->invBindMatrices[i];
 }
 
 // Interpolates sampler values. The caller must guarantee the full animation has not gone past the animation's total end

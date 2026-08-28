@@ -11,33 +11,23 @@
 #include <utility>
 #include <vector>
 
-#include "models/animation/animation.h"
-#include "models/animation/animator.h"
-#include "models/animation/skeletal_animation.h"
-#include "models/animation/skeleton.h"
 #include "models/instanced_model.h"
 #include "models/model.h"
 #include "models/particles.h"
 #include "models/primitive.h"
 #include "models/skybox.h"
 #include "physics/collision_shapes.h"
+#include "physics/player_state.h"
 #include "scene/camera.h"
 #include "scene/directional_light.h"
+#include "scene/entry_animation.h"
 #include "scene/handle.h"
-#include "utilities/string_hash.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 
 class Scene
 {
   public:
-    struct EntryAnimation
-    {
-        SkeletalAnimation skeletalAnimation;
-        Animator animator;
-        std::unordered_map<std::string, std::size_t, StringHash, std::equal_to<>> animationMap;
-    };
-
     struct Entry
     {
         Handle handle{0};
@@ -45,7 +35,6 @@ class Scene
         std::vector<Primitive> primitives;
         std::vector<Transform> worldTransforms;
         std::optional<EntryAnimation> entryAnimation;
-
         std::optional<Collision::Geometry> collisionGeometry;
     };
 
@@ -64,29 +53,25 @@ class Scene
     const Camera::Description &getCameraDescription() const;
 
     // Accessors
-    const std::vector<Entry> &getAllSceneEntries() const;
-    const Entry &viewEntry(Handle handle) const;
-    const Entry &viewEntry(std::string_view name) const;
+    const std::vector<Scene::Entry> &getAllSceneEntries() const;
+    const Scene::Entry &viewEntry(Handle handle) const;
+    const Scene::Entry &viewEntry(std::string_view name) const;
 
     // Returns a non-contiguous view of updated scene entries, based on dirty handles. Return value must not outlive
     // Scene.
     auto getUpdatedEntries() const
     {
-        return updatedEntries_ |
-               std::views::transform([this](Handle handle) -> const Entry & { return entries_[findIndex(handle)]; });
+        return updatedEntries_ | std::views::transform([this](Handle handle) -> const Scene::Entry & {
+                   return entries_[findIndex(handle)];
+               });
     }
 
-    virtual void onUpdate(const Camera &playerCamera, float time, float deltaTime) = 0;
+    virtual void onUpdate(const PlayerState &player, float time, float deltaTime) = 0;
     void clearUpdates();
 
   protected:
-    [[nodiscard]] Entry &editEntry(Handle handle);
-    [[nodiscard]] Entry &editEntry(std::string_view name);
-
-    // Convenience methods
-    Skeleton &getSkeleton(Scene::Entry &entry);
-    Animation &getAnimation(Scene::Entry &entry, int index);
-    Animation &getAnimation(Scene::Entry &entry, std::string_view name);
+    [[nodiscard]] Scene::Entry &editEntry(Handle handle);
+    [[nodiscard]] Scene::Entry &editEntry(std::string_view name);
 
     void setAmbientLight(const glm::vec3 &ambient);
 
@@ -98,7 +83,7 @@ class Scene
 
     // Associated data
     Camera::Description cameraDescription_;
-    std::vector<Entry> entries_;
+    std::vector<Scene::Entry> entries_;
 
     // Wind
     float windStrength_{0.0f};
@@ -113,16 +98,17 @@ class Scene
     std::unordered_map<std::string, std::size_t, StringHash, std::equal_to<>> entriesByName_;
 
     void setupScene(const std::filesystem::path &jsonFile);
+    void validateSceneEntries();
 
     void loadGLTFTextures(Handle handle, const Model &model);
-    void addSkybox(Handle handle, const Skybox &skybox);
-    void addParticles(Handle handle, const Particles &particles);
-    void addModel(Handle handle, const Model &model, const Transform &transform,
+    void addSkybox(Handle handle, Skybox &skybox);
+    void addParticles(Handle handle, Particles &particles);
+    void addModel(Handle handle, Model &model, const Transform &transform,
                   const std::optional<Collision::Geometry> & = {}, const std::string &name = {});
-    void addInstancedModel(Handle handle, const InstancedModel &model,
+    void addInstancedModel(Handle handle, InstancedModel &model,
                            const std::optional<Collision::Geometry> &collisionGeometry = {},
                            const std::string &name = {});
-    void addCubemappedModel(Handle handle, const Model &model, const std::filesystem::path &imagePath,
+    void addCubemappedModel(Handle handle, Model &model, const std::filesystem::path &imagePath,
                             const Transform &transform,
                             const std::optional<Collision::Geometry> &collisionGeometry = {},
                             const std::string &name = {});

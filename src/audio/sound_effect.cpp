@@ -81,6 +81,11 @@ void SoundEffect::setDistanceFade(float factor)
     ma_sound_set_volume(&sound_, std::max(0.0f, currentVolume_ * volumeMultiplier_));
 }
 
+void SoundEffect::setPosition(const glm::vec3 &position)
+{
+    ma_sound_set_position(&sound_, position.x, position.y, position.z);
+}
+
 float SoundEffect::varyPitch()
 {
     const float pitch{random::floatMS(pitchLow_, pitchHigh_)};

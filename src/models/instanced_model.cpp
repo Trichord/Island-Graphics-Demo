@@ -25,7 +25,7 @@ std::vector<Transform> InstancedModel::loadInstancedTransforms() const
     std::vector<glm::vec3> positions{loadPositions()};
 
     if (positions.empty())
-        return {};
+        return {{}};
 
     std::vector<Transform> transforms{randomizeRotationScale(positions)};
 

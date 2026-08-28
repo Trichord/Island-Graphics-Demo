@@ -25,6 +25,7 @@ class SoundEffect
     void setPitch(float pitch);
     void setVolume(float volume);
     void setDistanceFade(float factor);
+    void setPosition(const glm::vec3 &position);
 
     float varyPitch();
     float varyVolume();

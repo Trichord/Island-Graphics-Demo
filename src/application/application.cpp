@@ -1,40 +1,26 @@
 #include "application/application.h"
 
+#include <Jolt/Jolt.h>
+
 #include <Jolt/Core/Factory.h>
-#include <Jolt/Core/JobSystemSingleThreaded.h>
 #include <Jolt/Core/Memory.h>
-#include <Jolt/Core/TempAllocator.h>
-#include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/registerTypes.h>
-#include <algorithm>
-#include <cstdint>
-#include <glm/glm.hpp>
 #include <iostream>
-#include <thread>
 
 #include "application/gl_context.h"
 #include "application/glfw_callbacks.h"
 #include "application/graphics_settings.h"
 #include "application/settings_window.h"
-#include "audio/audio_player.h"
-#include "physics/player_physics.h"
+#include "game/game.h"
 #include "renderer/buffers.h"
-#include "renderer/renderer.h"
 #include "renderer/textures.h"
-#include "scene/camera.h"
-#include "scene/island_scene/island_scene.h"
-#include "scene/scene.h"
 #include "utilities/json_loader.h"
-#include "utilities/texture_manager.h"
-#include "utilities/thread_pool.h"
 
 Application::~Application()
 {
-    using namespace JPH;
-
     // Cleanup Jolt Physics
-    delete Factory::sInstance;
-    Factory::sInstance = nullptr;
+    delete JPH::Factory::sInstance;
+    JPH::Factory::sInstance = nullptr;
 
     glfwTerminate();
 }
@@ -67,37 +53,9 @@ void Application::run()
     registerCallbacks();
 #endif
 
-    // Jolt Physics
     registerJolt();
-    JPH::PhysicsSystem physicsSystem;
-    JPH::TempAllocatorImpl tempAllocator{joltStackSize_};
-    JPH::JobSystemSingleThreaded jobSystem_{maxPhysicsJobs_};
-    physicsSystem.Init(maxBodies_, 0, maxBodyPairs_, maxContactConstraints_, broadPhaseLayer_,
-                       objectVsBroadPhaseLayerFilter_, objectLayerPairFilter_);
 
-    // Create resources
-    ThreadPool threadPool{std::max(2u, std::thread::hardware_concurrency() / 2u)};
-    TextureManager textureManager{threadPool, graphicsSettings};
-    Renderer renderer(textureManager, graphicsSettings, windowWidth_, windowHeight_);
-
-    std::cout << "Loading Models... ";
-    IslandScene islandScene(textureManager, "./res/scenes/island_scene.json");
-    std::cout << "Done" << std::endl;
-
-    // Initialize scene dependent resources
-    playerCamera_ = {islandScene.getCameraDescription(),
-                     graphicsSettings.renderWidth / static_cast<float>(graphicsSettings.renderHeight)};
-    renderer.initializeResources(islandScene, playerCamera_);
-
-    std::cout << "Loading Audio... ";
-    AudioPlayer audioPlayer{islandScene, "./res/scenes/island_audio.json"};
-    std::cout << "Done" << std::endl;
-
-    std::cout << "Creating Collision Mesh... ";
-    PlayerPhysics physicsHandler(physicsSystem, tempAllocator, islandScene, playerCamera_.getPosition());
-    std::cout << "Done" << std::endl;
-
-    threadPool.stopAllThreads();
+    Game game{graphicsSettings, windowWidth_, windowHeight_};
 
     while (!glfwWindowShouldClose(window_))
     {
@@ -107,28 +65,21 @@ void Application::run()
         lastFrame_ = currentFrame_;
         const float time{static_cast<float>(currentFrame_)};
 
-        // Update
+        // Fresh input context
+        input_ = {};
+
         glfwPollEvents();
-        std::uint8_t keyboardInput{processKeyboard()};
-        islandScene.onUpdate(playerCamera_, time, deltaTime_);
-        updatePhysics(keyboardInput, playerCamera_, physicsHandler);
-        updateAudio(audioPlayer, physicsHandler, playerCamera_, islandScene.getUpdatedEntries());
+        processKeyboard(input_);
 
         if (windowResized_)
         {
-            renderer.updateExternalResolution(windowWidth_, windowHeight_);
+            game.resizeExternalResolution(windowWidth_, windowHeight_);
             windowResized_ = false;
         }
 
-        // Draw
-        renderer.render(islandScene, playerCamera_, time, deltaTime_);
-
-        // Clear
-        islandScene.clearUpdates();
+        game.update(input_, time, deltaTime_);
         glfwSwapBuffers(window_);
     }
-
-    return;
 }
 
 void Application::createWindow(const GraphicsSettings &graphicsSettings)
@@ -267,79 +218,54 @@ bool Application::createOpenGLViewport()
     return supported;
 }
 
-std::uint8_t Application::processKeyboard()
+void Application::processKeyboard(Input &input)
 {
-    using enum CharacterMovement;
-
-    std::uint8_t direction{NONE};
+    using enum Input::Direction;
 
     if (glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window_, GLFW_TRUE);
 
     if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS)
-        direction |= FORWARD;
+        input.direction |= forward;
 
     if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS)
-        direction |= BACKWARD;
+        input.direction |= backward;
 
     if (glfwGetKey(window_, GLFW_KEY_A) == GLFW_PRESS)
-        direction |= LEFT;
+        input.direction |= left;
 
     if (glfwGetKey(window_, GLFW_KEY_D) == GLFW_PRESS)
-        direction |= RIGHT;
+        input.direction |= right;
 
     if (glfwGetKey(window_, GLFW_KEY_SPACE) == GLFW_PRESS)
-        direction |= UP;
+        input.jump = true;
 
-    return direction;
-}
-
-void Application::updatePhysics(std::uint8_t movementFlags, Camera &camera, PlayerPhysics &physics)
-{
-    // Debounced input
-    physics.toggleCrouch(leftCtrlToggle_);
-    physics.toggleSprint(leftShiftToggle_);
-    physics.update(movementFlags, camera.getFront(), deltaTime_);
-
-    const glm::vec3 pos{physics.getInterpolatedPosition()};
-    camera.setPosition(pos);
-}
-
-void Application::updateAudio(AudioPlayer &audioPlayer, PlayerPhysics &physics, Camera &camera,
-                              UpdatedEntriesView updatedEntries)
-{
-    audioPlayer.updateTriggers(updatedEntries);
-    audioPlayer.playTriggers(camera.getPosition(), camera.getFront(), deltaTime_);
-
-    if (physics.footstepEvent())
-        audioPlayer.playFootstepEffect();
-    if (physics.landingEvent())
-        audioPlayer.playLandingEffect();
-    if (physics.jumpEvent())
-        audioPlayer.playJumpEffect();
+    input_.crouchToggle = leftCtrlToggle_;
+    input_.sprintToggle = leftShiftToggle_;
 }
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
 {
-    if (firstMouse_)
-    {
-        lastMouseX_ = static_cast<float>(xPos);
-        lastMouseY_ = static_cast<float>(yPos);
-        firstMouse_ = false;
-    }
+    Application *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
 
-    float xOffset{static_cast<float>(xPos - lastMouseX_)};
-    float yOffset{static_cast<float>(lastMouseY_ - yPos)};
-
-    lastMouseX_ = static_cast<float>(xPos);
-    lastMouseY_ = static_cast<float>(yPos);
-
-    auto appPtr = static_cast<Camera *>(glfwGetWindowUserPointer(window));
-
-    if (!appPtr)
+    if (!app)
         return;
 
-    appPtr->processMouseMovement(xOffset, yOffset);
+    if (app->firstMouse_)
+    {
+        app->lastMouseX_ = static_cast<float>(xPos);
+        app->lastMouseY_ = static_cast<float>(yPos);
+        app->firstMouse_ = false;
+    }
+
+    float xOffset{static_cast<float>(xPos - app->lastMouseX_)};
+    float yOffset{static_cast<float>(app->lastMouseY_ - yPos)};
+
+    app->input_.mouseDeltaX = xOffset * app->mouseSensitivity_;
+    app->input_.mouseDeltaY = yOffset * app->mouseSensitivity_;
+
+    app->lastMouseX_ = static_cast<float>(xPos);
+    app->lastMouseY_ = static_cast<float>(yPos);
 }
 
 void Application::registerCallbacks()
@@ -349,17 +275,22 @@ void Application::registerCallbacks()
     glfwSetCursorPosCallback(window_, Application::mouse_callback);
     glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetWindowIconifyCallback(window_, window_iconify_callback);
-    glfwSetWindowUserPointer(window_, &playerCamera_);
+    glfwSetWindowUserPointer(window_, this);
 }
 
 void Application::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
+    Application *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
+    if (!app)
+        return;
+
     // Anything that needs to avoid key bouncing
     if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS)
-        leftCtrlToggle_ = !leftCtrlToggle_;
+        app->leftCtrlToggle_ = !app->leftCtrlToggle_;
 
     if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
-        leftShiftToggle_ = !leftShiftToggle_;
+        app->leftShiftToggle_ = !app->leftShiftToggle_;
 }
 
 void Application::registerJolt()

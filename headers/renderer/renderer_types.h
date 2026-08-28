@@ -63,8 +63,8 @@ struct PackedCameraUniforms
 // Packed data for light transforms and frustum splits
 struct PackedCascadeShadows
 {
-    glm::vec4 near{0.0f};
-    glm::vec4 far{0.0f};
+    glm::vec4 nearPlane{0.0f};
+    glm::vec4 farPlane{0.0f};
     glm::mat4 matrices[shadowCascadeCount];
 };
 

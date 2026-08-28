@@ -34,6 +34,9 @@ class Camera
     const glm::mat4 &getViewProjectionMatrix() const;
     glm::mat4 getResizedViewProjectionMatrix(float ratio) const;
 
+    void addYaw(float yaw);
+    void addPitch(float pitch);
+
     void setFOV(float fov);
     void setYaw(float yaw);
     void setPitch(float pitch);
@@ -43,11 +46,9 @@ class Camera
     void setPosition(const glm::vec3 &position);
     void setWorldOrientation(WorldOrientation orientation);
 
-    void processMouseMovement(float xOffset, float yOffset);
-
     void clearFlags();
     [[nodiscard]] bool hasUpdated() const;
-    
+
   private:
     float yaw_{-90.0f};
     float pitch_{0.0f};

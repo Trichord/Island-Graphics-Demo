@@ -16,6 +16,7 @@
 #include "audio/audio_file.h"
 #include "audio/sound_effect.h"
 #include "models/aabb.h"
+#include "physics/player_state.h"
 #include "scene/scene.h"
 #include "utilities/random.h"
 #include "utilities/world_vectors.h"
@@ -85,10 +86,10 @@ AudioPlayer::AudioPlayer(const Scene &scene, const std::filesystem::path &audioJ
 
         if (!std::filesystem::exists(triggerEntry.soundEffectEntry.soundPath))
         {
-            std::cerr << "ERROR: File does not exist: " << triggerEntry.soundEffectEntry.soundPath.string() << std::endl;
+            std::cerr << "ERROR: File does not exist: " << triggerEntry.soundEffectEntry.soundPath.string()
+                      << std::endl;
             throw std::runtime_error("Missing file");
         }
-        
 
         // Resolve audio name -> scene name -> handle, for dirty handle updates
         if (!triggerEntry.name.empty())
@@ -118,6 +119,18 @@ AudioPlayer::AudioPlayer(const Scene &scene, const std::filesystem::path &audioJ
     characterSounds_.jumps = addSoundRange(audio.characterSounds.jumps);
 }
 
+void AudioPlayer::playCharacterEffects(const PlayerState &state)
+{
+    if (state.jumpTriggered)
+        playJumpEffect();
+
+    if (state.landingTriggered)
+        playLandingEffect();
+
+    if (state.footstepTriggered)
+        playFootstepEffect();
+}
+
 void AudioPlayer::updateTriggers(UpdatedEntriesView updatedEntries)
 {
     for (const Scene::Entry &entry : updatedEntries)
@@ -132,15 +145,19 @@ void AudioPlayer::updateTriggers(UpdatedEntriesView updatedEntries)
             throw std::logic_error("Cannot update instanced audio");
 
         Trigger &trigger{triggers_[handleIter->second]};
-        trigger.innerAABB.setCenter(entry.worldTransforms.front().getPosition());
-        trigger.outerAABB.setCenter(trigger.innerAABB.getCenter());
+
+        // No instanced triggers.
+        const glm::vec3 newPos{entry.worldTransforms.front().getPosition()};
+        trigger.innerAABB.setCenter(newPos);
+        trigger.outerAABB.setCenter(newPos);
+        soundEffects_[trigger.soundIndex]->setPosition(newPos);
     }
 }
 
-void AudioPlayer::playTriggers(const glm::vec3 &listenerPos, const glm::vec3 &listenerFront, float deltaTime)
+void AudioPlayer::playTriggers(const PlayerState &state, float deltaTime)
 {
-    ma_engine_listener_set_position(&engine_.engine, 0, listenerPos.x, listenerPos.y, listenerPos.z);
-    ma_engine_listener_set_direction(&engine_.engine, 0, listenerFront.x, listenerFront.y, listenerFront.z);
+    ma_engine_listener_set_position(&engine_.engine, 0, state.position.x, state.position.y, state.position.z);
+    ma_engine_listener_set_direction(&engine_.engine, 0, state.front.x, state.front.y, state.front.z);
 
     for (Trigger &trigger : triggers_)
     {
@@ -150,10 +167,10 @@ void AudioPlayer::playTriggers(const glm::vec3 &listenerPos, const glm::vec3 &li
         if (trigger.oneShot && trigger.hasPlayed)
             continue;
 
-        trigger.enabled = trigger.outerAABB.pointInside(listenerPos);
+        trigger.enabled = trigger.outerAABB.pointInside(state.position);
 
         SoundEffect &effect{*soundEffects_[trigger.soundIndex]};
-        const float fadeFactor{trigger.getFadeFactor(listenerPos)};
+        const float fadeFactor{trigger.getFadeFactor(state.position)};
 
         // Not audible
         if (trigger.fadeDistance > 0.0f ? fadeFactor <= 0.0f : !trigger.enabled)

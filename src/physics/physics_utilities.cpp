@@ -80,7 +80,7 @@ void addBody(physics::StaticBodies &bodies, JPH::BodyInterface &interface, const
 }
 } // namespace
 
-physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::BodyInterface &interface)
+physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::BodyInterface &bodyInterface)
 {
     StaticBodies bodies;
 
@@ -100,7 +100,7 @@ physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::B
                                   auto shape = JPH::MeshShapeSettings{collisionMesh}.Create().Get();
 
                                   for (const Transform &transform : entry.worldTransforms)
-                                      addBody(bodies, interface, shape, transform);
+                                      addBody(bodies, bodyInterface, shape, transform);
                               },
                               [&](const Collision::Capsule capsule) {
                                   auto shape = JPH::CapsuleShapeSettings(
@@ -113,7 +113,7 @@ physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::B
                                                                                    JPH::Quat::sIdentity(), shape)};
 
                                   for (const Transform &transform : entry.worldTransforms)
-                                      addBody(bodies, interface, offsetShape, transform);
+                                      addBody(bodies, bodyInterface, offsetShape, transform);
                               }},
                    *entry.collisionGeometry);
     }

@@ -10,8 +10,6 @@
  */
 enum class ShaderType
 {
-    shadowMap,
-    shadowMapAlpha,
     baseColor,
     directionalPBR,
     reflective,
@@ -21,7 +19,6 @@ enum class ShaderType
     ocean,
     skybox,
     water, // Blended, after all opaque
-    fboResolve,
     count
 };
 

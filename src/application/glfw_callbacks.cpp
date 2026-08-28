@@ -19,8 +19,10 @@ void window_iconify_callback(GLFWwindow *window, int iconified)
 // Global callbacks for GLFW
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
-    auto appPtr = static_cast<Application *>(glfwGetWindowUserPointer(window));
+    Application *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
 
-    if (appPtr)
-        appPtr->setWindow(width, height);
+    if (!app)
+        return;
+
+    app->setWindow(width, height);
 }
