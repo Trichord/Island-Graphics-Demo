@@ -239,6 +239,9 @@ void Application::processKeyboard(Input &input)
 
     if (glfwGetKey(window_, GLFW_KEY_SPACE) == GLFW_PRESS)
         input.jump = true;
+
+    input_.crouchToggle = leftCtrlToggle_;
+    input_.sprintToggle = leftShiftToggle_;
 }
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
@@ -279,6 +282,8 @@ void Application::registerCallbacks()
 
 void Application::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
+    Application *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
     // Anything that needs to avoid key bouncing
     if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS)
         leftCtrlToggle_ = !leftCtrlToggle_;

@@ -59,6 +59,7 @@ GLuint Shader::getID() const
 
 void Shader::setBool(const std::string &name, bool value) const
 {
+
     GLint location{getCachedUniform(name)};
 
     if (location != -1)

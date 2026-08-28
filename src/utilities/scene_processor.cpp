@@ -145,7 +145,7 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(const Scene &scene)
         totals.primitives += numPrimitives;
         totals.instances += numTransforms * numPrimitives;
 
-        const bool hasSkin{entry.entryAnimation && entry.entryAnimation->skeletalAnimation.skeleton.skin};
+        const bool hasSkeleton{entry.entryAnimation && entry.entryAnimation->getNumJoints()};
 
         for (const Primitive &primitive : entry.primitives)
         {
@@ -155,15 +155,14 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(const Scene &scene)
             if (primitive.shaderType == ShaderType::particles)
                 totals.particles += primitive.vertices.size();
 
-            if (hasSkin)
+            if (primitive.vertexSkins)
                 totals.skinnedVertices += primitive.vertices.size();
         }
 
-        if (!hasSkin)
+        if (!hasSkeleton)
             continue;
 
-        const Skeleton::Skin &skin = entry.entryAnimation->skeletalAnimation.skeleton.skin.value();
-        totals.boneTransforms += skin.invBindMatrices.size();
+        totals.boneTransforms += entry.entryAnimation->getNumJoints();
     }
 
     return totals;
@@ -186,7 +185,7 @@ std::vector<SceneProcessor::BucketEntry> SceneProcessor::createBucketEntries(con
             bucketEntries.emplace_back(BucketEntry{.handle = entry.handle,
                                                    .primitive = &primitive,
                                                    .transforms = entry.worldTransforms,
-                                                   .animation = entry.entryAnimation,
+                                                   .animation = &entry.entryAnimation,
                                                    .shaderType = primitive.shaderType,
                                                    .alphaMode = primitive.alphaMode,
                                                    .originalSceneIndex = originalIndex++,
@@ -578,10 +577,8 @@ std::unordered_map<Handle, std::uint32_t> SceneProcessor::createBoneTransformMap
         auto [iter, inserted] = boneTransformsMap.try_emplace(entry.handle, boneBufferOffset);
 
         if (inserted)
-        {
-            const auto &skin = entry.animation->skeletalAnimation.skeleton.skin;
-            boneBufferOffset += static_cast<std::uint32_t>(skin->invBindMatrices.size());
-        }
+            boneBufferOffset += static_cast<std::uint32_t>(entry.animation->value().getNumJoints());
+        
     }
 
     return boneTransformsMap;

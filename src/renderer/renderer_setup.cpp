@@ -94,7 +94,8 @@ void Renderer::initializeResources(const Scene &scene, const Camera &camera)
     loadShaders();
     std::cerr << "Done" << std::endl;
 
-    for (auto &shader : shaders_)
+    setupShader(fboResolveShader_);
+    for (auto &shader : graphicsShaders_)
         setupShader(shader);
 
     // Set the light based uniforms and draw shadows
@@ -102,7 +103,11 @@ void Renderer::initializeResources(const Scene &scene, const Camera &camera)
     setupComputeShaders(processed, camera.getNearPlane());
 
     if (graphicsSettings_.shadowResolution)
+    {
+        setupShader(shadowShader_);
+        setupShader(shadowAlphaShader_);
         renderShadowMaps(scene, camera, true);
+    }
 
     // Assign the skybox to any ocean shaders before any cubemaps are rendered, so they are captured.
     borrowSkybox(drawBuckets_, bucketHandles);
@@ -166,7 +171,7 @@ void Renderer::setSceneShaderUniforms(const Scene &scene, const Camera &camera)
     const DirectionalLight &light{scene.getGlobalLight()};
     const float fov{camera.getFOV()};
 
-    for (auto &shader : shaders_)
+    for (auto &shader : graphicsShaders_)
     {
         shader.setVec3("ambientLight", scene.getAmbientLight());
         shader.setVec3("lightColor", light.getColor());

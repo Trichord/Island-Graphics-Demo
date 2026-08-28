@@ -53,7 +53,7 @@ class Renderer
     RenderTarget shadowPassTarget_;
 
     GLState glState_;
-    std::array<GraphicsShader, static_cast<int>(ShaderType::count)> shaders_;
+
 
     // GPU Resources
     VAOs VAOs_;
@@ -82,6 +82,12 @@ class Renderer
     ComputeShader skinningShader_;
     ComputeShader hiZShader_;
     ComputeShader msaaDepthResolveShader_;
+
+    // Rendering shaders
+    std::array<GraphicsShader, static_cast<int>(ShaderType::count)> graphicsShaders_;
+    GraphicsShader shadowShader_;
+    GraphicsShader shadowAlphaShader_;
+    GraphicsShader fboResolveShader_;
 
     std::uint32_t cullWorkGroupSize_{0};
     std::uint32_t compactionWorkGroupSize_{0};

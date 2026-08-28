@@ -76,7 +76,7 @@ class SceneProcessor
         Handle handle;
         const Primitive *primitive;
         std::span<const Transform> transforms;
-        std::optional<Scene::EntryAnimation> animation;
+        const std::optional<EntryAnimation>* animation;
 
         ShaderType shaderType{ShaderType::directionalPBR};
         AlphaMode alphaMode{AlphaMode::opaque};

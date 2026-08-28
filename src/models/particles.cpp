@@ -4,7 +4,10 @@
 #include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/packing.hpp>
+#include <iostream>
 #include <numeric>
+#include <stdexcept>
+#include <utility>
 #include <vector>
 
 #include "models/primitive.h"
@@ -18,9 +21,16 @@ Particles::Particles(const glm::vec3 &position, const glm::vec3 &extent, const g
 {
 }
 
-const std::vector<Primitive> &Particles::getPrimitives() const
+std::vector<Primitive> Particles::takePrimitives()
 {
-    return primitives_;
+    if (primitivesTaken_)
+    {
+        std::cerr << "Error: Particle primitives already taken " << std::endl;
+        throw std::runtime_error("Primitives already moved");
+    }
+
+    primitivesTaken_ = true;
+    return std::move(primitives_);
 }
 
 std::vector<Primitive> Particles::generateParticles(const glm::vec3 &position, const glm::vec3 &extent,

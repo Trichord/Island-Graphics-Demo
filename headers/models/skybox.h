@@ -13,9 +13,10 @@ class Skybox
     Skybox(const std::filesystem::path &imagePath);
 
     const std::filesystem::path &getPath() const;
-    const std::vector<Primitive> &getPrimitives() const;
+    std::vector<Primitive> takePrimitives();
 
   private:
     std::filesystem::path imagePath_;
     std::vector<Primitive> primitives_;
+    bool primitivesTaken_{false};
 };

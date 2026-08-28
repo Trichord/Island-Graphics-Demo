@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <filesystem>
 #include <glm/glm.hpp>
+#include <iostream>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -35,9 +37,16 @@ Skybox::Skybox(const std::filesystem::path &imagePath) : imagePath_{imagePath}
     }};
 }
 
-const std::vector<Primitive> &Skybox::getPrimitives() const
+std::vector<Primitive> Skybox::takePrimitives()
 {
-    return primitives_;
+    if (primitivesTaken_)
+    {
+        std::cerr << "Error: Particle primitives already taken " << std::endl;
+        throw std::runtime_error("Primitives already moved");
+    }
+
+    primitivesTaken_ = true;
+    return std::move(primitives_);
 }
 
 const std::filesystem::path &Skybox::getPath() const

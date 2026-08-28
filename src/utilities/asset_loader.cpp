@@ -27,7 +27,6 @@
 
 #include "models/aabb.h"
 #include "models/animation/animation.h"
-#include "models/animation/skeletal_animation.h"
 #include "models/animation/skeleton.h"
 #include "models/primitive.h"
 #include "renderer/textures.h"
@@ -158,166 +157,6 @@ void getNodeTransforms(const fastgltf::Asset &asset, std::vector<Primitive> &pri
     }
 }
 
-void loadSkin(const fastgltf::Asset &asset, const fastgltf::Skin &srcSkin, Skeleton::Skin &dstSkin)
-{
-    dstSkin.jointNodes.assign(srcSkin.joints.begin(), srcSkin.joints.end());
-
-    if (srcSkin.inverseBindMatrices)
-    {
-        auto &accessor = asset.accessors[*srcSkin.inverseBindMatrices];
-
-        fastgltf::iterateAccessorWithIndex<glm::mat4>(
-            asset, accessor, [&](glm::mat4 mat, std::size_t index) { dstSkin.invBindMatrices[index] = mat; });
-    }
-}
-
-void loadTRS(const fastgltf::Asset &asset, Skeleton &skeleton)
-{
-    for (std::size_t i{0}; i < asset.nodes.size(); ++i)
-    {
-        const auto &node = asset.nodes[i];
-
-        if (const auto *trs = std::get_if<fastgltf::TRS>(&node.transform))
-        {
-            auto uniformScale = [](const glm::vec3 &scale) {
-                constexpr float epsilon{0.0001f};
-                return std::abs(scale.x - scale.y) < epsilon && std::abs(scale.y - scale.z) < epsilon;
-            };
-
-            const auto &t = trs->translation;
-            glm::vec3 translation{t.x(), t.y(), t.z()};
-            skeleton.restTranslations[i] = translation;
-
-            const auto &r = trs->rotation;
-            const glm::quat rotation{r.w(), r.x(), r.y(), r.z()};
-            skeleton.restRotations[i] = rotation;
-
-            // Only use uniform scale
-            const auto &s = trs->scale;
-            const glm::vec3 scale{s.x(), s.y(), s.z()};
-            if (!uniformScale(scale))
-                std::cerr << "WARNING: Non uniform scale unsupported" << std::endl;
-
-            skeleton.restScales[i] = scale;
-        }
-        else
-        {
-            const auto &trsMat4 = std::get<fastgltf::math::fmat4x4>(node.transform);
-            const glm::mat4 modelMatrix{toGLMVec4(trsMat4.col(0)), toGLMVec4(trsMat4.col(1)), toGLMVec4(trsMat4.col(2)),
-                                        toGLMVec4(trsMat4.col(3))};
-
-            glm::vec3 scale{1.0f};
-            glm::vec3 translation{0.0f};
-            glm::quat rotation{};
-            glm::vec3 skew{0.0f};
-            glm::vec4 perspective{0.0f};
-
-            glm::decompose(modelMatrix, scale, rotation, translation, skew, perspective);
-
-            skeleton.restTranslations[i] = translation;
-            skeleton.restRotations[i] = rotation;
-            skeleton.restScales[i] = scale;
-        }
-    }
-}
-
-std::vector<Animation> loadAnimations(const fastgltf::Asset &asset)
-{
-    std::vector<Animation> animations(asset.animations.size());
-
-    for (std::size_t i{0}; i < asset.animations.size(); ++i)
-    {
-        const fastgltf::Animation &animation{asset.animations[i]};
-        animations[i].name = animation.name;
-
-        animations[i].samplers.resize(animation.samplers.size());
-        animations[i].channels.resize(animation.channels.size());
-
-        // Samplers
-        for (std::size_t j{0}; j < animation.samplers.size(); ++j)
-        {
-            const fastgltf::AnimationSampler &srcSampler{animation.samplers[j]};
-            AnimationSampler &dstSampler{animations[i].samplers[j]};
-
-            if (srcSampler.interpolation == fastgltf::AnimationInterpolation::CubicSpline)
-            {
-                std::cerr << "ERROR: Cubic spline interpolation not supported" << std::endl;
-                throw std::runtime_error("Unsupported animation interpolation");
-            }
-
-            dstSampler.interpolation = fastgltfToAnimationInterpolation(srcSampler.interpolation);
-
-            const auto &inputAccessor = asset.accessors[srcSampler.inputAccessor];
-            dstSampler.times.resize(inputAccessor.count);
-
-            fastgltf::iterateAccessorWithIndex<float>(
-                asset, inputAccessor, [&dstSampler](float time, std::size_t index) { dstSampler.times[index] = time; });
-        }
-
-        // Channels
-        for (std::size_t j{0}; j < animation.channels.size(); ++j)
-        {
-            const fastgltf::AnimationChannel srcChannel{animation.channels[j]};
-
-            std::size_t srcAccessorIndex{animation.samplers[srcChannel.samplerIndex].outputAccessor};
-            const auto &channelAccessor = asset.accessors[srcAccessorIndex];
-            AnimationSampler &dstSampler{animations[i].samplers[srcChannel.samplerIndex]};
-
-            dstSampler.values.resize(channelAccessor.count);
-
-            switch (srcChannel.path)
-            {
-            case fastgltf::AnimationPath::Translation:
-            case fastgltf::AnimationPath::Scale:
-                fastgltf::iterateAccessorWithIndex<glm::vec3>(
-                    asset, channelAccessor,
-                    [&dstSampler](glm::vec3 rOrS, std::size_t index) { dstSampler.values[index] = rOrS; });
-
-                break;
-
-            case fastgltf::AnimationPath::Rotation:
-                fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(
-                    asset, channelAccessor, [&dstSampler](fastgltf::math::fvec4 vec, std::size_t index) {
-                        dstSampler.values[index] = glm::quat{vec.w(), vec.x(), vec.y(), vec.z()};
-                    });
-                break;
-
-            default:
-                std::cerr << "WARNING: Unsupported gltf animation path" << std::endl;
-            }
-
-            AnimationChannel &dstChannel{animations[i].channels[j]};
-            dstChannel.path = fastgltfToAnimationPath(srcChannel.path);
-            dstChannel.samplerIndex = srcChannel.samplerIndex;
-
-            if (!srcChannel.nodeIndex)
-            {
-                std::cerr << "ERROR: No node target for animation channel" << std::endl;
-                throw std::runtime_error("Empty animation channel target node");
-            }
-
-            dstChannel.targetNode = srcChannel.nodeIndex.value();
-        }
-
-        // Find global start and end animation time
-        for (const AnimationSampler &sampler : animations[i].samplers)
-        {
-            float &globalStart{animations[i].start};
-            float &globalEnd{animations[i].end};
-            float samplerStart{sampler.times.front()};
-            float samplerEnd{sampler.times.back()};
-
-            if (samplerStart < globalStart)
-                globalStart = samplerStart;
-
-            if (samplerEnd > globalEnd)
-                globalEnd = samplerEnd;
-        }
-    }
-
-    return animations;
-}
-
 // Reorder parents array so that parents always come before children
 std::vector<size_t> reorderParents(const std::vector<int> &parents)
 {
@@ -351,49 +190,6 @@ std::vector<size_t> reorderParents(const std::vector<int> &parents)
     }
 
     return reordered;
-}
-
-void reorderSkeleton(Skeleton &skeleton, const std::vector<size_t> &orderedParents,
-                     const std::vector<std::size_t> nodeMapping)
-{
-    const auto tOriginal = skeleton.restTranslations;
-    const auto rOriginal = skeleton.restRotations;
-    const auto sOriginal = skeleton.restScales;
-    const auto pOriginal = skeleton.parents;
-
-    for (std::size_t i{0}; i < skeleton.restTranslations.size(); ++i)
-    {
-        skeleton.restTranslations[i] = tOriginal[orderedParents[i]];
-        skeleton.restRotations[i] = rOriginal[orderedParents[i]];
-        skeleton.restScales[i] = sOriginal[orderedParents[i]];
-
-        skeleton.parents[i] = pOriginal[orderedParents[i]];
-
-        if (skeleton.parents[i] >= 0)
-            skeleton.parents[i] = static_cast<int>(nodeMapping[skeleton.parents[i]]);
-    }
-
-    std::unordered_map<std::size_t, std::vector<std::size_t>> remappedNodeToPrimitive;
-
-    for (auto &[nodeIndex, primitiveIndices] : skeleton.nodeToPrimitives)
-        remappedNodeToPrimitive[nodeMapping[nodeIndex]] = primitiveIndices;
-
-    skeleton.nodeToPrimitives = remappedNodeToPrimitive;
-
-    if (!skeleton.skin)
-        return;
-
-    const auto jOriginal = skeleton.skin->jointNodes;
-
-    for (std::size_t i{0}; i < skeleton.skin->jointNodes.size(); ++i)
-        skeleton.skin->jointNodes[i] = nodeMapping[jOriginal[i]];
-}
-
-void reorderAnimations(std::vector<Animation> &animations, const std::vector<std::size_t> nodeMapping)
-{
-    for (Animation &animation : animations)
-        for (AnimationChannel &channel : animation.channels)
-            channel.targetNode = nodeMapping[channel.targetNode];
 }
 
 } // namespace
@@ -591,7 +387,7 @@ std::vector<Primitive> loader::loadMeshes(const fastgltf::Asset &asset)
 }
 
 std::vector<std::filesystem::path> loader::getURIs(const fastgltf::Asset &asset,
-                                                        const std::filesystem::path &parentPath)
+                                                   const std::filesystem::path &parentPath)
 {
     std::vector<std::filesystem::path> URIpaths;
     URIpaths.reserve(asset.images.size());
@@ -621,8 +417,7 @@ std::vector<std::filesystem::path> loader::getURIs(const fastgltf::Asset &asset,
     return URIpaths;
 }
 
-loader::TextureDescriptor loader::getTextureInfo(const fastgltf::Asset &asset,
-                                                           const fastgltf::TextureInfo &texInfo)
+loader::TextureDescriptor loader::getTextureInfo(const fastgltf::Asset &asset, const fastgltf::TextureInfo &texInfo)
 {
     const auto &texture = asset.textures[texInfo.textureIndex];
 
@@ -653,8 +448,7 @@ loader::TextureDescriptor loader::getTextureInfo(const fastgltf::Asset &asset,
 
 // Queues up pending textures for an asset, to be inserted into the texture array later
 std::vector<loader::DeferredTexture> loader::texturesFromAsset(const fastgltf::Asset &asset,
-                                                                         const std::filesystem::path &parentPath,
-                                                                         Handle handle)
+                                                               const std::filesystem::path &parentPath, Handle handle)
 {
     using namespace loader;
 
@@ -736,57 +530,253 @@ std::vector<loader::DeferredTexture> loader::texturesFromAsset(const fastgltf::A
     return deferredTextures;
 }
 
-std::optional<SkeletalAnimation> loader::loadSkeletalAnimation(const fastgltf::Asset &asset)
+std::optional<Skeleton> loader::loadSkeleton(const fastgltf::Asset &asset)
 {
-    if (asset.animations.empty())
+    if (asset.skins.empty())
         return {};
 
     if (asset.skins.size() > 1)
         std::cerr << "WARNING: Multiple skins not supported" << std::endl;
 
-    std::size_t numJoints{asset.skins.empty() ? std::size_t{0} : asset.skins.front().joints.size()};
-    std::size_t numNodes{asset.nodes.size()};
+    std::size_t numJoints{asset.skins.front().joints.size()};
 
-    Skeleton skeleton{numJoints ? Skeleton{numNodes, numJoints} : Skeleton{numNodes}};
+    if (!numJoints)
+        return {};
 
-    if (asset.skins.size())
-        loadSkin(asset, asset.skins.front(), skeleton.skin.value());
+    const fastgltf::Skin &srcSkin{asset.skins.front()};
 
-    loadTRS(asset, skeleton);
+    if (!srcSkin.inverseBindMatrices)
+        return {};
 
-    for (std::size_t i{0}; i < asset.nodes.size(); ++i)
-        for (std::size_t childIndex : asset.nodes[i].children)
-            skeleton.parents[childIndex] = static_cast<int>(i);
+    Skeleton skeleton{numJoints};
+    skeleton.jointNodes.assign(srcSkin.joints.begin(), srcSkin.joints.end());
+
+    auto &accessor = asset.accessors[*srcSkin.inverseBindMatrices];
+
+    fastgltf::iterateAccessorWithIndex<glm::mat4>(
+        asset, accessor, [&](glm::mat4 mat, std::size_t index) { skeleton.invBindMatrices[index] = mat; });
+
+    return skeleton;
+}
+
+std::vector<Animation> loader::loadAnimations(const fastgltf::Asset &asset)
+{
+    std::vector<Animation> animations(asset.animations.size());
+
+    for (std::size_t i{0}; i < asset.animations.size(); ++i)
+    {
+        const fastgltf::Animation &animation{asset.animations[i]};
+        animations[i].name = animation.name;
+
+        animations[i].samplers.resize(animation.samplers.size());
+        animations[i].channels.resize(animation.channels.size());
+
+        // Samplers
+        for (std::size_t j{0}; j < animation.samplers.size(); ++j)
+        {
+            const fastgltf::AnimationSampler &srcSampler{animation.samplers[j]};
+            AnimationSampler &dstSampler{animations[i].samplers[j]};
+
+            if (srcSampler.interpolation == fastgltf::AnimationInterpolation::CubicSpline)
+            {
+                std::cerr << "ERROR: Cubic spline interpolation not supported" << std::endl;
+                throw std::runtime_error("Unsupported animation interpolation");
+            }
+
+            dstSampler.interpolation = fastgltfToAnimationInterpolation(srcSampler.interpolation);
+
+            const auto &inputAccessor = asset.accessors[srcSampler.inputAccessor];
+            dstSampler.times.resize(inputAccessor.count);
+
+            fastgltf::iterateAccessorWithIndex<float>(
+                asset, inputAccessor, [&dstSampler](float time, std::size_t index) { dstSampler.times[index] = time; });
+        }
+
+        // Channels
+        for (std::size_t j{0}; j < animation.channels.size(); ++j)
+        {
+            const fastgltf::AnimationChannel srcChannel{animation.channels[j]};
+
+            std::size_t srcAccessorIndex{animation.samplers[srcChannel.samplerIndex].outputAccessor};
+            const auto &channelAccessor = asset.accessors[srcAccessorIndex];
+            AnimationSampler &dstSampler{animations[i].samplers[srcChannel.samplerIndex]};
+
+            dstSampler.values.resize(channelAccessor.count);
+
+            switch (srcChannel.path)
+            {
+            case fastgltf::AnimationPath::Translation:
+            case fastgltf::AnimationPath::Scale:
+                fastgltf::iterateAccessorWithIndex<glm::vec3>(
+                    asset, channelAccessor,
+                    [&dstSampler](glm::vec3 rOrS, std::size_t index) { dstSampler.values[index] = rOrS; });
+
+                break;
+
+            case fastgltf::AnimationPath::Rotation:
+                fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(
+                    asset, channelAccessor, [&dstSampler](fastgltf::math::fvec4 vec, std::size_t index) {
+                        dstSampler.values[index] = glm::quat{vec.w(), vec.x(), vec.y(), vec.z()};
+                    });
+                break;
+
+            default:
+                std::cerr << "WARNING: Unsupported gltf animation path" << std::endl;
+            }
+
+            AnimationChannel &dstChannel{animations[i].channels[j]};
+            dstChannel.path = fastgltfToAnimationPath(srcChannel.path);
+            dstChannel.samplerIndex = srcChannel.samplerIndex;
+
+            if (!srcChannel.nodeIndex)
+            {
+                std::cerr << "ERROR: No node target for animation channel" << std::endl;
+                throw std::runtime_error("Empty animation channel target node");
+            }
+
+            dstChannel.targetNode = srcChannel.nodeIndex.value();
+        }
+
+        // Find global start and end animation time
+        for (const AnimationSampler &sampler : animations[i].samplers)
+        {
+            float &globalStart{animations[i].start};
+            float &globalEnd{animations[i].end};
+            float samplerStart{sampler.times.front()};
+            float samplerEnd{sampler.times.back()};
+
+            if (samplerStart < globalStart)
+                globalStart = samplerStart;
+
+            if (samplerEnd > globalEnd)
+                globalEnd = samplerEnd;
+        }
+    }
+
+    return animations;
+}
+
+NodeGraph loader::loadNodeGraph(const fastgltf::Asset &asset)
+{
+    const std::size_t numNodes{asset.nodes.size()};
 
     // Map nodes to primitives, so that animation channels can write back to a primitive's model space transform
-    std::vector<PrimitiveRange> ranges{getPrimitiveRanges(asset)};
+    std::vector<PrimitiveRange> primitiveRanges{getPrimitiveRanges(asset)};
+    NodeGraph graph{numNodes};
 
-    for (std::size_t i{0}; i < asset.nodes.size(); ++i)
+    for (std::size_t i{0}; i < numNodes; ++i)
     {
+        const auto &node = asset.nodes[i];
+
+        if (const auto *trs = std::get_if<fastgltf::TRS>(&node.transform))
+        {
+            auto uniformScale = [](const glm::vec3 &scale) {
+                constexpr float epsilon{0.0001f};
+                return std::abs(scale.x - scale.y) < epsilon && std::abs(scale.y - scale.z) < epsilon;
+            };
+
+            const auto &t = trs->translation;
+            glm::vec3 translation{t.x(), t.y(), t.z()};
+            graph.restTranslations[i] = translation;
+
+            const auto &r = trs->rotation;
+            const glm::quat rotation{r.w(), r.x(), r.y(), r.z()};
+            graph.restRotations[i] = rotation;
+
+            // Only use uniform scale
+            const auto &s = trs->scale;
+            const glm::vec3 scale{s.x(), s.y(), s.z()};
+            if (!uniformScale(scale))
+                std::cerr << "WARNING: Non uniform scale unsupported" << std::endl;
+
+            graph.restScales[i] = scale;
+        }
+        else
+        {
+            const auto &trsMat4 = std::get<fastgltf::math::fmat4x4>(node.transform);
+            const glm::mat4 modelMatrix{toGLMVec4(trsMat4.col(0)), toGLMVec4(trsMat4.col(1)), toGLMVec4(trsMat4.col(2)),
+                                        toGLMVec4(trsMat4.col(3))};
+
+            glm::vec3 scale{1.0f};
+            glm::vec3 translation{0.0f};
+            glm::quat rotation{};
+            glm::vec3 skew{0.0f};
+            glm::vec4 perspective{0.0f};
+
+            glm::decompose(modelMatrix, scale, rotation, translation, skew, perspective);
+
+            graph.restTranslations[i] = translation;
+            graph.restRotations[i] = rotation;
+            graph.restScales[i] = scale;
+        }
+
+        // Map parents
+        for (std::size_t childIndex : asset.nodes[i].children)
+            graph.parents[childIndex] = static_cast<int>(i);
+
+        // Map primitives
         const auto meshIndex = asset.nodes[i].meshIndex;
 
         if (!meshIndex)
             continue;
 
-        const PrimitiveRange &range{ranges[meshIndex.value()]};
-        std::vector<size_t> &indices{skeleton.nodeToPrimitives[i]};
+        const PrimitiveRange &range{primitiveRanges[meshIndex.value()]};
+        std::vector<size_t> &primitiveIndices{graph.nodeToPrimitives[i]};
 
-        indices.reserve(range.count);
+        primitiveIndices.reserve(range.count);
 
         for (std::size_t j{range.start}; j < range.start + range.count; ++j)
-            indices.push_back(j);
+            primitiveIndices.push_back(j);
     }
 
-    std::vector<Animation> animations{loadAnimations(asset)};
+    return graph;
+}
 
-    std::vector<std::size_t> reorderedParents{reorderParents(skeleton.parents)};
+void loader::reorderGraph(NodeGraph &graph, std::vector<Animation> &animations, std::optional<Skeleton> &skeleton)
+{
+    std::vector<std::size_t> reorderedParents{reorderParents(graph.parents)};
     std::vector<size_t> remappedNodes(reorderedParents.size());
 
     for (std::size_t i{0}; i < reorderedParents.size(); ++i)
         remappedNodes[reorderedParents[i]] = i;
 
-    reorderSkeleton(skeleton, reorderedParents, remappedNodes);
-    reorderAnimations(animations, remappedNodes);
+    // TRS
+    const auto tOriginal = graph.restTranslations;
+    const auto rOriginal = graph.restRotations;
+    const auto sOriginal = graph.restScales;
+    const auto pOriginal = graph.parents;
 
-    return SkeletalAnimation{skeleton, animations};
+    for (std::size_t i{0}; i < graph.restTranslations.size(); ++i)
+    {
+        graph.restTranslations[i] = tOriginal[reorderedParents[i]];
+        graph.restRotations[i] = rOriginal[reorderedParents[i]];
+        graph.restScales[i] = sOriginal[reorderedParents[i]];
+
+        graph.parents[i] = pOriginal[reorderedParents[i]];
+
+        if (graph.parents[i] >= 0)
+            graph.parents[i] = static_cast<int>(remappedNodes[graph.parents[i]]);
+    }
+
+    // Primitives
+    std::unordered_map<std::size_t, std::vector<std::size_t>> remappedNodeToPrimitive;
+
+    for (auto &[nodeIndex, primitiveIndices] : graph.nodeToPrimitives)
+        remappedNodeToPrimitive[remappedNodes[nodeIndex]] = primitiveIndices;
+
+    graph.nodeToPrimitives = remappedNodeToPrimitive;
+
+    // Animations
+    for (Animation &animation : animations)
+        for (AnimationChannel &channel : animation.channels)
+            channel.targetNode = remappedNodes[channel.targetNode];
+
+    // Skeleton
+    if (!skeleton)
+        return;
+
+    const auto jOriginal = skeleton->jointNodes;
+
+    for (std::size_t i{0}; i < skeleton->jointNodes.size(); ++i)
+        skeleton->jointNodes[i] = remappedNodes[jOriginal[i]];
 }

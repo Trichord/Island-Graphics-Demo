@@ -2,10 +2,9 @@
 
 #include <filesystem>
 #include <glm/glm.hpp>
+#include <string_view>
 #include <vector>
 
-#include "application/graphics_settings.h"
-#include "models/animation/animation.h"
 #include "physics/player_state.h"
 #include "scene/island_scene/seagull.h"
 #include "scene/scene.h"
@@ -50,15 +49,14 @@ IslandScene::IslandScene(TextureManager &textureManager, const std::filesystem::
     : Scene(textureManager, jsonFile)
 {
     // Cache original positions so that animated models can return or calculate updated positions
-    Entry &butterfly{editEntry("butterfly")};
+    Scene::Entry &butterfly{editEntry("butterfly")};
     butterflyOriginalPos_.reserve(butterfly.worldTransforms.size());
 
     for (const Transform &transform : butterfly.worldTransforms)
         butterflyOriginalPos_.emplace_back(transform.getPosition());
 
     // Set starting animations for first frame
-    Animation &fly{getAnimation(butterfly, "fly")};
-    butterfly.entryAnimation->animator.setAnimation(fly);
+    butterfly.entryAnimation->setAnimation("fly");
 
     // Seed the gulls with some randomness for some variety in their interactions
     for (std::size_t i{0}; i < seagullNames_.size(); ++i)
@@ -73,10 +71,11 @@ IslandScene::IslandScene(TextureManager &textureManager, const std::filesystem::
                                SeagullConstants::orbitRadius + random::floatMS(-2.0f, 2.0f),
                                SeagullConstants::restTime + random::floatMS(0.0f, 0.2f)};
 
-        seagull.entryAnimation->animator.setAnimation(randomSeagullIdle(seagull));
+        std::string_view rndName{seagullIdles_[random::index(seagullIdles_.size())]};
+        seagull.entryAnimation->setAnimation(rndName);
 
         // Simulate just a bit of a starting animation to desync
-        seagull.entryAnimation->animator.update(getSkeleton(seagull), seagull.primitives, random::floatMS(0.1f, 0.3f));
+        seagull.entryAnimation->updateAnimation(seagull.primitives, random::floatMS(0.1f, 0.3f));
     }
 }
 
@@ -87,18 +86,6 @@ void IslandScene::onUpdate(const PlayerState &player, float time, float deltaTim
 
     for (std::size_t i{0}; i < seagullNames_.size(); ++i)
         updateSeagull(player.position, seagulls_[i], editEntry(seagullNames_[i]), deltaTime);
-}
-
-Animation &IslandScene::randomSeagullIdle(Scene::Entry &entry)
-{
-    float random{random::floatMS(0.0f, 100.0f)};
-
-    if (random <= 33.0f)
-        return getAnimation(entry, "eat");
-    else if (random <= 66.0f)
-        return getAnimation(entry, "look");
-    else
-        return getAnimation(entry, "clearing");
 }
 
 void IslandScene::updateSpaceModel(Scene::Entry &entry, float deltaTime)
@@ -140,8 +127,7 @@ void IslandScene::updateButterfly(Scene::Entry &butterfly, float time, float del
         transform.setAbsoluteRotation(glm::angleAxis(yaw + modelFlip, WorldVectors::worldUp));
     }
 
-    butterfly.entryAnimation->animator.update(getSkeleton(butterfly), butterfly.primitives,
-                                              deltaTime * Butterfly::animationTimeScale);
+    butterfly.entryAnimation->updateAnimation(butterfly.primitives, deltaTime * Butterfly::animationTimeScale);
 }
 
 void IslandScene::updateSeagull(const glm::vec3 &playerPosition, Seagull &seagull, Scene::Entry &entry, float deltaTime)
@@ -155,15 +141,16 @@ void IslandScene::updateSeagull(const glm::vec3 &playerPosition, Seagull &seagul
             using enum Seagull::State;
 
         case resting:
-            entry.entryAnimation->animator.setTransition(randomSeagullIdle(entry), SeagullConstants::blendTime);
+            entry.entryAnimation->setAnimationTransition(seagullIdles_[random::index(seagullIdles_.size())],
+                                                         SeagullConstants::blendTime);
             break;
 
         case panicking:
-            entry.entryAnimation->animator.setTransition(getAnimation(entry, "fly"), SeagullConstants::blendTime);
+            entry.entryAnimation->setAnimationTransition("fly", SeagullConstants::blendTime);
             break;
 
         case returning:
-            entry.entryAnimation->animator.setTransition(getAnimation(entry, "glide"), SeagullConstants::blendTime);
+            entry.entryAnimation->setAnimationTransition("glide", SeagullConstants::blendTime);
             break;
 
         default:
@@ -174,6 +161,5 @@ void IslandScene::updateSeagull(const glm::vec3 &playerPosition, Seagull &seagul
     Transform &seagullTransform{entry.worldTransforms.front()};
     seagullTransform.setAbsoluteRotation(seagull.getRotation());
     seagullTransform.setAbsoluteTranslation(seagull.getPosition());
-
-    entry.entryAnimation->animator.update(getSkeleton(entry), entry.primitives, deltaTime);
+    entry.entryAnimation->updateAnimation(entry.primitives, deltaTime);
 }

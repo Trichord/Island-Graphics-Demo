@@ -47,6 +47,7 @@ set(SOURCES
     src/renderer/shader/graphics_shader.cpp
     src/renderer/shader/shader_base.cpp
     src/scene/camera.cpp
+    src/scene/entry_animation.cpp
     src/scene/directional_light.cpp
     src/scene/scene.cpp
     src/scene/island_scene/island_scene.cpp
@@ -85,7 +86,7 @@ set(HEADERS
     headers/models/skybox.h
     headers/models/animation/animation.h
     headers/models/animation/animator.h
-    headers/models/animation/skeletal_animation.h
+    headers/models/animation/node_graph.h
     headers/models/animation/skeleton.h
     headers/physics/character_capsule.h
     headers/physics/collision_shapes.h
@@ -106,6 +107,7 @@ set(HEADERS
     headers/renderer/texture_view.h
     headers/scene/camera.h
     headers/scene/directional_light.h
+    headers/scene/entry_animation.h
     headers/scene/handle.h
     headers/scene/scene.h
     headers/scene/scene_file.h

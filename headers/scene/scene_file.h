@@ -3,7 +3,9 @@
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <iostream>
+#include <nlohmann/detail/macro_scope.hpp>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
@@ -11,6 +13,7 @@
 #include "physics/collision_shapes.h"
 #include "renderer/shader/graphics_shader.h"
 #include "utilities/transform.h"
+#include "utilities/world_vectors.h"
 
 NLOHMANN_JSON_SERIALIZE_ENUM(ShaderType, {{ShaderType::baseColor, "baseColor"},
                                           {ShaderType::directionalPBR, "directionalPBR"},
@@ -90,14 +93,14 @@ struct SceneCamera
     float fov{45.0f};
 };
 
-using SceneEntry = std::variant<ModelEntry, InstancedModelEntry, CubeMappedModelEntry, SkyboxEntry, ParticlesEntry>;
+using FileEntry = std::variant<ModelEntry, InstancedModelEntry, CubeMappedModelEntry, SkyboxEntry, ParticlesEntry>;
 
 struct SceneFile
 {
     SceneEnvironment environment;
     SceneWind wind;
     SceneCamera camera;
-    std::vector<SceneEntry> entries;
+    std::vector<FileEntry> entries;
 };
 
 inline glm::vec3 parseVec3(const nlohmann::json &j)
@@ -231,7 +234,7 @@ inline void from_json(const nlohmann::json &j, SceneCamera &c)
     c.fov = j.value("fov", 45.0f);
 }
 
-inline SceneEntry parseSceneEntry(const nlohmann::json &j)
+inline FileEntry parseFileEntries(const nlohmann::json &j)
 {
     const std::string type = j.at("type").get<std::string>();
 
@@ -260,7 +263,7 @@ inline void from_json(const nlohmann::json &j, SceneFile &s)
     {
         for (const auto &entry : j.at("entries"))
         {
-            s.entries.emplace_back(parseSceneEntry(entry));
+            s.entries.emplace_back(parseFileEntries(entry));
         }
     }
 }
