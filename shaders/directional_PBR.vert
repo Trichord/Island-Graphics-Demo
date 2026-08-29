@@ -26,10 +26,6 @@ layout(binding = SSBO_BINDING_VISIBLE_INSTANCES, std430) restrict readonly buffe
    uint instances[];
 };
 
-// In
-uniform vec3 lightDir;
-uniform mat4 lightViewProjection;
-
 // Out
 flat out int metadataIndex;
 
@@ -62,7 +58,7 @@ void main()
 	vOut.viewFragPos = viewMatrix * vOut.worldFragPos;
 
 	vOut.tangentFragPos = TBN * vOut.worldFragPos.xyz;
-	vOut.lightDir = TBN * lightDir;
+	vOut.lightDir = TBN * lightDir.xyz;
 	vOut.cameraPos = TBN * cameraPosition.xyz;
 
 	vOut.texCoords = aTexCoords;

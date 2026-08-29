@@ -32,10 +32,6 @@ layout(binding = SSBO_BINDING_VISIBLE_INSTANCES, std430) restrict readonly buffe
    uint instances[];
 };
 
-// In
-uniform float windStrength;
-uniform vec3 windDirection;
-
 // Out
 flat out int metadataIndex;
 
@@ -65,7 +61,7 @@ void main()
 	vec2 noise = getNoise(worldPosition.xyz, time);
 	float windFactor = getWindFactor(worldPosition.xyz, time);
 
-	largeScaleWind(worldPosition.xyz, aColor, windDirection, windFactor, noise.x);
+	largeScaleWind(worldPosition.xyz, aColor, windDirection.xyz, windFactor, noise.x);
 	mediumScaleWind(worldPosition.xyz, aColor, vec3(noise.rg, -noise.r), windFactor);
 	smallScaleWind(worldPosition.xyz, aColor, normal, vec3(noise.gr, noise.g), aPos.y, windFactor, windStrength);
 	

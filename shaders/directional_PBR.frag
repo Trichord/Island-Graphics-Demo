@@ -17,10 +17,6 @@ layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadat
 	Metadata metadata[];
 };
 
-// In
-uniform vec3 lightColor;
-uniform vec3 ambientLight;
-
 flat in int metadataIndex;
 
 // Positions in tangent view space
@@ -84,8 +80,8 @@ void main()
 	float burleyFactor = burleyDiffuseFactor(FD90, NdotL, NdotV);
 	vec3 diffuse = (1.0 - metallic) * (albedo.rgb * burleyFactor * inversePi);
 
-	vec3 Lo = (diffuse + specular) * lightColor * NdotL;
-	vec3 ambient = ambientLight * albedo.rgb * ao;
+	vec3 Lo = (diffuse + specular) * lightColor.rgb * NdotL;
+	vec3 ambient = ambientLight.rgb * albedo.rgb * ao;
 
 	#ifdef ALPHA_TESTED_SHADOWS
 	// Pick shadow cascade off frag depth

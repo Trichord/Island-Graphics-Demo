@@ -125,7 +125,6 @@ void markVisible(BufferMap map, uint visibilityBufferBaseIndex, uint instance)
 }
 
 // In
-uniform ivec2 renderResolution;
 uniform ivec2 hiZResolution;
 uniform int hiZMaxMip;
 uniform float nearPlane;
@@ -164,7 +163,7 @@ void main()
          return;
     }
         
-    ivec2 screenSize = ivec2(vec2(uvBox.zw - uvBox.xy) * vec2(renderResolution));
+    ivec2 screenSize = ivec2(vec2(uvBox.zw - uvBox.xy) * vec2(windowWidth, windowHeight));
     
     if (max(screenSize.x, screenSize.y) < minScreenSize)
         return;

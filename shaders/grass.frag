@@ -17,11 +17,6 @@ layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadat
 	Metadata metadata[];
 };
 
-// In
-uniform vec3 lightDir;
-uniform vec3 lightColor;
-uniform vec3 ambientLight;
-
 flat in int metadataIndex;
 
 in VS_OUT 
@@ -46,7 +41,7 @@ void main()
     vec4 albedo = texture(textures[meta.albedoArray], vec3(fsIn.texCoords, meta.albedoLayer));
 
     vec3 N = normalize(fsIn.normal);
-    vec3 L = normalize(-lightDir);
+    vec3 L = normalize(-lightDir.xyz);
 
     // Scale alpha by mip level 0
     vec2 texSize = vec2(textureSize(textures[meta.albedoArray], 0));
@@ -54,7 +49,7 @@ void main()
     albedo.a = rescaleAlpha(albedo.a);
 
     // Ambient
-    vec3 ambient = ambientLight * lightColor * albedo.rgb;
+    vec3 ambient = ambientLight.rgb * lightColor.rgb * albedo.rgb;
 
     // Diffuse
     float NdotL = dot(L, N);
@@ -71,10 +66,10 @@ void main()
 	int layer = calculateCascadeIndex(-fsIn.viewPos.z);
 	float shadow = shadowContribution(lightMatrices[layer], fsIn.worldPos, layer);
     shadow = clamp(shadow + 0.1, 0.0, 1.0);
-    vec3 color = ambient + albedo.rgb * diffuseFactor * lightColor * shadow;
+    vec3 color = ambient + albedo.rgb * diffuseFactor * lightColor.rgb * shadow;
     
     #else
-    vec3 color = ambient + albedo.rgb * diffuseFactor * lightColor;
+    vec3 color = ambient + albedo.rgb * diffuseFactor * lightColor.rgb;
     #endif
 
     fragColor = vec4(color, albedo.a);

@@ -1,9 +1,8 @@
 #version 460 core
 
 #include "shared/samplers.glsl"
+#include "shared/ubo.glsl"
 
-// In
-uniform float gamma;
 
 in vec2 texCoords;
 

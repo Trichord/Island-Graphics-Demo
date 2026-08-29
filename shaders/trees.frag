@@ -21,11 +21,6 @@ layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadat
 	Metadata metadata[];
 };
 
-// In
-uniform vec3 lightDir;
-uniform vec3 lightColor;
-uniform vec3 ambientLight;
-
 flat in int metadataIndex;
 
 in vec4 worldPos;
@@ -50,7 +45,7 @@ void main()
     albedo.a *= 1 + max(0, calcMipLevel(texCoords * texSize)) * mipScale;
 	albedo.a = rescaleAlpha(albedo.a);
 	
-	float NdotL = max(dot(normalize(normal), normalize(-lightDir)), 0.0);
+	float NdotL = max(dot(normalize(normal), normalize(-lightDir.xyz)), 0.0);
 	vec3 diffuse = albedo.rgb * inversePi * NdotL;
 
 	#ifdef ALPHA_TESTED_SHADOWS
@@ -59,14 +54,14 @@ void main()
 	// Fully shadowed leaves look too dark, cheap effect to brighten the canopies
 	float shadow = clamp(shadowContribution(lightMatrices[layer], worldPos, layer), minShadow, 1.0);
 
-	vec3 accumulatedLight = diffuse * lightColor * shadow;
+	vec3 accumulatedLight = diffuse * lightColor.rgb * shadow;
 
 	#else
-	vec3 accumulatedLight = diffuse * lightColor;
+	vec3 accumulatedLight = diffuse * lightColor.rgb;
 	#endif
 	
 	// Ambient
-	vec3 ambient = ambientLight * albedo.rgb;
+	vec3 ambient = ambientLight.rgb * albedo.rgb;
 	
 	// Final color
 	vec3 color = ambient + accumulatedLight;
