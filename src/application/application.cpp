@@ -82,6 +82,81 @@ void Application::run()
     }
 }
 
+void Application::processKeyboard(Input &input)
+{
+    using enum Input::Direction;
+
+    if (glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window_, GLFW_TRUE);
+
+    if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS)
+        input.direction |= forward;
+
+    if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS)
+        input.direction |= backward;
+
+    if (glfwGetKey(window_, GLFW_KEY_A) == GLFW_PRESS)
+        input.direction |= left;
+
+    if (glfwGetKey(window_, GLFW_KEY_D) == GLFW_PRESS)
+        input.direction |= right;
+
+    if (glfwGetKey(window_, GLFW_KEY_SPACE) == GLFW_PRESS)
+        input.jump = true;
+
+    input_.crouchToggle = leftCtrlToggle_;
+    input_.sprintToggle = leftShiftToggle_;
+}
+
+void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
+{
+    Application *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
+    if (!app)
+        return;
+
+    if (app->firstMouse_)
+    {
+        app->lastMouseX_ = static_cast<float>(xPos);
+        app->lastMouseY_ = static_cast<float>(yPos);
+        app->firstMouse_ = false;
+    }
+
+    float xOffset{static_cast<float>(xPos - app->lastMouseX_)};
+    float yOffset{static_cast<float>(app->lastMouseY_ - yPos)};
+
+    app->input_.mouseDeltaX = xOffset * app->mouseSensitivity_;
+    app->input_.mouseDeltaY = yOffset * app->mouseSensitivity_;
+
+    app->lastMouseX_ = static_cast<float>(xPos);
+    app->lastMouseY_ = static_cast<float>(yPos);
+}
+
+void Application::registerCallbacks()
+{
+    glfwSetFramebufferSizeCallback(window_, framebuffer_size_callback);
+    glfwSetKeyCallback(window_, Application::keyCallback);
+    glfwSetCursorPosCallback(window_, Application::mouse_callback);
+    glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetWindowIconifyCallback(window_, window_iconify_callback);
+    glfwSetWindowUserPointer(window_, this);
+}
+
+void Application::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+    Application *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
+    if (!app)
+        return;
+
+    // Anything that needs to avoid key bouncing
+    if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS)
+        app->leftCtrlToggle_ = !app->leftCtrlToggle_;
+
+    if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
+        app->leftShiftToggle_ = !app->leftShiftToggle_;
+}
+
 void Application::createWindow(const GraphicsSettings &graphicsSettings)
 {
     glfwInit();
@@ -216,81 +291,6 @@ bool Application::createOpenGLViewport()
         glfwTerminate();
 
     return supported;
-}
-
-void Application::processKeyboard(Input &input)
-{
-    using enum Input::Direction;
-
-    if (glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window_, GLFW_TRUE);
-
-    if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS)
-        input.direction |= forward;
-
-    if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS)
-        input.direction |= backward;
-
-    if (glfwGetKey(window_, GLFW_KEY_A) == GLFW_PRESS)
-        input.direction |= left;
-
-    if (glfwGetKey(window_, GLFW_KEY_D) == GLFW_PRESS)
-        input.direction |= right;
-
-    if (glfwGetKey(window_, GLFW_KEY_SPACE) == GLFW_PRESS)
-        input.jump = true;
-
-    input_.crouchToggle = leftCtrlToggle_;
-    input_.sprintToggle = leftShiftToggle_;
-}
-
-void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
-{
-    Application *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
-
-    if (!app)
-        return;
-
-    if (app->firstMouse_)
-    {
-        app->lastMouseX_ = static_cast<float>(xPos);
-        app->lastMouseY_ = static_cast<float>(yPos);
-        app->firstMouse_ = false;
-    }
-
-    float xOffset{static_cast<float>(xPos - app->lastMouseX_)};
-    float yOffset{static_cast<float>(app->lastMouseY_ - yPos)};
-
-    app->input_.mouseDeltaX = xOffset * app->mouseSensitivity_;
-    app->input_.mouseDeltaY = yOffset * app->mouseSensitivity_;
-
-    app->lastMouseX_ = static_cast<float>(xPos);
-    app->lastMouseY_ = static_cast<float>(yPos);
-}
-
-void Application::registerCallbacks()
-{
-    glfwSetFramebufferSizeCallback(window_, framebuffer_size_callback);
-    glfwSetKeyCallback(window_, Application::keyCallback);
-    glfwSetCursorPosCallback(window_, Application::mouse_callback);
-    glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetWindowIconifyCallback(window_, window_iconify_callback);
-    glfwSetWindowUserPointer(window_, this);
-}
-
-void Application::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
-{
-    Application *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
-
-    if (!app)
-        return;
-
-    // Anything that needs to avoid key bouncing
-    if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS)
-        app->leftCtrlToggle_ = !app->leftCtrlToggle_;
-
-    if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
-        app->leftShiftToggle_ = !app->leftShiftToggle_;
 }
 
 void Application::registerJolt()

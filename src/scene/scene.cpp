@@ -92,7 +92,7 @@ void splitOnShaderType(Scene::Entry &entry)
             continue;
 
         if (primitive.alphaMode == opaque)
-            primitive.shaderType = directionalPBR;
+            primitive.shaderType = pbr;
     }
 }
 

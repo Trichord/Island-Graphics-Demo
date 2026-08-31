@@ -78,7 +78,7 @@ class SceneProcessor
         std::span<const Transform> transforms;
         const std::optional<EntryAnimation>* animation;
 
-        ShaderType shaderType{ShaderType::directionalPBR};
+        ShaderType shaderType{ShaderType::pbr};
         AlphaMode alphaMode{AlphaMode::opaque};
 
         std::size_t originalSceneIndex{0};

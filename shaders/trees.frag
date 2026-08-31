@@ -3,7 +3,6 @@
 #include "shared/binding_points.glsl"
 #include "shared/constants.glsl"
 #include "shared/foliage.glsl"
-#include "shared/pbr.glsl"
 #include "shared/samplers.glsl"
 #include "shared/types.glsl"
 #include "shared/ubo.glsl"
@@ -45,14 +44,15 @@ void main()
     albedo.a *= 1 + max(0, calcMipLevel(texCoords * texSize)) * mipScale;
 	albedo.a = rescaleAlpha(albedo.a);
 	
-	float NdotL = max(dot(normalize(normal), normalize(-lightDir.xyz)), 0.0);
+	vec3 N = normalize(normal);
+	float NdotL = max(dot(N, normalize(-lightDir.xyz)), 0.0);
 	vec3 diffuse = albedo.rgb * inversePi * NdotL;
 
 	#ifdef ALPHA_TESTED_SHADOWS
 	int layer = calculateCascadeIndex(-viewPos.z);
 
 	// Fully shadowed leaves look too dark, cheap effect to brighten the canopies
-	float shadow = clamp(shadowContribution(lightMatrices[layer], worldPos, layer), minShadow, 1.0);
+	float shadow = clamp(shadowContribution(lightMatrices[layer], worldPos, N, layer), minShadow, 1.0);
 
 	vec3 accumulatedLight = diffuse * lightColor.rgb * shadow;
 

@@ -28,7 +28,7 @@ constexpr CharacterCapsule::Settings capsuleSettings{
     .standingHeight = 1.35f,
     .crouchingHeight = 0.8f,
     .innerShapeFraction = 0.9f,
-    .speed = 3.5f,
+    .speed = 23.5f,
     .jumpSpeed = 2.75f,
     .sprintSpeedMultiplier = 1.45f,
     .crouchSpeedMultiplier = 0.4f,

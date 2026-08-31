@@ -27,7 +27,7 @@ struct MultiDrawBucket
 {
     std::uint32_t maxDrawCalls{0};
     std::uint32_t drawCommandsBaseIndex{0};
-    ShaderType shaderType{ShaderType::directionalPBR};
+    ShaderType shaderType{ShaderType::pbr};
     AlphaMode alphaMode{AlphaMode::opaque};
 };
 

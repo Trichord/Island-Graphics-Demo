@@ -40,11 +40,7 @@ out VS_OUT
 	vec3 normal;
 	vec2 texCoords;
 	float vertexHeight;
-
-#ifdef ALPHA_TESTED_SHADOWS
-	vec4 viewPos;
-	vec4 worldPos;
-#endif
+	float ao;
 } vsOut;
 
 void main() 
@@ -69,12 +65,9 @@ void main()
 	metadataIndex = gl_BaseInstance;
 
 	vsOut.vertexHeight = aPos.y;	
+	vsOut.ao = aColor.a;
 	vsOut.texCoords = aTexCoords;
 	vsOut.normal = normal;
-	#ifdef ALPHA_TESTED_SHADOWS
-	vsOut.viewPos = viewMatrix * worldPosition;
-	vsOut.worldPos = worldPosition;
-	#endif
-
+	
     gl_Position = viewProjectionMatrix * worldPosition;
 }

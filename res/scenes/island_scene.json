@@ -19,7 +19,7 @@
     {
       "type": "model",
       "modelPath": "./res/models/island/island.gltf",
-      "shader": "directionalPBR",
+      "shader": "pbr",
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/island/collision/island_collision.gltf"
@@ -32,7 +32,7 @@
 	"scale":  0.381167
       },
       "modelPath": "./res/models/set_pieces/monument/monument.gltf",
-      "shader": "directionalPBR",
+      "shader": "pbr",
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/set_pieces/monument/collision/monument_collision.gltf"
@@ -46,7 +46,7 @@
 	"scale":  0.870969
       },
       "modelPath": "./res/models/set_pieces/sleeping_bag/sleeping_bag.gltf",
-      "shader": "directionalPBR"
+      "shader": "pbr"
     },
     {
       "type": "model",
@@ -56,7 +56,7 @@
 	"scale":  0.840476
       },
       "modelPath": "./res/models/set_pieces/chair/chair.gltf",
-      "shader": "directionalPBR",
+      "shader": "pbr",
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/set_pieces/chair/collision/chair_collision.gltf"
@@ -69,7 +69,7 @@
         "rotation": -65.0
       },
       "modelPath": "./res/models/set_pieces/statue/statue.gltf",
-      "shader": "directionalPBR",
+      "shader": "pbr",
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/set_pieces/statue/collision/statue_collision.gltf"
@@ -156,7 +156,7 @@
         "scale": 0.02
       },
       "modelPath": "./res/models/set_pieces/boat/boat.gltf",
-      "shader": "directionalPBR",
+      "shader": "pbr",
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/set_pieces/boat/collision/boat_collision.gltf"
@@ -169,8 +169,8 @@
         "translation": [-21.0, 13.4615, -48.0]
       },
       "modelPath": "./res/models/set_pieces/space_model/space_model.gltf",
-      "cubemapPath": "./res/textures/nebula/nebula.ktx2",
-      "shader": "reflective"
+      "cubemapPath": "./res/textures/skyboxes/nebula.ktx2",
+      "shader": "reflectiveCubemap"
     },
     {
       "type": "instanced",
@@ -178,7 +178,7 @@
       "maxScale": 2.0,
       "modelPath": "./res/models/rocks/rock1/rock1.gltf",
       "positionsPath": "./res/positions/rock1.txt",
-      "shader": "directionalPBR",
+      "shader": "pbr",
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock1/collision/rock1_collision.gltf"
@@ -190,7 +190,7 @@
       "maxScale": 2.2,
       "modelPath": "./res/models/rocks/rock2/rock2.gltf",
       "positionsPath": "./res/positions/rock2.txt",
-      "shader": "directionalPBR",
+      "shader": "pbr",
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock2/collision/rock2_collision.gltf"
@@ -202,7 +202,7 @@
       "maxScale": 1.0,
       "modelPath": "./res/models/rocks/rock3/rock3.gltf",
       "positionsPath": "./res/positions/rock3.txt",
-      "shader": "directionalPBR",
+      "shader": "pbr",
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock3/collision/rock3_collision.gltf"
@@ -214,7 +214,7 @@
       "maxScale": 1.3,
       "modelPath": "./res/models/rocks/rock4/rock4.gltf",
       "positionsPath": "./res/positions/rock4.txt",
-      "shader": "directionalPBR",
+      "shader": "pbr",
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock4/collision/rock4_collision.gltf"
@@ -226,7 +226,7 @@
       "maxScale": 1.1,
       "modelPath": "./res/models/rocks/rock5/rock5.gltf",
       "positionsPath": "./res/positions/rock5.txt",
-      "shader": "directionalPBR",
+      "shader": "pbr",
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock5/collision/rock5_collision.gltf"
@@ -244,7 +244,7 @@
       "scale": 20.0
       },
       "modelPath": "./res/models/rocks/rock6/rock6.gltf",
-      "shader": "directionalPBR",
+      "shader": "pbr",
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock6/collision/rock6_collision.gltf"
@@ -260,7 +260,7 @@
         "scale": 10.0
       },
       "modelPath": "./res/models/rocks/rock7/rock7.gltf",
-      "shader": "directionalPBR",
+      "shader": "pbr",
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock7/collision/rock7_collision.gltf"
@@ -329,7 +329,7 @@
         "rotation": 45.0
       },
       "modelPath": "./res/models/trees/dead_tree/dead_tree.gltf",
-      "shader": "directionalPBR",
+      "shader": "pbr",
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/trees/dead_tree/collision/dead_tree_collision.gltf"
@@ -412,7 +412,7 @@
     },
     {
       "type": "skybox",
-      "skyboxPath": "./res/textures/skybox/skybox.ktx2"
+      "skyboxPath": "./res/textures/skyboxes/skybox.ktx2"
     },
     {
       "type": "particles",

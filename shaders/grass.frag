@@ -7,9 +7,8 @@
 #include "shared/foliage.glsl"
 #include "shared/ubo.glsl"
 
-#ifdef ALPHA_TESTED_SHADOWS
-#include "shared/shadows.glsl"
-#endif
+// Constants
+const float diffuseBoostFactor = 0.5;
 
 // SSBOs
 layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
@@ -21,14 +20,10 @@ flat in int metadataIndex;
 
 in VS_OUT 
 {
-    vec3 normal;
+	vec3 normal;
 	vec2 texCoords;
-    float vertexHeight;
-
-#ifdef ALPHA_TESTED_SHADOWS
-	vec4 viewPos;
-	vec4 worldPos;
-#endif
+	float vertexHeight;
+	float ao;
 } fsIn;
 
 // Out
@@ -54,23 +49,12 @@ void main()
     // Diffuse
     float NdotL = dot(L, N);
     float diffuseFactor = NdotL * 0.5 + 0.5;
-    diffuseFactor = diffuseFactor * diffuseFactor;
+    diffuseFactor = diffuseFactor * diffuseFactor * fsIn.ao;
     
     // Brighten up the base of the grass blades
-    float diffuseBoost = (1.0 - smoothstep(0.0, 0.2, fsIn.vertexHeight)) * 0.5;
-    diffuseBoost = diffuseBoost * (1.0 - smoothstep(0.0, 0.2, NdotL));
+    float diffuseBoost = (1.0 - smoothstep(0.0, 0.2, fsIn.vertexHeight)) * diffuseBoostFactor;
     diffuseFactor += diffuseBoost;
     
-    #ifdef ALPHA_TESTED_SHADOWS
-	// Pick shadow cascade off frag depth
-	int layer = calculateCascadeIndex(-fsIn.viewPos.z);
-	float shadow = shadowContribution(lightMatrices[layer], fsIn.worldPos, layer);
-    shadow = clamp(shadow + 0.1, 0.0, 1.0);
-    vec3 color = ambient + albedo.rgb * diffuseFactor * lightColor.rgb * shadow;
-    
-    #else
     vec3 color = ambient + albedo.rgb * diffuseFactor * lightColor.rgb;
-    #endif
-
     fragColor = vec4(color, albedo.a);
 }

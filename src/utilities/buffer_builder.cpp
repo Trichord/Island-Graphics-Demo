@@ -128,7 +128,7 @@ VAOs BufferBuilder::buildVAO(const std::vector<Primitive::Vertex> &vertices,
     shadowVerts.reserve(vertices.size());
 
     for (const Primitive::Vertex &vertex : vertices)
-        shadowVerts.emplace_back(glm::vec4(vertex.position, 1.0));
+        shadowVerts.emplace_back(glm::vec4(vertex.position, 1.0f));
 
     glCreateVertexArrays(1, &vao.shadowVAO);
 

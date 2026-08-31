@@ -43,5 +43,5 @@ struct Primitive
     glm::mat4 modelSpaceTransform{1.0f};
     std::size_t materialIndex{0};
     AlphaMode alphaMode{AlphaMode::opaque};
-    ShaderType shaderType{ShaderType::directionalPBR};
+    ShaderType shaderType{ShaderType::pbr};
 };

@@ -16,8 +16,8 @@
 #include "utilities/world_vectors.h"
 
 NLOHMANN_JSON_SERIALIZE_ENUM(ShaderType, {{ShaderType::baseColor, "baseColor"},
-                                          {ShaderType::directionalPBR, "directionalPBR"},
-                                          {ShaderType::reflective, "reflective"},
+                                          {ShaderType::pbr, "pbr"},
+                                          {ShaderType::reflectiveCubemap, "reflectiveCubemap"},
                                           {ShaderType::trees, "trees"},
                                           {ShaderType::grass, "grass"},
                                           {ShaderType::water, "water"},
@@ -165,7 +165,7 @@ inline void from_json(const nlohmann::json &j, ModelEntry &model)
     model.name = j.value("name", std::string{});
     model.transform = j.value("transform", Transform{});
     model.modelPath = j.value("modelPath", std::filesystem::path{});
-    model.shader = j.value("shader", ShaderType::directionalPBR);
+    model.shader = j.value("shader", ShaderType::pbr);
 
     if (j.contains("collisionGeometry"))
         model.collisionGeometry = j.at("collisionGeometry").get<Collision::Geometry>();
@@ -178,7 +178,7 @@ inline void from_json(const nlohmann::json &j, InstancedModelEntry &model)
     model.maxScale = j.value("maxScale", 1.0f);
     model.modelPath = j.value("modelPath", std::filesystem::path{});
     model.positionsPath = j.value("positionsPath", std::filesystem::path{});
-    model.shader = j.value("shader", ShaderType::directionalPBR);
+    model.shader = j.value("shader", ShaderType::pbr);
 
     if (j.contains("collisionGeometry"))
         model.collisionGeometry = j.at("collisionGeometry").get<Collision::Geometry>();
@@ -190,7 +190,7 @@ inline void from_json(const nlohmann::json &j, CubeMappedModelEntry &model)
     model.transform = j.value("transform", Transform{});
     model.modelPath = j.value("modelPath", std::filesystem::path{});
     model.cubemapPath = j.value("cubemapPath", std::filesystem::path{});
-    model.shader = j.value("shader", ShaderType::directionalPBR);
+    model.shader = j.value("shader", ShaderType::pbr);
 
     if (j.contains("collisionGeometry"))
         model.collisionGeometry = j.at("collisionGeometry").get<Collision::Geometry>();

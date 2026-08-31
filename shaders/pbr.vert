@@ -31,12 +31,13 @@ flat out int metadataIndex;
 
 out vsOut 
 {
-	vec3 cameraPos;
-	vec3 lightDir;
-	vec3 tangentFragPos;
-	vec2 texCoords;
-	vec4 viewFragPos;
 	vec4 worldFragPos;
+	vec3 tangentCameraPos;
+	vec3 tangentLightDir;
+	vec3 tangentFragPos;
+	vec3 geoNormal;
+	vec2 texCoords;
+	float viewFragDepth;
 } vOut;
 
 void main() 
@@ -46,20 +47,21 @@ void main()
 
 	mat4 modelMatrix = matrices[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
+	vOut.geoNormal = normalMatrix * aNormal.xyz;
 
 	//TBN matrix for normal map
 	vec3 T = normalize(normalMatrix * aTangent.xyz);
-	vec3 N = normalize(normalMatrix * aNormal.xyz);
+	vec3 N = normalize(vOut.geoNormal);
 	T = normalize(T - dot(T, N) * N); 
-	vec3 B = normalize(cross(N, T) * aTangent.w);
+	vec3 B = cross(N, T) * aTangent.w;
 	mat3 TBN = transpose(mat3(T, B, N));
 
 	vOut.worldFragPos = modelMatrix * vec4(aPos, 1.0);
-	vOut.viewFragPos = viewMatrix * vOut.worldFragPos;
+	vOut.viewFragDepth = (viewMatrix * vOut.worldFragPos).z;
 
 	vOut.tangentFragPos = TBN * vOut.worldFragPos.xyz;
-	vOut.lightDir = TBN * lightDir.xyz;
-	vOut.cameraPos = TBN * cameraPosition.xyz;
+	vOut.tangentLightDir = TBN * lightDir.xyz;
+	vOut.tangentCameraPos = TBN * cameraPosition.xyz;
 
 	vOut.texCoords = aTexCoords;
 

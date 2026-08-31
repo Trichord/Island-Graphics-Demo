@@ -30,11 +30,6 @@
 
 namespace
 {
-// Hardware shadow bias
-constexpr GLfloat polygonFactor{2.0f};
-constexpr GLfloat polygonUnits{2.0f};
-constexpr GLfloat polygonClamp{0.02f};
-
 // Reduce the distance of the camera's far plane by 80% for shadow cascades.
 constexpr float farPlaneReduction{0.2f};
 
@@ -116,7 +111,6 @@ Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &setti
     glState_.bindTexture(static_cast<GLuint>(TextureUnit::hiZ), hiZTexture_);
     glState_.bindTexture(static_cast<GLuint>(TextureUnit::noise), noiseTexture_);
     glState_.bindFramebuffer(frameBuffer_.getID());
-    glPolygonOffsetClamp(polygonFactor, polygonUnits, polygonClamp);
 }
 
 Renderer::~Renderer()
@@ -170,30 +164,28 @@ void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    const std::vector<std::string> defines{
-        graphicsSettings_.shadowResolution ? "ALPHA_TESTED_SHADOWS" : "",
-        graphicsSettings_.gamma != 1.0f ? "GAMMA_CORRECT" : "",
-        "MSAA_SAMPLES " + std::to_string(graphicsSettings_.msaa),
-    };
+    std::vector<std::string> defines{"MSAA_SAMPLES " + std::to_string(graphicsSettings_.msaa)};
+
+    if (graphicsSettings_.shadowResolution)
+        defines.emplace_back("ALPHA_TESTED_SHADOWS");
+
+    if (graphicsSettings_.gamma != 1.0f)
+        defines.emplace_back("GAMMA_CORRECT");
 
     graphicsShaders_[shaderIndex(baseColor)] = {"./shaders/base_color.vert", "./shaders/base_color.frag", defines};
-    graphicsShaders_[shaderIndex(directionalPBR)] = {"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag",
-                                                     defines};
+    graphicsShaders_[shaderIndex(pbr)] = {"./shaders/pbr.vert", "./shaders/pbr.frag", defines};
     graphicsShaders_[shaderIndex(grass)] = {"./shaders/grass.vert", "./shaders/grass.frag", defines};
     graphicsShaders_[shaderIndex(trees)] = {"./shaders/trees.vert", "./shaders/trees.frag", defines};
-    graphicsShaders_[shaderIndex(reflective)] = {"./shaders/reflective.vert", "./shaders/reflective.frag", defines};
+    graphicsShaders_[shaderIndex(reflectiveCubemap)] = {"./shaders/reflective.vert", "./shaders/reflective.frag",
+                                                        defines};
     graphicsShaders_[shaderIndex(skybox)] = {"./shaders/skybox.vert", "./shaders/skybox.frag", defines};
     graphicsShaders_[shaderIndex(water)] = {"./shaders/water.vert", "./shaders/water.frag", defines};
     graphicsShaders_[shaderIndex(ocean)] = {"./shaders/water.vert", "./shaders/ocean.frag", defines};
     graphicsShaders_[shaderIndex(particles)] = {"./shaders/particles.vert", "./shaders/particles.frag", defines};
 
     // Internal use only shaders
-    if (graphicsSettings_.shadowResolution)
-    {
-        shadowShader_ = {"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
-        shadowAlphaShader_ = {"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag", defines};
-    }
-
+    shadowShader_ = {"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
+    shadowAlphaShader_ = {"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag", defines};
     fboResolveShader_ = {"./shaders/fbo_resolve.vert", "./shaders/fbo_resolve.frag", defines};
 
     // Compute
