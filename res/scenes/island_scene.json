@@ -341,7 +341,7 @@
       "maxScale": 0.5,
       "modelPath": "./res/models/vegetation/grass/grass.gltf",
       "positionsPath": "./res/positions/grass.txt",
-      "shader": "grass"
+      "shader": "vegetation"
     },
     {
       "type": "instanced",
@@ -349,7 +349,7 @@
       "maxScale": 1.1,
       "modelPath": "./res/models/vegetation/whiteflower/whiteflower.gltf",
       "positionsPath": "./res/positions/whiteflowers.txt",
-      "shader": "grass"
+      "shader": "vegetation"
     },
     {
       "type": "instanced",
@@ -357,7 +357,7 @@
       "maxScale": 1.1,
       "modelPath": "./res/models/vegetation/blueflower/blueflower.gltf",
       "positionsPath": "./res/positions/blueflowers.txt",
-      "shader": "grass"
+      "shader": "vegetation"
     },
     {
       "type": "instanced",
@@ -365,7 +365,7 @@
       "maxScale": 1.1,
       "modelPath": "./res/models/vegetation/purpleflower/purpleflower.gltf",
       "positionsPath": "./res/positions/purpleflowers.txt",
-      "shader": "grass"
+      "shader": "vegetation"
     },
     {
       "type": "instanced",
@@ -373,7 +373,7 @@
       "maxScale": 1.5,
       "modelPath": "./res/models/vegetation/dandelion/dandelion.gltf",
       "positionsPath": "./res/positions/dandelions.txt",
-      "shader": "grass"
+      "shader": "vegetation"
     },
     {
       "type": "instanced",
@@ -381,7 +381,7 @@
       "maxScale": 1.2,
       "modelPath": "./res/models/vegetation/strawberry/strawberry.gltf",
       "positionsPath": "./res/positions/strawberries.txt",
-      "shader": "grass"
+      "shader": "vegetation"
     },
     {
       "type": "model",

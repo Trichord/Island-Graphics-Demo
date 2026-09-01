@@ -13,17 +13,19 @@ enum class ShaderType
     baseColor,
     pbr,
     reflectiveCubemap,
-    trees,
-    grass,
+    vegetation,
     particles,
     ocean,
     skybox,
     water, // Blended, after all opaque
-    count
+    count,
+
+    trees, // No-op shader, gets split at runtime into pbr and vegetation
 };
 
 constexpr int shaderIndex(ShaderType type)
 {
+    assert(type != ShaderType::trees);
     return static_cast<int>(type);
 }
 

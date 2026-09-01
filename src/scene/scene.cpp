@@ -93,6 +93,8 @@ void splitOnShaderType(Scene::Entry &entry)
 
         if (primitive.alphaMode == opaque)
             primitive.shaderType = pbr;
+        else
+            primitive.shaderType = vegetation;
     }
 }
 

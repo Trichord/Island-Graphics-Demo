@@ -174,8 +174,7 @@ void Renderer::loadShaders()
 
     graphicsShaders_[shaderIndex(baseColor)] = {"./shaders/base_color.vert", "./shaders/base_color.frag", defines};
     graphicsShaders_[shaderIndex(pbr)] = {"./shaders/pbr.vert", "./shaders/pbr.frag", defines};
-    graphicsShaders_[shaderIndex(grass)] = {"./shaders/grass.vert", "./shaders/grass.frag", defines};
-    graphicsShaders_[shaderIndex(trees)] = {"./shaders/trees.vert", "./shaders/trees.frag", defines};
+    graphicsShaders_[shaderIndex(vegetation)] = {"./shaders/vegetation.vert", "./shaders/vegetation.frag", defines};
     graphicsShaders_[shaderIndex(reflectiveCubemap)] = {"./shaders/reflective.vert", "./shaders/reflective.frag",
                                                         defines};
     graphicsShaders_[shaderIndex(skybox)] = {"./shaders/skybox.vert", "./shaders/skybox.frag", defines};

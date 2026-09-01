@@ -6,6 +6,9 @@
 #include "shared/ubo.glsl"
 #include "shared/wind.glsl"
 
+// Constants
+const vec3 worldUp = vec3(0.0, 1.0, 0.0);
+
 // Attributes
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec4 aNormal;
@@ -29,16 +32,13 @@ layout(binding = SSBO_BINDING_VISIBLE_INSTANCES, std430) restrict readonly buffe
    uint instances[];
 };
 
-// Out
-flat out int metadataIndex;
-
-out vec4 worldPos;
-out vec3 normal;
-out vec2 texCoords;
-
-#ifdef ALPHA_TESTED_SHADOWS
-out vec4 viewPos;
-#endif
+out VS_OUT 
+{
+	vec3 normal;
+	vec2 texCoords;
+	float ao;
+	flat int metadataIndex;
+} vsOut;
 
 void main() 
 {
@@ -47,7 +47,7 @@ void main()
 
 	mat4 modelMatrix = matrices[matrixIndex];
 	mat3 normalMatrix = mat3(modelMatrix);
-	normal = normalize(normalMatrix * aNormal.xyz);
+	vec3 normal = normalize(normalMatrix * mix(aNormal.xyz, worldUp, 0.5));
 	vec4 worldPosition = modelMatrix * vec4(aPos, 1.0);
 	
 	// Wind
@@ -59,13 +59,10 @@ void main()
 	smallScaleWind(worldPosition.xyz, aColor, normal, vec3(noise.gr, noise.g), aPos.y, windFactor, windStrength);
 	
 	// Out params
-	metadataIndex = gl_BaseInstance;
-	texCoords = aTexCoords;
-	worldPos = worldPosition;
-
-	#ifdef ALPHA_TESTED_SHADOWS
-	viewPos = viewMatrix * worldPosition;
-	#endif
-
-	gl_Position = viewProjectionMatrix * worldPos;
+	vsOut.normal = normal;
+	vsOut.texCoords = aTexCoords;
+	vsOut.ao = aColor.a;
+	vsOut.metadataIndex = gl_BaseInstance;
+	
+    gl_Position = viewProjectionMatrix * worldPosition;
 }
