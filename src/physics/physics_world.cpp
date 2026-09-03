@@ -35,7 +35,7 @@ constexpr CharacterCapsule::Settings capsuleSettings{
     .crouchingHeight = 0.8f,
     .innerShapeFraction = 0.9f,
     .speed = 3.5f,
-    .jumpSpeed = 2.75f,
+    .jumpSpeed = 3.0f,
     .sprintSpeedMultiplier = 1.45f,
     .crouchSpeedMultiplier = 0.4f,
 };
@@ -45,9 +45,9 @@ bool initializePhysicsSystem(JPH::PhysicsSystem &physicsSystem, BPLayerInterface
                              JPH::TempAllocatorImpl &tempAllocator)
 {
     // Physics engine constants
-    constexpr JPH::uint maxBodies{1024};
-    constexpr JPH::uint maxBodyPairs{1024};
-    constexpr JPH::uint maxContactConstraints{1024};
+    constexpr JPH::uint maxBodies{65536u};
+    constexpr JPH::uint maxBodyPairs{65536u};
+    constexpr JPH::uint maxContactConstraints{10240u};
 
     physicsSystem.Init(maxBodies, 0, maxBodyPairs, maxContactConstraints, broadPhase, bfFilter, pairFilter);
 
@@ -78,6 +78,8 @@ PhysicsWorld::~PhysicsWorld()
 
 void PhysicsWorld::initializeScene(Scene &scene)
 {
+    using namespace JPH;
+
     const glm::vec3 &startingPosition{scene.getCameraDescription().position};
 
     physics::StaticBodies collisionMeshes{physics::buildCollisionGeometry(scene, physicsSystem_.GetBodyInterface())};
@@ -86,6 +88,26 @@ void PhysicsWorld::initializeScene(Scene &scene)
     player_.setCenter(toJPHVec3(startingPosition));
     bodyIDs_ = std::move(collisionMeshes.ids);
     physicsSystem_.OptimizeBroadPhase();
+
+    const BodyInterface &interface{physicsSystem_.GetBodyInterface()};
+
+    // Seed starting position / rotation for starting dynamics
+    for (const BodyID &id : bodyIDs_)
+    {
+        uint64 userData{interface.GetUserData(id)};
+
+        if (userData == playerID_)
+            continue;
+
+        if (interface.GetMotionType(id) != EMotionType::Dynamic)
+            continue;
+
+        MovedBody body;
+        interface.GetPositionAndRotation(id, body.currentPos, body.currentRot);
+        body.prevPos = body.currentPos;
+        body.prevRot = body.currentRot;
+        movedEntities_.emplace(id, std::move(body));
+    }
 }
 
 void PhysicsWorld::update(const Input &input, const glm::vec3 &front, float deltaTime)
@@ -263,7 +285,7 @@ void PhysicsWorld::flagMovedEntities()
         if (userData == playerID_)
             continue;
 
-        movedEntities_.emplace(id);
+        movedEntities_[id].update(interface.GetPosition(id), interface.GetRotation(id));
     }
 }
 
@@ -273,17 +295,15 @@ void PhysicsWorld::synchronizeEntries(Scene &scene)
 
     const BodyInterface &interface{physicsSystem_.GetBodyInterface()};
 
-    for (const JPH::BodyID &id : movedEntities_)
+    for (auto &[id, movedBody] : movedEntities_)
     {
-        const RVec3 pos{interface.GetPosition(id)};
-        const Quat rot{interface.GetRotation(id)};
         physics::BodyIdentifier sceneBody{physics::getBodyIdentifier(interface.GetUserData(id))};
-
         Scene::Entry &entry{scene.editEntry(sceneBody.handle)};
         Transform &transform{entry.worldTransforms[sceneBody.transformIndex]};
-        transform.setAbsoluteRotation(toGLMQuat(rot));
-        transform.setAbsoluteTranslation(toGLMVec3(pos));
-    }
 
-    movedEntities_.clear();
+        transform.setAbsoluteRotation(
+            glm::slerp(toGLMQuat(movedBody.prevRot), toGLMQuat(movedBody.currentRot), interpolationAlpha_));
+        transform.setAbsoluteTranslation(
+            glm::mix(toGLMVec3(movedBody.prevPos), toGLMVec3(movedBody.currentPos), interpolationAlpha_));
+    }
 }

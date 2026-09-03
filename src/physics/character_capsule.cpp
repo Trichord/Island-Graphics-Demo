@@ -199,7 +199,7 @@ void CharacterCapsule::physicsUpdate(float deltaTime)
     using namespace JPH;
 
     // Move character, using default update settings
-    CharacterVirtual::ExtendedUpdateSettings updateSettings{.mWalkStairsStepUp = Vec3{0.0f, 0.25f, 0.0f}};
+    CharacterVirtual::ExtendedUpdateSettings updateSettings{.mWalkStairsStepUp = Vec3{0.0f, 0.1f, 0.0f}};
     capsule_->ExtendedUpdate(deltaTime, physicsSystem_->GetGravity(), updateSettings,
                              physicsSystem_->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
                              physicsSystem_->GetDefaultLayerFilter(Layers::MOVING), {}, {}, *tempAllocator_);

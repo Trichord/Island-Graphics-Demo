@@ -61,9 +61,10 @@
         "type": "convexHull",
         "path": "./res/models/set_pieces/chair/collision/chair_collision.gltf",
 	"dynamic": true,
+	"compound": true,
 	"material": {
-        "density": 100.0,
-	"friction": 0.7
+        "density": 200.0,
+	"friction": 1.0
 	}
     	}
     },

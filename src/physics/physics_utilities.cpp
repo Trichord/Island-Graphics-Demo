@@ -19,6 +19,7 @@
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Collision/Shape/ScaledShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
+#include <Jolt/Physics/Collision/Shape/StaticCompoundShape.h>
 #include <Jolt/Physics/Collision/TransformedShape.h>
 #include <Jolt/Physics/EActivation.h>
 #include <algorithm>
@@ -65,6 +66,20 @@ JPH::TriangleList buildMesh(const std::vector<Primitive> &primitives)
     return mesh;
 }
 
+JPH::Array<JPH::Vec3> buildPoints(const Primitive &primitive)
+{
+    JPH::Array<JPH::Vec3> points;
+    points.reserve(primitive.vertices.size());
+
+    for (const Primitive::Vertex &vertex : primitive.vertices)
+    {
+        const glm::vec3 transformedVert{primitive.modelSpaceTransform * glm::vec4{vertex.position, 1.0f}};
+        points.emplace_back(toJPHVec3(transformedVert));
+    }
+
+    return points;
+}
+
 JPH::Array<JPH::Vec3> buildPoints(const std::vector<Primitive> &primitives)
 {
     std::size_t numVerts{0};
@@ -85,6 +100,45 @@ JPH::Array<JPH::Vec3> buildPoints(const std::vector<Primitive> &primitives)
     return points;
 }
 
+JPH::ShapeSettings::ShapeResult buildCompoundHull(const std::vector<Primitive> &primitives, float density)
+{
+    using namespace JPH;
+
+    Array<Ref<Shape>> hulls;
+    hulls.reserve(primitives.size());
+
+    for (const Primitive &primitive : primitives)
+    {
+        if (primitive.vertices.empty())
+            continue;
+
+        ConvexHullShapeSettings settings{buildPoints(primitive)};
+        settings.mDensity = density;
+
+        ShapeSettings::ShapeResult result{settings.Create()};
+
+        if (result.HasError())
+            std::cerr << "Error building compound hull section: " << result.GetError() << std::endl;
+        else
+            hulls.emplace_back(result.Get());
+    }
+
+    if (hulls.size() < 2)
+    {
+        JPH::ShapeSettings::ShapeResult result;
+        result.SetError("No useable compound hull created");
+        return result;
+    }
+
+    StaticCompoundShapeSettings settings;
+    settings.SetEmbedded();
+
+    for (auto &hull : hulls)
+        settings.AddShape(Vec3::sZero(), Quat::sIdentity(), hull);
+
+    return settings.Create();
+}
+
 void addBody(physics::StaticBodies &bodies, JPH::BodyInterface &interface, const JPH::Ref<JPH::Shape> &shape,
              const Transform &transform, Handle handle, std::size_t transformIndex, float friction, bool dynamic)
 {
@@ -98,6 +152,9 @@ void addBody(physics::StaticBodies &bodies, JPH::BodyInterface &interface, const
                                        dynamic ? Layers::MOVING : Layers::NON_MOVING};
     settings.mUserData = physics::createBodyIdentifier(handle, transformIndex);
     settings.mFriction = friction;
+
+    if (dynamic)
+        settings.mMotionQuality = JPH::EMotionQuality::LinearCast;
 
     JPH::BodyID id{
         interface.CreateAndAddBody(settings, dynamic ? JPH::EActivation::Activate : JPH::EActivation::DontActivate)};
@@ -134,12 +191,19 @@ physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::B
 
                               [&](const collision::ConvexHull &hull) {
                                   fastgltf::Asset asset{loader::loadAsset(hull.path)};
-                                  const std::vector<Primitive> primitives{loader::loadMeshes(asset)};
-                                  JPH::Array<JPH::Vec3> points{buildPoints(primitives)};
 
-                                  JPH::ConvexHullShapeSettings convexHullSettings{points};
-                                  convexHullSettings.mDensity = hull.material.density;
-                                  JPH::ShapeSettings::ShapeResult result{convexHullSettings.Create()};
+                                  const std::vector<Primitive> primitives{loader::loadMeshes(asset)};
+                                  JPH::ShapeSettings::ShapeResult result;
+
+                                  if (hull.compound && primitives.size() > 1)
+                                      result = buildCompoundHull(primitives, hull.material.density);
+                                  else
+                                  {
+                                      JPH::Array<JPH::Vec3> points{buildPoints(primitives)};
+                                      JPH::ConvexHullShapeSettings convexHullSettings{points};
+                                      convexHullSettings.mDensity = hull.material.density;
+                                      result = convexHullSettings.Create();
+                                  }
 
                                   if (result.HasError())
                                   {

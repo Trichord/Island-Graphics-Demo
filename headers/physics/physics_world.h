@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <limits>
-#include <unordered_set>
+#include <unordered_map>
 #include <vector>
 
 #include "application/input.h"
@@ -47,6 +47,23 @@ class PhysicsWorld
     void synchronizeEntries(Scene &scene);
 
   private:
+    struct MovedBody
+    {
+        JPH::Vec3 prevPos{JPH::Vec3::sZero()};
+        JPH::Vec3 currentPos{JPH::Vec3::sZero()};
+
+        JPH::Quat prevRot{JPH::Quat::sIdentity()};
+        JPH::Quat currentRot{JPH::Quat::sIdentity()};
+
+        void update(const JPH::Vec3 &pos, const JPH::Quat &rot)
+        {
+            prevPos = currentPos;
+            prevRot = currentRot;
+            currentPos = pos;
+            currentRot = rot;
+        }
+    };
+
     static constexpr size_t joltStackSize_{10 * 1024 * 1024}; // 10 MB
     static constexpr JPH::uint maxPhysicsJobs_{2048u};
 
@@ -85,7 +102,7 @@ class PhysicsWorld
     CharacterCapsule player_;
 
     // Dirty list of moved entities
-    std::unordered_set<JPH::BodyID> movedEntities_;
+    std::unordered_map<JPH::BodyID, MovedBody> movedEntities_;
     std::vector<JPH::BodyID> bodyIDs_;
     JPH::BodyIDVector activeBodies_;
 
