@@ -35,7 +35,7 @@ set(SOURCES
     src/models/skybox.cpp
     src/physics/character_capsule.cpp
     src/physics/physics_utilities.cpp
-    src/physics/player_physics.cpp
+    src/physics/physics_world.cpp
     src/renderer/cascade_shadow.cpp
     src/renderer/gl_state.cpp
     src/renderer/render_target.cpp
@@ -92,7 +92,7 @@ set(HEADERS
     headers/physics/collision_shapes.h
     headers/physics/jolt_impl.h
     headers/physics/physics_utilities.h
-    headers/physics/player_physics.h
+    headers/physics/physics_world.h
     headers/physics/player_state.h
     headers/renderer/buffers.h
     headers/renderer/cascade_shadow.h

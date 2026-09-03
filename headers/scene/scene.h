@@ -22,6 +22,7 @@
 #include "scene/directional_light.h"
 #include "scene/entry_animation.h"
 #include "scene/handle.h"
+#include "utilities/string_hash.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 
@@ -35,7 +36,7 @@ class Scene
         std::vector<Primitive> primitives;
         std::vector<Transform> worldTransforms;
         std::optional<EntryAnimation> entryAnimation;
-        std::optional<Collision::Geometry> collisionGeometry;
+        std::optional<collision::Geometry> collisionGeometry;
     };
 
     Scene(TextureManager &_textureManager, const std::filesystem::path &jsonFile);
@@ -56,6 +57,7 @@ class Scene
     const std::vector<Scene::Entry> &getAllSceneEntries() const;
     const Scene::Entry &viewEntry(Handle handle) const;
     const Scene::Entry &viewEntry(std::string_view name) const;
+    [[nodiscard]] Scene::Entry &editEntry(Handle handle);
 
     // Returns a non-contiguous view of updated scene entries, based on dirty handles. Return value must not outlive
     // Scene.
@@ -70,7 +72,6 @@ class Scene
     void clearUpdates();
 
   protected:
-    [[nodiscard]] Scene::Entry &editEntry(Handle handle);
     [[nodiscard]] Scene::Entry &editEntry(std::string_view name);
 
     void setAmbientLight(const glm::vec3 &ambient);
@@ -104,17 +105,17 @@ class Scene
     void addSkybox(Handle handle, Skybox &skybox);
     void addParticles(Handle handle, Particles &particles);
     void addModel(Handle handle, Model &model, const Transform &transform,
-                  const std::optional<Collision::Geometry> & = {}, const std::string &name = {});
+                  const std::optional<collision::Geometry> & = {}, const std::string &name = {});
     void addInstancedModel(Handle handle, InstancedModel &model,
-                           const std::optional<Collision::Geometry> &collisionGeometry = {},
+                           const std::optional<collision::Geometry> &collisionGeometry = {},
                            const std::string &name = {});
     void addCubemappedModel(Handle handle, Model &model, const std::filesystem::path &imagePath,
                             const Transform &transform,
-                            const std::optional<Collision::Geometry> &collisionGeometry = {},
+                            const std::optional<collision::Geometry> &collisionGeometry = {},
                             const std::string &name = {});
 
     std::size_t findIndex(Handle handle) const;
     std::size_t findIndex(std::string_view name) const;
 };
 
-using UpdatedEntriesView = decltype(std::declval<const Scene &>().getUpdatedEntries());
+using UpdatedSceneEntries = decltype(std::declval<const Scene &>().getUpdatedEntries());

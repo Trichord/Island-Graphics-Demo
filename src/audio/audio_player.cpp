@@ -131,7 +131,7 @@ void AudioPlayer::playCharacterEffects(const PlayerState &state)
         playFootstepEffect();
 }
 
-void AudioPlayer::updateTriggers(UpdatedEntriesView updatedEntries)
+void AudioPlayer::updateTriggers(UpdatedSceneEntries updatedEntries)
 {
     for (const Scene::Entry &entry : updatedEntries)
     {

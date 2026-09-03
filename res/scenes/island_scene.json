@@ -51,15 +51,20 @@
     {
       "type": "model",
       "transform": {
-        "translation": [88.081, -0.413575, -81.1369],
+        "translation": [88.081, -0.313575, -81.1369],
 	"rotation": [0, 0.576793, 0, 0.816891],
 	"scale":  0.840476
       },
       "modelPath": "./res/models/set_pieces/chair/chair.gltf",
       "shader": "pbr",
       "collisionGeometry": {
-        "type": "mesh",
-        "path": "./res/models/set_pieces/chair/collision/chair_collision.gltf"
+        "type": "convexHull",
+        "path": "./res/models/set_pieces/chair/collision/chair_collision.gltf",
+	"dynamic": true,
+	"material": {
+        "density": 100.0,
+	"friction": 0.7
+	}
     	}
     },
     {

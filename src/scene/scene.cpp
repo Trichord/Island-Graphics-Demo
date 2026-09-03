@@ -294,7 +294,7 @@ void Scene::addSkybox(Handle handle, Skybox &skybox)
 }
 
 void Scene::addModel(Handle handle, Model &model, const Transform &transform,
-                     const std::optional<Collision::Geometry> &collisionGeometry, const std::string &name)
+                     const std::optional<collision::Geometry> &collisionGeometry, const std::string &name)
 {
     if (!name.empty())
         entriesByName_.emplace(name, entries_.size());
@@ -311,7 +311,7 @@ void Scene::addModel(Handle handle, Model &model, const Transform &transform,
 }
 
 void Scene::addCubemappedModel(Handle handle, Model &model, const std::filesystem::path &imagePath,
-                               const Transform &transform, const std::optional<Collision::Geometry> &collisionGeometry,
+                               const Transform &transform, const std::optional<collision::Geometry> &collisionGeometry,
                                const std::string &name)
 {
     if (!name.empty())
@@ -330,7 +330,7 @@ void Scene::addCubemappedModel(Handle handle, Model &model, const std::filesyste
 }
 
 void Scene::addInstancedModel(Handle handle, InstancedModel &model,
-                              const std::optional<Collision::Geometry> &collisionGeometry, const std::string &name)
+                              const std::optional<collision::Geometry> &collisionGeometry, const std::string &name)
 {
     if (!name.empty())
         entriesByName_.emplace(name, entries_.size());

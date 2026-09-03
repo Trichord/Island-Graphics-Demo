@@ -1,11 +1,16 @@
-#include "physics/player_physics.h"
+#include "physics/physics_world.h"
 
 #include <Jolt/Jolt.h>
 
+#include <Jolt/Core/Core.h>
 #include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Math/Quat.h>
+#include <Jolt/Math/Real.h>
 #include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/Body/BodyLockInterface.h>
+#include <Jolt/Physics/Body/BodyType.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <algorithm>
 #include <cmath>
@@ -19,6 +24,7 @@
 #include "physics/jolt_impl.h"
 #include "physics/physics_utilities.h"
 #include "scene/scene.h"
+#include "utilities/transform.h"
 #include "utilities/world_vectors.h"
 
 namespace
@@ -33,26 +39,44 @@ constexpr CharacterCapsule::Settings capsuleSettings{
     .sprintSpeedMultiplier = 1.45f,
     .crouchSpeedMultiplier = 0.4f,
 };
+
+bool initializePhysicsSystem(JPH::PhysicsSystem &physicsSystem, BPLayerInterfaceImpl &broadPhase,
+                             ObjectVsBroadPhaseLayerFilterImpl &bfFilter, ObjectLayerPairFilterImpl &pairFilter,
+                             JPH::TempAllocatorImpl &tempAllocator)
+{
+    // Physics engine constants
+    constexpr JPH::uint maxBodies{1024};
+    constexpr JPH::uint maxBodyPairs{1024};
+    constexpr JPH::uint maxContactConstraints{1024};
+
+    physicsSystem.Init(maxBodies, 0, maxBodyPairs, maxContactConstraints, broadPhase, bfFilter, pairFilter);
+
+    return true;
 }
 
-PlayerPhysics::PlayerPhysics(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator)
-    : resetPosition_{}, physicsSystem_{physicsSystem}, tempAllocator_{tempAllocator},
-      bodyInterface_{&physicsSystem.GetBodyInterface()}, player_{physicsSystem, tempAllocator, capsuleSettings}
+} // namespace
+
+PhysicsWorld::PhysicsWorld()
+    : initialized_{initializePhysicsSystem(physicsSystem_, broadPhaseLayer_, objectVsBroadPhaseLayerFilter_,
+                                           objectLayerPairFilter_, tempAllocator_)},
+      player_{physicsSystem_, tempAllocator_, capsuleSettings, playerID_}
 {
 }
 
-PlayerPhysics::~PlayerPhysics()
+PhysicsWorld::~PhysicsWorld()
 {
     using namespace JPH;
 
-    for (JPH::BodyID &id : bodyIDs_)
+    BodyInterface &interface{physicsSystem_.GetBodyInterface()};
+
+    for (BodyID &id : bodyIDs_)
     {
-        bodyInterface_->RemoveBody(id);
-        bodyInterface_->DestroyBody(id);
+        interface.RemoveBody(id);
+        interface.DestroyBody(id);
     }
 }
 
-void PlayerPhysics::initializeScene(Scene &scene)
+void PhysicsWorld::initializeScene(Scene &scene)
 {
     const glm::vec3 &startingPosition{scene.getCameraDescription().position};
 
@@ -64,7 +88,7 @@ void PlayerPhysics::initializeScene(Scene &scene)
     physicsSystem_.OptimizeBroadPhase();
 }
 
-void PlayerPhysics::update(const Input &input, const glm::vec3 &front, float deltaTime)
+void PhysicsWorld::update(const Input &input, const glm::vec3 &front, float deltaTime)
 {
     using namespace JPH;
 
@@ -87,6 +111,7 @@ void PlayerPhysics::update(const Input &input, const glm::vec3 &front, float del
 
         previousPosition_ = player_.getCenter();
         tick(input.direction, front, jump && wasSupported, physicsTick_);
+        flagMovedEntities();
         timeAccumulator_ -= physicsTick_;
 
         // Ignore footstep accumulator on steep slopes
@@ -110,9 +135,11 @@ void PlayerPhysics::update(const Input &input, const glm::vec3 &front, float del
             jumpAccumulator_ = 0.0f;
         }
     }
+
+    interpolationAlpha_ = timeAccumulator_ / physicsTick_;
 }
 
-void PlayerPhysics::tick(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
+void PhysicsWorld::tick(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
 {
     using namespace JPH;
 
@@ -140,9 +167,10 @@ void PlayerPhysics::tick(std::uint8_t direction, const glm::vec3 &front, bool ju
     }
 
     movePlayer(direction, front, jump, deltaTime);
+    physicsSystem_.Update(deltaTime, 1, &tempAllocator_, &jobSystem_);
 }
 
-void PlayerPhysics::movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
+void PhysicsWorld::movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
 {
     using enum Input::Direction;
     using namespace WorldVectors;
@@ -173,39 +201,33 @@ void PlayerPhysics::movePlayer(std::uint8_t direction, const glm::vec3 &front, b
     player_.physicsUpdate(deltaTime);
 }
 
-bool PlayerPhysics::isGrounded() const
+bool PhysicsWorld::playerIsGrounded() const
 {
     return player_.isGrounded();
 }
 
-bool PlayerPhysics::isSupported() const
+bool PhysicsWorld::playerIsSupported() const
 {
     return player_.isSupported();
 }
 
-glm::vec3 PlayerPhysics::getVelocity() const
+glm::vec3 PhysicsWorld::getPlayerVelocity() const
 {
-    return toGLM(player_.getVelocity());
+    return toGLMVec3(player_.getVelocity());
 }
 
-glm::vec3 PlayerPhysics::getPosition() const
-{
-    return toGLM(player_.getCenter());
-}
-
-void PlayerPhysics::setPosition(const glm::vec3 &newPosition)
+void PhysicsWorld::setPlayerPosition(const glm::vec3 &newPosition)
 {
     player_.setPosition(toJPHVec3(newPosition));
 }
 
-glm::vec3 PlayerPhysics::getInterpolatedPosition() const
+glm::vec3 PhysicsWorld::getPlayerPosition() const
 {
     // Interpolate camera between last position and latest physics tick (Glenn Fiedler)
-    float alpha{timeAccumulator_ / physicsTick_};
-    return glm::mix(toGLM(previousPosition_), getPosition(), alpha);
+    return glm::mix(toGLMVec3(previousPosition_), toGLMVec3(player_.getCenter()), interpolationAlpha_);
 };
 
-bool PlayerPhysics::footstepEvent()
+bool PhysicsWorld::footstepEvent()
 {
     if (footstepAccumulator_ >= footstepDistance_)
     {
@@ -216,12 +238,52 @@ bool PlayerPhysics::footstepEvent()
     return false;
 }
 
-bool PlayerPhysics::jumpEvent()
+bool PhysicsWorld::jumpEvent()
 {
     return std::exchange(jumpTriggered_, false);
 }
 
-bool PlayerPhysics::landingEvent()
+bool PhysicsWorld::landingEvent()
 {
     return std::exchange(landingTriggered_, false);
+}
+
+void PhysicsWorld::flagMovedEntities()
+{
+    using namespace JPH;
+
+    physicsSystem_.GetActiveBodies(EBodyType::RigidBody, activeBodies_);
+    const BodyLockInterfaceNoLock &lockInterface{physicsSystem_.GetBodyLockInterfaceNoLock()};
+    const BodyInterface &interface{physicsSystem_.GetBodyInterface()};
+
+    for (const BodyID &id : activeBodies_)
+    {
+        uint64 userData{interface.GetUserData(id)};
+
+        if (userData == playerID_)
+            continue;
+
+        movedEntities_.emplace(id);
+    }
+}
+
+void PhysicsWorld::synchronizeEntries(Scene &scene)
+{
+    using namespace JPH;
+
+    const BodyInterface &interface{physicsSystem_.GetBodyInterface()};
+
+    for (const JPH::BodyID &id : movedEntities_)
+    {
+        const RVec3 pos{interface.GetPosition(id)};
+        const Quat rot{interface.GetRotation(id)};
+        physics::BodyIdentifier sceneBody{physics::getBodyIdentifier(interface.GetUserData(id))};
+
+        Scene::Entry &entry{scene.editEntry(sceneBody.handle)};
+        Transform &transform{entry.worldTransforms[sceneBody.transformIndex]};
+        transform.setAbsoluteRotation(toGLMQuat(rot));
+        transform.setAbsoluteTranslation(toGLMVec3(pos));
+    }
+
+    movedEntities_.clear();
 }

@@ -2,6 +2,7 @@
 
 #include <Jolt/Jolt.h>
 
+#include <Jolt/Core/Core.h>
 #include <Jolt/Core/Reference.h>
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Math/Math.h>
@@ -34,8 +35,8 @@ class CharacterCapsule : public JPH::CharacterContactListener
     };
 
     CharacterCapsule() = default;
-    CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator,
-                     Settings capsuleSettings);
+    CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator, Settings capsuleSettings,
+                     JPH::uint64 userID);
     CharacterCapsule(const CharacterCapsule &) = delete;
     CharacterCapsule &operator=(const CharacterCapsule &) = delete;
     CharacterCapsule(CharacterCapsule &&other) = delete;
@@ -45,6 +46,7 @@ class CharacterCapsule : public JPH::CharacterContactListener
     JPH::Vec3 getCenter() const;
     JPH::Vec3 getPosition() const;
     JPH::Vec3 getVelocity() const;
+    JPH::BodyID getBodyID() const;
     bool isSupported() const;
     bool isGrounded() const;
 

@@ -20,7 +20,7 @@ class AudioPlayer
     AudioPlayer(const Scene &scene, const std::filesystem::path &audioJson);
 
     void playCharacterEffects(const PlayerState &state);
-    void updateTriggers(UpdatedEntriesView updatedEntries);
+    void updateTriggers(UpdatedSceneEntries updatedEntries);
     void playTriggers(const PlayerState &state, float deltaTime);
 
   private:

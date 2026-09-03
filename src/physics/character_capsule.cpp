@@ -1,5 +1,6 @@
 #include "physics/character_capsule.h"
 
+#include <Jolt/Core/Core.h>
 #include <Jolt/Core/Reference.h>
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Geometry/Plane.h>
@@ -7,6 +8,7 @@
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Real.h>
 #include <Jolt/Math/Vec3.h>
+#include <Jolt/Physics/Body/BodyFilter.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Character/CharacterBase.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
@@ -21,7 +23,6 @@
 #include <optional>
 
 #include "physics/jolt_impl.h"
-#include <Jolt/Physics/Body/BodyFilter.h>
 
 namespace
 {
@@ -37,7 +38,7 @@ JPH::ShapeRefC createShape(float height, float radius)
 } // namespace
 
 CharacterCapsule::CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator,
-                                   Settings capsuleSettings)
+                                   Settings capsuleSettings, JPH::uint64 userID)
     : physicsSystem_{&physicsSystem}, tempAllocator_{&tempAllocator}, capsuleSettings_{capsuleSettings},
       standingShape_{createShape(capsuleSettings.standingHeight, capsuleSettings.radius)},
       crouchingShape_{createShape(capsuleSettings.crouchingHeight, capsuleSettings.radius)},
@@ -58,7 +59,7 @@ CharacterCapsule::CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempA
     settings->mInnerBodyLayer = Layers::MOVING;
 
     // Create the player's capsule
-    capsule_ = new CharacterVirtual(settings, RVec3::sZero(), Quat::sIdentity(), 0, &physicsSystem);
+    capsule_ = new CharacterVirtual(settings, RVec3::sZero(), Quat::sIdentity(), userID, &physicsSystem);
     capsule_->SetListener(this);
 }
 
@@ -198,7 +199,7 @@ void CharacterCapsule::physicsUpdate(float deltaTime)
     using namespace JPH;
 
     // Move character, using default update settings
-    CharacterVirtual::ExtendedUpdateSettings updateSettings;
+    CharacterVirtual::ExtendedUpdateSettings updateSettings{.mWalkStairsStepUp = Vec3{0.0f, 0.25f, 0.0f}};
     capsule_->ExtendedUpdate(deltaTime, physicsSystem_->GetGravity(), updateSettings,
                              physicsSystem_->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
                              physicsSystem_->GetDefaultLayerFilter(Layers::MOVING), {}, {}, *tempAllocator_);
@@ -239,6 +240,11 @@ bool CharacterCapsule::OnContactValidate(const JPH::CharacterVirtual *inCharacte
 JPH::Vec3 CharacterCapsule::getVelocity() const
 {
     return capsule_->GetLinearVelocity();
+}
+
+JPH::BodyID CharacterCapsule::getBodyID() const
+{
+    return capsule_->GetInnerBodyID();
 }
 
 bool CharacterCapsule::isSupported() const
