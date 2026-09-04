@@ -145,10 +145,12 @@ namespace collision
 {
 inline void from_json(const nlohmann::json &j, MaterialProperties &m)
 {
+    constexpr float lowest{0.0001f};
+
     MaterialProperties defaultMaterial{};
 
-    m.friction = j.value("friction", defaultMaterial.friction);
-    m.density = j.value("density", defaultMaterial.density);
+    m.friction = std::clamp(j.value("friction", defaultMaterial.friction), lowest, 1.0f);
+    m.density = std::clamp(j.value("density", defaultMaterial.density), lowest, 1e18f);
 }
 
 inline void from_json(const nlohmann::json &j, Geometry &geometry)
@@ -178,7 +180,7 @@ inline void from_json(const nlohmann::json &j, Geometry &geometry)
     else
         throw nlohmann::json::type_error::create(302, "Unknown collision type: " + type, &j);
 }
-} // namespace Collision
+} // namespace collision
 
 inline void from_json(const nlohmann::json &j, ModelEntry &model)
 {

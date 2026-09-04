@@ -31,7 +31,7 @@ class PhysicsWorld
     PhysicsWorld &operator=(PhysicsWorld &&other) = delete;
     ~PhysicsWorld();
 
-    void initializeScene(Scene &scene);
+    void initializeScene(const Scene &scene);
 
     bool playerIsGrounded() const;
     bool playerIsSupported() const;
@@ -106,7 +106,11 @@ class PhysicsWorld
     std::vector<JPH::BodyID> bodyIDs_;
     JPH::BodyIDVector activeBodies_;
 
+    // Water bodies
+    std::vector<JPH::AABox> waterAABBs_;
+
     void movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime);
     void tick(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime);
     void flagMovedEntities();
+    void applyWaterBuoyancy(float deltaTime);
 };

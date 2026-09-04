@@ -11,6 +11,7 @@
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Body/BodyLockInterface.h>
 #include <Jolt/Physics/Body/BodyType.h>
+#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <algorithm>
 #include <cmath>
@@ -26,6 +27,8 @@
 #include "scene/scene.h"
 #include "utilities/transform.h"
 #include "utilities/world_vectors.h"
+
+#include <iostream>
 
 namespace
 {
@@ -76,7 +79,7 @@ PhysicsWorld::~PhysicsWorld()
     }
 }
 
-void PhysicsWorld::initializeScene(Scene &scene)
+void PhysicsWorld::initializeScene(const Scene &scene)
 {
     using namespace JPH;
 
@@ -88,6 +91,29 @@ void PhysicsWorld::initializeScene(Scene &scene)
     player_.setCenter(toJPHVec3(startingPosition));
     bodyIDs_ = std::move(collisionMeshes.ids);
     physicsSystem_.OptimizeBroadPhase();
+
+    for (const Scene::Entry &entry : scene.getAllSceneEntries())
+    {
+        for (const Primitive &primitive : entry.primitives)
+        {
+            if (primitive.shaderType != ShaderType::water && primitive.shaderType != ShaderType::ocean)
+                continue;
+
+            for (const Transform &transform : entry.worldTransforms)
+            {
+                AABB translated{primitive.aabb.transform(transform.getModelMatrix())};
+
+                // Assume 2D water plane. Create AABB with the top of the box being the water surface
+                glm::vec3 halfExtent{translated.getHalfExtent()};
+                halfExtent.y = std::max(halfExtent.x, halfExtent.z);
+
+                glm::vec3 center{translated.getCenter()};
+                center.y -= halfExtent.y;
+
+                waterAABBs_.emplace_back(toJPHVec3(center - halfExtent), toJPHVec3(center + halfExtent));
+            }
+        }
+    }
 
     const BodyInterface &interface{physicsSystem_.GetBodyInterface()};
 
@@ -188,6 +214,7 @@ void PhysicsWorld::tick(std::uint8_t direction, const glm::vec3 &front, bool jum
         return;
     }
 
+    applyWaterBuoyancy(deltaTime);
     movePlayer(direction, front, jump, deltaTime);
     physicsSystem_.Update(deltaTime, 1, &tempAllocator_, &jobSystem_);
 }
@@ -305,5 +332,45 @@ void PhysicsWorld::synchronizeEntries(Scene &scene)
             glm::slerp(toGLMQuat(movedBody.prevRot), toGLMQuat(movedBody.currentRot), interpolationAlpha_));
         transform.setAbsoluteTranslation(
             glm::mix(toGLMVec3(movedBody.prevPos), toGLMVec3(movedBody.currentPos), interpolationAlpha_));
+    }
+}
+
+void PhysicsWorld::applyWaterBuoyancy(float deltaTime)
+{
+    using namespace JPH;
+
+    constexpr float linearDrag{0.3f};
+    constexpr float angularDrag{0.1f};
+
+    if (waterAABBs_.empty())
+        return;
+
+    AllHitCollisionCollector<CollideShapeBodyCollector> collector;
+
+    for (const AABox &box : waterAABBs_)
+    {
+        physicsSystem_.GetBroadPhaseQuery().CollideAABox(box, collector,
+                                                         SpecifiedBroadPhaseLayerFilter(BroadPhaseLayers::MOVING),
+                                                         SpecifiedObjectLayerFilter(Layers::MOVING));
+
+        RVec3 center{box.GetCenter()};
+        const RVec3 extent{box.GetExtent()};
+        center.SetY(center.GetY() + extent.GetY());
+
+        for (const BodyID &id : collector.mHits)
+        {
+            BodyLockWrite lock{physicsSystem_.GetBodyLockInterface(), id};
+
+            if (!lock.Succeeded())
+                continue;
+
+            Body &body{lock.GetBody()};
+            const Shape *shape{body.GetShape()};
+
+            body.ApplyBuoyancyImpulse(center, Vec3{0, 1, 0}, physics::getDensity(shape->GetUserData()), linearDrag,
+                                      angularDrag, Vec3::sZero(), physicsSystem_.GetGravity(), deltaTime);
+        }
+
+        collector.Reset();
     }
 }

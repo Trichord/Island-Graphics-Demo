@@ -140,18 +140,21 @@ JPH::ShapeSettings::ShapeResult buildCompoundHull(const std::vector<Primitive> &
 }
 
 void addBody(physics::StaticBodies &bodies, JPH::BodyInterface &interface, const JPH::Ref<JPH::Shape> &shape,
-             const Transform &transform, Handle handle, std::size_t transformIndex, float friction, bool dynamic)
+             const Transform &transform, Handle handle, std::size_t transformIndex, collision::MaterialProperties properties,
+             bool dynamic)
 {
     const JPH::RVec3 pos{toJPHVec3(transform.getPosition())};
     const JPH::Quat rotation{toJPHQuat(transform.getRotation())};
     const JPH::Vec3 scale{toJPHVec3(transform.getScale())};
-    const JPH::ShapeRefC scaledShape{new JPH::ScaledShape(shape, scale)};
+
+    JPH::Ref<JPH::Shape> scaledShape{new JPH::ScaledShape(shape, scale)};
+    scaledShape->SetUserData(physics::packDensity(properties.buoyancy));
 
     JPH::BodyCreationSettings settings{scaledShape, pos, rotation,
                                        dynamic ? JPH::EMotionType::Dynamic : JPH::EMotionType::Static,
                                        dynamic ? Layers::MOVING : Layers::NON_MOVING};
     settings.mUserData = physics::createBodyIdentifier(handle, transformIndex);
-    settings.mFriction = friction;
+    settings.mFriction = properties.friction;
 
     if (dynamic)
         settings.mMotionQuality = JPH::EMotionQuality::LinearCast;
@@ -186,7 +189,7 @@ physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::B
 
                                   for (std::size_t i{0}; i < entry.worldTransforms.size(); ++i)
                                       addBody(bodies, bodyInterface, shape, entry.worldTransforms[i], entry.handle, i,
-                                              mesh.material.friction, false);
+                                              mesh.material, false);
                               },
 
                               [&](const collision::ConvexHull &hull) {
@@ -213,7 +216,7 @@ physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::B
 
                                   for (std::size_t i{0}; i < entry.worldTransforms.size(); ++i)
                                       addBody(bodies, bodyInterface, result.Get(), entry.worldTransforms[i],
-                                              entry.handle, i, hull.material.friction, hull.dynamic);
+                                              entry.handle, i, hull.material, hull.dynamic);
                               },
                               [&](const collision::Capsule &capsule) {
                                   JPH::CapsuleShapeSettings shapeSettings{
@@ -228,7 +231,7 @@ physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::B
 
                                   for (std::size_t i{0}; i < entry.worldTransforms.size(); ++i)
                                       addBody(bodies, bodyInterface, offsetShape, entry.worldTransforms[i],
-                                              entry.handle, i, capsule.material.friction, capsule.dynamic);
+                                              entry.handle, i, capsule.material, capsule.dynamic);
                               }},
                    *entry.collisionGeometry);
     }

@@ -303,6 +303,15 @@ This work is based on ["Sleeping bag"](https://sketchfab.com/3d-models/sleeping-
 
 </details>
 
+<h2>Beachball</h2>
+
+<details>
+<summary>By Viktor™</summary>
+
+This work is based on ["Beach Ball | Hello Neighbor"](https://sketchfab.com/3d-models/beach-ball-hello-neighbor-56677a75a7254e25a4eef973f91f54ad) by [Viktor™](https://sketchfab.com/ViktorTM) licensed under [CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
+
+</details>
+
 <h1>Audio</h1>
 
 <h2>Hilltop Music</h2>

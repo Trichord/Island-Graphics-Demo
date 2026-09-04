@@ -13,6 +13,9 @@ struct MaterialProperties
 
     // Matches Jolt's default density, quite heavy / hard to push around
     float density{1000.f};
+
+    // Slightly higher than neutral, lightly floats
+    float buoyancy{1.1f};
 };
 
 struct Mesh
@@ -39,4 +42,4 @@ struct Capsule
 };
 
 using Geometry = std::variant<Mesh, ConvexHull, Capsule>;
-} // namespace Collision
+} // namespace collision

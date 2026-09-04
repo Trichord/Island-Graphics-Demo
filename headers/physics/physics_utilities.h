@@ -32,11 +32,23 @@ inline JPH::uint64 createBodyIdentifier(Handle handle, std::size_t transformInde
     return static_cast<JPH::uint64>(handle) << 32 | static_cast<JPH::uint64>(transformIndex);
 }
 
-inline BodyIdentifier getBodyIdentifier(JPH::uint64 userData)
+inline BodyIdentifier getBodyIdentifier(JPH::uint64 bodyUserData)
 {
-    JPH::uint64 handle{userData >> 32};
-    JPH::uint64 transformIndex{userData & 0x00000000FFFFFFFF};
+    JPH::uint64 handle{bodyUserData >> 32};
+    JPH::uint64 transformIndex{bodyUserData & 0x00000000FFFFFFFF};
     return {.handle = static_cast<Handle>(handle), .transformIndex = static_cast<std::uint32_t>(transformIndex)};
+}
+
+inline float getDensity(JPH::uint64 shapeUserData)
+{
+    const std::uint32_t lowBits{static_cast<std::uint32_t>(shapeUserData)};
+    return std::bit_cast<float>(lowBits);
+}
+
+inline JPH::uint64 packDensity(float density)
+{
+    const std::uint32_t lowBits{std::bit_cast<std::uint32_t>(density)};
+    return static_cast<JPH::uint64>(lowBits);
 }
 
 } // namespace physics
