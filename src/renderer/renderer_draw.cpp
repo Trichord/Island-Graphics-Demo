@@ -91,6 +91,7 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
     glState_.bindProgram(shadowShader_);
     glState_.setVAO(VAOs_.shadowVAO);
     glState_.setAlphaMode(AlphaMode::opaque);
+    glState_.setFaceCull(GL_FRONT);
 
     for (int i{0}; i < cascadeCount; ++i)
     {
@@ -107,6 +108,7 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
     glState_.bindProgram(shadowAlphaShader_);
     glState_.setVAO(VAOs_.vao);
     glState_.setAlphaMode(AlphaMode::mask);
+    glState_.setFaceCull(GL_BACK);
 
     for (int i{0}; i < cascadeCount; ++i)
     {

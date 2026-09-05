@@ -11,7 +11,9 @@
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Body/BodyLockInterface.h>
 #include <Jolt/Physics/Body/BodyType.h>
+#include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
+#include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <algorithm>
 #include <cmath>
@@ -53,7 +55,6 @@ bool initializePhysicsSystem(JPH::PhysicsSystem &physicsSystem, BPLayerInterface
     constexpr JPH::uint maxContactConstraints{10240u};
 
     physicsSystem.Init(maxBodies, 0, maxBodyPairs, maxContactConstraints, broadPhase, bfFilter, pairFilter);
-
     return true;
 }
 
@@ -94,6 +95,7 @@ void PhysicsWorld::initializeScene(const Scene &scene)
 
     for (const Scene::Entry &entry : scene.getAllSceneEntries())
     {
+        // Water AABBs
         for (const Primitive &primitive : entry.primitives)
         {
             if (primitive.shaderType != ShaderType::water && primitive.shaderType != ShaderType::ocean)
@@ -117,7 +119,6 @@ void PhysicsWorld::initializeScene(const Scene &scene)
 
     const BodyInterface &interface{physicsSystem_.GetBodyInterface()};
 
-    // Seed starting position / rotation for starting dynamics
     for (const BodyID &id : bodyIDs_)
     {
         uint64 userData{interface.GetUserData(id)};
@@ -128,11 +129,19 @@ void PhysicsWorld::initializeScene(const Scene &scene)
         if (interface.GetMotionType(id) != EMotionType::Dynamic)
             continue;
 
+        // Seed starting position / rotation for starting dynamics
         MovedBody body;
         interface.GetPositionAndRotation(id, body.currentPos, body.currentRot);
         body.prevPos = body.currentPos;
         body.prevRot = body.currentRot;
         movedEntities_.emplace(id, std::move(body));
+
+        // Tag all sphere shapes for applying drag later
+        physics::BodyIdentifier bodyIdentifier{physics::getBodyIdentifier(userData)};
+        const Scene::Entry &entry{scene.viewEntry(bodyIdentifier.handle)};
+
+        if (entry.collisionGeometry && std::holds_alternative<collision::Sphere>(entry.collisionGeometry.value()))
+            spheres_.emplace(id);
     }
 }
 
@@ -215,6 +224,7 @@ void PhysicsWorld::tick(std::uint8_t direction, const glm::vec3 &front, bool jum
     }
 
     applyWaterBuoyancy(deltaTime);
+    applySphereDrag(deltaTime);
     movePlayer(direction, front, jump, deltaTime);
     physicsSystem_.Update(deltaTime, 1, &tempAllocator_, &jobSystem_);
 }
@@ -372,5 +382,57 @@ void PhysicsWorld::applyWaterBuoyancy(float deltaTime)
         }
 
         collector.Reset();
+    }
+}
+
+void PhysicsWorld::applySphereDrag(float deltaTime)
+{
+    using namespace JPH;
+
+    constexpr float linearVelocityMultiplier{0.99f};
+
+    // Speed in m/s before applying extra stopping power
+    constexpr float stopThreshold{1.0f};
+
+    // Deceleration  in m/s
+    constexpr float stopRate{0.3f};
+
+    BodyInterface &interface{physicsSystem_.GetBodyInterface()};
+
+    for (const BodyID &id : spheres_)
+    {
+        BodyLockWrite lock{physicsSystem_.GetBodyLockInterface(), id};
+
+        if (!lock.Succeeded())
+            continue;
+
+        Body &body{lock.GetBody()};
+
+        if (!body.IsActive() || !body.IsDynamic())
+            continue;
+
+        const float radius{body.GetShape()->GetInnerRadius()};
+        const RRayCast ray{body.GetCenterOfMassPosition(), Vec3{0.0, -(radius + 0.05f), 0.0f}};
+
+        RayCastResult hit;
+        const bool touchingGround{physicsSystem_.GetNarrowPhaseQueryNoLock().CastRay(
+            ray, hit, SpecifiedBroadPhaseLayerFilter{BroadPhaseLayers::NON_MOVING},
+            SpecifiedObjectLayerFilter{Layers::NON_MOVING}, IgnoreSingleBodyFilter{id})};
+
+        if (!touchingGround)
+            continue;
+
+        Vec3 velocity{body.GetLinearVelocity()};
+        const float speed{velocity.Length()};
+        float scale{linearVelocityMultiplier};
+
+        if (speed < stopThreshold)
+        {
+            const float newSpeed{speed - stopRate * deltaTime};
+            scale = newSpeed > 0.0f ? newSpeed / speed : 0.0f;
+        }
+
+        body.SetLinearVelocity(velocity * scale);
+        body.SetAngularVelocity(body.GetAngularVelocity() * scale);
     }
 }

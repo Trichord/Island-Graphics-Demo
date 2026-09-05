@@ -105,6 +105,7 @@ class PhysicsWorld
     std::unordered_map<JPH::BodyID, MovedBody> movedEntities_;
     std::vector<JPH::BodyID> bodyIDs_;
     JPH::BodyIDVector activeBodies_;
+    std::unordered_set<JPH::BodyID> spheres_;
 
     // Water bodies
     std::vector<JPH::AABox> waterAABBs_;
@@ -113,4 +114,5 @@ class PhysicsWorld
     void tick(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime);
     void flagMovedEntities();
     void applyWaterBuoyancy(float deltaTime);
+    void applySphereDrag(float deltaTime);
 };

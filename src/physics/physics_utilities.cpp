@@ -19,6 +19,7 @@
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Collision/Shape/ScaledShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/StaticCompoundShape.h>
 #include <Jolt/Physics/Collision/TransformedShape.h>
 #include <Jolt/Physics/EActivation.h>
@@ -139,9 +140,9 @@ JPH::ShapeSettings::ShapeResult buildCompoundHull(const std::vector<Primitive> &
     return settings.Create();
 }
 
-void addBody(physics::StaticBodies &bodies, JPH::BodyInterface &interface, const JPH::Ref<JPH::Shape> &shape,
-             const Transform &transform, Handle handle, std::size_t transformIndex, collision::MaterialProperties properties,
-             bool dynamic)
+JPH::BodyCreationSettings createBodySettings(const JPH::Ref<JPH::Shape> &shape, const Transform &transform,
+                                             const collision::MaterialProperties &properties, Handle handle,
+                                             std::size_t transformIndex, bool dynamic)
 {
     const JPH::RVec3 pos{toJPHVec3(transform.getPosition())};
     const JPH::Quat rotation{toJPHQuat(transform.getRotation())};
@@ -159,6 +160,12 @@ void addBody(physics::StaticBodies &bodies, JPH::BodyInterface &interface, const
     if (dynamic)
         settings.mMotionQuality = JPH::EMotionQuality::LinearCast;
 
+    return settings;
+}
+
+void addBody(physics::StaticBodies &bodies, JPH::BodyInterface &interface, const JPH::BodyCreationSettings &settings,
+             bool dynamic)
+{
     JPH::BodyID id{
         interface.CreateAndAddBody(settings, dynamic ? JPH::EActivation::Activate : JPH::EActivation::DontActivate)};
 
@@ -177,63 +184,94 @@ physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::B
         if (!entry.collisionGeometry)
             continue;
 
-        std::visit(overloaded{[&](const collision::Mesh &mesh) {
-                                  fastgltf::Asset asset{loader::loadAsset(mesh.path)};
-                                  const std::vector<Primitive> primitives{loader::loadMeshes(asset)};
-                                  JPH::TriangleList collisionMesh{buildMesh(primitives)};
+        std::visit(
+            overloaded{
+                [&](const collision::Mesh &mesh) {
+                    fastgltf::Asset asset{loader::loadAsset(mesh.path)};
+                    const std::vector<Primitive> primitives{loader::loadMeshes(asset)};
+                    JPH::TriangleList collisionMesh{buildMesh(primitives)};
 
-                                  if (collisionMesh.empty())
-                                      return;
+                    if (collisionMesh.empty())
+                        return;
 
-                                  auto shape = JPH::MeshShapeSettings{collisionMesh}.Create().Get();
+                    auto shape = JPH::MeshShapeSettings{collisionMesh}.Create().Get();
 
-                                  for (std::size_t i{0}; i < entry.worldTransforms.size(); ++i)
-                                      addBody(bodies, bodyInterface, shape, entry.worldTransforms[i], entry.handle, i,
-                                              mesh.material, false);
-                              },
+                    for (std::size_t i{0}; i < entry.worldTransforms.size(); ++i)
+                    {
+                        const JPH::BodyCreationSettings bodySettings{
+                            createBodySettings(shape, entry.worldTransforms[i], mesh.material, entry.handle, i, false)};
+                        addBody(bodies, bodyInterface, bodySettings, false);
+                    }
+                },
 
-                              [&](const collision::ConvexHull &hull) {
-                                  fastgltf::Asset asset{loader::loadAsset(hull.path)};
+                [&](const collision::ConvexHull &hull) {
+                    fastgltf::Asset asset{loader::loadAsset(hull.path)};
 
-                                  const std::vector<Primitive> primitives{loader::loadMeshes(asset)};
-                                  JPH::ShapeSettings::ShapeResult result;
+                    const std::vector<Primitive> primitives{loader::loadMeshes(asset)};
+                    JPH::ShapeSettings::ShapeResult result;
 
-                                  if (hull.compound && primitives.size() > 1)
-                                      result = buildCompoundHull(primitives, hull.material.density);
-                                  else
-                                  {
-                                      JPH::Array<JPH::Vec3> points{buildPoints(primitives)};
-                                      JPH::ConvexHullShapeSettings convexHullSettings{points};
-                                      convexHullSettings.mDensity = hull.material.density;
-                                      result = convexHullSettings.Create();
-                                  }
+                    if (hull.compound && primitives.size() > 1)
+                        result = buildCompoundHull(primitives, hull.material.density);
+                    else
+                    {
+                        JPH::Array<JPH::Vec3> points{buildPoints(primitives)};
+                        JPH::ConvexHullShapeSettings convexHullSettings{points};
+                        convexHullSettings.mDensity = hull.material.density;
+                        result = convexHullSettings.Create();
+                    }
 
-                                  if (result.HasError())
-                                  {
-                                      std::cerr << "Error creating convex hull: " << result.GetError() << std::endl;
-                                      return;
-                                  }
+                    if (result.HasError())
+                    {
+                        std::cerr << "Error creating convex hull: " << result.GetError() << std::endl;
+                        return;
+                    }
 
-                                  for (std::size_t i{0}; i < entry.worldTransforms.size(); ++i)
-                                      addBody(bodies, bodyInterface, result.Get(), entry.worldTransforms[i],
-                                              entry.handle, i, hull.material, hull.dynamic);
-                              },
-                              [&](const collision::Capsule &capsule) {
-                                  JPH::CapsuleShapeSettings shapeSettings{
-                                      (capsule.height - 2.0f * capsule.radius) * 0.5f, capsule.radius};
-                                  shapeSettings.mDensity = capsule.material.density;
+                    for (std::size_t i{0}; i < entry.worldTransforms.size(); ++i)
+                    {
+                        const JPH::BodyCreationSettings bodySettings{createBodySettings(
+                            result.Get(), entry.worldTransforms[i], hull.material, entry.handle, i, hull.dynamic)};
+                        addBody(bodies, bodyInterface, bodySettings, hull.dynamic);
+                    }
+                },
+                [&](const collision::Capsule &capsule) {
+                    JPH::CapsuleShapeSettings shapeSettings{(capsule.height - 2.0f * capsule.radius) * 0.5f,
+                                                            capsule.radius};
+                    shapeSettings.mDensity = capsule.material.density;
 
-                                  JPH::ShapeSettings::ShapeResult result{shapeSettings.Create()};
+                    JPH::ShapeSettings::ShapeResult result{shapeSettings.Create()};
 
-                                  // Add a model space transform before world space transform
-                                  auto offsetShape{new JPH::RotatedTranslatedShape(
-                                      toJPHVec3(capsule.offset), JPH::Quat::sIdentity(), result.Get())};
+                    // Add a model space transform before world space transform
+                    auto offsetShape{new JPH::RotatedTranslatedShape(toJPHVec3(capsule.offset), JPH::Quat::sIdentity(),
+                                                                     result.Get())};
 
-                                  for (std::size_t i{0}; i < entry.worldTransforms.size(); ++i)
-                                      addBody(bodies, bodyInterface, offsetShape, entry.worldTransforms[i],
-                                              entry.handle, i, capsule.material, capsule.dynamic);
-                              }},
-                   *entry.collisionGeometry);
+                    for (std::size_t i{0}; i < entry.worldTransforms.size(); ++i)
+                    {
+                        const JPH::BodyCreationSettings bodySettings{createBodySettings(
+                            offsetShape, entry.worldTransforms[i], capsule.material, entry.handle, i, capsule.dynamic)};
+                        addBody(bodies, bodyInterface, bodySettings, capsule.dynamic);
+                    }
+                },
+
+                [&](const collision::Sphere &sphere) {
+                    JPH::SphereShapeSettings shapeSettings{sphere.radius};
+                    shapeSettings.mDensity = sphere.material.density;
+
+                    JPH::ShapeSettings::ShapeResult result{shapeSettings.Create()};
+
+                    // Model transform
+                    auto offsetShape{new JPH::RotatedTranslatedShape(toJPHVec3(sphere.offset), JPH::Quat::sIdentity(),
+                                                                     result.Get())};
+
+                    for (std::size_t i{0}; i < entry.worldTransforms.size(); ++i)
+                    {
+                        JPH::BodyCreationSettings bodySettings{createBodySettings(
+                            offsetShape, entry.worldTransforms[i], sphere.material, entry.handle, i, sphere.dynamic)};
+                        bodySettings.mRestitution = sphere.bounciness;
+
+                        addBody(bodies, bodyInterface, bodySettings, sphere.dynamic);
+                    }
+                }},
+            *entry.collisionGeometry);
     }
 
     return bodies;

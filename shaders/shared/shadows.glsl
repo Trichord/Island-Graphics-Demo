@@ -17,7 +17,7 @@ int calculateCascadeIndex(float depth)
 
 float shadowContribution(mat4 lightMatrix, vec4 worldFragPos, vec3 normal, int layer)
 {	
-	float depthBiasScale = 0.0003;
+	float depthBiasScale = 0.00001;
 	float normalBiasScale = 0.001;
 
 	vec3 L = normalize(-lightDir.xyz);

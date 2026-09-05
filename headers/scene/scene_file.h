@@ -148,13 +148,17 @@ inline void from_json(const nlohmann::json &j, MaterialProperties &m)
     constexpr float lowest{0.0001f};
 
     MaterialProperties defaultMaterial{};
+    const float density{j.value("density", defaultMaterial.density)};
 
     m.friction = std::clamp(j.value("friction", defaultMaterial.friction), lowest, 1.0f);
-    m.density = std::clamp(j.value("density", defaultMaterial.density), lowest, 1e18f);
+    m.density = std::max(density, lowest);
+    m.buoyancy = std::clamp(j.value("buoyancy", defaultMaterial.buoyancy), 0.0f, 3.0f);
 }
 
 inline void from_json(const nlohmann::json &j, Geometry &geometry)
 {
+    constexpr float lowest{0.0001f};
+
     const auto &type = j.at("type").get<std::string>();
 
     if (type == "mesh")
@@ -177,6 +181,18 @@ inline void from_json(const nlohmann::json &j, Geometry &geometry)
             .material = j.value("material", MaterialProperties{}),
             .dynamic = j.value("dynamic", false),
         };
+    else if (type == "sphere")
+    {
+        const float radius{j.value("radius", lowest)};
+
+        geometry = collision::Sphere{
+            .radius = std::max(radius, lowest),
+            .offset = j.contains("offset") ? parseVec3(j.at("offset")) : glm::vec3{0.0f},
+            .bounciness = std::clamp(j.value("bounciness", 0.0f), 0.0f, 1.0f),
+            .material = j.value("material", MaterialProperties{}),
+            .dynamic = j.value("dynamic", false),
+        };
+    }
     else
         throw nlohmann::json::type_error::create(302, "Unknown collision type: " + type, &j);
 }

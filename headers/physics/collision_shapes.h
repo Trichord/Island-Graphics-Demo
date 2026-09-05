@@ -41,5 +41,14 @@ struct Capsule
     bool dynamic{false};
 };
 
-using Geometry = std::variant<Mesh, ConvexHull, Capsule>;
+struct Sphere
+{
+    float radius{0.0f};
+    glm::vec3 offset{0.0f};
+    float bounciness{0.0f};
+    MaterialProperties material;
+    bool dynamic{false};
+};
+
+using Geometry = std::variant<Mesh, ConvexHull, Capsule, Sphere>;
 } // namespace collision

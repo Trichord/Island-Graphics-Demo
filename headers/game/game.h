@@ -34,10 +34,6 @@ class Game
     ThreadPool threadPool_;
     TextureManager textureManager_;
     Renderer renderer_;
-
-    // Jolt Physics
-    JPH::PhysicsSystem physicsSystem_;
-
     std::unique_ptr<Scene> scene_;
     PhysicsWorld physics_;
     AudioPlayer audio_;

@@ -71,6 +71,26 @@
     {
       "type": "model",
       "transform": {
+        "translation": [37.0218, -3.30275, 94.3148],
+	"scale":  1.0
+      },
+      "modelPath": "./res/models/set_pieces/beachball/beachball.gltf",
+      "shader": "pbr",
+      "collisionGeometry": {
+        "type": "sphere",
+	"radius": 0.19,
+	"dynamic": true,
+	"bounciness": 0.5,
+	"material": {
+        "density": 50.0,
+	"friction": 1.0,
+	"buoyancy": 1.5
+	}
+    	}
+    },
+    {
+      "type": "model",
+      "transform": {
         "translation": [-220.61097, -6.58, -140.05396],
         "rotation": -65.0
       },
@@ -282,7 +302,7 @@
       "collisionGeometry": {
         "type": "capsule",
         "height": 8.524,
-	"radius": 0.3172,
+	"radius": 0.3072,
 	"offset": [0.0, 3.862, 0.0]
     	}
     },
@@ -296,7 +316,7 @@
       "collisionGeometry": {
         "type": "capsule",
         "height": 6.419,
-	"radius": 0.258,
+	"radius": 0.248,
 	"offset": [0.0, 2.8095, 0.0]
     	}
     },
@@ -310,7 +330,7 @@
       "collisionGeometry": {
         "type": "capsule",
         "height": 5.684,
-	"radius": 0.19,
+	"radius": 0.18,
 	"offset": [0.0, 2.4, 0.0]
     	}
     },
@@ -324,7 +344,7 @@
       "collisionGeometry": {
         "type": "capsule",
         "height": 5.818,
-	"radius": 0.32,
+	"radius": 0.31,
 	"offset": [0.0, 2.409, -0.1]
     	}
     },
