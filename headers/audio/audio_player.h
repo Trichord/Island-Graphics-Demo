@@ -10,6 +10,7 @@
 #include "audio/sound_effect.h"
 #include "audio_file.h"
 #include "models/aabb.h"
+#include "physics/physics_utilities.h"
 #include "physics/player_state.h"
 #include "scene/handle.h"
 #include "scene/scene.h"
@@ -20,8 +21,9 @@ class AudioPlayer
     AudioPlayer(const Scene &scene, const std::filesystem::path &audioJson);
 
     void playCharacterEffects(const PlayerState &state);
-    void updateTriggers(UpdatedSceneEntries updatedEntries);
+    void updateFromScene(UpdatedSceneEntries updatedEntries);
     void playTriggers(const PlayerState &state, float deltaTime);
+    void playCollisionSounds(const std::vector<physics::ObjectCollision> &collisions, float deltaTime);
 
   private:
     struct Trigger
@@ -55,6 +57,14 @@ class AudioPlayer
         }
     };
 
+    struct CollisionSound
+    {
+        std::size_t soundIndex{0};
+        float minSpeed{0.0f};
+        float repeatDelay{0.0f};
+        float timeAccumulator{0.0f};
+    };
+
     struct SoundRange
     {
         std::size_t start{0};
@@ -69,10 +79,14 @@ class AudioPlayer
     };
 
     AudioEngine engine_;
-    std::vector<Trigger> triggers_;
     CharacterSounds characterSounds_;
+
+    std::vector<Trigger> triggers_;
+    std::vector<CollisionSound> collisionSounds_;
     std::vector<std::unique_ptr<SoundEffect>> soundEffects_;
+
     std::unordered_map<Handle, std::size_t> triggersByHandle_;
+    std::unordered_map<Handle, std::size_t> collisionsByHandle_;
 
     SoundRange addSounds();
     std::vector<SoundEffectEntry> createLandings(const std::vector<SoundEffectEntry> &footsteps, float volumeMultiplier,

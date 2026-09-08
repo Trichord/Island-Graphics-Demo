@@ -16,6 +16,7 @@
 #include "audio/audio_file.h"
 #include "audio/sound_effect.h"
 #include "models/aabb.h"
+#include "physics/physics_utilities.h"
 #include "physics/player_state.h"
 #include "scene/scene.h"
 #include "utilities/random.h"
@@ -117,6 +118,23 @@ AudioPlayer::AudioPlayer(const Scene &scene, const std::filesystem::path &audioJ
     characterSounds_.footsteps = addSoundRange(audio.characterSounds.footsteps);
     characterSounds_.landings = addSoundRange(landings);
     characterSounds_.jumps = addSoundRange(audio.characterSounds.jumps);
+
+    for (const CollisionSoundEntry &collisionEntry : audio.collisionSounds)
+    {
+        if (collisionEntry.name.empty())
+            continue;
+
+        const Scene::Entry &sceneEntry{scene.viewEntry(collisionEntry.name)};
+        const std::size_t index{addSound(collisionEntry.soundEffectEntry)};
+        collisionsByHandle_.emplace(sceneEntry.handle, collisionSounds_.size());
+
+        collisionSounds_.emplace_back(CollisionSound{
+            .soundIndex = index,
+            .minSpeed = collisionEntry.minSpeed,
+            .repeatDelay = collisionEntry.repeatDelay,
+            .timeAccumulator = collisionEntry.repeatDelay,
+        });
+    }
 }
 
 void AudioPlayer::playCharacterEffects(const PlayerState &state)
@@ -131,7 +149,7 @@ void AudioPlayer::playCharacterEffects(const PlayerState &state)
         playFootstepEffect();
 }
 
-void AudioPlayer::updateTriggers(UpdatedSceneEntries updatedEntries)
+void AudioPlayer::updateFromScene(UpdatedSceneEntries updatedEntries)
 {
     for (const Scene::Entry &entry : updatedEntries)
     {
@@ -151,6 +169,21 @@ void AudioPlayer::updateTriggers(UpdatedSceneEntries updatedEntries)
         trigger.innerAABB.setCenter(newPos);
         trigger.outerAABB.setCenter(newPos);
         soundEffects_[trigger.soundIndex]->setPosition(newPos);
+    }
+
+    for (const Scene::Entry &entry : updatedEntries)
+    {
+        auto collisionIter = collisionsByHandle_.find(entry.handle);
+
+        if (collisionIter == collisionsByHandle_.end())
+            continue;
+
+        if (entry.worldTransforms.size() != 1)
+            throw std::logic_error("Cannot update instanced audio");
+
+        CollisionSound &collisionSound{collisionSounds_[collisionIter->second]};
+        SoundEffect &effect{*soundEffects_[collisionSound.soundIndex]};
+        effect.setPosition(entry.worldTransforms.front().getPosition());
     }
 }
 
@@ -275,4 +308,31 @@ std::vector<SoundEffectEntry> AudioPlayer::createLandings(const std::vector<Soun
     }
 
     return landings;
+}
+
+void AudioPlayer::playCollisionSounds(const std::vector<physics::ObjectCollision> &collisions, float deltaTime)
+{
+    for (CollisionSound &collisionSound : collisionSounds_)
+        collisionSound.timeAccumulator += deltaTime;
+
+    for (const physics::ObjectCollision &objectCollision : collisions)
+    {
+        auto handleIter = collisionsByHandle_.find(objectCollision.handle);
+
+        if (handleIter == collisionsByHandle_.end())
+            continue;
+
+        CollisionSound &collisionSound{collisionSounds_[handleIter->second]};
+
+        if (collisionSound.timeAccumulator < collisionSound.repeatDelay)
+            continue;
+
+        if (objectCollision.speed < collisionSound.minSpeed)
+            continue;
+
+        SoundEffect &effect{*soundEffects_[collisionSound.soundIndex]};
+        effect.play();
+
+        collisionSound.timeAccumulator = 0.0f;
+    }
 }

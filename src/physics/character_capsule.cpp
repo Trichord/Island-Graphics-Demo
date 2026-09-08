@@ -10,6 +10,8 @@
 #include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/BodyFilter.h>
 #include <Jolt/Physics/Body/BodyID.h>
+#include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Character/CharacterBase.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
@@ -20,9 +22,12 @@
 #include <Jolt/Physics/Collision/Shape/SubShapeID.h>
 #include <Jolt/Physics/Collision/ShapeCast.h>
 #include <Jolt/Physics/PhysicsSystem.h>
+#include <algorithm>
 #include <optional>
+#include <vector>
 
 #include "physics/jolt_impl.h"
+#include "physics/physics_utilities.h"
 
 namespace
 {
@@ -30,22 +35,37 @@ JPH::ShapeRefC createShape(float height, float radius)
 {
     using namespace JPH;
 
-    return RotatedTranslatedShapeSettings(Vec3(0, 0.5f * height + radius, 0), Quat::sIdentity(),
-                                          new CapsuleShape(0.5f * height, radius))
+    return RotatedTranslatedShapeSettings(Vec3{0.0f, 0.5f * height + radius, 0.0f}, Quat::sIdentity(),
+                                          new CapsuleShape{0.5f * height, radius})
         .Create()
         .Get();
 }
+
+JPH::ShapeRefC createInnerShape(float height, float radius, float fraction)
+{
+    using namespace JPH;
+
+    const float innerRadius{radius * fraction};
+    const float halfHeight{0.5f * height * fraction};
+    const float outerShapeCenter{0.5f * height + radius};
+
+    return RotatedTranslatedShapeSettings(Vec3{0.0f, outerShapeCenter, 0.0f}, Quat::sIdentity(),
+                                          new CapsuleShape{halfHeight, innerRadius})
+        .Create()
+        .Get();
+}
+
 } // namespace
 
 CharacterCapsule::CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator,
                                    Settings capsuleSettings, JPH::uint64 userID)
-    : physicsSystem_{&physicsSystem}, tempAllocator_{&tempAllocator}, capsuleSettings_{capsuleSettings},
+    : physicsSystem_{physicsSystem}, tempAllocator_{tempAllocator}, capsuleSettings_{capsuleSettings},
       standingShape_{createShape(capsuleSettings.standingHeight, capsuleSettings.radius)},
       crouchingShape_{createShape(capsuleSettings.crouchingHeight, capsuleSettings.radius)},
-      innerStandingShape_{createShape(capsuleSettings.innerShapeFraction * capsuleSettings.standingHeight,
-                                      capsuleSettings.innerShapeFraction * capsuleSettings.radius)},
-      innerCrouchingShape_{createShape(capsuleSettings.innerShapeFraction * capsuleSettings.crouchingHeight,
-                                       capsuleSettings.innerShapeFraction * capsuleSettings.radius)}
+      innerStandingShape_{
+          createInnerShape(capsuleSettings.standingHeight, capsuleSettings.radius, capsuleSettings.innerShapeFraction)},
+      innerCrouchingShape_{
+          createInnerShape(capsuleSettings.crouchingHeight, capsuleSettings.radius, capsuleSettings.innerShapeFraction)}
 {
     using namespace JPH;
 
@@ -57,6 +77,11 @@ CharacterCapsule::CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempA
     settings->mEnhancedInternalEdgeRemoval = true;
     settings->mInnerBodyShape = innerStandingShape_;
     settings->mInnerBodyLayer = Layers::MOVING;
+
+    // A 5kg character seems stupid, but this appears to only apply when standing on top of dynamic objects. A default
+    // weight (70 kg) causes horrible oscillation and ejection of light dynamic objects. Any specific behaviour
+    // requiring downward force (see-saw, etc) will require manually adding a downward force after Extended Update
+    settings->mMass = 5.0f;
 
     // Create the player's capsule
     capsule_ = new CharacterVirtual(settings, RVec3::sZero(), Quat::sIdentity(), userID, &physicsSystem);
@@ -109,9 +134,9 @@ void CharacterCapsule::toggleCrouch(bool enable)
     bool isStanding{capsule_->GetShape() == standingShape_};
     const Shape *shape{isStanding ? crouchingShape_ : standingShape_};
 
-    if (capsule_->SetShape(shape, 1.5f * physicsSystem_->GetPhysicsSettings().mPenetrationSlop,
-                           physicsSystem_->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-                           physicsSystem_->GetDefaultLayerFilter(Layers::MOVING), {}, {}, *tempAllocator_))
+    if (capsule_->SetShape(shape, 1.5f * physicsSystem_.GetPhysicsSettings().mPenetrationSlop,
+                           physicsSystem_.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
+                           physicsSystem_.GetDefaultLayerFilter(Layers::MOVING), {}, {}, tempAllocator_))
     {
         const Shape *inner_shape{isStanding ? innerCrouchingShape_ : innerStandingShape_};
         capsule_->SetInnerBodyShape(inner_shape);
@@ -174,7 +199,7 @@ void CharacterCapsule::handleInput(const JPH::Vec3 &direction, bool jump, float 
         newVelocity = currentVerticalVelocity;
 
     // Gravity
-    newVelocity += physicsSystem_->GetGravity() * deltaTime;
+    newVelocity += physicsSystem_.GetGravity() * deltaTime;
 
     if (playerControlsHorizontalVelocity)
     {
@@ -198,11 +223,42 @@ void CharacterCapsule::physicsUpdate(float deltaTime)
 {
     using namespace JPH;
 
+    const Vec3 capsuleVelocity{capsule_->GetLinearVelocity()};
+
     // Move character, using default update settings
     CharacterVirtual::ExtendedUpdateSettings updateSettings{.mWalkStairsStepUp = Vec3{0.0f, 0.1f, 0.0f}};
-    capsule_->ExtendedUpdate(deltaTime, physicsSystem_->GetGravity(), updateSettings,
-                             physicsSystem_->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-                             physicsSystem_->GetDefaultLayerFilter(Layers::MOVING), {}, {}, *tempAllocator_);
+    capsule_->ExtendedUpdate(deltaTime, physicsSystem_.GetGravity(), updateSettings,
+                             physicsSystem_.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
+                             physicsSystem_.GetDefaultLayerFilter(Layers::MOVING), {}, {}, tempAllocator_);
+
+    touchedObjects_.clear();
+    const BodyInterface &interface{physicsSystem_.GetBodyInterface()};
+
+    for (const CharacterContact &contact : capsule_->GetActiveContacts())
+    {
+        if (!contact.mHadCollision || contact.mWasDiscarded)
+            continue;
+
+        if (contact.mMotionTypeB != EMotionType::Dynamic)
+            continue;
+
+        uint64 userData{interface.GetUserData(contact.mBodyB)};
+        const physics::BodyIdentifier bodyIdentifier{physics::getBodyIdentifier(userData)};
+
+        const auto existingContact = std::find_if(
+            touchedObjects_.begin(), touchedObjects_.end(),
+            [&](const physics::ObjectCollision &collision) { return collision.handle == bodyIdentifier.handle; });
+
+        const float speed{(contact.mLinearVelocity - capsuleVelocity).Dot(contact.mContactNormal)};
+
+        if (existingContact != touchedObjects_.end())
+            existingContact->speed = std::max(speed, existingContact->speed);
+        else
+            touchedObjects_.emplace_back(physics::ObjectCollision{
+                .handle = bodyIdentifier.handle,
+                .speed = speed,
+            });
+    }
 }
 
 void CharacterCapsule::OnContactSolve(const JPH::CharacterVirtual *inCharacter, const JPH::BodyID &inBodyID2,
@@ -265,7 +321,7 @@ std::optional<float> CharacterCapsule::predictImpactSpeed(float lookAheadTime) c
         return std::nullopt;
 
     const Vec3 velocity{capsule_->GetLinearVelocity()};
-    const Vec3 gravity{physicsSystem_->GetGravity()};
+    const Vec3 gravity{physicsSystem_.GetGravity()};
     const Vec3 up{capsule_->GetUp()};
     const Vec3 sweep{velocity * lookAheadTime + 0.5f * gravity * lookAheadTime * lookAheadTime};
 
@@ -278,10 +334,10 @@ std::optional<float> CharacterCapsule::predictImpactSpeed(float lookAheadTime) c
 
     ShapeCastSettings settings;
     ClosestHitCollisionCollector<CastShapeCollector> collector;
-    physicsSystem_->GetNarrowPhaseQuery().CastShape(
+    physicsSystem_.GetNarrowPhaseQuery().CastShape(
         shapeCast, settings, shapeCast.mCenterOfMassStart.GetTranslation(), collector,
-        physicsSystem_->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
-        physicsSystem_->GetDefaultLayerFilter(Layers::MOVING), IgnoreSingleBodyFilter{capsule_->GetInnerBodyID()});
+        physicsSystem_.GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
+        physicsSystem_.GetDefaultLayerFilter(Layers::MOVING), IgnoreSingleBodyFilter{capsule_->GetInnerBodyID()});
 
     if (!collector.HadHit())
         return std::nullopt;
@@ -301,4 +357,9 @@ std::optional<float> CharacterCapsule::predictImpactSpeed(float lookAheadTime) c
         return impactSpeed;
 
     return std::nullopt;
+}
+
+const std::vector<physics::ObjectCollision> &CharacterCapsule::getContactedBodies() const
+{
+    return touchedObjects_;
 }

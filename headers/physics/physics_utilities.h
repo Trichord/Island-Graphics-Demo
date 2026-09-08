@@ -2,8 +2,12 @@
 
 #include <Jolt/Jolt.h>
 
+#include <Jolt/Core/Core.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
+#include <bit>
+#include <cassert>
+#include <cstdint>
 #include <limits>
 #include <vector>
 
@@ -22,6 +26,12 @@ struct BodyIdentifier
 {
     Handle handle{0};
     std::uint32_t transformIndex{0};
+};
+
+struct ObjectCollision
+{
+    Handle handle{0};
+    float speed{0.0f};
 };
 
 StaticBodies buildCollisionGeometry(const Scene &scene, JPH::BodyInterface &bodyInterface);

@@ -43,8 +43,17 @@ struct CharacterSoundEntry
     std::vector<SoundEffectEntry> jumps;
 };
 
+struct CollisionSoundEntry
+{
+    SoundEffectEntry soundEffectEntry;
+    std::string name{};
+    float repeatDelay{0.0f};
+    float minSpeed{0.0f};
+};
+
 struct AudioFile
 {
+    std::vector<CollisionSoundEntry> collisionSounds;
     std::vector<AudioTriggerEntry> audioTriggers;
     CharacterSoundEntry characterSounds;
 };
@@ -91,8 +100,17 @@ inline void from_json(const nlohmann::json &j, CharacterSoundEntry &character)
     character.jumps = j.value("jumps", std::vector<SoundEffectEntry>{});
 }
 
+inline void from_json(const nlohmann::json &j, CollisionSoundEntry &collision)
+{
+    collision.soundEffectEntry = j.value("soundEffect", SoundEffectEntry{});
+    collision.name = j.value("name", std::string{});
+    collision.minSpeed = j.value("minSpeed", 0.0f);
+    collision.repeatDelay = j.value("repeatDelay", 0.0f);
+}
+
 inline void from_json(const nlohmann::json &j, AudioFile &audioFile)
 {
+    audioFile.collisionSounds = j.value("collisions", std::vector<CollisionSoundEntry>{});
     audioFile.audioTriggers = j.value("triggers", std::vector<AudioTriggerEntry>{});
     audioFile.characterSounds = j.value("character", CharacterSoundEntry{});
 }

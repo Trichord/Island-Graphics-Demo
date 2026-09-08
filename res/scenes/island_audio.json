@@ -180,48 +180,63 @@
     "footsteps": [
       {
         "soundPath": "./res/audio/sfx/char/footstep1.wav",
-        "volumeLow": 0.2, 
+        "volumeLow": 0.2,
         "volumeHigh": 0.5,
-        "pitchLow": 0.8, 
+        "pitchLow": 0.8,
         "pitchHigh": 1.2
       },
       {
         "soundPath": "./res/audio/sfx/char/footstep2.wav",
-        "volumeLow": 0.2, 
+        "volumeLow": 0.2,
         "volumeHigh": 0.5,
-        "pitchLow": 0.8, 
+        "pitchLow": 0.8,
         "pitchHigh": 1.2
       },
       {
         "soundPath": "./res/audio/sfx/char/footstep3.wav",
-        "volumeLow": 0.2, 
+        "volumeLow": 0.2,
         "volumeHigh": 0.5,
-        "pitchLow": 0.8, 
+        "pitchLow": 0.8,
         "pitchHigh": 1.2
       },
       {
         "soundPath": "./res/audio/sfx/char/footstep4.wav",
-        "volumeLow": 0.2, 
+        "volumeLow": 0.2,
         "volumeHigh": 0.5,
-        "pitchLow": 0.8, 
+        "pitchLow": 0.8,
         "pitchHigh": 1.2
       }
     ],
     "jumps": [
       {
         "soundPath": "./res/audio/sfx/char/jump1.mp3",
-        "volumeLow": 0.14, 
+        "volumeLow": 0.14,
         "volumeHigh": 0.16,
-        "pitchLow": 0.8, 
+        "pitchLow": 0.8,
         "pitchHigh": 1.2
       },
       {
         "soundPath": "./res/audio/sfx/char/jump2.mp3",
-        "volumeLow": 0.14, 
+        "volumeLow": 0.14,
         "volumeHigh": 0.16,
-        "pitchLow": 0.8, 
+        "pitchLow": 0.8,
         "pitchHigh": 1.2
       }
     ]
-  }
+  },
+  "collisions": [
+    {
+      "soundEffect": {
+        "volumeLow": 0.8,
+        "volumeHigh": 1.4,
+        "pitchLow": 0.5,
+        "pitchHigh": 1.75,
+        "soundPath": "./res/audio/sfx/env/beachball.wav",
+        "spatialization": true
+      },
+      "name": "beachball",
+      "repeatDelay": 0.3,
+      "minSpeed": 4.125
+    }
+  ]
 }

@@ -23,27 +23,27 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/island/collision/island_collision.gltf"
-    	}
+      }
     },
     {
       "type": "model",
       "transform": {
         "translation": [86.1167, -0.784489, -81.8893],
-	"scale":  0.381167
+        "scale": 0.381167
       },
       "modelPath": "./res/models/set_pieces/monument/monument.gltf",
       "shader": "pbr",
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/set_pieces/monument/collision/monument_collision.gltf"
-    	}
+      }
     },
     {
       "type": "model",
       "transform": {
         "translation": [85.6092, -0.58123, -80.9867],
-	"rotation": [0, -0.105089, 0, 0.994463],
-	"scale":  0.870969
+        "rotation": [0.0, -0.105089, 0.0, 0.994463],
+        "scale": 0.870969
       },
       "modelPath": "./res/models/set_pieces/sleeping_bag/sleeping_bag.gltf",
       "shader": "pbr"
@@ -51,42 +51,42 @@
     {
       "type": "model",
       "transform": {
-        "translation": [88.081, -0.313575, -81.1369],
-	"rotation": [0, 0.576793, 0, 0.816891],
-	"scale":  0.840476
+        "translation": [89.8, -0.30, -81.1369],
+        "rotation": [0.0, 0.816891, 0.0, -0.576793],
+        "scale": 0.840476
       },
       "modelPath": "./res/models/set_pieces/chair/chair.gltf",
       "shader": "pbr",
       "collisionGeometry": {
         "type": "convexHull",
         "path": "./res/models/set_pieces/chair/collision/chair_collision.gltf",
-	"dynamic": true,
-	"compound": true,
-	"material": {
-        "density": 200.0,
-	"friction": 1.0
-	}
-    	}
+        "dynamic": true,
+        "compound": true,
+        "material": {
+          "density": 200.0,
+          "friction": 1.0
+        }
+      }
     },
     {
       "type": "model",
+      "name": "beachball",
       "transform": {
-        "translation": [37.0218, -3.30275, 94.3148],
-	"scale":  1.0
+        "translation": [37.0218, -4.0, 94.3148]
       },
       "modelPath": "./res/models/set_pieces/beachball/beachball.gltf",
       "shader": "pbr",
       "collisionGeometry": {
         "type": "sphere",
-	"radius": 0.19,
-	"dynamic": true,
-	"bounciness": 0.5,
-	"material": {
-        "density": 50.0,
-	"friction": 1.0,
-	"buoyancy": 1.5
-	}
-    	}
+        "radius": 0.185,
+        "dynamic": true,
+        "bounciness": 0.6,
+        "material": {
+          "density": 50,
+          "friction": 1.0,
+          "buoyancy": 1.5
+        }
+      }
     },
     {
       "type": "model",
@@ -99,7 +99,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/set_pieces/statue/collision/statue_collision.gltf"
-    	}
+      }
     },
     {
       "type": "instanced",
@@ -108,7 +108,7 @@
       "positionsPath": "./res/positions/butterflies.txt",
       "shader": "baseColor"
     },
-     {
+    {
       "type": "model",
       "name": "seagull1",
       "transform": {
@@ -123,8 +123,8 @@
       "type": "model",
       "name": "seagull2",
       "transform": {
-        "translation": [-262.982117, -9.850640, 72.508682],
-        "rotation": [0.001434361, 0.078485465, 0.013578230, 0.996821752],
+        "translation": [-262.982117, -9.85064, 72.508682],
+        "rotation": [0.001434361, 0.078485465, 0.01357823, 0.996821752],
         "scale": 0.25
       },
       "modelPath": "./res/models/animated/seagull/seagull.gltf",
@@ -157,7 +157,7 @@
       "name": "seagull5",
       "transform": {
         "translation": [-256.478699, -9.703675, 64.734009],
-        "rotation": [0.004838300, -0.215331518, 0.002980124, 0.976524473],
+        "rotation": [0.0048383, -0.215331518, 0.002980124, 0.976524473],
         "scale": 0.25
       },
       "modelPath": "./res/models/animated/seagull/seagull.gltf",
@@ -167,7 +167,7 @@
       "type": "model",
       "name": "seagull6",
       "transform": {
-        "translation": [-254.614548, -9.693320, 65.784607],
+        "translation": [-254.614548, -9.69332, 65.784607],
         "rotation": [0.005001022, -0.645369784, 0.001826917, 0.763851749],
         "scale": 0.24
       },
@@ -186,7 +186,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/set_pieces/boat/collision/boat_collision.gltf"
-    	}
+      }
     },
     {
       "type": "cubemapped",
@@ -208,7 +208,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock1/collision/rock1_collision.gltf"
-    	}
+      }
     },
     {
       "type": "instanced",
@@ -220,7 +220,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock2/collision/rock2_collision.gltf"
-    }
+      }
     },
     {
       "type": "instanced",
@@ -232,7 +232,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock3/collision/rock3_collision.gltf"
-    	}
+      }
     },
     {
       "type": "instanced",
@@ -244,7 +244,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock4/collision/rock4_collision.gltf"
-    }
+      }
     },
     {
       "type": "instanced",
@@ -256,33 +256,26 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock5/collision/rock5_collision.gltf"
-    	}
+      }
     },
     {
       "type": "model",
       "transform": {
-      "translation": [52.45047378540039, 2.3282833099365234, -121.53543853759766],
-      "rotation":[0.016681792214512825,
-		    -0.7760639190673828,
-		    -0.19478438794612885,
-		     0.5995878577232361
-		   ],
-      "scale": 20.0
+        "translation": [52.45047378540039, 2.3282833099365234, -121.53543853759766],
+        "rotation": [0.016681792214512825, -0.7760639190673828, -0.19478438794612885, 0.5995878577232361],
+        "scale": 20.0
       },
       "modelPath": "./res/models/rocks/rock6/rock6.gltf",
       "shader": "pbr",
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock6/collision/rock6_collision.gltf"
-    	}
+      }
     },
     {
       "type": "model",
       "transform": {
-      "translation":[52.3120231628418,
-		     1.435644268989563,
-		     -116.08223724365234
-		    ],
+        "translation": [52.3120231628418, 1.435644268989563, -116.08223724365234],
         "scale": 10.0
       },
       "modelPath": "./res/models/rocks/rock7/rock7.gltf",
@@ -290,7 +283,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/rocks/rock7/collision/rock7_collision.gltf"
-    	}
+      }
     },
     {
       "type": "instanced",
@@ -302,9 +295,9 @@
       "collisionGeometry": {
         "type": "capsule",
         "height": 8.524,
-	"radius": 0.3072,
-	"offset": [0.0, 3.862, 0.0]
-    	}
+        "radius": 0.3072,
+        "offset": [0.0, 3.862, 0.0]
+      }
     },
     {
       "type": "instanced",
@@ -316,9 +309,9 @@
       "collisionGeometry": {
         "type": "capsule",
         "height": 6.419,
-	"radius": 0.248,
-	"offset": [0.0, 2.8095, 0.0]
-    	}
+        "radius": 0.248,
+        "offset": [0.0, 2.8095, 0.0]
+      }
     },
     {
       "type": "instanced",
@@ -330,9 +323,9 @@
       "collisionGeometry": {
         "type": "capsule",
         "height": 5.684,
-	"radius": 0.18,
-	"offset": [0.0, 2.4, 0.0]
-    	}
+        "radius": 0.18,
+        "offset": [0.0, 2.4, 0.0]
+      }
     },
     {
       "type": "instanced",
@@ -344,14 +337,14 @@
       "collisionGeometry": {
         "type": "capsule",
         "height": 5.818,
-	"radius": 0.31,
-	"offset": [0.0, 2.409, -0.1]
-    	}
+        "radius": 0.31,
+        "offset": [0.0, 2.409, -0.1]
+      }
     },
     {
       "type": "model",
       "transform": {
-        "translation": [196.18584, -0.93, 154.62890],
+        "translation": [196.18584, -0.93, 154.6289],
         "rotation": 45.0
       },
       "modelPath": "./res/models/trees/dead_tree/dead_tree.gltf",
@@ -359,7 +352,7 @@
       "collisionGeometry": {
         "type": "mesh",
         "path": "./res/models/trees/dead_tree/collision/dead_tree_collision.gltf"
-    	}
+      }
     },
     {
       "type": "instanced",
@@ -443,9 +436,9 @@
     {
       "type": "particles",
       "translation": [-23.049316, 5.0, 266.231873],
-      "extent": [14, 14, 14],
-      "color": [119, 10, 0, 255.0],
-      "colorVariation": [50, 10, 2, 0],
+      "extent": [14.0, 14.0, 14.0],
+      "color": [119.0, 10.0, 0.0, 255.0],
+      "colorVariation": [50.0, 10.0, 2.0, 0.0],
       "lifetime": 20.0,
       "count": 30000
     }

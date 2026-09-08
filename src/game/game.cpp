@@ -49,12 +49,13 @@ void Game::update(const Input &input, float time, float deltaTime)
 
     // Clear
     scene_->clearUpdates();
+    physics_.clearFlags();
 }
 
 PlayerState Game::updatePhysics(const Input &input, float deltaTime)
 {
     physics_.update(input, playerCamera_.getFront(), deltaTime);
-    physics_.synchronizeEntries(*scene_);
+    physics_.postPhysicsSync(*scene_);
 
     // Synchronize camera
     const glm::vec3 pos{physics_.getPlayerPosition()};
@@ -75,8 +76,7 @@ PlayerState Game::updatePhysics(const Input &input, float deltaTime)
 
 void Game::updateAudio(const PlayerState &state, float deltaTime)
 {
-    audio_.updateTriggers(scene_->getUpdatedEntries());
-
+    audio_.updateFromScene(scene_->getUpdatedEntries());
     audio_.playCharacterEffects(state);
     audio_.playTriggers(state, deltaTime);
 }

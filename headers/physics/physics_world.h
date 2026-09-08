@@ -5,6 +5,8 @@
 #include <Jolt/Core/Core.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Geometry/AABox.h>
+#include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyManager.h>
@@ -14,11 +16,13 @@
 #include <glm/glm.hpp>
 #include <limits>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "application/input.h"
 #include "physics/character_capsule.h"
 #include "physics/jolt_impl.h"
+#include "physics/physics_utilities.h"
 #include "scene/scene.h"
 
 class PhysicsWorld
@@ -38,13 +42,15 @@ class PhysicsWorld
     glm::vec3 getPlayerVelocity() const;
     glm::vec3 getPlayerPosition() const;
     void setPlayerPosition(const glm::vec3 &newPosition);
+    void clearFlags();
 
     void update(const Input &input, const glm::vec3 &front, float deltaTime);
-    bool footstepEvent();
-    bool jumpEvent();
-    bool landingEvent();
+    bool footstepEvent() const;
+    bool jumpEvent() const;
+    bool landingEvent() const;
+    const std::vector<physics::ObjectCollision> &getCollisions() const;
 
-    void synchronizeEntries(Scene &scene);
+    void postPhysicsSync(Scene &scene);
 
   private:
     struct MovedBody

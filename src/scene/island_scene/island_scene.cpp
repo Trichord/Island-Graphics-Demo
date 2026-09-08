@@ -1,17 +1,25 @@
 #include "scene/island_scene/island_scene.h"
 
+#include <cstdlib>
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <string_view>
+#include <variant>
 #include <vector>
 
+#include "physics/collision_shapes.h"
 #include "physics/player_state.h"
+#include "scene/handle.h"
 #include "scene/island_scene/seagull.h"
 #include "scene/scene.h"
+#include "utilities/overloaded.h"
 #include "utilities/random.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 #include "utilities/world_vectors.h"
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/norm.hpp>
 
 namespace
 {
@@ -77,6 +85,29 @@ IslandScene::IslandScene(TextureManager &textureManager, const std::filesystem::
         // Simulate just a bit of a starting animation to desync
         seagull.entryAnimation->updateAnimation(seagull.primitives, random::floatMS(0.1f, 0.3f));
     }
+
+    for (const Scene::Entry &entry : this->getAllSceneEntries())
+    {
+        if (!entry.collisionGeometry)
+            continue;
+
+        std::visit(overloaded{
+                       [&](const collision::Mesh &mesh) { return; },
+                       [&](const collision::Capsule &capsule) {
+                           if (capsule.dynamic)
+                               dynamicObjects_.emplace_back(entry.handle);
+                       },
+                       [&](const collision::Sphere &sphere) {
+                           if (sphere.dynamic)
+                               dynamicObjects_.emplace_back(entry.handle);
+                       },
+                       [&](const collision::ConvexHull &convexHull) {
+                           if (convexHull.dynamic)
+                               dynamicObjects_.emplace_back(entry.handle);
+                       },
+                   },
+                   *entry.collisionGeometry);
+    }
 }
 
 void IslandScene::onUpdate(const PlayerState &player, float time, float deltaTime)
@@ -132,7 +163,30 @@ void IslandScene::updateButterfly(Scene::Entry &butterfly, float time, float del
 
 void IslandScene::updateSeagull(const glm::vec3 &playerPosition, Seagull &seagull, Scene::Entry &entry, float deltaTime)
 {
-    seagull.update(playerPosition, deltaTime);
+    const glm::vec3 &pos{seagull.getPosition()};
+    float closest{glm::length2(playerPosition - pos)};
+    Handle closestHandle{0};
+    std::size_t index{0};
+
+    // Brute force check for closest dynamic since the number is small
+    for (const Handle &handle : dynamicObjects_)
+    {
+        const Entry &entry{viewEntry(handle)};
+
+        for (std::size_t i{0}; i < entry.worldTransforms.size(); ++i)
+        {
+            const float dist{glm::length2(entry.worldTransforms[i].getPosition() - pos)};
+            if (dist < closest)
+            {
+                index = i;
+                closestHandle = handle;
+            }
+        }
+    }
+
+    seagull.update(closestHandle ? viewEntry(closestHandle).worldTransforms[index].getPosition() : playerPosition,
+                   deltaTime);
+    seagull.getPosition();
 
     if (seagull.stateChanged())
     {

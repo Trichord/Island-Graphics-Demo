@@ -4,16 +4,25 @@
 
 #include <Jolt/Core/Core.h>
 #include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Geometry/AABox.h>
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Real.h>
 #include <Jolt/Math/Vec3.h>
+#include <Jolt/Physics/Body/Body.h>
+#include <Jolt/Physics/Body/BodyFilter.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/Body/BodyLock.h>
 #include <Jolt/Physics/Body/BodyLockInterface.h>
 #include <Jolt/Physics/Body/BodyType.h>
+#include <Jolt/Physics/Body/MotionType.h>
+#include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
+#include <Jolt/Physics/Collision/BroadPhase/BroadPhaseQuery.h>
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
+#include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <algorithm>
 #include <cmath>
@@ -21,16 +30,20 @@
 #include <glm/glm.hpp>
 #include <optional>
 #include <utility>
+#include <variant>
+#include <vector>
 
 #include "application/input.h"
+#include "models/aabb.h"
+#include "models/primitive.h"
 #include "physics/character_capsule.h"
+#include "physics/collision_shapes.h"
 #include "physics/jolt_impl.h"
 #include "physics/physics_utilities.h"
+#include "renderer/shader/graphics_shader.h"
 #include "scene/scene.h"
 #include "utilities/transform.h"
 #include "utilities/world_vectors.h"
-
-#include <iostream>
 
 namespace
 {
@@ -38,7 +51,7 @@ constexpr CharacterCapsule::Settings capsuleSettings{
     .radius = 0.3f,
     .standingHeight = 1.35f,
     .crouchingHeight = 0.8f,
-    .innerShapeFraction = 0.9f,
+    .innerShapeFraction = 0.8f,
     .speed = 3.5f,
     .jumpSpeed = 3.0f,
     .sprintSpeedMultiplier = 1.45f,
@@ -55,6 +68,7 @@ bool initializePhysicsSystem(JPH::PhysicsSystem &physicsSystem, BPLayerInterface
     constexpr JPH::uint maxContactConstraints{10240u};
 
     physicsSystem.Init(maxBodies, 0, maxBodyPairs, maxContactConstraints, broadPhase, bfFilter, pairFilter);
+
     return true;
 }
 
@@ -95,12 +109,12 @@ void PhysicsWorld::initializeScene(const Scene &scene)
 
     for (const Scene::Entry &entry : scene.getAllSceneEntries())
     {
-        // Water AABBs
         for (const Primitive &primitive : entry.primitives)
         {
             if (primitive.shaderType != ShaderType::water && primitive.shaderType != ShaderType::ocean)
                 continue;
 
+            // Water AABBs
             for (const Transform &transform : entry.worldTransforms)
             {
                 AABB translated{primitive.aabb.transform(transform.getModelMatrix())};
@@ -137,7 +151,7 @@ void PhysicsWorld::initializeScene(const Scene &scene)
         movedEntities_.emplace(id, std::move(body));
 
         // Tag all sphere shapes for applying drag later
-        physics::BodyIdentifier bodyIdentifier{physics::getBodyIdentifier(userData)};
+        const physics::BodyIdentifier bodyIdentifier{physics::getBodyIdentifier(userData)};
         const Scene::Entry &entry{scene.viewEntry(bodyIdentifier.handle)};
 
         if (entry.collisionGeometry && std::holds_alternative<collision::Sphere>(entry.collisionGeometry.value()))
@@ -286,25 +300,22 @@ glm::vec3 PhysicsWorld::getPlayerPosition() const
     return glm::mix(toGLMVec3(previousPosition_), toGLMVec3(player_.getCenter()), interpolationAlpha_);
 };
 
-bool PhysicsWorld::footstepEvent()
+bool PhysicsWorld::footstepEvent() const
 {
     if (footstepAccumulator_ >= footstepDistance_)
-    {
-        footstepAccumulator_ = std::fmod(footstepAccumulator_, footstepDistance_);
         return true;
-    }
 
     return false;
 }
 
-bool PhysicsWorld::jumpEvent()
+bool PhysicsWorld::jumpEvent() const
 {
-    return std::exchange(jumpTriggered_, false);
+    return jumpTriggered_;
 }
 
-bool PhysicsWorld::landingEvent()
+bool PhysicsWorld::landingEvent() const
 {
-    return std::exchange(landingTriggered_, false);
+    return landingTriggered_;
 }
 
 void PhysicsWorld::flagMovedEntities()
@@ -322,11 +333,16 @@ void PhysicsWorld::flagMovedEntities()
         if (userData == playerID_)
             continue;
 
-        movedEntities_[id].update(interface.GetPosition(id), interface.GetRotation(id));
+        auto iter = movedEntities_.find(id);
+
+        if (iter == movedEntities_.end())
+            continue;
+
+        iter->second.update(interface.GetPosition(id), interface.GetRotation(id));
     }
 }
 
-void PhysicsWorld::synchronizeEntries(Scene &scene)
+void PhysicsWorld::postPhysicsSync(Scene &scene)
 {
     using namespace JPH;
 
@@ -435,4 +451,18 @@ void PhysicsWorld::applySphereDrag(float deltaTime)
         body.SetLinearVelocity(velocity * scale);
         body.SetAngularVelocity(body.GetAngularVelocity() * scale);
     }
+}
+
+const std::vector<physics::ObjectCollision> &PhysicsWorld::getCollisions() const
+{
+    return player_.getContactedBodies();
+}
+
+void PhysicsWorld::clearFlags()
+{
+    jumpTriggered_ = false;
+    landingTriggered_ = false;
+
+    if (footstepAccumulator_ >= footstepDistance_)
+        footstepAccumulator_ = std::fmod(footstepAccumulator_, footstepDistance_);
 }
