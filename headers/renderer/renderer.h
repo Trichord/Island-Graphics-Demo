@@ -139,6 +139,6 @@ class Renderer
 
     void updateSceneTransforms(const Scene &scene);
     void updateFrustumPlanesUBO(const glm::mat4 &cullMatrix);
-    void updateCascades(const Scene &scene, const Camera &camera, bool lightChanged);
-    void updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll);
+    void updateCascades(const Scene &scene, const Camera &camera);
+    void updateCascadeShadowUBO(const CascadeShadow::Cascades &cascades);
 };

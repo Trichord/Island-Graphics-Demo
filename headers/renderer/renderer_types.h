@@ -61,14 +61,6 @@ struct PackedCameraUniforms
     float fov{45.0f};
 };
 
-// Packed data for light transforms and frustum splits
-struct PackedCascadeShadows
-{
-    glm::vec4 nearPlane{0.0f};
-    glm::vec4 farPlane{0.0f};
-    glm::mat4 matrices[shadowCascadeCount]{};
-};
-
 struct PackedTime
 {
     float deltaTime{0.0f};

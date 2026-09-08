@@ -93,7 +93,7 @@ Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &setti
                                                                      .depthType = RenderTarget::DepthType::texture,
                                                                      .depthFormat = GL_DEPTH_COMPONENT24,
                                                                      .textureArray = true,
-                                                                     .textureArrayDepth = shadowCascadeCount,
+                                                                     .textureArrayDepth = CascadeShadow::cascadeCount,
                                                                      .shadowMap = true,
                                                                  }}
                                                   : RenderTarget{}},
@@ -252,34 +252,9 @@ void Renderer::updateWindowUBO()
     glNamedBufferSubData(UBOs_.window, 0, static_cast<GLsizeiptr>(sizeof(WindowUBO)), &windowUBO);
 }
 
-void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll)
+void Renderer::updateCascadeShadowUBO(const CascadeShadow::Cascades &cascades)
 {
-    static_assert(shadowCascadeCount == 3);
-
-    unsigned long long bytes{0};
-    PackedCascadeShadows cascadeShadows;
-
-    std::size_t offset{uploadAll ? 0 : offsetof(PackedCascadeShadows, matrices)};
-    const void *data{uploadAll ? static_cast<void *>(&cascadeShadows)
-                               : static_cast<void *>(&cascadeShadows.matrices[0])};
-
-    if (uploadAll)
-    {
-        cascadeShadows.nearPlane = {cascades[0].near, cascades[1].near, cascades[2].near, 0.0f};
-        cascadeShadows.farPlane = {cascades[0].far, cascades[1].far, cascades[2].far, 0.0f};
-        bytes += sizeof(cascadeShadows.farPlane);
-        bytes += sizeof(cascadeShadows.nearPlane);
-    }
-
-    int cascadesCount{lightChanged ? shadowCascadeCount : shadowCascadeCount - 1};
-
-    for (int i{0}; i < cascadesCount; ++i)
-    {
-        cascadeShadows.matrices[i] = cascades[i].viewProjection;
-        bytes += sizeof(cascadeShadows.matrices[i]);
-    }
-
-    glNamedBufferSubData(UBOs_.cascadeShadows, offset, bytes, data);
+    glNamedBufferSubData(UBOs_.cascadeShadows, 0, static_cast<GLsizeiptr>(sizeof(CascadeShadow::Cascades)), &cascades);
 }
 
 void Renderer::updateSceneTransforms(const Scene &scene)
@@ -316,7 +291,7 @@ void Renderer::updateSceneTransforms(const Scene &scene)
     }
 }
 
-void Renderer::updateCascades(const Scene &scene, const Camera &camera, bool lightChanged)
+void Renderer::updateCascades(const Scene &scene, const Camera &camera)
 {
     // Move the far plane closer for tighter cascades
     const glm::mat4 cameraVP{camera.getResizedViewProjectionMatrix(farPlaneReduction)};
@@ -324,10 +299,7 @@ void Renderer::updateCascades(const Scene &scene, const Camera &camera, bool lig
 
     // Recalculate frustum splits and light VP matrices
     cascadeShadow_.updateCascadeShadows(cameraVP, scene.getGlobalLight(), graphicsSettings_.shadowResolution, farPlane);
-
-    // Splits never change, only set on renderer initialization
-    const bool updateFullUBO{framesRendered_ == 0};
-    updateCascadeShadowUBO(cascadeShadow_.getCascades(), lightChanged, updateFullUBO);
+    updateCascadeShadowUBO(cascadeShadow_.getCascades());
 }
 
 std::uint32_t Renderer::getFrameCount() const

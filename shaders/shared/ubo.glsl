@@ -21,6 +21,7 @@ layout (std140, binding = UBO_BINDING_CASCADE_SHADOW) uniform cascadeShadow
 {
 	vec4 near;
     vec4 far;
+	vec4 texelSizes;
     mat4 lightMatrices[3];
 };
 

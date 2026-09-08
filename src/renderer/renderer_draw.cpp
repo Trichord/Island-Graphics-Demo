@@ -73,25 +73,20 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
     glState_.bindFramebuffer(shadowPassTarget_.getID());
     glState_.setDepthWrite(true);
 
-    updateCascades(scene, camera, lightChanged);
-    const Cascades &cascades{cascadeShadow_.getCascades()};
+    updateCascades(scene, camera);
+    const CascadeShadow::Cascades &cascades{cascadeShadow_.getCascades()};
 
-    // Only update outer cascade if the light changed
-    int cascadeCount{lightChanged ? shadowCascadeCount : shadowCascadeCount - 1};
+    // Only render the outer cascade if the light changed
+    int cascadeCount{lightChanged ? CascadeShadow::cascadeCount : CascadeShadow::cascadeCount - 1};
 
     // Cull and fill buffers so that both passes have the correct draw commands
     for (int i{0}; i < cascadeCount; ++i)
-    {
-        const glm::mat4 lightVP{cascades[i].viewProjection};
-
-        cullScene(cullFrustumShader_, lightVP, BufferRange::cascade0 + i);
-    }
+        cullScene(cullFrustumShader_, cascades.viewProjections[i], BufferRange::cascade0 + i);
 
     // Opaque geometry first (positions only)
     glState_.bindProgram(shadowShader_);
     glState_.setVAO(VAOs_.shadowVAO);
     glState_.setAlphaMode(AlphaMode::opaque);
-    glState_.setFaceCull(GL_FRONT);
 
     for (int i{0}; i < cascadeCount; ++i)
     {
@@ -108,7 +103,6 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
     glState_.bindProgram(shadowAlphaShader_);
     glState_.setVAO(VAOs_.vao);
     glState_.setAlphaMode(AlphaMode::mask);
-    glState_.setFaceCull(GL_BACK);
 
     for (int i{0}; i < cascadeCount; ++i)
     {
@@ -139,7 +133,7 @@ void Renderer::shadowPass(GraphicsShader &shader, BufferRange range, int cascade
         if (mdb.shaderType == ocean || mdb.shaderType == skybox)
             continue;
 
-        if (mdb.shaderType == particles && cascade == shadowCascadeCount - 1)
+        if (mdb.shaderType == particles && cascade == CascadeShadow::cascadeCount - 1)
             continue;
 
         const bool a2c{mdb.alphaMode == mask};

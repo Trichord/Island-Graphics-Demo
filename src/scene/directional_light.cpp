@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 
 DirectionalLight::DirectionalLight(const glm::vec3 &color, const glm::vec3 &direction)
-    : color_{color}, direction_{direction}
+    : color_{color}, direction_{glm::normalize(direction)}
 {
 }
 
@@ -19,7 +19,7 @@ const glm::vec3 &DirectionalLight::getDirection() const
 
 void DirectionalLight::setDirection(const glm::vec3 &direction)
 {
-    direction_ = direction;
+    direction_ = glm::normalize(direction);
     directionUpdated_ = true;
 }
 

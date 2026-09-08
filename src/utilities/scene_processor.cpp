@@ -420,7 +420,7 @@ SSBOs SceneProcessor::createSSBOs(const std::vector<DrawElementsIndirectCommand>
 {
     BufferBuilder builder;
 
-    std::size_t cascadeSized{static_cast<std::size_t>(shadows ? shadowCascadeCount + 1 : 1)};
+    std::size_t cascadeSized{static_cast<std::size_t>(shadows ? CascadeShadow::cascadeCount + 1 : 1)};
 
     BufferBuilder::Sizes sizes{
         .metadata = alignedSizes.metadata,

@@ -280,7 +280,7 @@ enum class BufferRange : std::size_t
     count
 };
 
-static_assert(static_cast<std::size_t>(BufferRange::cascade0) + shadowCascadeCount ==
+static_assert(static_cast<std::size_t>(BufferRange::cascade0) + CascadeShadow::cascadeCount ==
               static_cast<std::size_t>(BufferRange::count));
 
 constexpr std::size_t bufferRangeIndex(BufferRange range)

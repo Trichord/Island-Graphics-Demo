@@ -10,6 +10,7 @@
 #include "models/primitive.h"
 #include "renderer/buffers.h"
 #include "renderer/renderer_types.h"
+#include "renderer/cascade_shadow.h"
 
 namespace
 {
@@ -76,7 +77,7 @@ UBOs BufferBuilder::buildUBOs()
     UBOs ubos;
 
     buildUBO(&ubos.camera, sizeof(PackedCameraUniforms), BindingPointUBO::camera);
-    buildUBO(&ubos.cascadeShadows, sizeof(PackedCascadeShadows), BindingPointUBO::cascadeShadows);
+    buildUBO(&ubos.cascadeShadows, sizeof(CascadeShadow::Cascades), BindingPointUBO::cascadeShadows);
     buildUBO(&ubos.frustumPlanes, 6 * sizeof(glm::vec4), BindingPointUBO::frustumPlanes);
     buildUBO(&ubos.time, sizeof(PackedTime), BindingPointUBO::time);
     buildUBO(&ubos.scene, sizeof(SceneUBO), BindingPointUBO::scene);
