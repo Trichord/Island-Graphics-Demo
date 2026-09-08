@@ -12,9 +12,14 @@
 #include <glm/gtc/quaternion.hpp>
 #include <stdexcept>
 
-static inline glm::vec3 toGLM(const JPH::Vec3 &vec)
+static inline glm::vec3 toGLMVec3(const JPH::Vec3 &vec)
 {
     return {vec.GetX(), vec.GetY(), vec.GetZ()};
+}
+
+static inline glm::quat toGLMQuat(const JPH::Quat &quat)
+{
+    return {quat.GetW(), quat.GetX(), quat.GetY(), quat.GetZ()};
 }
 
 static inline JPH::Vec3 toJPHVec3(const glm::vec3 &vec)

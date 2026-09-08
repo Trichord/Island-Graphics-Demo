@@ -69,12 +69,9 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
 {
     // Shadow pass setup
     glViewport(0, 0, graphicsSettings_.shadowResolution, graphicsSettings_.shadowResolution);
-    glEnable(GL_POLYGON_OFFSET_FILL);
 
     glState_.bindFramebuffer(shadowPassTarget_.getID());
     glState_.setDepthWrite(true);
-    glState_.setVAO(VAOs_.shadowVAO);
-    glState_.setAlphaMode(AlphaMode::opaque);
 
     updateCascades(scene, camera, lightChanged);
     const Cascades &cascades{cascadeShadow_.getCascades()};
@@ -92,6 +89,9 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
 
     // Opaque geometry first (positions only)
     glState_.bindProgram(shadowShader_);
+    glState_.setVAO(VAOs_.shadowVAO);
+    glState_.setAlphaMode(AlphaMode::opaque);
+    glState_.setFaceCull(GL_FRONT);
 
     for (int i{0}; i < cascadeCount; ++i)
     {
@@ -107,6 +107,8 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
     // Alpha tested geometry (needs vertex paint, uvs, etc)
     glState_.bindProgram(shadowAlphaShader_);
     glState_.setVAO(VAOs_.vao);
+    glState_.setAlphaMode(AlphaMode::mask);
+    glState_.setFaceCull(GL_BACK);
 
     for (int i{0}; i < cascadeCount; ++i)
     {
@@ -116,7 +118,6 @@ void Renderer::renderShadowMaps(const Scene &scene, const Camera &camera, bool l
         shadowPass(shadowAlphaShader_, range, i, true);
     }
 
-    glDisable(GL_POLYGON_OFFSET_FILL);
     glViewport(0, 0, graphicsSettings_.renderWidth, graphicsSettings_.renderHeight);
 }
 

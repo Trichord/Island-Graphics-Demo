@@ -18,10 +18,6 @@ layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadat
 	Metadata metadata[];
 };
 
-// In
-uniform vec3 lightDir;
-uniform vec3 lightColor;
-
 flat in float scale;
 flat in int metadataIndex;
 
@@ -39,7 +35,7 @@ void main()
 	Metadata meta = metadata[metadataIndex];
 
 	vec3 V = normalize(cameraPosition.xyz - fsIn.fragPos);
-	vec3 L = normalize(-lightDir);
+	vec3 L = normalize(-lightDir.xyz);
 	vec3 H = normalize(L + V);
 
 	// Move textures by time
@@ -71,7 +67,7 @@ void main()
 
 	// Specular
 	float specular = pow(max(dot(N, H), 0.0), 32.0);
-	vec3 specHighlight = lightColor * specular * specularDamper;
+	vec3 specHighlight = lightColor.rgb * specular * specularDamper;
 
 	// Fresnel
 	float fresnel = 1.0 - max(dot(N, V), 0.0);

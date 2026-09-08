@@ -24,9 +24,6 @@ layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadat
 	Metadata metadata[];
 };
 
-// In
-uniform vec3 lightDir;
-
 flat in int metadataIndex;
 
 in vsOut 

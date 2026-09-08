@@ -303,6 +303,15 @@ This work is based on ["Sleeping bag"](https://sketchfab.com/3d-models/sleeping-
 
 </details>
 
+<h2>Beachball</h2>
+
+<details>
+<summary>By Viktor™</summary>
+
+This work is based on ["Beach Ball | Hello Neighbor"](https://sketchfab.com/3d-models/beach-ball-hello-neighbor-56677a75a7254e25a4eef973f91f54ad) by [Viktor™](https://sketchfab.com/ViktorTM) licensed under [CC-BY-4.0](http://creativecommons.org/licenses/by/4.0/)
+
+</details>
+
 <h1>Audio</h1>
 
 <h2>Hilltop Music</h2>
@@ -384,12 +393,3 @@ Audio Information:
 Audio License:
 * license type:	[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 </details>
-
-<h1>CC0 Assets</h1>
-
-- Configuration Window Image - [ASTRATTO 2](https://openclipart.org/detail/289892/astratto-2)
-- Tree Branch Textures - [PX_Prunus_x_yedoensis_Atlas_04](https://library.pbrpx.com/asset?asset=153&category=144) and [PX_Prunus_x_yedoensis_Atlas_05](https://library.pbrpx.com/asset?asset=154&category=144)
-- Black Hole Sound - [Soft Subtle Sci-Fi Hovercract Engine Humm](https://freesound.org/people/qubodup/sounds/861960/)
-- Wind - [Autumn wind and dry leaves](https://freesound.org/people/Stek59/sounds/457318/)
-- Birds - [Birds Forest 1](https://www.youtube.com/watch?v=J6OGbkl4Vrs)
-- Splash - [Splash.ogg](https://freesound.org/people/egomassive/sounds/536740/)

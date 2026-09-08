@@ -27,7 +27,7 @@ struct MultiDrawBucket
 {
     std::uint32_t maxDrawCalls{0};
     std::uint32_t drawCommandsBaseIndex{0};
-    ShaderType shaderType{ShaderType::directionalPBR};
+    ShaderType shaderType{ShaderType::pbr};
     AlphaMode alphaMode{AlphaMode::opaque};
 };
 
@@ -58,6 +58,7 @@ struct PackedCameraUniforms
     glm::mat4 viewProjectionMatrix{1.0f};
     glm::mat4 inverseViewProjectMatrix{1.0f};
     glm::vec4 cameraPosition{0.0f};
+    float fov{45.0f};
 };
 
 // Packed data for light transforms and frustum splits
@@ -65,11 +66,28 @@ struct PackedCascadeShadows
 {
     glm::vec4 nearPlane{0.0f};
     glm::vec4 farPlane{0.0f};
-    glm::mat4 matrices[shadowCascadeCount];
+    glm::mat4 matrices[shadowCascadeCount]{};
 };
 
 struct PackedTime
 {
     float deltaTime{0.0f};
     float timeElapsed{0.0f};
+};
+
+struct SceneUBO
+{
+    glm::vec4 lightDir{0.0f};
+    glm::vec4 lightColor{1.0f};
+    glm::vec4 ambientLight{1.0f};
+
+    glm::vec4 windDirection{0.0f};
+    float windStrength{0.0f};
+};
+
+struct WindowUBO
+{
+    int width{0};
+    int height{0};
+    float gamma{1.0f};
 };

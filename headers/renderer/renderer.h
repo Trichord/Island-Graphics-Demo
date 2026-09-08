@@ -54,7 +54,6 @@ class Renderer
 
     GLState glState_;
 
-
     // GPU Resources
     VAOs VAOs_;
     UBOs UBOs_;
@@ -102,11 +101,9 @@ class Renderer
 
     // Initialization
     void loadShaders();
-    void setupShader(GraphicsShader &shader);
     GLuint createResolveTexture();
 
     // Setup
-    void setSceneShaderUniforms(const Scene &scene, const Camera &camera);
     void takeBufferData(SceneProcessor::ProcessedScene &processed);
     void takeGPUObjects(SceneProcessor::ProcessedScene &processed);
     void setupComputeShaders(const SceneProcessor::ProcessedScene &processed, float nearPlane);
@@ -134,11 +131,14 @@ class Renderer
     void updateHiZ();
     void updateParticles();
     void updateSkinnedVertices();
-    void updateTimeUBO(float time, float deltaTime);
+
+    void updateWindowUBO();
+    void updateSceneUBO(const Scene &scene);
     void updateCameraUBO(const Camera &camera);
+    void updateTimeUBO(float time, float deltaTime);
+
     void updateSceneTransforms(const Scene &scene);
     void updateFrustumPlanesUBO(const glm::mat4 &cullMatrix);
-    void updateShaderUniforms(const Scene &scene, bool lightChanged);
     void updateCascades(const Scene &scene, const Camera &camera, bool lightChanged);
     void updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll);
 };

@@ -2,6 +2,7 @@
 
 #include <Jolt/Jolt.h>
 
+#include <Jolt/Core/Core.h>
 #include <Jolt/Core/Reference.h>
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Math/Math.h>
@@ -14,8 +15,11 @@
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/Shape/SubShapeID.h>
 #include <Jolt/Physics/PhysicsSystem.h>
+#include <vector>
 #include <glm/glm.hpp>
 #include <optional>
+
+#include "physics/physics_utilities.h"
 
 class CharacterCapsule : public JPH::CharacterContactListener
 {
@@ -34,8 +38,8 @@ class CharacterCapsule : public JPH::CharacterContactListener
     };
 
     CharacterCapsule() = default;
-    CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator,
-                     Settings capsuleSettings);
+    CharacterCapsule(JPH::PhysicsSystem &physicsSystem, JPH::TempAllocatorImpl &tempAllocator, Settings capsuleSettings,
+                     JPH::uint64 userID);
     CharacterCapsule(const CharacterCapsule &) = delete;
     CharacterCapsule &operator=(const CharacterCapsule &) = delete;
     CharacterCapsule(CharacterCapsule &&other) = delete;
@@ -45,8 +49,10 @@ class CharacterCapsule : public JPH::CharacterContactListener
     JPH::Vec3 getCenter() const;
     JPH::Vec3 getPosition() const;
     JPH::Vec3 getVelocity() const;
+    JPH::BodyID getBodyID() const;
     bool isSupported() const;
     bool isGrounded() const;
+    const std::vector<physics::ObjectCollision> &getContactedBodies() const;
 
     void setCenter(const JPH::Vec3 &center);
     void setPosition(const JPH::Vec3 &position);
@@ -71,8 +77,8 @@ class CharacterCapsule : public JPH::CharacterContactListener
     Settings capsuleSettings_;
 
     // Non-owning pointers
-    JPH::PhysicsSystem *physicsSystem_{nullptr};
-    JPH::TempAllocatorImpl *tempAllocator_{nullptr};
+    JPH::PhysicsSystem &physicsSystem_;
+    JPH::TempAllocatorImpl &tempAllocator_;
 
     // The different stances for the character
     JPH::RefConst<JPH::Shape> standingShape_;
@@ -83,11 +89,14 @@ class CharacterCapsule : public JPH::CharacterContactListener
     // Capsule
     JPH::Ref<JPH::CharacterVirtual> capsule_;
 
+    // Per frame list of collided with objects. Using a vector because the number of contacts should be low per frame
+    std::vector<physics::ObjectCollision> touchedObjects_;
+
+    // Jolt callbacks
     void OnContactSolve(const JPH::CharacterVirtual *inCharacter, const JPH::BodyID &inBodyID2,
                         const JPH::SubShapeID &inSubShapeID2, JPH::RVec3Arg inContactPosition,
                         JPH::Vec3Arg inContactNormal, JPH::Vec3Arg inContactVelocity,
                         const JPH::PhysicsMaterial *inContactMaterial, JPH::Vec3Arg inCharacterVelocity,
                         JPH::Vec3 &ioNewCharacterVelocity) override;
-
     bool OnContactValidate(const JPH::CharacterVirtual *inCharacter, const JPH::CharacterContact &inContact) override;
 };

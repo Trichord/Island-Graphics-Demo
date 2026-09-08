@@ -193,6 +193,8 @@ struct UBOs
     GLuint frustumPlanes{0};
     GLuint cascadeShadows{0};
     GLuint time{0};
+    GLuint scene{0};
+    GLuint window{0};
 
     UBOs() = default;
     UBOs(const UBOs &other) = delete;
@@ -200,7 +202,8 @@ struct UBOs
 
     UBOs(UBOs &&other) noexcept
         : camera{std::exchange(other.camera, 0)}, frustumPlanes{std::exchange(other.frustumPlanes, 0)},
-          cascadeShadows{std::exchange(other.cascadeShadows, 0)}, time{std::exchange(other.time, 0)}
+          cascadeShadows{std::exchange(other.cascadeShadows, 0)}, time{std::exchange(other.time, 0)},
+          scene{std::exchange(other.scene, 0)}, window{std::exchange(other.window, 0)}
     {
     }
 
@@ -208,13 +211,15 @@ struct UBOs
     {
         if (this != &other)
         {
-            GLuint buffers[]{camera, frustumPlanes, cascadeShadows, time};
+            GLuint buffers[]{camera, frustumPlanes, cascadeShadows, time, scene, window};
             glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
 
             camera = std::exchange(other.camera, 0);
             frustumPlanes = std::exchange(other.frustumPlanes, 0);
             cascadeShadows = std::exchange(other.cascadeShadows, 0);
             time = std::exchange(other.time, 0);
+            scene = std::exchange(other.scene, 0);
+            window = std::exchange(other.window, 0);
         }
 
         return *this;
@@ -222,22 +227,24 @@ struct UBOs
 
     ~UBOs()
     {
-        GLuint buffers[]{camera, frustumPlanes, cascadeShadows, time};
+        GLuint buffers[]{camera, frustumPlanes, cascadeShadows, time, scene, window};
         glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
     }
 };
 
-// Uniform Buffer Object binding points (unsigned int)
-enum class BindingPointUBO : unsigned int
+// Uniform Buffer Object binding points (std::uint32_t)
+enum class BindingPointUBO : std::uint32_t
 {
     camera,
     frustumPlanes,
     cascadeShadows,
-    time
+    time,
+    scene,
+    window
 };
 
-// Shader Storage Buffer Object binding points (unsigned int). Must be <= 16 total
-enum class BindingPointSSBO : unsigned int
+// Shader Storage Buffer Object binding points (std::uint32_). Must be <= 16 total
+enum class BindingPointSSBO : std::uint32_t
 {
     visibilityMap,
     aabb,

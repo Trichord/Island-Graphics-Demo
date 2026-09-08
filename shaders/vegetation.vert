@@ -32,23 +32,12 @@ layout(binding = SSBO_BINDING_VISIBLE_INSTANCES, std430) restrict readonly buffe
    uint instances[];
 };
 
-// In
-uniform float windStrength;
-uniform vec3 windDirection;
-
-// Out
-flat out int metadataIndex;
-
 out VS_OUT 
 {
 	vec3 normal;
 	vec2 texCoords;
-	float vertexHeight;
-
-#ifdef ALPHA_TESTED_SHADOWS
-	vec4 viewPos;
-	vec4 worldPos;
-#endif
+	float ao;
+	flat int metadataIndex;
 } vsOut;
 
 void main() 
@@ -65,20 +54,15 @@ void main()
 	vec2 noise = getNoise(worldPosition.xyz, time);
 	float windFactor = getWindFactor(worldPosition.xyz, time);
 
-	largeScaleWind(worldPosition.xyz, aColor, windDirection, windFactor, noise.x);
+	largeScaleWind(worldPosition.xyz, aColor, windDirection.xyz, windFactor, noise.x);
 	mediumScaleWind(worldPosition.xyz, aColor, vec3(noise.rg, -noise.r), windFactor);
 	smallScaleWind(worldPosition.xyz, aColor, normal, vec3(noise.gr, noise.g), aPos.y, windFactor, windStrength);
 	
 	// Out params
-	metadataIndex = gl_BaseInstance;
-
-	vsOut.vertexHeight = aPos.y;	
-	vsOut.texCoords = aTexCoords;
 	vsOut.normal = normal;
-	#ifdef ALPHA_TESTED_SHADOWS
-	vsOut.viewPos = viewMatrix * worldPosition;
-	vsOut.worldPos = worldPosition;
-	#endif
-
+	vsOut.texCoords = aTexCoords;
+	vsOut.ao = aColor.a;
+	vsOut.metadataIndex = gl_BaseInstance;
+	
     gl_Position = viewProjectionMatrix * worldPosition;
 }

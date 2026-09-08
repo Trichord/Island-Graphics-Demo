@@ -1,12 +1,14 @@
 #pragma once
 
+#include <array>
 #include <filesystem>
 #include <glm/glm.hpp>
-#include <random>
+#include <string_view>
 #include <vector>
 
 #include "application/graphics_settings.h"
 #include "physics/player_state.h"
+#include "scene/handle.h"
 #include "scene/island_scene/seagull.h"
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
@@ -26,6 +28,7 @@ class IslandScene : public Scene
 
     std::vector<glm::vec3> butterflyOriginalPos_;
     std::vector<Seagull> seagulls_ = std::vector<Seagull>(numSeagulls_);
+    std::vector<Handle> dynamicObjects_;
 
     void updateSpaceModel(Scene::Entry &entry, float deltaTime);
     void updateButterfly(Scene::Entry &butterfly, float time, float deltaTime);

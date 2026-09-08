@@ -27,10 +27,6 @@ layout(binding = SSBO_BINDING_VISIBLE_INSTANCES, std430) restrict readonly buffe
    uint instances[];
 };
 
-// In
-uniform int screenHeight;
-uniform float fov;
-
 // Out
 flat out vec4 color;
 
@@ -45,5 +41,5 @@ void main()
 	color = aColor;
 	
 	gl_Position = viewProjectionMatrix * modelMatrix * vec4(aPos, 1.0);
-	gl_PointSize = (screenHeight * pointSize) / (gl_Position.w * tan(radians(fov) * 0.5));
+	gl_PointSize = (windowHeight * pointSize) / (gl_Position.w * tan(radians(fov) * 0.5));
 }

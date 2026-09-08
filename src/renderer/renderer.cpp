@@ -30,11 +30,6 @@
 
 namespace
 {
-// Hardware shadow bias
-constexpr GLfloat polygonFactor{2.0f};
-constexpr GLfloat polygonUnits{2.0f};
-constexpr GLfloat polygonClamp{0.02f};
-
 // Reduce the distance of the camera's far plane by 80% for shadow cascades.
 constexpr float farPlaneReduction{0.2f};
 
@@ -116,7 +111,6 @@ Renderer::Renderer(TextureManager &textureManager, const GraphicsSettings &setti
     glState_.bindTexture(static_cast<GLuint>(TextureUnit::hiZ), hiZTexture_);
     glState_.bindTexture(static_cast<GLuint>(TextureUnit::noise), noiseTexture_);
     glState_.bindFramebuffer(frameBuffer_.getID());
-    glPolygonOffsetClamp(polygonFactor, polygonUnits, polygonClamp);
 }
 
 Renderer::~Renderer()
@@ -136,14 +130,17 @@ void Renderer::render(const Scene &scene, const Camera &camera, float time, floa
     updateSceneTransforms(scene);
     updateTimeUBO(time, deltaTime);
 
-    const bool lightChanged{scene.getGlobalLight().directionHasUpdated()};
-    updateShaderUniforms(scene, lightChanged);
+    const DirectionalLight &globalLight{scene.getGlobalLight()};
+    const bool directionChanged{globalLight.directionHasUpdated()};
+
+    if (directionChanged || globalLight.colorHasUpdated())
+        updateSceneUBO(scene);
 
     updateParticles();
     updateSkinnedVertices();
 
-    if (graphicsSettings_.shadowResolution && (framesRendered_ % 2u || lightChanged))
-        renderShadowMaps(scene, camera, lightChanged);
+    if (graphicsSettings_.shadowResolution && (framesRendered_ % 2u || directionChanged))
+        renderShadowMaps(scene, camera, directionChanged);
 
     if (camera.hasUpdated())
         updateCameraUBO(camera);
@@ -167,30 +164,27 @@ void Renderer::loadShaders()
 {
     using enum ShaderType;
 
-    const std::vector<std::string> defines{
-        graphicsSettings_.shadowResolution ? "ALPHA_TESTED_SHADOWS" : "",
-        graphicsSettings_.gamma != 1.0f ? "GAMMA_CORRECT" : "",
-        "MSAA_SAMPLES " + std::to_string(graphicsSettings_.msaa),
-    };
+    std::vector<std::string> defines{"MSAA_SAMPLES " + std::to_string(graphicsSettings_.msaa)};
+
+    if (graphicsSettings_.shadowResolution)
+        defines.emplace_back("ALPHA_TESTED_SHADOWS");
+
+    if (graphicsSettings_.gamma != 1.0f)
+        defines.emplace_back("GAMMA_CORRECT");
 
     graphicsShaders_[shaderIndex(baseColor)] = {"./shaders/base_color.vert", "./shaders/base_color.frag", defines};
-    graphicsShaders_[shaderIndex(directionalPBR)] = {"./shaders/directional_PBR.vert", "./shaders/directional_PBR.frag",
-                                             defines};
-    graphicsShaders_[shaderIndex(grass)] = {"./shaders/grass.vert", "./shaders/grass.frag", defines};
-    graphicsShaders_[shaderIndex(trees)] = {"./shaders/trees.vert", "./shaders/trees.frag", defines};
-    graphicsShaders_[shaderIndex(reflective)] = {"./shaders/reflective.vert", "./shaders/reflective.frag", defines};
+    graphicsShaders_[shaderIndex(pbr)] = {"./shaders/pbr.vert", "./shaders/pbr.frag", defines};
+    graphicsShaders_[shaderIndex(vegetation)] = {"./shaders/vegetation.vert", "./shaders/vegetation.frag", defines};
+    graphicsShaders_[shaderIndex(reflectiveCubemap)] = {"./shaders/reflective.vert", "./shaders/reflective.frag",
+                                                        defines};
     graphicsShaders_[shaderIndex(skybox)] = {"./shaders/skybox.vert", "./shaders/skybox.frag", defines};
     graphicsShaders_[shaderIndex(water)] = {"./shaders/water.vert", "./shaders/water.frag", defines};
     graphicsShaders_[shaderIndex(ocean)] = {"./shaders/water.vert", "./shaders/ocean.frag", defines};
     graphicsShaders_[shaderIndex(particles)] = {"./shaders/particles.vert", "./shaders/particles.frag", defines};
 
     // Internal use only shaders
-    if (graphicsSettings_.shadowResolution)
-    {
-        shadowShader_ = {"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
-        shadowAlphaShader_ = {"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag", defines};
-    }
-
+    shadowShader_ = {"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag"};
+    shadowAlphaShader_ = {"./shaders/shadow_pass.vert", "./shaders/shadow_pass.frag", defines};
     fboResolveShader_ = {"./shaders/fbo_resolve.vert", "./shaders/fbo_resolve.frag", defines};
 
     // Compute
@@ -203,23 +197,16 @@ void Renderer::loadShaders()
     hiZShader_ = {"./shaders/hi_z.comp"};
 }
 
-void Renderer::setupShader(GraphicsShader &shader)
-{
-    // Setup Window settings
-    shader.setFloat("gamma", graphicsSettings_.gamma);
-    shader.setInt("screenHeight", graphicsSettings_.renderHeight);
-    shader.setInt("screenWidth", graphicsSettings_.renderWidth);
-}
-
 void Renderer::updateCameraUBO(const Camera &camera)
 {
-    PackedCameraUniforms uniforms;
-
-    uniforms.viewMatrix = camera.getViewMatrix();
-    uniforms.projectionMatrix = camera.getProjectionMatrix();
-    uniforms.viewProjectionMatrix = camera.getViewProjectionMatrix();
-    uniforms.inverseViewProjectMatrix = glm::inverse(uniforms.viewProjectionMatrix);
-    uniforms.cameraPosition = glm::vec4{camera.getPosition(), 0.0f};
+    PackedCameraUniforms uniforms{
+        .viewMatrix = camera.getViewMatrix(),
+        .projectionMatrix = camera.getProjectionMatrix(),
+        .viewProjectionMatrix = camera.getViewProjectionMatrix(),
+        .inverseViewProjectMatrix = glm::inverse(uniforms.viewProjectionMatrix),
+        .cameraPosition = glm::vec4{camera.getPosition(), 0.0f},
+        .fov = camera.getFOV(),
+    };
 
     glNamedBufferSubData(UBOs_.camera, 0, static_cast<GLsizeiptr>(sizeof(PackedCameraUniforms)), &uniforms);
 }
@@ -238,6 +225,31 @@ void Renderer::updateTimeUBO(float time, float deltaTime)
     };
 
     glNamedBufferSubData(UBOs_.time, 0, static_cast<GLsizeiptr>(sizeof(PackedTime)), &packed);
+}
+
+void Renderer::updateSceneUBO(const Scene &scene)
+{
+    const DirectionalLight &light{scene.getGlobalLight()};
+    SceneUBO sceneUBO{
+        .lightDir = glm::vec4{light.getDirection(), 0.0f},
+        .lightColor = glm::vec4{light.getColor(), 1.0f},
+        .ambientLight = glm::vec4{scene.getAmbientLight(), 1.0f},
+        .windDirection = glm::vec4{scene.getWindDirection(), 1.0f},
+        .windStrength = scene.getWindStrength(),
+    };
+
+    glNamedBufferSubData(UBOs_.scene, 0, static_cast<GLsizeiptr>(sizeof(SceneUBO)), &sceneUBO);
+}
+
+void Renderer::updateWindowUBO()
+{
+    WindowUBO windowUBO{
+        .width = graphicsSettings_.renderWidth,
+        .height = graphicsSettings_.renderHeight,
+        .gamma = graphicsSettings_.gamma,
+    };
+
+    glNamedBufferSubData(UBOs_.window, 0, static_cast<GLsizeiptr>(sizeof(WindowUBO)), &windowUBO);
 }
 
 void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChanged, bool uploadAll)
@@ -268,17 +280,6 @@ void Renderer::updateCascadeShadowUBO(const Cascades &cascades, bool lightChange
     }
 
     glNamedBufferSubData(UBOs_.cascadeShadows, offset, bytes, data);
-}
-
-void Renderer::updateShaderUniforms(const Scene &scene, bool lightChanged)
-{
-    if (!lightChanged)
-        return;
-
-    const DirectionalLight &globalLight{scene.getGlobalLight()};
-
-    for (auto &shader : graphicsShaders_)
-        shader.setVec3("lightDir", globalLight.getDirection());
 }
 
 void Renderer::updateSceneTransforms(const Scene &scene)

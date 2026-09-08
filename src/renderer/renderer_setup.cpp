@@ -64,14 +64,17 @@ void Renderer::initializeResources(const Scene &scene, const Camera &camera)
 
     BufferBuilder builder;
     UBOs_ = builder.buildUBOs();
+    updateWindowUBO();
 
     // Cubemaps. Reserve space up front for any load-time generated cubemaps
     std::size_t numCubemaps{getNumDynamicCubemaps(scene)};
     GLenum colorFormat{DynamicCubemaps::internalFormat};
-    textureManager_.reserveCubemaps(numCubemaps, graphicsSettings_.reflectionResolution, colorFormat);
 
+    // Reserve first, then build and upload all texture arrays
+    textureManager_.reserveCubemaps(numCubemaps, graphicsSettings_.reflectionResolution, colorFormat);
     textureManager_.buildAllTextures();
 
+    // Process the scene and turn it into GPU ready resources
     SceneProcessor::ProcessedScene processed{
         SceneProcessor::processScene(scene, textureManager_, graphicsSettings_.shadowResolution)};
 
@@ -94,20 +97,11 @@ void Renderer::initializeResources(const Scene &scene, const Camera &camera)
     loadShaders();
     std::cerr << "Done" << std::endl;
 
-    setupShader(fboResolveShader_);
-    for (auto &shader : graphicsShaders_)
-        setupShader(shader);
-
-    // Set the light based uniforms and draw shadows
-    setSceneShaderUniforms(scene, camera);
+    updateSceneUBO(scene);
     setupComputeShaders(processed, camera.getNearPlane());
 
     if (graphicsSettings_.shadowResolution)
-    {
-        setupShader(shadowShader_);
-        setupShader(shadowAlphaShader_);
         renderShadowMaps(scene, camera, true);
-    }
 
     // Assign the skybox to any ocean shaders before any cubemaps are rendered, so they are captured.
     borrowSkybox(drawBuckets_, bucketHandles);
@@ -158,30 +152,11 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
 
     glm::ivec2 hiZRes{graphicsSettings_.renderWidth / hiZResolutionReduction,
                       graphicsSettings_.renderHeight / hiZResolutionReduction};
-    cullShader_.setIVec2("renderResolution", glm::ivec2{graphicsSettings_.renderWidth, graphicsSettings_.renderHeight});
     cullShader_.setIVec2("hiZResolution", hiZRes);
     cullShader_.setInt("hiZMaxMip", static_cast<int>(hiZViews_.getMipViews().size() - 1));
     cullShader_.setFloat("nearPlane", nearPlane);
     msaaDepthResolveShader_.setInt("resReduction", hiZResolutionReduction);
     msaaDepthResolveShader_.setIVec2("mipRes", hiZRes);
-}
-
-void Renderer::setSceneShaderUniforms(const Scene &scene, const Camera &camera)
-{
-    const DirectionalLight &light{scene.getGlobalLight()};
-    const float fov{camera.getFOV()};
-
-    for (auto &shader : graphicsShaders_)
-    {
-        shader.setVec3("ambientLight", scene.getAmbientLight());
-        shader.setVec3("lightColor", light.getColor());
-        shader.setVec3("lightDir", light.getDirection());
-
-        shader.setFloat("windStrength", scene.getWindStrength());
-        shader.setVec3("windDirection", scene.getWindDirection());
-
-        shader.setFloat("fov", fov);
-    }
 }
 
 void Renderer::borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
