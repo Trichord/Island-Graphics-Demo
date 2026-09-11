@@ -37,10 +37,11 @@
  *
  * Bone Transforms: Per skinned model. Each model gets a dedicated section, allowing for skeletal animation.
  *
- * Vertex Bone Data: Per skinned vertex. Each skinned vertex gets a direct index into this buffer. Holds weights and
- * bone IDs, keeping the vertex struct at 32 bytes.
+ * Vertex Bone Data: Per skinned vertex. Each skinned vertex gets its Bone IDs remapped as a direct index into this
+ * buffer. Holds weights and bone IDs, keeping the vertex struct at 32 bytes.
  *
- * Skinned Vertex Source: Original skinned vertex. Immutable source of truth for compute shader vertex skinning.
+ * Skinned Vertex Source: Per skinned vertex. A copy of the original skinned vertex. Iimmutable source of truth for
+ * compute shader vertex skinning.
  *
  *
  * Implementation Notes

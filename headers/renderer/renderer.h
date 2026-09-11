@@ -12,10 +12,10 @@
 #include "renderer/buffers.h"
 #include "renderer/cascade_shadow.h"
 #include "renderer/gl_state.h"
+#include "renderer/render_order.h"
 #include "renderer/render_target.h"
 #include "renderer/renderer_types.h"
 #include "renderer/shader/compute_shader.h"
-#include "renderer/shader/graphics_shader.h"
 #include "renderer/texture_view.h"
 #include "scene/camera.h"
 #include "scene/handle.h"
@@ -83,7 +83,7 @@ class Renderer
     ComputeShader msaaDepthResolveShader_;
 
     // Rendering shaders
-    std::array<GraphicsShader, static_cast<int>(ShaderType::count)> graphicsShaders_;
+    std::array<GraphicsShader, static_cast<int>(RenderOrder::count)> graphicsShaders_;
     GraphicsShader shadowShader_;
     GraphicsShader shadowAlphaShader_;
     GraphicsShader fboResolveShader_;

@@ -2,18 +2,18 @@
 
 #include <algorithm>
 #include <array>
-#include <cstddef>
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 #include "application/gl_context.h"
 #include "application/graphics_settings.h"
 #include "models/primitive.h"
+#include "renderer/buffers.h"
 #include "renderer/cascade_shadow.h"
+#include "renderer/render_order.h"
 #include "renderer/render_target.h"
 #include "renderer/renderer_types.h"
 #include "renderer/shader/compute_shader.h"
@@ -22,7 +22,6 @@
 #include "renderer/textures.h"
 #include "scene/camera.h"
 #include "scene/directional_light.h"
-#include "scene/handle.h"
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
 #include "utilities/texture_utilities.h"
@@ -162,7 +161,7 @@ void Renderer::render(const Scene &scene, const Camera &camera, float time, floa
 
 void Renderer::loadShaders()
 {
-    using enum ShaderType;
+    using enum RenderOrder;
 
     std::vector<std::string> defines{"MSAA_SAMPLES " + std::to_string(graphicsSettings_.msaa)};
 

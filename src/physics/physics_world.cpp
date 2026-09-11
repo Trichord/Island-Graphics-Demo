@@ -54,8 +54,8 @@ constexpr CharacterCapsule::Settings capsuleSettings{
     .innerShapeFraction = 0.8f,
     .speed = 3.5f,
     .jumpSpeed = 3.0f,
-    .sprintSpeedMultiplier = 1.45f,
-    .crouchSpeedMultiplier = 0.4f,
+    .sprintSpeedMultiplier = 1.6f,
+    .crouchSpeedMultiplier = 0.3f,
 };
 
 bool initializePhysicsSystem(JPH::PhysicsSystem &physicsSystem, BPLayerInterfaceImpl &broadPhase,

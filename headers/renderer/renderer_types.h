@@ -2,12 +2,13 @@
 
 #include <cstdint>
 #include <glm/glm.hpp>
-#include <nlohmann/json.hpp>
+#include <type_traits>
 
 #include "models/primitive.h"
-#include "renderer/cascade_shadow.h"
+#include "renderer/render_order.h"
 #include "renderer/shader/graphics_shader.h"
 #include "renderer/textures.h"
+#include <glad/glad.h>
 
 // Struct for MultiDrawElements
 struct DrawElementsIndirectCommand
@@ -22,13 +23,60 @@ struct DrawElementsIndirectCommand
 static_assert(sizeof(DrawElementsIndirectCommand) == 20);
 static_assert(std::is_standard_layout_v<DrawElementsIndirectCommand>);
 
+struct BucketState
+{
+    GLenum primitiveMode{GL_TRIANGLES};
+    GLenum depthFunction{GL_LESS};
+    RenderOrder renderOrder{RenderOrder::baseColor};
+    AlphaMode alphaMode{AlphaMode::opaque};
+    bool castsShadows{true};
+    bool writeDepth{true};
+};
+
+constexpr BucketState createBucketState(ShaderType shader, AlphaMode alphaMode)
+{
+    using enum RenderOrder;
+    using enum AlphaMode;
+
+    BucketState state{
+        .renderOrder = toRenderOrder(shader),
+        .alphaMode = alphaMode,
+
+        // Disable depth writing for blended objects, otherwise Hi-Z culling gets falsely triggered for objects
+        // behind the blend
+        .writeDepth = state.alphaMode != AlphaMode::blend,
+    };
+
+    switch (state.renderOrder)
+    {
+    case baseColor:
+    case pbr:
+    case reflectiveCubemap:
+    case vegetation:
+    case water:
+        break;
+    case particles:
+        state.primitiveMode = GL_POINTS;
+        break;
+    case ocean:
+        state.castsShadows = false;
+        break;
+    case skybox:
+        state.depthFunction = GL_LEQUAL;
+        state.castsShadows = false;
+        state.writeDepth = false;
+        break;
+    }
+
+    return state;
+}
+
 // Buffer offset and primitive count for Multi Draw Indirect calls
 struct MultiDrawBucket
 {
     std::uint32_t maxDrawCalls{0};
     std::uint32_t drawCommandsBaseIndex{0};
-    ShaderType shaderType{ShaderType::pbr};
-    AlphaMode alphaMode{AlphaMode::opaque};
+    BucketState state;
 };
 
 // GPU resident metadata for texture and buffer indexing

@@ -348,10 +348,11 @@ std::vector<MultiDrawBucket> SceneProcessor::createDrawBuckets(const BucketEntri
     {
         if (currentShaderType != entry.shaderType || currentAlphaMode != entry.alphaMode)
         {
-            buckets.emplace_back(MultiDrawBucket{.maxDrawCalls = end - start,
-                                                 .drawCommandsBaseIndex = start,
-                                                 .shaderType = currentShaderType,
-                                                 .alphaMode = currentAlphaMode});
+            buckets.emplace_back(MultiDrawBucket{
+                .maxDrawCalls = end - start,
+                .drawCommandsBaseIndex = start,
+                .state = createBucketState(currentShaderType, currentAlphaMode),
+            });
 
             start = end;
             currentShaderType = entry.shaderType;
@@ -365,8 +366,7 @@ std::vector<MultiDrawBucket> SceneProcessor::createDrawBuckets(const BucketEntri
         buckets.emplace_back(MultiDrawBucket{
             .maxDrawCalls = end - start,
             .drawCommandsBaseIndex = start,
-            .shaderType = currentShaderType,
-            .alphaMode = currentAlphaMode,
+            .state = createBucketState(currentShaderType, currentAlphaMode),
         });
 
     return buckets;
@@ -578,7 +578,6 @@ std::unordered_map<Handle, std::uint32_t> SceneProcessor::createBoneTransformMap
 
         if (inserted)
             boneBufferOffset += static_cast<std::uint32_t>(entry.animation->value().getNumJoints());
-        
     }
 
     return boneTransformsMap;
