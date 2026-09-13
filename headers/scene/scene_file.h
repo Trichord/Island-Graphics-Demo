@@ -1,15 +1,13 @@
 #pragma once
 
-#include <filesystem>
-#include <glm/glm.hpp>
 #include <iostream>
-#include <nlohmann/detail/macro_scope.hpp>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 #include <variant>
 #include <vector>
 
+#include "models/primitive.h"
 #include "physics/collision_shapes.h"
 #include "renderer/shader/graphics_shader.h"
 #include "utilities/transform.h"
@@ -25,34 +23,24 @@ NLOHMANN_JSON_SERIALIZE_ENUM(ShaderType, {{ShaderType::baseColor, "baseColor"},
                                           {ShaderType::particles, "particles"},
                                           {ShaderType::skybox, "skybox"}})
 
+struct InstancedEntry
+{
+    float minScale{1.0f};
+    float maxScale{1.0f};
+    std::filesystem::path positionsPath;
+};
+
 struct ModelEntry
 {
     std::string name;
-    Transform transform;
     std::filesystem::path modelPath;
     ShaderType shader{ShaderType::baseColor};
-    std::optional<collision::Geometry> collisionGeometry{std::nullopt};
-};
+    std::variant<Transform, std::vector<Transform>> position;
 
-struct InstancedModelEntry
-{
-    std::string name;
-    float minScale{0.0f};
-    float maxScale{0.0f};
-    std::filesystem::path modelPath;
-    std::filesystem::path positionsPath;
-    ShaderType shader{ShaderType::baseColor};
+    std::optional<InstancedEntry> instancedEntry{std::nullopt};
     std::optional<collision::Geometry> collisionGeometry{std::nullopt};
-};
-
-struct CubeMappedModelEntry
-{
-    std::string name;
-    Transform transform;
-    std::filesystem::path modelPath;
-    std::filesystem::path cubemapPath;
-    ShaderType shader{ShaderType::baseColor};
-    std::optional<collision::Geometry> collisionGeometry{std::nullopt};
+    std::optional<std::filesystem::path> cubemapPath{std::nullopt};
+    std::optional<Primitive::VertexExplosion> vertexExplosion{std::nullopt};
 };
 
 struct ParticlesEntry
@@ -93,7 +81,7 @@ struct SceneCamera
     float fov{45.0f};
 };
 
-using FileEntry = std::variant<ModelEntry, InstancedModelEntry, CubeMappedModelEntry, SkyboxEntry, ParticlesEntry>;
+using FileEntry = std::variant<ModelEntry, SkyboxEntry, ParticlesEntry>;
 
 struct SceneFile
 {
@@ -103,6 +91,7 @@ struct SceneFile
     std::vector<FileEntry> entries;
 };
 
+// Helpers for basic types
 inline glm::vec3 parseVec3(const nlohmann::json &j)
 {
     return {j.at(0).get<float>(), j.at(1).get<float>(), j.at(2).get<float>()};
@@ -198,40 +187,41 @@ inline void from_json(const nlohmann::json &j, Geometry &geometry)
 }
 } // namespace collision
 
+inline void from_json(const nlohmann::json &j, Primitive::VertexExplosion &v)
+{
+    v.minDistance = j.value("minDistance", 0.0f);
+    v.maxDistance = j.value("maxDistance", 0.0f);
+}
+
+inline void from_json(const nlohmann::json &j, InstancedEntry &i)
+{
+    i.minScale = j.value("minScale", 1.0f);
+    i.maxScale = j.value("maxScale", 1.0f);
+    i.positionsPath = j.value("positionsPath", std::filesystem::path{});
+}
+
 inline void from_json(const nlohmann::json &j, ModelEntry &model)
 {
     model.name = j.value("name", std::string{});
-    model.transform = j.value("transform", Transform{});
     model.modelPath = j.value("modelPath", std::filesystem::path{});
     model.shader = j.value("shader", ShaderType::pbr);
 
-    if (j.contains("collisionGeometry"))
-        model.collisionGeometry = j.at("collisionGeometry").get<collision::Geometry>();
-}
-
-inline void from_json(const nlohmann::json &j, InstancedModelEntry &model)
-{
-    model.name = j.value("name", std::string{});
-    model.minScale = j.value("minScale", 1.0f);
-    model.maxScale = j.value("maxScale", 1.0f);
-    model.modelPath = j.value("modelPath", std::filesystem::path{});
-    model.positionsPath = j.value("positionsPath", std::filesystem::path{});
-    model.shader = j.value("shader", ShaderType::pbr);
+    if (j.contains("instancing"))
+    {
+        model.instancedEntry = j.at("instancing");
+        model.position = std::vector<Transform>{};
+    }
+    else
+        model.position = j.value("transform", Transform{});
 
     if (j.contains("collisionGeometry"))
         model.collisionGeometry = j.at("collisionGeometry").get<collision::Geometry>();
-}
 
-inline void from_json(const nlohmann::json &j, CubeMappedModelEntry &model)
-{
-    model.name = j.value("name", std::string{});
-    model.transform = j.value("transform", Transform{});
-    model.modelPath = j.value("modelPath", std::filesystem::path{});
-    model.cubemapPath = j.value("cubemapPath", std::filesystem::path{});
-    model.shader = j.value("shader", ShaderType::pbr);
+    if (j.contains("cubemapPath"))
+        model.cubemapPath = j.at("cubemapPath");
 
-    if (j.contains("collisionGeometry"))
-        model.collisionGeometry = j.at("collisionGeometry").get<collision::Geometry>();
+    if (j.contains("vertexExplosion"))
+        model.vertexExplosion = j.at("vertexExplosion");
 }
 
 inline void from_json(const nlohmann::json &j, ParticlesEntry &particle)
@@ -278,10 +268,6 @@ inline FileEntry parseFileEntries(const nlohmann::json &j)
 
     if (type == "model")
         return j.get<ModelEntry>();
-    if (type == "cubemapped")
-        return j.get<CubeMappedModelEntry>();
-    if (type == "instanced")
-        return j.get<InstancedModelEntry>();
     if (type == "skybox")
         return j.get<SkyboxEntry>();
     if (type == "particles")

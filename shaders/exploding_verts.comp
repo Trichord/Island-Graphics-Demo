@@ -1,0 +1,73 @@
+#version 460 core
+
+#include "shared/binding_points.glsl"
+#include "shared/packing.glsl"
+#include "shared/types.glsl"
+#include "shared/ubo.glsl"
+
+const float playerPadding = 0.5f;
+
+// Attributes
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = SSBO_BINDING_EXPLODING_VERTEX_MAP, std430) restrict readonly buffer explodedVertMap
+{
+	vec4 map[];
+};
+
+layout(binding = SSBO_BINDING_MATRICES, std430) restrict readonly buffer matricesSSBO
+{
+    mat4 matrices[];
+};
+
+// Aliased 32 byte VBO
+layout(binding = SSBO_BINDING_VBO, std430) buffer VBO
+{
+    vec4 vertices[];
+};
+
+layout(binding = SSBO_BINDING_POSITION_VBO, std430) restrict writeonly buffer shadowVertices
+{
+	vec4 shadowVerts[];
+};
+
+void main()
+{
+	uint mapIndex = gl_GlobalInvocationID.x;
+
+	// 2 vec4's per map entry
+	if (mapIndex >= map.length() / 2)
+		return;
+
+	uint bufferIndex = mapIndex * 2;
+	vec4 data = map[bufferIndex];
+	vec4 data2 = map[bufferIndex + 1];
+
+	// Unpack
+	vec3 position = data.xyz;
+	uint vboIndex = floatBitsToUint(data.w);
+	uint matricesIndex = floatBitsToUint(data2.x);
+	vec3 centroidNormal = unpackSnorm3x10_1x2(floatBitsToUint(data2.y)).xyz;
+	vec2 minMaxDist = unpackHalf2x16(floatBitsToUint(data2.z));
+	bool animated = floatBitsToUint(data2.w) != 0u;
+	vec4 vboData = vertices[vboIndex * 2];
+
+	animated = false;
+
+	// Safe since animated models write skinned data directly to the VBO, and this new position is unaffected by previous "explosion" writes
+	if (animated)
+		position = vboData.xyz;
+
+	mat4 modelMatrix = matrices[matricesIndex];
+	vec3 worldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+
+	float dist = distance(worldPosition, cameraPosition.xyz) + playerPadding;
+	float expansionFactor = smoothstep(minMaxDist.x, minMaxDist.y, dist);
+	vec3 newPos = position + centroidNormal.xyz * minMaxDist.y * expansionFactor;
+
+	// Write back
+	vertices[vboIndex * 2] = vec4(newPos, vboData.w);
+
+	// And shadows, while we're here
+	shadowVerts[vboIndex] = vec4(newPos, 1.0);
+}

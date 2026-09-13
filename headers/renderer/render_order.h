@@ -29,8 +29,6 @@ constexpr RenderOrder toRenderOrder(ShaderType shader)
         return RenderOrder::baseColor;
     case pbr:
         return RenderOrder::pbr;
-    case explodingPBR:
-        return RenderOrder::pbr;
     case reflectiveCubemap:
         return RenderOrder::reflectiveCubemap;
     case vegetation:
@@ -52,8 +50,8 @@ constexpr RenderOrder toRenderOrder(ShaderType shader)
     return RenderOrder::count;
 }
 
-    constexpr std::uint8_t shaderIndex(RenderOrder order)
+constexpr std::uint8_t shaderIndex(RenderOrder order)
 {
-    assert(renderOrder < RenderOrder::count);
+    assert(order < RenderOrder::count);
     return static_cast<std::uint8_t>(order);
 }

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/packing.hpp>
 #include <iostream>
 #include <limits>
 #include <set>
@@ -25,6 +26,7 @@
 #include "scene/handle.h"
 #include "scene/scene.h"
 #include "utilities/buffer_builder.h"
+#include "utilities/random.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 
@@ -96,6 +98,7 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene(const Scene &scene, 
     auto commands = createDrawCommands(bucketEntries, totals);
     auto particleMap = createParticleMap(bucketEntries, totals);
     auto metadata = createMetadata(textureManager, bucketEntries);
+    auto expVertsMap = createExplodingVerticesMap(bucketEntries, totals);
     auto processedVertices = createProcessedVertices(bucketEntries, totals);
     auto drawBucketHandles = createDrawBucketHandles(bucketEntries, buckets);
     auto vertexSkins = createVertexSkins(bucketEntries, boneTransformMap, totals);
@@ -105,7 +108,7 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene(const Scene &scene, 
     // Stage Four - GPU data upload
     auto VAO = createVAO(bucketEntries, processedVertices.vertices, totals);
     auto SSBOs = createSSBOs(commands, matrices, metadata, vertexSkins, processedVertices.skinnedVertices,
-                             visibilityMap, particleMap, AABBs, bufferSizes, shadowsEnabled);
+                             visibilityMap, expVertsMap, particleMap, AABBs, bufferSizes, shadowsEnabled);
 
     return {.VAOs = std::move(VAO),
             .SSBOs = std::move(SSBOs),
@@ -115,6 +118,7 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene(const Scene &scene, 
                     .numInstances = totals.instances,
                     .numVertices = totals.vertices,
                     .numSkinnedVertices = totals.skinnedVertices,
+                    .numExplodedVertices = totals.explodedVertices,
                     .numPrimitives = totals.primitives,
                     .numParticles = totals.particles,
                 },
@@ -149,14 +153,19 @@ SceneProcessor::SceneTotals SceneProcessor::getSceneTotals(const Scene &scene)
 
         for (const Primitive &primitive : entry.primitives)
         {
+            std::size_t numVerts{primitive.vertices.size()};
+
             totals.indices += primitive.indices.size();
-            totals.vertices += primitive.vertices.size();
+            totals.vertices += numVerts;
 
             if (primitive.shaderType == ShaderType::particles)
-                totals.particles += primitive.vertices.size();
+                totals.particles += numVerts;
 
             if (primitive.vertexSkins)
-                totals.skinnedVertices += primitive.vertices.size();
+                totals.skinnedVertices += numVerts;
+
+            if (primitive.explosionDistances)
+                totals.explodedVertices += numVerts;
         }
 
         if (!hasSkeleton)
@@ -207,10 +216,11 @@ SceneProcessor::ProcessedVertices SceneProcessor::createProcessedVertices(const 
     std::uint32_t currentVertex{0};
     ProcessedVertices processed;
     processed.vertices.resize(totals.vertices);
+    processed.skinnedVertices.reserve(totals.skinnedVertices);
 
     for (const BucketEntry &entry : entries)
     {
-        // Particles hijack the vertex, don't overwrite
+        // Particles hijack the vertex, don't overwrite any properties
         const bool updateIndex{entry.shaderType != ShaderType::particles};
         const bool hasSkin{entry.primitive->vertexSkins};
 
@@ -409,14 +419,12 @@ VAOs SceneProcessor::createVAO(const BucketEntries &entries, const std::vector<P
     return builder.buildVAO(vertices, indices);
 }
 
-SSBOs SceneProcessor::createSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
-                                  const std::vector<glm::mat4> &matrices,
-                                  const std::vector<PrimitiveMetadata> &metadata,
-                                  const std::vector<Primitive::VertexSkin> &vertexSkins,
-                                  const std::vector<Primitive::Vertex> &originalSkinnedVerts,
-                                  const std::vector<VisibilityBufferMap> &visibilityMap,
-                                  const std::vector<std::uint32_t> &particleMap, const std::vector<AABB> &aabbs,
-                                  BufferBuilder::Sizes alignedSizes, bool shadows)
+SSBOs SceneProcessor::createSSBOs(
+    const std::vector<DrawElementsIndirectCommand> &commands, const std::vector<glm::mat4> &matrices,
+    const std::vector<PrimitiveMetadata> &metadata, const std::vector<Primitive::VertexSkin> &vertexSkins,
+    const std::vector<Primitive::Vertex> &originalSkinnedVerts, const std::vector<VisibilityBufferMap> &visibilityMap,
+    const std::vector<ExplodingVertexMap> &expVertMap, const std::vector<std::uint32_t> &particleMap,
+    const std::vector<AABB> &aabbs, BufferBuilder::Sizes alignedSizes, bool shadows)
 {
     BufferBuilder builder;
 
@@ -434,7 +442,7 @@ SSBOs SceneProcessor::createSSBOs(const std::vector<DrawElementsIndirectCommand>
     };
 
     return builder.buildSSBOs(commands, matrices, metadata, vertexSkins, originalSkinnedVerts, visibilityMap,
-                              particleMap, aabbs, sizes);
+                              expVertMap, particleMap, aabbs, sizes);
 }
 
 std::vector<glm::mat4> SceneProcessor::createMatrices(const BucketEntries &entries, const SceneTotals &totals)
@@ -630,4 +638,52 @@ std::vector<Primitive::VertexSkin> SceneProcessor::createVertexSkins(
     }
 
     return skinData;
+}
+
+std::vector<ExplodingVertexMap> SceneProcessor::createExplodingVerticesMap(const SceneProcessor::BucketEntries &entries,
+                                                                           const SceneTotals &totals)
+{
+    std::vector<ExplodingVertexMap> map;
+    map.reserve(totals.explodedVertices);
+    std::uint32_t vboIndex{0};
+    std::uint32_t matricesIndex{0};
+
+    for (const BucketEntry &entry : entries)
+    {
+        const std::uint32_t numMatrices{static_cast<std::uint32_t>(entry.transforms.size())};
+        const std::uint32_t numVerts{static_cast<std::uint32_t>(entry.primitive->vertices.size())};
+
+        // Doesn't work for instanced, because all instances share the vertices and the explosion effect cannot
+        // distinguish one instance from another
+        if (!entry.primitive->explosionDistances || numMatrices > 1)
+        {
+            vboIndex += numVerts;
+            matricesIndex += numMatrices;
+            continue;
+        }
+
+        const bool animated{entry.animation->has_value()};
+        const std::uint32_t packedDist{glm::packHalf2x16(glm::vec2{entry.primitive->explosionDistances->minDistance,
+                                                                   entry.primitive->explosionDistances->maxDistance})};
+
+        // All verts have been expanded from the indices list, so vertex count == indices count and each vertex gets a
+        // proper (non shared) entry. Indices are identity at this point (0, 1, 2, 3, ..., n)
+        for (std::uint32_t i{0}; i < numVerts; i += 3)
+        {
+            const glm::vec3 a{entry.primitive->vertices[i].position};
+            const glm::vec3 b{entry.primitive->vertices[i + 1].position};
+            const glm::vec3 c{entry.primitive->vertices[i + 2].position};
+            const glm::vec3 normal{glm::normalize(glm::cross(b - a, c - a))};
+            const std::uint32_t packedNorm{glm::packSnorm3x10_1x2(glm::vec4{normal, 0.0f})};
+
+            for (std::uint32_t j{0}; j < 3; ++j)
+                map.emplace_back(entry.primitive->vertices[i + j].position, vboIndex + i + j, matricesIndex, packedNorm,
+                                 packedDist, animated ? 1u : 0);
+        }
+
+        ++matricesIndex;
+        vboIndex += numVerts;
+    }
+
+    return map;
 }

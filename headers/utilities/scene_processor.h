@@ -28,6 +28,7 @@ class SceneProcessor
         std::size_t numInstances{0};
         std::size_t numVertices{0};
         std::size_t numSkinnedVertices{0};
+        std::size_t numExplodedVertices{0};
         std::size_t numPrimitives{0};
         std::size_t numParticles{0};
     };
@@ -68,6 +69,7 @@ class SceneProcessor
         std::size_t particles{0};
         std::size_t boneTransforms{0};
         std::size_t skinnedVertices{0};
+        std::size_t explodedVertices{0};
     };
 
     // Intermediate step in building the final Draw Commands
@@ -76,7 +78,7 @@ class SceneProcessor
         Handle handle;
         const Primitive *primitive;
         std::span<const Transform> transforms;
-        const std::optional<EntryAnimation>* animation;
+        const std::optional<EntryAnimation> *animation;
 
         ShaderType shaderType{ShaderType::pbr};
         AlphaMode alphaMode{AlphaMode::opaque};
@@ -118,6 +120,9 @@ class SceneProcessor
     [[nodiscard]] static std::vector<std::uint32_t> createParticleMap(const BucketEntries &entries,
                                                                       const SceneTotals &totals);
 
+    [[nodiscard]] static std::vector<ExplodingVertexMap> createExplodingVerticesMap(const BucketEntries &entries,
+                                                                                    const SceneTotals &totals);
+
     [[nodiscard]] static std::vector<PrimitiveMetadata> createMetadata(const TextureManager &manager,
                                                                        const BucketEntries &entries);
 
@@ -143,8 +148,9 @@ class SceneProcessor
         const std::vector<DrawElementsIndirectCommand> &commands, const std::vector<glm::mat4> &matrices,
         const std::vector<PrimitiveMetadata> &metadata, const std::vector<Primitive::VertexSkin> &vertexSkins,
         const std::vector<Primitive::Vertex> &originalSkinnedVerts,
-        const std::vector<VisibilityBufferMap> &visibilityMap, const std::vector<std::uint32_t> &particleMap,
-        const std::vector<AABB> &aabbs, BufferBuilder::Sizes alignedSizes, bool shadows);
+        const std::vector<VisibilityBufferMap> &visibilityMap, const std::vector<ExplodingVertexMap> &expVertMap,
+        const std::vector<std::uint32_t> &particleMap, const std::vector<AABB> &aabbs,
+        BufferBuilder::Sizes alignedSizes, bool shadows);
 
     // Metadata helpers
     static void setMetadataMaterials(const TextureManager &manager, const BucketEntries &entries,

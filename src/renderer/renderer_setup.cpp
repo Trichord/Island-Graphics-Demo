@@ -145,13 +145,13 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
     compactionWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numPrimitives);
     particleWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numParticles);
     skinnedVertexGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numSkinnedVertices);
+    explodingVertexGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numExplodedVertices);
 
-    std::uint32_t baseVBOIndex{static_cast<std::uint32_t>(processed.bufferDescriptors.particleBaseVBOIndex)};
+    const std::uint32_t baseVBOIndex{static_cast<std::uint32_t>(processed.bufferDescriptors.particleBaseVBOIndex)};
+    const glm::ivec2 hiZRes{graphicsSettings_.renderWidth / hiZResolutionReduction,
+                      graphicsSettings_.renderHeight / hiZResolutionReduction};
 
     particleShader_.setIntU("vboBaseIndex", baseVBOIndex);
-
-    glm::ivec2 hiZRes{graphicsSettings_.renderWidth / hiZResolutionReduction,
-                      graphicsSettings_.renderHeight / hiZResolutionReduction};
     cullShader_.setIVec2("hiZResolution", hiZRes);
     cullShader_.setInt("hiZMaxMip", static_cast<int>(hiZViews_.getMipViews().size() - 1));
     cullShader_.setFloat("nearPlane", nearPlane);

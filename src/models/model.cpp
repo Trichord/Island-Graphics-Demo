@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <iostream>
+#include <numeric>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -12,11 +13,30 @@
 #include "renderer/shader/graphics_shader.h"
 #include "utilities/asset_loader.h"
 
-Model::Model(const std::filesystem::path &path, ShaderType shader)
+Model::Model(const std::filesystem::path &path, ShaderType shader,
+             std::optional<Primitive::VertexExplosion> vertexExplosion)
     : asset_{loader::loadAsset(path)}, filePath_{path}, primitives_{loader::loadMeshes(asset_)}
 {
     for (Primitive &primitive : primitives_)
+    {
         primitive.shaderType = shader;
+
+        if (!vertexExplosion)
+            continue;
+
+        primitive.explosionDistances = vertexExplosion;
+
+        std::vector<Primitive::Vertex> expandedTris;
+        expandedTris.reserve(primitive.indices.size());
+
+        for (std::uint32_t i{0}; i < primitive.indices.size(); ++i)
+            expandedTris.emplace_back(primitive.vertices[primitive.indices[i]]);
+
+        primitive.vertices = std::move(expandedTris);
+        std::iota(primitive.indices.begin(), primitive.indices.end(), 0);
+
+        primitive.aabb.setHalfExtent(primitive.aabb.getHalfExtent() + vertexExplosion->maxDistance);
+    }
 }
 
 std::vector<Primitive> Model::takePrimitives()

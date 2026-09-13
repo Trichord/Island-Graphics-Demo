@@ -138,6 +138,10 @@ void Renderer::render(const Scene &scene, const Camera &camera, float time, floa
     updateParticles();
     updateSkinnedVertices();
 
+    // Must follow skinned. Any animated + exploding vertices will have a fresh write into the main VBO and can be used
+    // as a source vertex instead of the positions stored in the SSBO
+    updateExplodingVertices();
+
     if (graphicsSettings_.shadowResolution && (framesRendered_ % 2u || directionChanged))
         renderShadowMaps(scene, camera, directionChanged);
 
@@ -194,6 +198,7 @@ void Renderer::loadShaders()
     skinningShader_ = {"./shaders/vertex_skinning.comp"};
     msaaDepthResolveShader_ = {"./shaders/msaa_depth.comp", defines};
     hiZShader_ = {"./shaders/hi_z.comp"};
+    explodingVertexShader_ = {"./shaders/exploding_verts.comp"};
 }
 
 void Renderer::updateCameraUBO(const Camera &camera)
@@ -358,6 +363,19 @@ void Renderer::updateSkinnedVertices()
 
     glState_.bindProgram(skinningShader_);
     skinningShader_.dispatch((skinnedVertexGroupSize_ + (localSizeX - 1)) / localSizeX, 1, 1);
+
+    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+}
+
+void Renderer::updateExplodingVertices()
+{
+    constexpr std::uint32_t localSizeX{64u};
+
+    if (!explodingVertexGroupSize_)
+        return;
+
+    glState_.bindProgram(explodingVertexShader_);
+    explodingVertexShader_.dispatch((explodingVertexGroupSize_ + (localSizeX - 1)) / localSizeX, 1, 1);
 
     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 }

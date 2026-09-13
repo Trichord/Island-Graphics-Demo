@@ -8,44 +8,55 @@
 
 /* Shader Storage Buffer Objects
  * -----------------------------
- *
- * Visibility Map: Per (primitive × instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
- *      - sharedBaseIndex: index into AABBs/Metadata/Draw Commands/Model Matrix (the primitive)
- *      - drawBucket: which draw bucket this primitive belongs to
- *      - drawCommandsBaseIndex: start of that bucket in DrawCommands
- *      - visibleInstancesBaseIndex: start of the (primitive x instance) in the visibility buffer
- *
- * AABB: Per primitive. Local-space bounding boxes.
- *
- * Matrices: Per (primitive × instance) pair. World-space transforms.
- *
- * Metadata: Per primitive. Material textures, visibility buffer base index.
+ * 
+ * ******************************************
+ * Multi Draw Elements Indirect Count Buffers
+ * ******************************************
  *
  * Draw Counts: Per draw bucket. Number of surviving draw commands after compaction.
  *
- * Cull Results: Per primitive. Number of surviving instances after frustum test.
+ * AABB: Per primitive. Local-space bounding boxes.
  *
  * Draw Commands: Per primitive. Compacted each frame from DrawCommandsSource.
+ *
+ * Draw Commands Source: Per primitive. Immutable source of truth, set once at load.
+ *
+ * Cull Results: Per primitive. Number of surviving instances after frustum test.
+ *
+ * Metadata: Per primitive. Material textures, visibility buffer base index.
+ *
+ * Matrices: Per (primitive × instance) pair. World-space transforms.
  *
  * Visible Instances: Per (primitive × instance) pair. Indices into Matrices buffer for
  *                   instances that passed the frustum test. Each primitive owns a
  *                   contiguous section sized to its instance count.
  *
- * Draw Commands Source: Per primitive. Immutable source of truth, set once at load.
+ * Visibility Map: Per (primitive × instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
+ *      - sharedBaseIndex: index into AABBs/Metadata/Draw Commands/Model Matrix (the primitive)
+ *      - drawBucket: which draw bucket this primitive belongs to
+ *      - drawCommandsBaseIndex: start of that bucket in DrawCommands
+ *      - visibleInstancesBaseIndex: start of the (primitive x instance) range in the visibility buffer
  *
- * Particle Map: Per particle vertex. Allows any index in map buffer to look up its shared index (aabb, metadata, etc).
+ ********************
+ * Supporting Buffers
+ ********************
  *
  * Bone Transforms: Per skinned model. Each model gets a dedicated section, allowing for skeletal animation.
  *
  * Vertex Bone Data: Per skinned vertex. Each skinned vertex gets its Bone IDs remapped as a direct index into this
  * buffer. Holds weights and bone IDs, keeping the vertex struct at 32 bytes.
  *
- * Skinned Vertex Source: Per skinned vertex. A copy of the original skinned vertex. Iimmutable source of truth for
- * compute shader vertex skinning.
+ * Skinned Vertex Source: Per skinned vertex. A copy of the original skinned vertex. Immutable source of truth for
+ * compute shader vertex skinning, set once at load time.
  *
+ * Particle Map: Per particle vertex. Allows any index in map buffer to look up its shared index (aabb, metadata, etc).
  *
+ * Exploding Vertices Map: Per exploded vertex (non-instanced). Allows any model which subscribes to the exploding effect to look up
+ * its original VBO index, world space transform index, and metadata for driving the effect.
+ *
+ **********************
  * Implementation Notes
- * --------------------
+ **********************
  *
  * 1:1 indexed buffers: Draw Commands Source[i], AABB[i], Metadata[i]
  * Matrices[j], Visibility Map[j], Visible Instances[j] where j spans all (primitive × instance) pairs
@@ -60,18 +71,20 @@
 // Holds the OpenGL handles for all Shader Storage Buffer Objects
 struct SSBOs
 {
-    GLuint visibilityMap{0};
     GLuint aabb{0};
-    GLuint matrices{0};
     GLuint metadata{0};
+    GLuint matrices{0};
     GLuint drawCounts{0};
     GLuint cullResults{0};
     GLuint drawCommands{0};
+    GLuint visibilityMap{0};
     GLuint visibleInstances{0};
     GLuint drawCommandsSource{0};
+
     GLuint particleMap{0};
     GLuint boneTransforms{0};
     GLuint vertexBoneData{0};
+    GLuint explodingVertexMap{0};
     GLuint skinnedVertexSource{0};
 
     SSBOs() = default;
@@ -79,14 +92,15 @@ struct SSBOs
     SSBOs &operator=(const SSBOs &other) = delete;
 
     SSBOs(SSBOs &&other) noexcept
-        : visibilityMap{std::exchange(other.visibilityMap, 0)}, aabb{std::exchange(other.aabb, 0)},
-          matrices{std::exchange(other.matrices, 0)}, metadata{std::exchange(other.metadata, 0)},
-          drawCounts{std::exchange(other.drawCounts, 0)}, cullResults{std::exchange(other.cullResults, 0)},
-          drawCommands{std::exchange(other.drawCommands, 0)},
+        : aabb{std::exchange(other.aabb, 0)}, metadata{std::exchange(other.metadata, 0)},
+          matrices{std::exchange(other.matrices, 0)}, drawCounts{std::exchange(other.drawCounts, 0)},
+          cullResults{std::exchange(other.cullResults, 0)}, drawCommands{std::exchange(other.drawCommands, 0)},
+          visibilityMap{std::exchange(other.visibilityMap, 0)},
           visibleInstances{std::exchange(other.visibleInstances, 0)},
           drawCommandsSource{std::exchange(other.drawCommandsSource, 0)},
           particleMap{std::exchange(other.particleMap, 0)}, boneTransforms{std::exchange(other.boneTransforms, 0)},
           vertexBoneData{std::exchange(other.vertexBoneData, 0)},
+          explodingVertexMap{std::exchange(other.explodingVertexMap, 0)},
           skinnedVertexSource{std::exchange(other.skinnedVertexSource, 0)}
     {
     }
@@ -95,23 +109,27 @@ struct SSBOs
     {
         if (this != &other)
         {
-            GLuint buffers[]{visibilityMap,  aabb,           matrices,           metadata,           drawCounts,
-                             cullResults,    drawCommands,   visibleInstances,   drawCommandsSource, particleMap,
-                             boneTransforms, vertexBoneData, skinnedVertexSource};
+            GLuint buffers[]{
+                aabb,           metadata,       matrices,           drawCounts,          cullResults,
+                drawCommands,   visibilityMap,  visibleInstances,   drawCommandsSource,  particleMap,
+                boneTransforms, vertexBoneData, explodingVertexMap, skinnedVertexSource,
+            };
             glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
 
-            visibilityMap = std::exchange(other.visibilityMap, 0);
             aabb = std::exchange(other.aabb, 0);
-            matrices = std::exchange(other.matrices, 0);
             metadata = std::exchange(other.metadata, 0);
+            matrices = std::exchange(other.matrices, 0);
             drawCounts = std::exchange(other.drawCounts, 0);
             cullResults = std::exchange(other.cullResults, 0);
             drawCommands = std::exchange(other.drawCommands, 0);
+            visibilityMap = std::exchange(other.visibilityMap, 0);
             visibleInstances = std::exchange(other.visibleInstances, 0);
             drawCommandsSource = std::exchange(other.drawCommandsSource, 0);
+
             particleMap = std::exchange(other.particleMap, 0);
             boneTransforms = std::exchange(other.boneTransforms, 0);
             vertexBoneData = std::exchange(other.vertexBoneData, 0);
+            explodingVertexMap = std::exchange(other.explodingVertexMap, 0);
             skinnedVertexSource = std::exchange(other.skinnedVertexSource, 0);
         }
 
@@ -120,9 +138,12 @@ struct SSBOs
 
     ~SSBOs()
     {
-        GLuint buffers[]{visibilityMap,  aabb,           matrices,           metadata,           drawCounts,
-                         cullResults,    drawCommands,   visibleInstances,   drawCommandsSource, particleMap,
-                         boneTransforms, vertexBoneData, skinnedVertexSource};
+        GLuint buffers[]{
+            aabb,           metadata,       matrices,           drawCounts,          cullResults,
+            drawCommands,   visibilityMap,  visibleInstances,   drawCommandsSource,  particleMap,
+            boneTransforms, vertexBoneData, explodingVertexMap, skinnedVertexSource,
+        };
+
         glDeleteBuffers(static_cast<GLsizei>(std::size(buffers)), buffers);
     }
 };
@@ -236,32 +257,38 @@ struct UBOs
 // Uniform Buffer Object binding points (std::uint32_t)
 enum class BindingPointUBO : std::uint32_t
 {
-    camera,
-    frustumPlanes,
-    cascadeShadows,
     time,
     scene,
-    window
+    camera,
+    window,
+    frustumPlanes,
+    cascadeShadows,
 };
 
-// Shader Storage Buffer Object binding points (std::uint32_). Must be <= 16 total
+// Shader Storage Buffer Object binding points (std::uint32_). Total number of buffers bound at any time must be <= 16
 enum class BindingPointSSBO : std::uint32_t
 {
-    visibilityMap,
+    // Aliased VBOs
+    vbo,
+    positionVBO,
+
+    // MDIC Buffers
     aabb,
     matrices,
     metadata,
     drawCounts,
     cullResults,
     drawCommands,
+    visibilityMap,
     visibleInstances,
     drawCommandsSource,
-    vbo,
+
+    // Supporting buffers
     particleMap,
     boneTransforms,
     vertexBoneData,
+    explodingVertexMap,
     skinnedVertexSource,
-    positionVBO
 };
 
 namespace SSBOMinimum

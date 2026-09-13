@@ -98,6 +98,17 @@ struct VisibilityBufferMap
     std::uint32_t visibleInstancesBaseIndex{0};
 };
 
+// Maps an exploding vertex back to its original VBO position and stores non-derivable information for exploding model effects
+struct ExplodingVertexMap
+{
+    glm::vec3 position{0.0f};
+    std::uint32_t vboIndex{0};
+    std::uint32_t matricesIndex{0};
+    std::uint32_t centroidNormal{0};
+    std::uint32_t minMaxDist{0};
+    std::uint32_t animated{0};
+};
+
 // Packs all uniforms for sharing across shaders
 struct PackedCameraUniforms
 {

@@ -1,5 +1,6 @@
 #include "renderer/renderer.h"
 
+#include <cstdarg>
 #include <cstdint>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
