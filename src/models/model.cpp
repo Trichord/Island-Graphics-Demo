@@ -36,6 +36,7 @@ Model::Model(const std::filesystem::path &path, ShaderType shader,
         std::iota(primitive.indices.begin(), primitive.indices.end(), 0);
 
         primitive.aabb.setHalfExtent(primitive.aabb.getHalfExtent() + vertexExplosion->maxDistance);
+        primitive.alphaMode = AlphaMode::mask;
     }
 }
 

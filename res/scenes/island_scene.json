@@ -103,6 +103,19 @@
     },
     {
       "type": "model",
+      "transform": {
+        "translation": [-22.6776, -2.33102, 57.5834],
+        "rotation": [-0.00754245, -0.137276, -0.011164, 0.990441]
+      },
+      "modelPath": "./res/models/set_pieces/spaceship/spaceship.gltf",
+      "shader": "pbr",
+      "vertexExplosion": {
+        "minDistance": 11.0,
+        "maxDistance": 15.0
+      }
+    },
+    {
+      "type": "model",
       "name": "butterfly",
       "modelPath": "./res/models/animated/butterfly/butterfly.gltf",
       "shader": "baseColor",
@@ -196,7 +209,7 @@
       "transform": {
         "translation": [-21.0, 13.5, -45.0]
       },
-      "modelPath": "./res/models/set_pieces/space_model/space_model.gltf",
+      "modelPath": "./res/models/set_pieces/torus/torus.gltf",
       "cubemapPath": "./res/textures/skyboxes/nebula.ktx2",
       "shader": "reflectiveCubemap"
     },
