@@ -662,7 +662,6 @@ std::vector<ExplodingVertexMap> SceneProcessor::createExplodingVerticesMap(const
             continue;
         }
 
-        const bool animated{entry.animation->has_value()};
         const std::uint32_t packedDist{glm::packHalf2x16(glm::vec2{entry.primitive->explosionDistances->minDistance,
                                                                    entry.primitive->explosionDistances->maxDistance})};
 
@@ -672,13 +671,22 @@ std::vector<ExplodingVertexMap> SceneProcessor::createExplodingVerticesMap(const
         {
             const glm::vec3 a{entry.primitive->vertices[i].position};
             const glm::vec3 b{entry.primitive->vertices[i + 1].position};
-            const glm::vec3 c{entry.primitive->vertices[i + 2].position};
-            const glm::vec3 normal{glm::normalize(glm::cross(b - a, c - a))};
-            const std::uint32_t packedNorm{glm::packSnorm3x10_1x2(glm::vec4{normal, 0.0f})};
+            const glm::vec3 c{entry.primitive->vertices[i + 2].position};      
+            glm::vec3 centroidNormal{glm::cross(b - a, c - a)};
+
+            if (glm::length(centroidNormal) > 0.0001f)
+                centroidNormal = glm::normalize(centroidNormal);
+            else
+                centroidNormal = WorldVectors::worldUp;
+
+            const std::uint32_t packedNorm{glm::packSnorm3x10_1x2(glm::vec4{centroidNormal, 0.0f})};
 
             for (std::uint32_t j{0}; j < 3; ++j)
-                map.emplace_back(entry.primitive->vertices[i + j].position, vboIndex + i + j, matricesIndex, packedNorm,
-                                 packedDist, animated ? 1u : 0);
+            {
+                const Primitive::Vertex &vertex{entry.primitive->vertices[i + j]};
+                map.emplace_back(vertex.position, vboIndex + i + j, matricesIndex, packedNorm, vertex.normal,
+                                 packedDist);
+            }
         }
 
         ++matricesIndex;

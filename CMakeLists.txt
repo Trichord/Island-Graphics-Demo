@@ -165,14 +165,6 @@ target_link_options(${PROJECT_NAME} PRIVATE
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-    JPH_USE_AVX2
-    JPH_USE_AVX
-    JPH_USE_SSE4_1
-    JPH_USE_SSE4_2
-    JPH_USE_F16C
-    JPH_USE_FMADD
-    JPH_USE_LZCNT
-    JPH_USE_TZCNT
     NOMINMAX
 )
 

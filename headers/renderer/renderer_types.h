@@ -105,8 +105,8 @@ struct ExplodingVertexMap
     std::uint32_t vboIndex{0};
     std::uint32_t matricesIndex{0};
     std::uint32_t centroidNormal{0};
+    std::uint32_t originalNormal{0};
     std::uint32_t minMaxDist{0};
-    std::uint32_t animated{0};
 };
 
 // Packs all uniforms for sharing across shaders

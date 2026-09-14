@@ -19,6 +19,12 @@ Model::Model(const std::filesystem::path &path, ShaderType shader,
 {
     for (Primitive &primitive : primitives_)
     {
+        if (primitive.vertexSkins && vertexExplosion)
+        {
+            std::cerr << "ERROR: Cannot explode animated models\n";
+            throw std::runtime_error("Cannot explode animated models");
+        }
+
         primitive.shaderType = shader;
 
         if (!vertexExplosion)

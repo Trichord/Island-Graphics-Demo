@@ -5,7 +5,8 @@
 #include "shared/types.glsl"
 #include "shared/ubo.glsl"
 
-const float playerPadding = 0.5f;
+// Amount in world units. Higher number starts the effect from further away
+const float effectBias = 5.0;
 
 // Attributes
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
@@ -21,7 +22,7 @@ layout(binding = SSBO_BINDING_MATRICES, std430) restrict readonly buffer matrice
 };
 
 // Aliased 32 byte VBO
-layout(binding = SSBO_BINDING_VBO, std430) buffer VBO
+layout(binding = SSBO_BINDING_VBO, std430) restrict writeonly buffer VBO
 {
     vec4 vertices[];
 };
@@ -48,25 +49,18 @@ void main()
 	uint vboIndex = floatBitsToUint(data.w);
 	uint matricesIndex = floatBitsToUint(data2.x);
 	vec3 centroidNormal = unpackSnorm3x10_1x2(floatBitsToUint(data2.y)).xyz;
-	vec2 minMaxDist = unpackHalf2x16(floatBitsToUint(data2.z));
-	bool animated = floatBitsToUint(data2.w) != 0u;
-	vec4 vboData = vertices[vboIndex * 2];
-
-	animated = false;
-
-	// Safe since animated models write skinned data directly to the VBO, and this new position is unaffected by previous "explosion" writes
-	if (animated)
-		position = vboData.xyz;
+	uint originalNormal = floatBitsToUint(data2.z); // Packed uint vertex normal, written back into VBO untouched.
+	vec2 minMaxDist = unpackHalf2x16(floatBitsToUint(data2.w));
 
 	mat4 modelMatrix = matrices[matricesIndex];
 	vec3 worldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
 
-	float dist = distance(worldPosition, cameraPosition.xyz) + playerPadding;
-	float expansionFactor = smoothstep(minMaxDist.x, minMaxDist.y, dist);
+	float dist = distance(worldPosition, cameraPosition.xyz);
+	float expansionFactor = smoothstep(minMaxDist.x, minMaxDist.y + effectBias, dist);
 	vec3 newPos = position + centroidNormal.xyz * minMaxDist.y * expansionFactor;
-
+	
 	// Write back
-	vertices[vboIndex * 2] = vec4(newPos, vboData.w);
+	vertices[vboIndex * 2] = vec4(newPos, uintBitsToFloat(originalNormal));
 
 	// And shadows, while we're here
 	shadowVerts[vboIndex] = vec4(newPos, 1.0);
