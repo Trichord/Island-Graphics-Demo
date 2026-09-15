@@ -45,13 +45,13 @@ class Application
     float lastMouseX_{0.0f};
     float lastMouseY_{0.0f};
     float mouseSensitivity_{0.1f};
-    Input input_;
+    UserInput userInput_;
 
     // Settings Window
     std::filesystem::path savePath{"./settings.json"};
 
     void createWindow(const GraphicsSettings &graphicsSettings);
-    void processKeyboard(Input &input);
+    void processKeyboard(UserInput &input);
 
     /**
      * @brief Registers OpenGL function pointers, checks for supported features, and creates an OpenGL viewport

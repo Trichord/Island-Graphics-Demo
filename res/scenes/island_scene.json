@@ -109,6 +109,10 @@
       },
       "modelPath": "./res/models/set_pieces/spaceship/spaceship.gltf",
       "shader": "pbr",
+      "collisionGeometry": {
+        "type": "mesh",
+        "path": "./res/models/set_pieces/spaceship/collision/spaceship_collision.gltf"
+      },
       "vertexExplosion": {
         "minDistance": 11.0,
         "maxDistance": 15.0

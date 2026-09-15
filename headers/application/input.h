@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-struct Input
+struct UserInput
 {
     enum Direction : std::uint8_t
     {
@@ -23,12 +23,12 @@ struct Input
     float mouseDeltaY{0.0f};
 };
 
-constexpr Input::Direction operator|(Input::Direction lhs, Input::Direction rhs) noexcept
+constexpr UserInput::Direction operator|(UserInput::Direction lhs, UserInput::Direction rhs) noexcept
 {
-    return static_cast<Input::Direction>(static_cast<std::uint8_t>(lhs) | static_cast<std::uint8_t>(rhs));
+    return static_cast<UserInput::Direction>(static_cast<std::uint8_t>(lhs) | static_cast<std::uint8_t>(rhs));
 }
 
-constexpr Input::Direction &operator|=(Input::Direction &lhs, Input::Direction rhs) noexcept
+constexpr UserInput::Direction &operator|=(UserInput::Direction &lhs, UserInput::Direction rhs) noexcept
 {
     return lhs = lhs | rhs;
 }

@@ -32,5 +32,5 @@ class IslandScene : public Scene
 
     void updateSpaceModel(Scene::Entry &entry, float deltaTime);
     void updateButterfly(Scene::Entry &butterfly, float time, float deltaTime);
-    void updateSeagull(const glm::vec3 &playerPosition, Seagull &seagull, Scene::Entry &entry, float deltaTime);
+    void updateSeagull(const glm::vec3 &playerPos, Seagull &seagull, Scene::Entry &entry, float deltaTime);
 };

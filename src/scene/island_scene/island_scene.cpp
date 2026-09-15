@@ -37,7 +37,7 @@ constexpr float animationTimeScale{0.85f};
 namespace SeagullConstants
 {
 // How close the player can get before they fly away
-constexpr float panicDist{20.0f};
+constexpr float panicDist{25.0f};
 constexpr float blendTime{0.3f};
 constexpr float restTime{blendTime * 2.0f};
 constexpr float orbitTime{20.0f};
@@ -161,10 +161,10 @@ void IslandScene::updateButterfly(Scene::Entry &butterfly, float time, float del
     butterfly.entryAnimation->updateAnimation(butterfly.primitives, deltaTime * Butterfly::animationTimeScale);
 }
 
-void IslandScene::updateSeagull(const glm::vec3 &playerPosition, Seagull &seagull, Scene::Entry &entry, float deltaTime)
+void IslandScene::updateSeagull(const glm::vec3 &playerPos, Seagull &seagull, Scene::Entry &entry, float deltaTime)
 {
     const glm::vec3 &pos{seagull.getPosition()};
-    float closest{glm::length2(playerPosition - pos)};
+    float closest{glm::length2(playerPos - pos)};
     Handle closestHandle{0};
     std::size_t index{0};
 
@@ -180,11 +180,12 @@ void IslandScene::updateSeagull(const glm::vec3 &playerPosition, Seagull &seagul
             {
                 index = i;
                 closestHandle = handle;
+                closest = dist;
             }
         }
     }
 
-    seagull.update(closestHandle ? viewEntry(closestHandle).worldTransforms[index].getPosition() : playerPosition,
+    seagull.update(closestHandle ? viewEntry(closestHandle).worldTransforms[index].getPosition() : playerPos,
                    deltaTime);
     seagull.getPosition();
 

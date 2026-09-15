@@ -14,4 +14,5 @@ struct PlayerState
     bool landingTriggered{false};
     bool footstepTriggered{false};
     bool running{false};
+    bool crouched{false};
 };

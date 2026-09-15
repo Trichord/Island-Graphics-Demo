@@ -44,7 +44,7 @@ class PhysicsWorld
     void setPlayerPosition(const glm::vec3 &newPosition);
     void clearFlags();
 
-    void update(const Input &input, const glm::vec3 &front, float deltaTime);
+    void update(const UserInput &input, const glm::vec3 &front, float deltaTime);
     bool footstepEvent() const;
     bool jumpEvent() const;
     bool landingEvent() const;
