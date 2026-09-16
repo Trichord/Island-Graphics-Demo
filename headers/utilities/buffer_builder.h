@@ -34,6 +34,7 @@ class BufferBuilder
                                    const std::vector<Primitive::VertexSkin> &vertexSkins,
                                    const std::vector<Primitive::Vertex> &originalSkinnedVerts,
                                    const std::vector<VisibilityBufferMap> &visibilityMap,
+                                   const std::vector<ExplodingVertexMap> &explodingVertexMap,
                                    const std::vector<std::uint32_t> &particleMap, const std::vector<AABB> &aabbs,
                                    BufferBuilder::Sizes sizes) const;
 

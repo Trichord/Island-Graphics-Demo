@@ -1,0 +1,67 @@
+#version 460 core
+
+#include "shared/binding_points.glsl"
+#include "shared/packing.glsl"
+#include "shared/types.glsl"
+#include "shared/ubo.glsl"
+
+// Amount in world units. Higher number starts the effect from further away
+const float effectBias = 5.0;
+
+// Attributes
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = SSBO_BINDING_EXPLODING_VERTEX_MAP, std430) restrict readonly buffer explodedVertMap
+{
+	vec4 map[];
+};
+
+layout(binding = SSBO_BINDING_MATRICES, std430) restrict readonly buffer matricesSSBO
+{
+    mat4 matrices[];
+};
+
+// Aliased 32 byte VBO
+layout(binding = SSBO_BINDING_VBO, std430) restrict writeonly buffer VBO
+{
+    vec4 vertices[];
+};
+
+layout(binding = SSBO_BINDING_POSITION_VBO, std430) restrict writeonly buffer shadowVertices
+{
+	vec4 shadowVerts[];
+};
+
+void main()
+{
+	uint mapIndex = gl_GlobalInvocationID.x;
+
+	// 2 vec4's per map entry
+	if (mapIndex >= map.length() / 2)
+		return;
+
+	uint bufferIndex = mapIndex * 2;
+	vec4 data = map[bufferIndex];
+	vec4 data2 = map[bufferIndex + 1];
+
+	// Unpack
+	vec3 position = data.xyz;
+	uint vboIndex = floatBitsToUint(data.w);
+	uint matricesIndex = floatBitsToUint(data2.x);
+	vec3 centroidNormal = unpackSnorm3x10_1x2(floatBitsToUint(data2.y)).xyz;
+	uint originalNormal = floatBitsToUint(data2.z); // Packed uint vertex normal, written back into VBO untouched.
+	vec2 minMaxDist = unpackHalf2x16(floatBitsToUint(data2.w));
+
+	mat4 modelMatrix = matrices[matricesIndex];
+	vec3 worldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+
+	float dist = distance(worldPosition, cameraPosition.xyz);
+	float expansionFactor = smoothstep(minMaxDist.x, minMaxDist.y + effectBias, dist);
+	vec3 newPos = position + centroidNormal.xyz * minMaxDist.y * expansionFactor;
+	
+	// Write back
+	vertices[vboIndex * 2] = vec4(newPos, uintBitsToFloat(originalNormal));
+
+	// And shadows, while we're here
+	shadowVerts[vboIndex] = vec4(newPos, 1.0);
+}

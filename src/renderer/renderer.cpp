@@ -2,18 +2,18 @@
 
 #include <algorithm>
 #include <array>
-#include <cstddef>
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 #include "application/gl_context.h"
 #include "application/graphics_settings.h"
 #include "models/primitive.h"
+#include "renderer/buffers.h"
 #include "renderer/cascade_shadow.h"
+#include "renderer/render_order.h"
 #include "renderer/render_target.h"
 #include "renderer/renderer_types.h"
 #include "renderer/shader/compute_shader.h"
@@ -22,7 +22,6 @@
 #include "renderer/textures.h"
 #include "scene/camera.h"
 #include "scene/directional_light.h"
-#include "scene/handle.h"
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
 #include "utilities/texture_utilities.h"
@@ -139,6 +138,10 @@ void Renderer::render(const Scene &scene, const Camera &camera, float time, floa
     updateParticles();
     updateSkinnedVertices();
 
+    // Must follow skinned. Any animated + exploding vertices will have a fresh write into the main VBO and can be used
+    // as a source vertex instead of the positions stored in the SSBO
+    updateExplodingVertices();
+
     if (graphicsSettings_.shadowResolution && (framesRendered_ % 2u || directionChanged))
         renderShadowMaps(scene, camera, directionChanged);
 
@@ -162,7 +165,7 @@ void Renderer::render(const Scene &scene, const Camera &camera, float time, floa
 
 void Renderer::loadShaders()
 {
-    using enum ShaderType;
+    using enum RenderOrder;
 
     std::vector<std::string> defines{"MSAA_SAMPLES " + std::to_string(graphicsSettings_.msaa)};
 
@@ -195,6 +198,7 @@ void Renderer::loadShaders()
     skinningShader_ = {"./shaders/vertex_skinning.comp"};
     msaaDepthResolveShader_ = {"./shaders/msaa_depth.comp", defines};
     hiZShader_ = {"./shaders/hi_z.comp"};
+    explodingVertexShader_ = {"./shaders/exploding_verts.comp"};
 }
 
 void Renderer::updateCameraUBO(const Camera &camera)
@@ -203,7 +207,7 @@ void Renderer::updateCameraUBO(const Camera &camera)
         .viewMatrix = camera.getViewMatrix(),
         .projectionMatrix = camera.getProjectionMatrix(),
         .viewProjectionMatrix = camera.getViewProjectionMatrix(),
-        .inverseViewProjectMatrix = glm::inverse(uniforms.viewProjectionMatrix),
+        .inverseViewProjectMatrix = glm::inverse(camera.getViewProjectionMatrix()),
         .cameraPosition = glm::vec4{camera.getPosition(), 0.0f},
         .fov = camera.getFOV(),
     };
@@ -307,7 +311,7 @@ std::uint32_t Renderer::getFrameCount() const
     return framesRendered_;
 }
 
-// Culls a scene agains the cull matrix, building a new compacted list of draw commands and updating the parameter
+// Culls a scene against the cull matrix, building a new compacted list of draw commands and updating the parameter
 // buffer. Changes active shader program.
 void Renderer::cullScene(ComputeShader &cullShader, const glm::mat4 &cullMatrix, BufferRange range)
 {
@@ -359,6 +363,19 @@ void Renderer::updateSkinnedVertices()
 
     glState_.bindProgram(skinningShader_);
     skinningShader_.dispatch((skinnedVertexGroupSize_ + (localSizeX - 1)) / localSizeX, 1, 1);
+
+    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+}
+
+void Renderer::updateExplodingVertices()
+{
+    constexpr std::uint32_t localSizeX{64u};
+
+    if (!explodingVertexGroupSize_)
+        return;
+
+    glState_.bindProgram(explodingVertexShader_);
+    explodingVertexShader_.dispatch((explodingVertexGroupSize_ + (localSizeX - 1)) / localSizeX, 1, 1);
 
     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 }

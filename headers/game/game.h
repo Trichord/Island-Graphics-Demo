@@ -27,7 +27,7 @@ class Game
     ~Game() = default;
 
     void resizeExternalResolution(int width, int height);
-    void update(const Input &input, float time, float deltaTime);
+    void update(const UserInput &input, float time, float deltaTime);
 
   private:
     // Critical resources
@@ -42,6 +42,6 @@ class Game
     // Setup
     void registerJolt();
 
-    PlayerState updatePhysics(const Input &input, float deltaTime);
+    PlayerState updatePhysics(const UserInput &input, float deltaTime);
     void updateAudio(const PlayerState &state, float deltaTime);
 };

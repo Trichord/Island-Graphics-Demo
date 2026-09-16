@@ -52,10 +52,10 @@ constexpr CharacterCapsule::Settings capsuleSettings{
     .standingHeight = 1.35f,
     .crouchingHeight = 0.8f,
     .innerShapeFraction = 0.8f,
-    .speed = 3.5f,
+    .speed = 3.25f,
     .jumpSpeed = 3.0f,
-    .sprintSpeedMultiplier = 1.45f,
-    .crouchSpeedMultiplier = 0.4f,
+    .sprintSpeedMultiplier = 2.1f,
+    .crouchSpeedMultiplier = 0.3f,
 };
 
 bool initializePhysicsSystem(JPH::PhysicsSystem &physicsSystem, BPLayerInterfaceImpl &broadPhase,
@@ -159,7 +159,7 @@ void PhysicsWorld::initializeScene(const Scene &scene)
     }
 }
 
-void PhysicsWorld::update(const Input &input, const glm::vec3 &front, float deltaTime)
+void PhysicsWorld::update(const UserInput &input, const glm::vec3 &front, float deltaTime)
 {
     using namespace JPH;
 
@@ -245,7 +245,7 @@ void PhysicsWorld::tick(std::uint8_t direction, const glm::vec3 &front, bool jum
 
 void PhysicsWorld::movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
 {
-    using enum Input::Direction;
+    using enum UserInput::Direction;
     using namespace WorldVectors;
 
     float forwardMove{0.0f};

@@ -35,7 +35,7 @@ void Game::resizeExternalResolution(int width, int height)
     renderer_.updateExternalResolution(width, height);
 }
 
-void Game::update(const Input &input, float time, float deltaTime)
+void Game::update(const UserInput &input, float time, float deltaTime)
 {
     playerCamera_.addPitch(input.mouseDeltaY);
     playerCamera_.addYaw(input.mouseDeltaX);
@@ -52,9 +52,9 @@ void Game::update(const Input &input, float time, float deltaTime)
     physics_.clearFlags();
 }
 
-PlayerState Game::updatePhysics(const Input &input, float deltaTime)
+PlayerState Game::updatePhysics(const UserInput &userInput, float deltaTime)
 {
-    physics_.update(input, playerCamera_.getFront(), deltaTime);
+    physics_.update(userInput, playerCamera_.getFront(), deltaTime);
     physics_.postPhysicsSync(*scene_);
 
     // Synchronize camera
@@ -70,7 +70,8 @@ PlayerState Game::updatePhysics(const Input &input, float deltaTime)
         .jumpTriggered = physics_.jumpEvent(),
         .landingTriggered = physics_.landingEvent(),
         .footstepTriggered = physics_.footstepEvent(),
-        .running = input.sprintToggle,
+        .running = userInput.sprintToggle,
+        .crouched = userInput.crouchToggle,
     };
 }
 

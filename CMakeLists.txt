@@ -18,54 +18,6 @@ find_package(nlohmann_json CONFIG REQUIRED)
 
 # Source files
 
-set(SOURCES
-    src/main.cpp
-    src/application/application.cpp
-    src/application/glfw_callbacks.cpp
-    src/application/settings_window.cpp
-    src/audio/audio_player.cpp
-    src/audio/miniaudio_impl.cpp
-    src/audio/sound_effect.cpp
-    src/game/game.cpp
-    src/models/aabb.cpp
-    src/models/animator.cpp
-    src/models/instanced_model.cpp
-    src/models/model.cpp
-    src/models/particles.cpp
-    src/models/skybox.cpp
-    src/physics/character_capsule.cpp
-    src/physics/physics_utilities.cpp
-    src/physics/physics_world.cpp
-    src/renderer/cascade_shadow.cpp
-    src/renderer/gl_state.cpp
-    src/renderer/render_target.cpp
-    src/renderer/renderer.cpp
-    src/renderer/renderer_draw.cpp
-    src/renderer/renderer_setup.cpp
-    src/renderer/texture_view.cpp
-    src/renderer/shader/compute_shader.cpp
-    src/renderer/shader/graphics_shader.cpp
-    src/renderer/shader/shader_base.cpp
-    src/scene/camera.cpp
-    src/scene/entry_animation.cpp
-    src/scene/directional_light.cpp
-    src/scene/scene.cpp
-    src/scene/island_scene/island_scene.cpp
-    src/scene/island_scene/seagull.cpp
-    src/utilities/array_texture.cpp
-    src/utilities/asset_loader.cpp
-    src/utilities/buffer_builder.cpp
-    src/utilities/json_loader.cpp
-    src/utilities/ktx_texture.cpp
-    src/utilities/random.cpp
-    src/utilities/scene_processor.cpp
-    src/utilities/texture_loader.cpp
-    src/utilities/texture_manager.cpp
-    src/utilities/texture_utilities.cpp
-    src/utilities/thread_pool.cpp
-    src/utilities/transform.cpp
-)
-
 set(HEADERS
     headers/application/application.h
     headers/application/gl_context.h
@@ -131,6 +83,54 @@ set(HEADERS
     headers/utilities/world_vectors.h
 )
 
+set(SOURCES
+    src/main.cpp
+    src/application/application.cpp
+    src/application/glfw_callbacks.cpp
+    src/application/settings_window.cpp
+    src/audio/audio_player.cpp
+    src/audio/miniaudio_impl.cpp
+    src/audio/sound_effect.cpp
+    src/game/game.cpp
+    src/models/aabb.cpp
+    src/models/animator.cpp
+    src/models/instanced_model.cpp
+    src/models/model.cpp
+    src/models/particles.cpp
+    src/models/skybox.cpp
+    src/physics/character_capsule.cpp
+    src/physics/physics_utilities.cpp
+    src/physics/physics_world.cpp
+    src/renderer/cascade_shadow.cpp
+    src/renderer/gl_state.cpp
+    src/renderer/render_target.cpp
+    src/renderer/renderer.cpp
+    src/renderer/renderer_draw.cpp
+    src/renderer/renderer_setup.cpp
+    src/renderer/texture_view.cpp
+    src/renderer/shader/compute_shader.cpp
+    src/renderer/shader/graphics_shader.cpp
+    src/renderer/shader/shader_base.cpp
+    src/scene/camera.cpp
+    src/scene/entry_animation.cpp
+    src/scene/directional_light.cpp
+    src/scene/scene.cpp
+    src/scene/island_scene/island_scene.cpp
+    src/scene/island_scene/seagull.cpp
+    src/utilities/array_texture.cpp
+    src/utilities/asset_loader.cpp
+    src/utilities/buffer_builder.cpp
+    src/utilities/json_loader.cpp
+    src/utilities/ktx_texture.cpp
+    src/utilities/random.cpp
+    src/utilities/scene_processor.cpp
+    src/utilities/texture_loader.cpp
+    src/utilities/texture_manager.cpp
+    src/utilities/texture_utilities.cpp
+    src/utilities/thread_pool.cpp
+    src/utilities/transform.cpp
+)
+
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 # Include directories
@@ -165,14 +165,6 @@ target_link_options(${PROJECT_NAME} PRIVATE
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-    JPH_USE_AVX2
-    JPH_USE_AVX
-    JPH_USE_SSE4_1
-    JPH_USE_SSE4_2
-    JPH_USE_F16C
-    JPH_USE_FMADD
-    JPH_USE_LZCNT
-    JPH_USE_TZCNT
     NOMINMAX
 )
 

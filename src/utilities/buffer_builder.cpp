@@ -9,8 +9,8 @@
 #include "models/aabb.h"
 #include "models/primitive.h"
 #include "renderer/buffers.h"
-#include "renderer/renderer_types.h"
 #include "renderer/cascade_shadow.h"
+#include "renderer/renderer_types.h"
 
 namespace
 {
@@ -42,6 +42,7 @@ SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &
                                 const std::vector<Primitive::VertexSkin> &vertexSkins,
                                 const std::vector<Primitive::Vertex> &originalSkinnedVerts,
                                 const std::vector<VisibilityBufferMap> &visibilityMap,
+                                const std::vector<ExplodingVertexMap> &explodingVertMap,
                                 const std::vector<std::uint32_t> &particleMap, const std::vector<AABB> &aabbs,
                                 BufferBuilder::Sizes sizes) const
 {
@@ -59,8 +60,6 @@ SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &
     buildSSBO(&buffers.visibleInstances, sizes.visibleInstances, BindingPointSSBO::visibleInstances, false, nullptr);
     buildSSBO(&buffers.drawCommandsSource, commands.size() * sizeof(DrawElementsIndirectCommand),
               BindingPointSSBO::drawCommandsSource, false, commands.data());
-    buildSSBO(&buffers.particleMap, particleMap.size() * sizeof(std::uint32_t), BindingPointSSBO::particleMap, false,
-              particleMap.data());
 
     // Animation related SSBOs
     buildSSBO(&buffers.boneTransforms, sizes.boneTransforms, BindingPointSSBO::boneTransforms, true, nullptr);
@@ -68,6 +67,12 @@ SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &
               BindingPointSSBO::vertexBoneData, false, vertexSkins.data());
     buildSSBO(&buffers.skinnedVertexSource, originalSkinnedVerts.size() * sizeof(Primitive::Vertex),
               BindingPointSSBO::skinnedVertexSource, false, originalSkinnedVerts.data());
+
+    // Special effects
+    buildSSBO(&buffers.particleMap, particleMap.size() * sizeof(std::uint32_t), BindingPointSSBO::particleMap, false,
+              particleMap.data());
+    buildSSBO(&buffers.explodingVertexMap, explodingVertMap.size() * sizeof(ExplodingVertexMap),
+              BindingPointSSBO::explodingVertexMap, false, explodingVertMap.data());
 
     return buffers;
 }

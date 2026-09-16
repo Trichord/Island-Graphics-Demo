@@ -293,56 +293,20 @@ void Scene::addSkybox(Handle handle, Skybox &skybox)
     });
 }
 
-void Scene::addModel(Handle handle, Model &model, const Transform &transform,
-                     const std::optional<collision::Geometry> &collisionGeometry, const std::string &name)
+void Scene::addModel(Handle handle, Model &model, const std::optional<collision::Geometry> &collisionGeometry,
+                     const std::string &name, const std::optional<std::filesystem::path> &cubemapPath)
 {
     if (!name.empty())
         entriesByName_.emplace(name, entries_.size());
 
     loadGLTFTextures(handle, model);
 
-    entries_.emplace_back(Scene::Entry{
-        .handle = handle,
-        .primitives = model.takePrimitives(),
-        .worldTransforms = {transform},
-        .entryAnimation = createEntryAnimation(model),
-        .collisionGeometry = collisionGeometry,
-    });
-}
-
-void Scene::addCubemappedModel(Handle handle, Model &model, const std::filesystem::path &imagePath,
-                               const Transform &transform, const std::optional<collision::Geometry> &collisionGeometry,
-                               const std::string &name)
-{
-    if (!name.empty())
-        entriesByName_.emplace(name, entries_.size());
-
-    loadGLTFTextures(handle, model);
-    textureManager_.loadCubemapTextures(handle, imagePath);
+    if (cubemapPath && !cubemapPath->empty())
+        textureManager_.loadCubemapTextures(handle, *cubemapPath);
 
     entries_.emplace_back(Scene::Entry{
         .handle = handle,
         .primitives = model.takePrimitives(),
-        .worldTransforms = {transform},
-        .entryAnimation = createEntryAnimation(model),
-        .collisionGeometry = collisionGeometry,
-    });
-}
-
-void Scene::addInstancedModel(Handle handle, InstancedModel &model,
-                              const std::optional<collision::Geometry> &collisionGeometry, const std::string &name)
-{
-    if (!name.empty())
-        entriesByName_.emplace(name, entries_.size());
-
-    loadGLTFTextures(handle, model);
-
-    std::vector<Transform> transforms{model.loadInstancedTransforms()};
-
-    entries_.emplace_back(Scene::Entry{
-        .handle = handle,
-        .primitives = model.takePrimitives(),
-        .worldTransforms = std::move(transforms),
         .entryAnimation = createEntryAnimation(model),
         .collisionGeometry = collisionGeometry,
     });
@@ -411,19 +375,20 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
                            addSkybox(handle, skybox);
                        },
                        [&](const ModelEntry &entry) {
-                           Model model{entry.modelPath, entry.shader};
-                           addModel(handle, model, entry.transform, entry.collisionGeometry, entry.name);
-                       },
-                       [&](const InstancedModelEntry &entry) {
-                           InstancedModel model{
-                               entry.modelPath, entry.shader, entry.positionsPath,
-                               InstancedModel::Randomize{.minScale = entry.minScale, .maxScale = entry.maxScale}};
-                           addInstancedModel(handle, model, entry.collisionGeometry, entry.name);
-                       },
-                       [&](const CubeMappedModelEntry &entry) {
-                           Model model{entry.modelPath, entry.shader};
-                           addCubemappedModel(handle, model, entry.cubemapPath, entry.transform,
-                                              entry.collisionGeometry, entry.name);
+                           if (entry.instancedEntry)
+                           {
+                               InstancedModel instanced{entry.modelPath, entry.shader,
+                                                        entry.instancedEntry->positionsPath,
+                                                        entry.instancedEntry->minScale, entry.instancedEntry->maxScale};
+                               addModel(handle, instanced, entry.collisionGeometry, entry.name, entry.cubemapPath);
+                               entries_.back().worldTransforms = std::move(instanced.loadInstancedTransforms());
+                           }
+                           else
+                           {
+                               Model model{entry.modelPath, entry.shader, entry.vertexExplosion};
+                               addModel(handle, model, entry.collisionGeometry, entry.name, entry.cubemapPath);
+                               entries_.back().worldTransforms = {std::get<Transform>(entry.position)};
+                           }
                        },
                    },
                    fileEntry);

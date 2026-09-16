@@ -28,7 +28,7 @@ class SettingsWindow
     bool launchSettingsWindow(GraphicsSettings &settings);
 
   private:
-    GLFWwindow *window{nullptr};
+    GLFWwindow *settingsWindow_{nullptr};
     inline static const std::array<const char *, 6> resolutions_{"3840 x 2160", "2560 x 1440", "1920 x 1080",
                                                                 "1600 x 900",  "1366 x 768",  "1280 x 720"};
 

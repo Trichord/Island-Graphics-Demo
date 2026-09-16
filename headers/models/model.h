@@ -15,7 +15,8 @@
 class Model
 {
   public:
-    Model(const std::filesystem::path &path, ShaderType shader);
+    Model(const std::filesystem::path &path, ShaderType shader,
+          std::optional<Primitive::VertexExplosion> vertexExplosion = std::nullopt);
 
     const fastgltf::Asset &getAsset() const;
     const std::filesystem::path &getPath() const;

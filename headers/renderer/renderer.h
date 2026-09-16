@@ -12,10 +12,10 @@
 #include "renderer/buffers.h"
 #include "renderer/cascade_shadow.h"
 #include "renderer/gl_state.h"
+#include "renderer/render_order.h"
 #include "renderer/render_target.h"
 #include "renderer/renderer_types.h"
 #include "renderer/shader/compute_shader.h"
-#include "renderer/shader/graphics_shader.h"
 #include "renderer/texture_view.h"
 #include "scene/camera.h"
 #include "scene/handle.h"
@@ -81,9 +81,10 @@ class Renderer
     ComputeShader skinningShader_;
     ComputeShader hiZShader_;
     ComputeShader msaaDepthResolveShader_;
+    ComputeShader explodingVertexShader_;
 
     // Rendering shaders
-    std::array<GraphicsShader, static_cast<int>(ShaderType::count)> graphicsShaders_;
+    std::array<GraphicsShader, static_cast<int>(RenderOrder::count)> graphicsShaders_;
     GraphicsShader shadowShader_;
     GraphicsShader shadowAlphaShader_;
     GraphicsShader fboResolveShader_;
@@ -92,6 +93,7 @@ class Renderer
     std::uint32_t compactionWorkGroupSize_{0};
     std::uint32_t particleWorkGroupSize_{0};
     std::uint32_t skinnedVertexGroupSize_{0};
+    std::uint32_t explodingVertexGroupSize_{0};
 
     // SSBO sizes for rebinding buffer ranges.
     std::uint32_t drawCommandsSize_{0};
@@ -131,6 +133,7 @@ class Renderer
     void updateHiZ();
     void updateParticles();
     void updateSkinnedVertices();
+    void updateExplodingVertices();
 
     void updateWindowUBO();
     void updateSceneUBO(const Scene &scene);

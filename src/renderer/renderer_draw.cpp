@@ -1,5 +1,6 @@
 #include "renderer/renderer.h"
 
+#include <cstdarg>
 #include <cstdint>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -8,7 +9,7 @@
 #include "models/primitive.h"
 #include "renderer/buffers.h"
 #include "renderer/cascade_shadow.h"
-#include "renderer/renderer_types.h"
+#include "renderer/render_order.h"
 #include "renderer/shader/graphics_shader.h"
 #include "scene/scene.h"
 
@@ -33,34 +34,19 @@ void Renderer::renderScene()
 
     for (std::size_t i{0}; i < drawBuckets_.size(); ++i)
     {
-        using enum ShaderType;
-        using enum AlphaMode;
-
         MultiDrawBucket &mdb{drawBuckets_[i]};
 
-        if (mdb.shaderType == skybox)
-            glState_.setDepthFunction(GL_LEQUAL);
-        else
-            glState_.setDepthFunction(GL_LESS);
-
-        // Disable depth writing for blended objects, otherwise Hi-Z culling gets falsely triggered for objects
-        // behind the blend
-        if (mdb.alphaMode == blend)
-            glState_.setDepthWrite(false);
-        else
-            glState_.setDepthWrite(true);
-
-        glState_.setAlphaMode(mdb.alphaMode);
-        glState_.bindProgram(graphicsShaders_[shaderIndex(mdb.shaderType)]);
-
-        GLenum mode{static_cast<GLenum>(mdb.shaderType == particles ? GL_POINTS : GL_TRIANGLES)};
+        glState_.setDepthFunction(mdb.state.depthFunction);
+        glState_.setDepthWrite(mdb.state.writeDepth);
+        glState_.setAlphaMode(mdb.state.alphaMode);
+        glState_.bindProgram(graphicsShaders_[shaderIndex(mdb.state.renderOrder)]);
 
         const std::size_t drawCommandOffset{mdb.drawCommandsBaseIndex * sizeof(DrawElementsIndirectCommand)};
         const std::size_t drawCommandIndex{drawBufferSection + drawCommandOffset};
 
         const std::size_t parameterBufferOffset{i * sizeof(std::uint32_t)};
         const std::size_t parameterBufferIndex{parameterBufferSection + parameterBufferOffset};
-        glMultiDrawElementsIndirectCount(mode, GL_UNSIGNED_INT, glVoidCast(drawCommandIndex),
+        glMultiDrawElementsIndirectCount(mdb.state.primitiveMode, GL_UNSIGNED_INT, glVoidCast(drawCommandIndex),
                                          static_cast<GLintptr>(parameterBufferIndex), mdb.maxDrawCalls, 0);
     }
 }
@@ -125,23 +111,21 @@ void Renderer::shadowPass(GraphicsShader &shader, BufferRange range, int cascade
 
     for (std::size_t i{0}; i < drawBuckets_.size(); ++i)
     {
-        using enum ShaderType;
+        using enum RenderOrder;
         using enum AlphaMode;
 
         MultiDrawBucket &mdb{drawBuckets_[i]};
 
-        if (mdb.shaderType == ocean || mdb.shaderType == skybox)
+        if (!mdb.state.castsShadows)
             continue;
 
-        if (mdb.shaderType == particles && cascade == CascadeShadow::cascadeCount - 1)
+        if (mdb.state.renderOrder == particles && cascade == CascadeShadow::cascadeCount - 1)
             continue;
 
-        const bool a2c{mdb.alphaMode == mask};
+        const bool a2c{mdb.state.alphaMode == mask};
 
         if (a2c != alphaTested)
             continue;
-
-        GLenum mode{static_cast<GLenum>(mdb.shaderType == particles ? GL_POINTS : GL_TRIANGLES)};
 
         const std::size_t drawCommandOffset{mdb.drawCommandsBaseIndex * sizeof(DrawElementsIndirectCommand)};
         const std::size_t drawCommandIndex{drawBufferSection + drawCommandOffset};
@@ -149,7 +133,7 @@ void Renderer::shadowPass(GraphicsShader &shader, BufferRange range, int cascade
         const std::size_t parameterBufferOffset{i * sizeof(std::uint32_t)};
         const std::size_t parameterBufferIndex{parameterBufferSection + parameterBufferOffset};
 
-        glMultiDrawElementsIndirectCount(mode, GL_UNSIGNED_INT, glVoidCast(drawCommandIndex),
+        glMultiDrawElementsIndirectCount(mdb.state.primitiveMode, GL_UNSIGNED_INT, glVoidCast(drawCommandIndex),
                                          static_cast<GLintptr>(parameterBufferIndex), mdb.maxDrawCalls, 0);
     }
 }

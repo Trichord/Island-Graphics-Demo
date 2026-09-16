@@ -312,6 +312,14 @@ This work is based on ["Beach Ball | Hello Neighbor"](https://sketchfab.com/3d-m
 
 </details>
 
+<h2>Space Ship</h2>
+
+<details>
+<summary>By 3DHaupt</summary>
+
+This work is based on ["Intergalactic Spaceship Only Model"](https://sketchfab.com/3d-models/intergalactic-spaceship-only-model-d36e54a3118744c8ba1a4a47b408b659) by [3DHaupt](https://sketchfab.com/dennish2010) licensed under [CC-BY-NC-4.0](http://creativecommons.org/licenses/by-nc/4.0/)
+</details>
+
 <h1>Audio</h1>
 
 <h2>Hilltop Music</h2>

@@ -66,10 +66,10 @@ void Application::run()
         const float time{static_cast<float>(currentFrame_)};
 
         // Fresh input context
-        input_ = {};
+        userInput_ = {};
 
         glfwPollEvents();
-        processKeyboard(input_);
+        processKeyboard(userInput_);
 
         if (windowResized_)
         {
@@ -77,14 +77,14 @@ void Application::run()
             windowResized_ = false;
         }
 
-        game.update(input_, time, deltaTime_);
+        game.update(userInput_, time, deltaTime_);
         glfwSwapBuffers(window_);
     }
 }
 
-void Application::processKeyboard(Input &input)
+void Application::processKeyboard(UserInput &input)
 {
-    using enum Input::Direction;
+    using enum UserInput::Direction;
 
     if (glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window_, GLFW_TRUE);
@@ -104,8 +104,8 @@ void Application::processKeyboard(Input &input)
     if (glfwGetKey(window_, GLFW_KEY_SPACE) == GLFW_PRESS)
         input.jump = true;
 
-    input_.crouchToggle = leftCtrlToggle_;
-    input_.sprintToggle = leftShiftToggle_;
+    userInput_.crouchToggle = leftCtrlToggle_;
+    userInput_.sprintToggle = leftShiftToggle_;
 }
 
 void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
@@ -125,8 +125,8 @@ void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
     float xOffset{static_cast<float>(xPos - app->lastMouseX_)};
     float yOffset{static_cast<float>(app->lastMouseY_ - yPos)};
 
-    app->input_.mouseDeltaX = xOffset * app->mouseSensitivity_;
-    app->input_.mouseDeltaY = yOffset * app->mouseSensitivity_;
+    app->userInput_.mouseDeltaX = xOffset * app->mouseSensitivity_;
+    app->userInput_.mouseDeltaY = yOffset * app->mouseSensitivity_;
 
     app->lastMouseX_ = static_cast<float>(xPos);
     app->lastMouseY_ = static_cast<float>(yPos);

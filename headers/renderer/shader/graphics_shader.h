@@ -6,9 +6,7 @@
 
 #include "renderer/shader/shader_base.h"
 
-/* When a scene is passed to the renderer, these enums will be rendered in order.
- */
-enum class ShaderType
+enum class ShaderType : std::uint8_t
 {
     baseColor,
     pbr,
@@ -17,17 +15,9 @@ enum class ShaderType
     particles,
     ocean,
     skybox,
-    water, // Blended, after all opaque
-    count,
-
-    trees, // No-op shader, gets split at runtime into pbr and vegetation
+    water,
+    trees,
 };
-
-constexpr int shaderIndex(ShaderType type)
-{
-    assert(type != ShaderType::trees);
-    return static_cast<int>(type);
-}
 
 class GraphicsShader : public Shader
 {
@@ -37,6 +27,4 @@ class GraphicsShader : public Shader
                    const std::vector<std::string> &defines = {});
     GraphicsShader(GraphicsShader &&other) = default;
     GraphicsShader &operator=(GraphicsShader &&other) = default;
-
-    ShaderType getType() const;
 };

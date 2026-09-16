@@ -32,10 +32,10 @@
 
 namespace
 {
-std::pair<std::size_t, bool> findBucket(const std::vector<MultiDrawBucket> &buckets, ShaderType type)
+std::pair<std::size_t, bool> findBucket(const std::vector<MultiDrawBucket> &buckets, RenderOrder renderOrder)
 {
     for (std::size_t i{0}; i < buckets.size(); ++i)
-        if (buckets[i].shaderType == type)
+        if (buckets[i].state.renderOrder == renderOrder)
             return std::pair<std::size_t, bool>{i, true};
 
     return std::pair<std::size_t, bool>{0, false};
@@ -145,13 +145,13 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
     compactionWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numPrimitives);
     particleWorkGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numParticles);
     skinnedVertexGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numSkinnedVertices);
+    explodingVertexGroupSize_ = static_cast<std::uint32_t>(processed.sceneDescriptors.numExplodedVertices);
 
-    std::uint32_t baseVBOIndex{static_cast<std::uint32_t>(processed.bufferDescriptors.particleBaseVBOIndex)};
+    const std::uint32_t baseVBOIndex{static_cast<std::uint32_t>(processed.bufferDescriptors.particleBaseVBOIndex)};
+    const glm::ivec2 hiZRes{graphicsSettings_.renderWidth / hiZResolutionReduction,
+                      graphicsSettings_.renderHeight / hiZResolutionReduction};
 
     particleShader_.setIntU("vboBaseIndex", baseVBOIndex);
-
-    glm::ivec2 hiZRes{graphicsSettings_.renderWidth / hiZResolutionReduction,
-                      graphicsSettings_.renderHeight / hiZResolutionReduction};
     cullShader_.setIVec2("hiZResolution", hiZRes);
     cullShader_.setInt("hiZMaxMip", static_cast<int>(hiZViews_.getMipViews().size() - 1));
     cullShader_.setFloat("nearPlane", nearPlane);
@@ -162,7 +162,7 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
 void Renderer::borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
                             const std::vector<std::set<Handle>> &bucketHandles)
 {
-    using enum ShaderType;
+    using enum RenderOrder;
 
     auto [oceanIndex, oceanFound] = findBucket(drawBuckets, ocean);
     auto [skyboxIndex, skyboxFound] = findBucket(drawBuckets, skybox);
@@ -183,7 +183,7 @@ void Renderer::borrowSkybox(const std::vector<MultiDrawBucket> &drawBuckets,
 void Renderer::createCubemaps(const Scene &scene, const std::vector<MultiDrawBucket> &drawBuckets,
                               const std::vector<std::set<Handle>> &bucketHandles)
 {
-    using enum ShaderType;
+    using enum RenderOrder;
 
     // Find which parameter buffer index to 0, so that water never tries to self-draw
     auto [waterIndex, found] = findBucket(drawBuckets, water);

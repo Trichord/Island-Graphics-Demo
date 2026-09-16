@@ -104,15 +104,8 @@ class Scene
     void loadGLTFTextures(Handle handle, const Model &model);
     void addSkybox(Handle handle, Skybox &skybox);
     void addParticles(Handle handle, Particles &particles);
-    void addModel(Handle handle, Model &model, const Transform &transform,
-                  const std::optional<collision::Geometry> & = {}, const std::string &name = {});
-    void addInstancedModel(Handle handle, InstancedModel &model,
-                           const std::optional<collision::Geometry> &collisionGeometry = {},
-                           const std::string &name = {});
-    void addCubemappedModel(Handle handle, Model &model, const std::filesystem::path &imagePath,
-                            const Transform &transform,
-                            const std::optional<collision::Geometry> &collisionGeometry = {},
-                            const std::string &name = {});
+    void addModel(Handle handle, Model &model, const std::optional<collision::Geometry> &collisionGeometry = {},
+                  const std::string &name = {}, const std::optional<std::filesystem::path> &cubemapPath = {});
 
     std::size_t findIndex(Handle handle) const;
     std::size_t findIndex(std::string_view name) const;

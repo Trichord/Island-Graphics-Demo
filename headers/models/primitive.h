@@ -35,9 +35,16 @@ struct Primitive
         glm::uvec4 boneIDs{0u};
     };
 
+    struct VertexExplosion
+    {
+        float minDistance{0.0f};
+        float maxDistance{0.0f};
+    };
+
     std::vector<Vertex> vertices;
     std::vector<std::uint32_t> indices;
-    std::optional<std::vector<VertexSkin>> vertexSkins;
+    std::optional<std::vector<VertexSkin>> vertexSkins{std::nullopt};
+    std::optional<VertexExplosion> explosionDistances{std::nullopt};
 
     AABB aabb;
     glm::mat4 modelSpaceTransform{1.0f};

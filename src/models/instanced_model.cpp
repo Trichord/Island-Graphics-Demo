@@ -15,8 +15,8 @@
 #include "utilities/world_vectors.h"
 
 InstancedModel::InstancedModel(const std::filesystem::path &modelPath, ShaderType shader,
-                               const std::filesystem::path &positionsPath, Randomize randomize)
-    : Model{modelPath, shader}, positionsPath_{positionsPath}, randomize_{randomize}
+                               const std::filesystem::path &positionsPath, float minScale, float maxScale)
+    : Model{modelPath, shader}, positionsPath_{positionsPath}, minScale_{minScale}, maxScale_{maxScale}
 {
 }
 
@@ -69,7 +69,7 @@ std::vector<Transform> InstancedModel::randomizeRotationScale(std::vector<glm::v
     {
         // Rotate the model somewhere in the 360 degree range
         float instanceRotation{random::floatMT(0.0f, 360.0f)};
-        float instanceScale{random::floatMT(randomize_.minScale, randomize_.maxScale)};
+        float instanceScale{random::floatMT(minScale_, maxScale_)};
 
         Transform transform{positions[i]};
 
