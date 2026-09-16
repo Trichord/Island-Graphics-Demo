@@ -44,14 +44,14 @@ bool SettingsWindow::launchSettingsWindow(GraphicsSettings &settings)
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
-    glfwDestroyWindow(window);
-    glfwTerminate();
-
     if (textureID_)
     {
         glDeleteTextures(1, &textureID_);
         textureID_ = 0;
     }
+
+    glfwDestroyWindow(settingsWindow_);
+    glfwTerminate();
 
     return settingsConfirmed;
 }
@@ -73,13 +73,13 @@ bool SettingsWindow::createWindow()
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 
-    window = glfwCreateWindow(GUIWidth, GUIHeight, "Island Graphics Demo", nullptr, nullptr);
+    settingsWindow_ = glfwCreateWindow(GUIWidth, GUIHeight, "Island Graphics Demo", nullptr, nullptr);
 
-    if (!window)
+    if (!settingsWindow_)
         return false;
 
     // Make current context
-    glfwMakeContextCurrent(window);
+    glfwMakeContextCurrent(settingsWindow_);
     glfwSwapInterval(1);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -89,16 +89,16 @@ bool SettingsWindow::createWindow()
     }
 
     // Refocus
-    glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
+    glfwFocusWindow(settingsWindow_);
 
     // Center
     int xpos, ypos, width, height;
     glfwGetMonitorWorkarea(primary, &xpos, &ypos, &width, &height);
 
     int winW, winH;
-    glfwGetWindowSize(window, &winW, &winH);
+    glfwGetWindowSize(settingsWindow_, &winW, &winH);
 
-    glfwSetWindowPos(window, xpos + width / 2 - winW / 2, ypos + height / 2 - winH / 2);
+    glfwSetWindowPos(settingsWindow_, xpos + width / 2 - winW / 2, ypos + height / 2 - winH / 2);
 
     return true;
 }
@@ -118,7 +118,7 @@ void SettingsWindow::setupImGui()
     io.IniFilename = nullptr;
 
     // Configure backend rendering
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplGlfw_InitForOpenGL(settingsWindow_, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     // Get window scale for font size
@@ -147,7 +147,7 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
     matchSettingsToGUI(workingCopy);
 
     // Loop until settings are confirmed
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(settingsWindow_))
     {
         using namespace ImGui;
 
@@ -159,7 +159,7 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
 
         float xScale{1.0};
         float yScale{1.0};
-        glfwGetWindowContentScale(window, &xScale, &yScale);
+        glfwGetWindowContentScale(settingsWindow_, &xScale, &yScale);
         ImGui::SetNextWindowSize(ImVec2{GUIWidth * xScale, GUIHeight * yScale}, ImGuiCond_Always);
 
         ImVec2 imguiCenter{imGuiViewPort->GetCenter()};
@@ -351,7 +351,7 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
 
         SetCursorScreenPos(ImVec2{cancelX, cancelY});
         if (Button("Cancel"))
-            glfwSetWindowShouldClose(window, true);
+            glfwSetWindowShouldClose(settingsWindow_, true);
 
         // Confirm button
         float confirmButtonWidth{CalcTextSize("Confirm").x};
@@ -362,7 +362,7 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
         if (Button("Confirm"))
         {
             settingsConfirmed = true;
-            glfwSetWindowShouldClose(window, true);
+            glfwSetWindowShouldClose(settingsWindow_, true);
         }
 
         // End
@@ -372,12 +372,12 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
         Render();
         int displayWidth{0};
         int displayHeight{0};
-        glfwGetFramebufferSize(window, &displayWidth, &displayHeight);
+        glfwGetFramebufferSize(settingsWindow_, &displayWidth, &displayHeight);
         glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(settingsWindow_);
         glfwPollEvents();
     }
 

@@ -207,7 +207,7 @@ void Renderer::updateCameraUBO(const Camera &camera)
         .viewMatrix = camera.getViewMatrix(),
         .projectionMatrix = camera.getProjectionMatrix(),
         .viewProjectionMatrix = camera.getViewProjectionMatrix(),
-        .inverseViewProjectMatrix = glm::inverse(uniforms.viewProjectionMatrix),
+        .inverseViewProjectMatrix = glm::inverse(camera.getViewProjectionMatrix()),
         .cameraPosition = glm::vec4{camera.getPosition(), 0.0f},
         .fov = camera.getFOV(),
     };
@@ -311,7 +311,7 @@ std::uint32_t Renderer::getFrameCount() const
     return framesRendered_;
 }
 
-// Culls a scene agains the cull matrix, building a new compacted list of draw commands and updating the parameter
+// Culls a scene against the cull matrix, building a new compacted list of draw commands and updating the parameter
 // buffer. Changes active shader program.
 void Renderer::cullScene(ComputeShader &cullShader, const glm::mat4 &cullMatrix, BufferRange range)
 {
