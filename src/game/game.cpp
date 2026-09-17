@@ -25,7 +25,7 @@ Game::Game(const GraphicsSettings &settings, int renderWidth, int renderHeight)
 
     std::cout << "Creating Collision Mesh... ";
     physics_.initializeScene(*scene_);
-    std::cout << "Done" << std::endl;
+    std::cout << "Done\n";
 
     threadPool_.stopAllThreads();
 }

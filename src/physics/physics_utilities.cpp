@@ -119,7 +119,7 @@ JPH::ShapeSettings::ShapeResult buildCompoundHull(const std::vector<Primitive> &
         ShapeSettings::ShapeResult result{settings.Create()};
 
         if (result.HasError())
-            std::cerr << "Error building compound hull section: " << result.GetError() << std::endl;
+            std::cerr << "Error building compound hull section: " << result.GetError() << "\n";
         else
             hulls.emplace_back(result.Get());
     }
@@ -222,7 +222,7 @@ physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::B
 
                     if (result.HasError())
                     {
-                        std::cerr << "Error creating convex hull: " << result.GetError() << std::endl;
+                        std::cerr << "Error creating convex hull: " << result.GetError() << "\n";
                         return;
                     }
 

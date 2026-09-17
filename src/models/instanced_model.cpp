@@ -38,7 +38,7 @@ std::vector<glm::vec3> InstancedModel::loadPositions() const
 
     if (!positionsFile.is_open())
     {
-        std::cerr << "Unable to open " << positionsPath_ << std::endl;
+        std::cerr << "Unable to open " << positionsPath_ << "\n";
         return {};
     }
 

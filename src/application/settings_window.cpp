@@ -25,7 +25,7 @@ SettingsWindow::~SettingsWindow()
 
 static void glfw_error_callback(int error, const char *description)
 {
-    std::cerr << "GLFW Error " << error << description << std::endl;
+    std::cerr << "GLFW Error " << error << description << "\n";
 }
 
 bool SettingsWindow::launchSettingsWindow(GraphicsSettings &settings)
@@ -84,7 +84,7 @@ bool SettingsWindow::createWindow()
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        std::cout << "Failed to initialize GLAD\n";
         return false;
     }
 

@@ -20,7 +20,7 @@ namespace
 void capacityError(int width, int height, GLenum format, std::size_t attempted, std::size_t max)
 {
     std::cerr << "ERROR: ArrayTexture " << width << "x" << height << ", format " << format << " cannot allocate "
-              << attempted << ", max " << max << " layers" << std::endl;
+              << attempted << ", max " << max << " layers\n";
     throw std::runtime_error("ArrayTexture over allocated");
 }
 } // namespace
@@ -106,7 +106,7 @@ void ArrayTexture::addCapacity(std::size_t capacity)
 {
     if (allocated_)
     {
-        std::cerr << "ERROR: ArrayTexture::addCapacity called after ArrayTexture::allocate()" << std::endl;
+        std::cerr << "ERROR: ArrayTexture::addCapacity called after ArrayTexture::allocate()\n";
         throw std::logic_error("ArrayTexture::addCapacity called after ArrayTexture::allocate()");
     }
 
@@ -125,7 +125,7 @@ void ArrayTexture::generateMipmaps()
 {
     if (!allocated_)
     {
-        std::cerr << "ERROR: ArrayTexture::generateMipmaps called before ArrayTexture::allocate" << std::endl;
+        std::cerr << "ERROR: ArrayTexture::generateMipmaps called before ArrayTexture::allocate\n";
         throw std::logic_error("ArrayTexture::generateMipmaps called before ArrayTexture::allocate");
     }
 
@@ -137,7 +137,7 @@ void ArrayTexture::allocate(bool cubemaps, bool textureRepeat, bool mipmaps, flo
 {
     if (allocated_)
     {
-        std::cerr << "ERROR: ArrayTexture::allocate() already called" << std::endl;
+        std::cerr << "ERROR: ArrayTexture::allocate() already called\n";
         throw std::logic_error("ArrayTexture::allocate() already called");
     }
 
@@ -189,7 +189,7 @@ std::size_t ArrayTexture::insert(RenderTarget &renderTarget)
 {
     if (!allocated_)
     {
-        std::cerr << "ERROR: ArrayTexture::insert called before ArrayTexture::allocate" << std::endl;
+        std::cerr << "ERROR: ArrayTexture::insert called before ArrayTexture::allocate\n";
         throw std::logic_error("ArrayTexture::insert called before ArrayTexture::allocate");
     }
 
@@ -201,7 +201,7 @@ std::size_t ArrayTexture::insert(RenderTarget &renderTarget)
     if (sourceWidth > width_ || sourceHeight > height_)
     {
         std::cerr << "ERROR: Texture source " << sourceWidth << "x" << sourceHeight << " larger than ArrayTexture "
-                  << width_ << "x" << height_ << ", format " << internalFormat_ << std::endl;
+                  << width_ << "x" << height_ << ", format " << internalFormat_ << "\n";
 
         throw std::runtime_error("Source texture too big for ArrayTexture");
     }
@@ -222,14 +222,14 @@ std::size_t ArrayTexture::insert(const KTXTexture &texture)
 {
     if (!allocated_)
     {
-        std::cerr << "ERROR: ArrayTexture::insert called before ArrayTexture::allocate" << std::endl;
+        std::cerr << "ERROR: ArrayTexture::insert called before ArrayTexture::allocate\n";
         throw std::logic_error("ArrayTexture::insert called before ArrayTexture::allocate");
     }
 
     if (!id_)
     {
         std::cerr << "ERROR: Uninitialized array texture " << width_ << "x" << height_ << ", format " << internalFormat_
-                  << std::endl;
+                  << "\n";
 
         throw std::runtime_error("Uninitialized array texture");
     }
@@ -264,7 +264,7 @@ void ArrayTexture::validate(const KTXTexture &texture)
     if (!texture)
     {
         std::cerr << "ERROR: Empty texture for ArrayTexture " << width_ << "x" << height_ << ", format "
-                  << internalFormat_ << std::endl;
+                  << internalFormat_ << "\n";
         throw std::runtime_error("Texture validation error");
     }
 
@@ -300,13 +300,13 @@ void ArrayTexture::validate(const KTXTexture &texture)
     if (static_cast<int>(texture.maxLevels()) != mipLevels_)
     {
         std::cerr << "ERROR: Texture mip levels (" << texture.maxLevels() << ") incompatible with array mip levels ("
-                  << mipLevels_ << ")" << std::endl;
+                  << mipLevels_ << ")\n";
         valid = false;
     }
 
     if (!valid)
     {
-        std::cerr << " ArrayTexture " << width_ << "x" << height_ << ", format " << internalFormat_ << std::endl;
+        std::cerr << " ArrayTexture " << width_ << "x" << height_ << ", format " << internalFormat_ << "\n";
         throw std::runtime_error("Texture validation error");
     }
 }
@@ -320,7 +320,7 @@ void ArrayTexture::createFallbackLayer()
     else
     {
         std::cerr << "ERROR: Cannot create fallback texture for ArrayTexture " << width_ << "x" << height_
-                  << ", format " << internalFormat_ << std::endl;
+                  << ", format " << internalFormat_ << "\n";
         throw std::runtime_error("Invalid fallback texture format");
     }
 }

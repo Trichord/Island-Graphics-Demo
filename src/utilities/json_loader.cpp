@@ -26,7 +26,7 @@ GraphicsSettings jsonLoader::loadSettingsFromJSON(const std::filesystem::path &p
 
     catch (const nlohmann::json::exception &e)
     {
-        std::cerr << e.what() << std::endl;
+        std::cerr << e.what() << "\n";
         return {};
     }
 }
@@ -38,16 +38,16 @@ void jsonLoader::saveSettingsToJSON(const GraphicsSettings &settings, const std:
 
     if (!out.is_open())
     {
-        std::cerr << "ERROR: Could not save settings to " << target.string() << std::endl
-                  << std::generic_category().message(errno) << std::endl;
+        std::cerr << "ERROR: Could not save settings to " << target.string() << "\n"
+                  << std::generic_category().message(errno) << "\n";
         return;
     }
 
-    out << std::setw(4) << outputJSON << std::endl;
+    out << std::setw(4) << outputJSON << "\n";
 
     if (!out)
     {
-        std::cerr << "ERROR: Could not save settings to " << target.string() << std::endl
-                  << std::generic_category().message(errno) << std::endl;
+        std::cerr << "ERROR: Could not save settings to " << target.string() << "\n"
+                  << std::generic_category().message(errno) << "\n";
     }
 }

@@ -185,7 +185,7 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
 
     if (!window_)
     {
-        std::cout << "Failed to create GLFW window" << std::endl;
+        std::cout << "Failed to create GLFW window\n";
         glfwTerminate();
     }
 
@@ -205,7 +205,7 @@ bool Application::createOpenGLViewport()
 {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-        std::cout << "ERROR: Failed to initialize GLAD" << std::endl;
+        std::cout << "ERROR: Failed to initialize GLAD\n";
         glfwTerminate();
         return false;
     }
@@ -236,7 +236,7 @@ bool Application::createOpenGLViewport()
     // If MDI Count not supported
     if (!glMultiDrawElementsIndirectCount)
     {
-        std::cerr << "GPU does not support required OpenGL features: MultiDrawElementsIndirectCount" << std::endl;
+        std::cerr << "GPU does not support required OpenGL features: MultiDrawElementsIndirectCount\n";
         supported = false;
     }
 
@@ -255,35 +255,35 @@ bool Application::createOpenGLViewport()
     if (maxSSBOs < SSBOMinimum::combinedBlocks)
     {
         std::cerr << "ERROR: GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS (" << maxSSBOs << ") does not meet required ("
-                  << SSBOMinimum::combinedBlocks << ")" << std::endl;
+                  << SSBOMinimum::combinedBlocks << ")\n";
         supported = false;
     }
 
     if (maxSSBObindings < SSBOMinimum::combinedBindings)
     {
         std::cerr << "ERROR: GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS (" << maxSSBObindings << ") does not meet required ("
-                  << SSBOMinimum::combinedBindings << ")" << std::endl;
+                  << SSBOMinimum::combinedBindings << ")\n";
         supported = false;
     }
 
     if (maxVertexSSBOs < SSBOMinimum::vertexBlocks)
     {
         std::cerr << "ERROR: GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS (" << maxVertexSSBOs << ") does not meet required ("
-                  << SSBOMinimum::vertexBlocks << ")" << std::endl;
+                  << SSBOMinimum::vertexBlocks << ")\n";
         supported = false;
     }
 
     if (maxFragmentSSBOs < SSBOMinimum::fragmentBlocks)
     {
         std::cerr << "ERROR: GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS (" << maxFragmentSSBOs
-                  << ") does not meet required (" << SSBOMinimum::fragmentBlocks << ")" << std::endl;
+                  << ") does not meet required (" << SSBOMinimum::fragmentBlocks << ")\n";
         supported = false;
     }
 
     if (maxImageUnits < TextureUnit::max)
     {
         std::cerr << "ERROR: GGL_MAX_TEXTURE_IMAGE_UNITS (" << maxImageUnits << ") does not meet required ("
-                  << TextureUnit::max << ")" << std::endl;
+                  << TextureUnit::max << ")\n";
         supported = false;
     }
 
@@ -308,7 +308,7 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum 
     if (id == 131169 || id == 131185 || id == 131218 || id == 131204)
         return;
 
-    std::cout << "Debug message (" << id << "): " << message << std::endl;
+    std::cout << "Debug message (" << id << "): " << message << "\n";
 
     switch (source)
     {
@@ -331,7 +331,7 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum 
         std::cout << "Source: Other";
         break;
     }
-    std::cout << std::endl;
+    std::cout << "\n";
 
     switch (type)
     {
@@ -363,7 +363,7 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum 
         std::cout << "Type: Other";
         break;
     }
-    std::cout << std::endl;
+    std::cout << "\n";
 
     switch (severity)
     {
@@ -380,6 +380,6 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum 
         std::cout << "Severity: notification";
         break;
     }
-    std::cout << std::endl << std::endl;
+    std::cout << "\n\n";
 }
 #endif

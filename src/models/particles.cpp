@@ -25,7 +25,7 @@ std::vector<Primitive> Particles::takePrimitives()
 {
     if (primitivesTaken_)
     {
-        std::cerr << "Error: Particle primitives already taken " << std::endl;
+        std::cerr << "Error: Particle primitives already taken\n";
         throw std::runtime_error("Primitives already moved");
     }
 

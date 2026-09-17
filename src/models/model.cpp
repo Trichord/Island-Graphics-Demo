@@ -50,7 +50,7 @@ std::vector<Primitive> Model::takePrimitives()
 {
     if (primitivesTaken_)
     {
-        std::cerr << "Error: Primitives already taken for " << filePath_ << std::endl;
+        std::cerr << "Error: Primitives already taken for " << filePath_ << "\n";
         throw std::runtime_error("Primitives already moved");
     }
 

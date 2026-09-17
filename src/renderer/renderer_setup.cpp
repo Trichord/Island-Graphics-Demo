@@ -95,7 +95,7 @@ void Renderer::initializeResources(const Scene &scene, const Camera &camera)
     // Deferred shader loading so we can test the scene for animated models
     std::cerr << "Loading Shaders... ";
     loadShaders();
-    std::cerr << "Done" << std::endl;
+    std::cerr << "Done\n";
 
     updateSceneUBO(scene);
     setupComputeShaders(processed, camera.getNearPlane());

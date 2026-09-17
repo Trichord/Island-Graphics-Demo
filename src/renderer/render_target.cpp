@@ -13,7 +13,7 @@ RenderTarget::RenderTarget(int width, int height, Settings settings)
 {
     if (settings.depthType == DepthType::RBO && settings.textureArray == true)
     {
-        std::cerr << "ERROR: Cannot create layered framebuffer with only a depth Render Buffer Object" << std::endl;
+        std::cerr << "ERROR: Cannot create layered framebuffer with only a depth Render Buffer Object\n";
         throw std::runtime_error("Framebuffer Creation Error");
     }
 
@@ -276,7 +276,7 @@ void RenderTarget::setTextureLayer(int layer)
 {
     if (layer >= layers_)
     {
-        std::cerr << "ERROR: RenderTarget " << layer << " out of bounds for size " << layers_ << std::endl;
+        std::cerr << "ERROR: RenderTarget " << layer << " out of bounds for size " << layers_ << "\n";
         throw std::runtime_error("RenderTarget layer out of bounds");
     }
 

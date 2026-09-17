@@ -53,11 +53,11 @@ void validatePrimitives(Scene::Entry &entry)
         {
         case ocean:
             if (isInstanced)
-                std::cerr << "WARNING: Multiple ocean instances sharing one reflection" << std::endl;
+                std::cerr << "WARNING: Multiple ocean instances sharing one reflection\n";
 
             if (primitive.alphaMode != opaque)
             {
-                std::cerr << "WARNING: Overriding ocean shader primitive alpha mode with Opaque" << std::endl;
+                std::cerr << "WARNING: Overriding ocean shader primitive alpha mode with Opaque\n";
                 primitive.alphaMode = opaque;
             }
 
@@ -65,11 +65,11 @@ void validatePrimitives(Scene::Entry &entry)
 
         case water:
             if (isInstanced)
-                std::cerr << "WARNING: Multiple water instances sharing one reflection" << std::endl;
+                std::cerr << "WARNING: Multiple water instances sharing one reflection\n";
 
             if (primitive.alphaMode != blend)
             {
-                std::cerr << "WARNING: Overriding water shader primitive alpha mode with Blend" << std::endl;
+                std::cerr << "WARNING: Overriding water shader primitive alpha mode with Blend\n";
                 primitive.alphaMode = blend;
             }
 
@@ -176,7 +176,7 @@ std::size_t Scene::findIndex(Handle handle) const
 {
     if (handle < 1 || handle > entries_.size() || entries_[handle - 1].handle != handle)
     {
-        std::cerr << "ERROR: Could not find handle " << handle << std::endl;
+        std::cerr << "ERROR: Could not find handle " << handle << "\n";
         throw std::runtime_error("Invalid handle");
     }
 
@@ -189,7 +189,7 @@ std::size_t Scene::findIndex(std::string_view name) const
 
     if (iter == entriesByName_.end() || iter->second >= entries_.size())
     {
-        std::cerr << "ERROR: Cannot find named scene entry " << name << std::endl;
+        std::cerr << "ERROR: Cannot find named scene entry " << name << "\n";
         throw std::runtime_error("Invalid key");
     }
 
@@ -318,7 +318,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
 
     if (jsonFile.empty() || !std::filesystem::exists(jsonFile))
     {
-        std::cerr << "ERROR: Could not load scene " << jsonFile << std::endl;
+        std::cerr << "ERROR: Could not load scene " << jsonFile << "\n";
         throw std::runtime_error("Invalid Scene");
     }
 
@@ -326,7 +326,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
 
     if (!file.is_open())
     {
-        std::cerr << "ERROR: Failed to open " << jsonFile << std::endl;
+        std::cerr << "ERROR: Failed to open " << jsonFile << "\n";
         throw std::runtime_error("Failed to open file");
     }
 
@@ -342,7 +342,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
 
     catch (const json::exception &e)
     {
-        std::cerr << e.what() << std::endl;
+        std::cerr << e.what() << "\n";
         throw;
     }
 
@@ -395,7 +395,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
     }
 
     validateSceneEntries();
-    std::cout << "Done" << std::endl;
+    std::cout << "Done\n";
 }
 
 void Scene::validateSceneEntries()

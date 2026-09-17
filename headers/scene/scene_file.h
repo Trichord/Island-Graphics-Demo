@@ -273,7 +273,7 @@ inline FileEntry parseFileEntries(const nlohmann::json &j)
     if (type == "particles")
         return j.get<ParticlesEntry>();
 
-    std::cerr << "ERROR: could not load model type " << type << std::endl;
+    std::cerr << "ERROR: could not load model type " << type << "\n";
     throw nlohmann::json::type_error::create(302, "Unknown model type: " + type, &j);
 }
 

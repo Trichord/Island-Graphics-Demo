@@ -40,7 +40,7 @@ void EntryAnimation::setAnimation(std::size_t index)
 {
     if (index >= animations_.size())
     {
-        std::cerr << "Error: index " << index << " out of bounds" << std::endl;
+        std::cerr << "Error: index " << index << " out of bounds\n";
         throw std::runtime_error("Animation not found");
     }
 
@@ -63,7 +63,7 @@ std::size_t EntryAnimation::findAnimation(std::string_view name) const
 
     if (iter == animationMap_.end())
     {
-        std::cerr << "Error: animation " << name << " not found" << std::endl;
+        std::cerr << "Error: animation " << name << " not found\n";
         throw std::runtime_error("Animation not found");
     }
 
@@ -87,7 +87,7 @@ float EntryAnimation::getAnimationLength(std::size_t index) const
 {
     if (index >= animations_.size())
     {
-        std::cerr << "Error: index " << index << " out of bounds" << std::endl;
+        std::cerr << "Error: index " << index << " out of bounds\n";
         throw std::runtime_error("Animation not found");
     }
 

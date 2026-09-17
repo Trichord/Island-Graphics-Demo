@@ -75,8 +75,7 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene(const Scene &scene, 
 {
     if (!textureManager.allTexturesBuilt())
     {
-        std::cerr << "ERROR: SceneProcessor::processScene() called before TextureManager::buildAllTextures()"
-                  << std::endl;
+        std::cerr << "ERROR: SceneProcessor::processScene() called before TextureManager::buildAllTextures()\n";
         throw std::logic_error("SceneProcessor::processScene() called before TextureManager::buildAllTextures()");
     }
 
@@ -506,7 +505,7 @@ void SceneProcessor::setMetadataMaterials(const TextureManager &manager, const B
 
         if (matIndex >= materials.size())
         {
-            std::cerr << "Material index out of bound for handle " << entry.handle << std::endl;
+            std::cerr << "Material index out of bound for handle " << entry.handle << "\n";
             throw std::runtime_error("Material index out of bounds");
         }
 
@@ -618,7 +617,7 @@ std::vector<Primitive::VertexSkin> SceneProcessor::createVertexSkins(
 
         if (iter == boneTransformMap.end())
         {
-            std::cerr << "ERROR: Handle " << entry.handle << " missing from bone transform map" << std::endl;
+            std::cerr << "ERROR: Handle " << entry.handle << " missing from bone transform map\n";
             throw std::runtime_error("Missing handle from bone transforms");
         }
 

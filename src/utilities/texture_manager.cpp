@@ -27,7 +27,7 @@ namespace
 {
 void missingHandleError(Handle handle)
 {
-    std::cerr << "ERROR: missing handle for " << handle << " .Could not get materials " << std::endl;
+    std::cerr << "ERROR: missing handle for " << handle << " .Could not get materials\n";
     throw std::runtime_error("Missing handle");
 }
 } // namespace
@@ -120,7 +120,7 @@ void TextureManager::reserveCubemaps(std::size_t numCubemaps, int resolution, GL
 {
     if (texturesBuilt_)
     {
-        std::cerr << "ERROR: Cannot reserve after TextureManager::buildAllTextures() called" << std::endl;
+        std::cerr << "ERROR: Cannot reserve after TextureManager::buildAllTextures() called\n";
         throw std::logic_error("Late function call");
     }
 
@@ -133,7 +133,7 @@ void TextureManager::borrowCubemaps(Handle self, Handle other)
 {
     if (!texturesBuilt_)
     {
-        std::cerr << "ERROR: Cannot borrow before TextureManager::buildAllTextures() called" << std::endl;
+        std::cerr << "ERROR: Cannot borrow before TextureManager::buildAllTextures() called\n";
         throw std::logic_error("Early function call");
     }
 
@@ -141,12 +141,12 @@ void TextureManager::borrowCubemaps(Handle self, Handle other)
     auto otherMaterials{findMaterials(other)};
 
     if (selfMaterials.size() != otherMaterials.size())
-        std::cerr << "WARNING: " << self << " borrowing mismatched material size from " << other << std::endl;
+        std::cerr << "WARNING: " << self << " borrowing mismatched material size from " << other << "\n";
 
     if (selfMaterials.size() > otherMaterials.size())
     {
         std::cerr << "ERROR: " << self << " materials (" << selfMaterials.size() << ") larger than " << other
-                  << " materials (" << otherMaterials.size() << "), uninitialized materials" << std::endl;
+                  << " materials (" << otherMaterials.size() << "), uninitialized materials\n";
         throw std::runtime_error("Material borrow size error");
     }
 
@@ -201,7 +201,7 @@ void TextureManager::buildAllTextures()
     // file names, but the texture itself will be empty.
     std::vector<KTXTexture> textures{loadTexturesFromPool(deferredTextures_)};
 
-    std::cout << "Done" << std::endl;
+    std::cout << "Done\n";
 
     // Count all the buckets and pre-size the ArrrayTextures since they're immutable afterwards
     for (std::size_t i{0}; i < deferredTextures_.size(); ++i)
@@ -276,7 +276,7 @@ void TextureManager::insertTexture(const loader::DeferredTexture &deferred, cons
 
     if (!texture)
     {
-        std::cerr << "WARNING: Empty texture " << deferred.path << std::endl;
+        std::cerr << "WARNING: Empty texture " << deferred.path << "\n";
         return;
     }
 
@@ -315,7 +315,7 @@ TextureManager::ArrayReference TextureManager::findArray(const loader::DeferredT
     }
 
     std::cerr << "ERROR: No array for " << width << "x" << height << ", format: " << internalFormat
-              << ", cubemap = " << isCubemap << std::endl;
+              << ", cubemap = " << isCubemap << "\n";
     throw std::runtime_error("Missing ArrayTexture");
 }
 
@@ -325,7 +325,7 @@ TextureManager::ArrayReference TextureManager::findCubemapArray(int size, GLenum
         if (arrayCubemaps_[i].getWidth() == size && arrayCubemaps_[i].getInternalFormat() == internalFormat)
             return {arrayCubemaps_[i], i};
 
-    std::cerr << "ERROR: No cubemap array for " << size << "x" << size << ", format: " << internalFormat << std::endl;
+    std::cerr << "ERROR: No cubemap array for " << size << "x" << size << ", format: " << internalFormat << "\n";
     throw std::runtime_error("Missing ArrayTexture");
 }
 
@@ -333,7 +333,7 @@ void TextureManager::validateState()
 {
     if (texturesBuilt_)
     {
-        std::cerr << "ERROR: TextureManager::buildAllTextures() already called" << std::endl;
+        std::cerr << "ERROR: TextureManager::buildAllTextures() already called\n";
         throw std::logic_error("Duplicate function call");
     }
 
@@ -429,13 +429,13 @@ void TextureManager::assignFallbacks()
 
     if (needTextures && fallbackTexture.array == -1)
     {
-        std::cerr << "ERROR: Fallback texture not found" << std::endl;
+        std::cerr << "ERROR: Fallback texture not found\n";
         throw std::runtime_error("Fallback cubemap not found");
     }
 
     if (needCubemap && fallbackCubemap.array == -1)
     {
-        std::cerr << "ERROR: Fallback cubemap not found" << std::endl;
+        std::cerr << "ERROR: Fallback cubemap not found" << "\n";
         throw std::runtime_error("Fallback cubemap not found");
     }
 }

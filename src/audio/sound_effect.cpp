@@ -19,7 +19,7 @@ SoundEffect::SoundEffect(AudioEngine &engine, const SoundEffectEntry &entry, con
 
     if (volumeLow_ > volumeHigh_ || pitchLow_ > pitchHigh_)
     {
-        std::cerr << "ERROR: min value greater than max value from Sound Effect: " << entry.soundPath << std::endl;
+        std::cerr << "ERROR: min value greater than max value from Sound Effect: " << entry.soundPath << "\n";
         throw std::runtime_error("Undefined sound effect range");
     }
 
@@ -37,7 +37,7 @@ SoundEffect::SoundEffect(AudioEngine &engine, const SoundEffectEntry &entry, con
 
     if (result != MA_SUCCESS)
     {
-        std::cerr << "Failed to load sound from " << pathStr << ": " << ma_result_description(result) << std::endl;
+        std::cerr << "Failed to load sound from " << pathStr << ": " << ma_result_description(result) << "\n";
         throw std::runtime_error("Fatal sound loading error");
     }
 
