@@ -17,7 +17,7 @@
 #include "renderer/renderer_types.h"
 #include "renderer/shader/compute_shader.h"
 #include "renderer/texture_view.h"
-#include "scene/camera.h"
+#include "game/camera.h"
 #include "scene/handle.h"
 #include "scene/scene.h"
 #include "utilities/scene_processor.h"

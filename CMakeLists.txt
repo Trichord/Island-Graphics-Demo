@@ -29,6 +29,7 @@ set(HEADERS
     headers/audio/audio_file.h
     headers/audio/audio_player.h
     headers/audio/sound_effect.h
+    headers/game/camera.h
     headers/game/game.h
     headers/models/aabb.h
     headers/models/instanced_model.h
@@ -57,7 +58,6 @@ set(HEADERS
     headers/renderer/shader/shader_base.h
     headers/renderer/textures.h
     headers/renderer/texture_view.h
-    headers/scene/camera.h
     headers/scene/directional_light.h
     headers/scene/entry_animation.h
     headers/scene/handle.h
@@ -91,6 +91,7 @@ set(SOURCES
     src/audio/audio_player.cpp
     src/audio/miniaudio_impl.cpp
     src/audio/sound_effect.cpp
+    src/game/camera.cpp
     src/game/game.cpp
     src/models/aabb.cpp
     src/models/animator.cpp
@@ -111,7 +112,6 @@ set(SOURCES
     src/renderer/shader/compute_shader.cpp
     src/renderer/shader/graphics_shader.cpp
     src/renderer/shader/shader_base.cpp
-    src/scene/camera.cpp
     src/scene/entry_animation.cpp
     src/scene/directional_light.cpp
     src/scene/scene.cpp

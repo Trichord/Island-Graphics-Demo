@@ -150,11 +150,8 @@ void main()
 	vec3 ambient = ambientLight.rgb * albedo.rgb * ao;
 
 	#ifdef ALPHA_TESTED_SHADOWS
-	// Pick shadow cascade off frag depth
-	int layer = calculateCascadeIndex(-fsIn.viewFragDepth);
-
 	// Shadows
-	float shadow = shadowContribution(lightMatrices[layer], fsIn.worldFragPos, normalize(fsIn.geoNormal), layer);
+	float shadow = shadowContribution(fsIn.worldFragPos, normalize(fsIn.geoNormal), -fsIn.viewFragDepth);
 	vec3 color = ambient + Lo * shadow;
 	
 	#else

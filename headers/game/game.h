@@ -11,7 +11,7 @@
 #include "physics/physics_world.h"
 #include "physics/player_state.h"
 #include "renderer/renderer.h"
-#include "scene/camera.h"
+#include "game/camera.h"
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
 #include "utilities/thread_pool.h"

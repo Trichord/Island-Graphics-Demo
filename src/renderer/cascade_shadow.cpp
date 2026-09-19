@@ -45,8 +45,8 @@ Computes the near and far distances for every frustum slice in camera eye space 
 slice start and end */
 void CascadeShadow::calculateCascadeSplits(float farPlane)
 {
-    constexpr float cascadeOverlap{1.005f};
-    constexpr float splitWeight{0.75f};
+    constexpr float cascadeOverlap{1.03f};
+    constexpr float splitWeight{0.825f};
 
     float ratio{farPlane / nearPlane_};
 

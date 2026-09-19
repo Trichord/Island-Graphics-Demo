@@ -18,7 +18,7 @@
 #include "models/skybox.h"
 #include "physics/collision_shapes.h"
 #include "physics/player_state.h"
-#include "scene/camera.h"
+#include "game/camera.h"
 #include "scene/directional_light.h"
 #include "scene/entry_animation.h"
 #include "scene/handle.h"

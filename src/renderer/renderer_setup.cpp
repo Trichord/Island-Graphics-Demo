@@ -20,7 +20,7 @@
 #include "renderer/renderer_types.h"
 #include "renderer/shader/graphics_shader.h"
 #include "renderer/textures.h"
-#include "scene/camera.h"
+#include "game/camera.h"
 #include "scene/directional_light.h"
 #include "scene/handle.h"
 #include "scene/scene.h"
