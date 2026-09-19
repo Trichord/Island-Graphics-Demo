@@ -35,7 +35,7 @@ std::vector<KTXTexture> TextureLoader::getTextures()
 {
     if (texturesReleased_)
     {
-        std::cerr << "ERROR: Multiple texture fetches from a TextureLoader\n";
+        std::cerr << "Error: Multiple texture fetches from a TextureLoader\n";
         throw std::logic_error("TextureLoader::getTextures() already called");
     }
 

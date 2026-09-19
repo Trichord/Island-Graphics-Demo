@@ -69,6 +69,7 @@ class Renderer
 
     // Shadows
     CascadeShadow cascadeShadow_;
+    float geometryOnlyFarPlane_{0.0f};
 
     // Drawing
     std::vector<MultiDrawBucket> drawBuckets_;

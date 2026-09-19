@@ -49,10 +49,7 @@ void Application::run()
     if (!createOpenGLViewport())
         return;
 
-#ifndef _DEBUG
     registerCallbacks();
-#endif
-
     registerJolt();
 
     Game game{graphicsSettings, windowWidth_, windowHeight_};
@@ -205,7 +202,7 @@ bool Application::createOpenGLViewport()
 {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-        std::cout << "ERROR: Failed to initialize GLAD\n";
+        std::cout << "Error: Failed to initialize GLAD\n";
         glfwTerminate();
         return false;
     }
@@ -254,35 +251,35 @@ bool Application::createOpenGLViewport()
 
     if (maxSSBOs < SSBOMinimum::combinedBlocks)
     {
-        std::cerr << "ERROR: GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS (" << maxSSBOs << ") does not meet required ("
+        std::cerr << "Error: GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS (" << maxSSBOs << ") does not meet required ("
                   << SSBOMinimum::combinedBlocks << ")\n";
         supported = false;
     }
 
     if (maxSSBObindings < SSBOMinimum::combinedBindings)
     {
-        std::cerr << "ERROR: GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS (" << maxSSBObindings << ") does not meet required ("
+        std::cerr << "Error: GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS (" << maxSSBObindings << ") does not meet required ("
                   << SSBOMinimum::combinedBindings << ")\n";
         supported = false;
     }
 
     if (maxVertexSSBOs < SSBOMinimum::vertexBlocks)
     {
-        std::cerr << "ERROR: GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS (" << maxVertexSSBOs << ") does not meet required ("
+        std::cerr << "Error: GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS (" << maxVertexSSBOs << ") does not meet required ("
                   << SSBOMinimum::vertexBlocks << ")\n";
         supported = false;
     }
 
     if (maxFragmentSSBOs < SSBOMinimum::fragmentBlocks)
     {
-        std::cerr << "ERROR: GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS (" << maxFragmentSSBOs
+        std::cerr << "Error: GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS (" << maxFragmentSSBOs
                   << ") does not meet required (" << SSBOMinimum::fragmentBlocks << ")\n";
         supported = false;
     }
 
     if (maxImageUnits < TextureUnit::max)
     {
-        std::cerr << "ERROR: GGL_MAX_TEXTURE_IMAGE_UNITS (" << maxImageUnits << ") does not meet required ("
+        std::cerr << "Error: GL_MAX_TEXTURE_IMAGE_UNITS (" << maxImageUnits << ") does not meet required ("
                   << TextureUnit::max << ")\n";
         supported = false;
     }
@@ -335,7 +332,7 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum 
 
     switch (type)
     {
-    case GL_DEBUG_TYPE_ERROR:
+    case GL_DEBUG_TYPE_Error:
         std::cout << "Type: Error";
         break;
     case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:

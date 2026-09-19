@@ -176,7 +176,7 @@ std::size_t Scene::findIndex(Handle handle) const
 {
     if (handle < 1 || handle > entries_.size() || entries_[handle - 1].handle != handle)
     {
-        std::cerr << "ERROR: Could not find handle " << handle << "\n";
+        std::cerr << "Error: Could not find handle " << handle << "\n";
         throw std::runtime_error("Invalid handle");
     }
 
@@ -189,7 +189,7 @@ std::size_t Scene::findIndex(std::string_view name) const
 
     if (iter == entriesByName_.end() || iter->second >= entries_.size())
     {
-        std::cerr << "ERROR: Cannot find named scene entry " << name << "\n";
+        std::cerr << "Error: Cannot find named scene entry " << name << "\n";
         throw std::runtime_error("Invalid key");
     }
 
@@ -318,7 +318,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
 
     if (jsonFile.empty() || !std::filesystem::exists(jsonFile))
     {
-        std::cerr << "ERROR: Could not load scene " << jsonFile << "\n";
+        std::cerr << "Error: Could not load scene " << jsonFile << "\n";
         throw std::runtime_error("Invalid Scene");
     }
 
@@ -326,7 +326,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
 
     if (!file.is_open())
     {
-        std::cerr << "ERROR: Failed to open " << jsonFile << "\n";
+        std::cerr << "Error: Failed to open " << jsonFile << "\n";
         throw std::runtime_error("Failed to open file");
     }
 

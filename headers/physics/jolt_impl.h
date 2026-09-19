@@ -64,7 +64,7 @@ class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
         case Layers::MOVING:
             return true; // Moving collides with everything
         default:
-            throw std::runtime_error("ERROR: Unknown Jolt ObjectLayer");
+            throw std::runtime_error("Error: Unknown Jolt ObjectLayer");
         }
     }
 };
@@ -89,7 +89,7 @@ class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
     JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer layer) const override
     {
         if (layer >= Layers::NUM_LAYERS)
-            throw std::runtime_error("ERROR: Unknown Jolt ObjectLayer");
+            throw std::runtime_error("Error: Unknown Jolt ObjectLayer");
 
         return objectToBroadPhase_[layer];
     }
@@ -111,7 +111,7 @@ class ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFil
         case Layers::MOVING:
             return true;
         default:
-            throw std::runtime_error("ERROR: Uknown Jolt ObjectVsObject layer");
+            throw std::runtime_error("Error: Uknown Jolt ObjectVsObject layer");
         }
     }
 };

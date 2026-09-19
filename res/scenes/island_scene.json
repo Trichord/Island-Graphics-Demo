@@ -406,8 +406,8 @@
       "modelPath": "./res/models/vegetation/whiteflower/whiteflower.gltf",
       "shader": "vegetation",
       "instancing": {
-        "minScale": 0.9,
-        "maxScale": 1.1,
+        "minScale": 0.6,
+        "maxScale": 0.8,
         "positionsPath": "./res/positions/whiteflowers.txt"
       }
     },
@@ -416,8 +416,8 @@
       "modelPath": "./res/models/vegetation/blueflower/blueflower.gltf",
       "shader": "vegetation",
       "instancing": {
-        "minScale": 0.9,
-        "maxScale": 1.1,
+        "minScale": 0.5,
+        "maxScale": 0.9,
         "positionsPath": "./res/positions/blueflowers.txt"
       }
     },
@@ -426,8 +426,8 @@
       "modelPath": "./res/models/vegetation/purpleflower/purpleflower.gltf",
       "shader": "vegetation",
       "instancing": {
-        "minScale": 0.9,
-        "maxScale": 1.1,
+        "minScale": 0.5,
+        "maxScale": 0.75,
         "positionsPath": "./res/positions/purpleflowers.txt"
       }
     },

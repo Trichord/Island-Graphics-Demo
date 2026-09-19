@@ -87,7 +87,7 @@ bool texture::transcodeKTX(KTXTexture &texture)
 {
     if (!texture)
     {
-        std::cerr << "ERROR: empty texture\n";
+        std::cerr << "Error: empty texture\n";
         return false;
     }
 
@@ -126,7 +126,7 @@ GLuint texture::textureFromFile(std::filesystem::path path, TextureDetails detai
 {
     if (path.empty() || !std::filesystem::exists(path))
     {
-        std::cerr << "ERROR: Bad filepath for texture " << path << "\n";
+        std::cerr << "Error: Bad filepath for texture " << path << "\n";
         return magentaTexture();
     }
 
@@ -146,21 +146,21 @@ GLuint texture::textureFromFile(std::filesystem::path path, TextureDetails detai
 
     if (result != KTX_SUCCESS)
     {
-        std::cerr << "ERROR: Wrong texture type for 2D texture for " << path << "\n";
+        std::cerr << "Error: Wrong texture type for 2D texture for " << path << "\n";
         glDeleteTextures(1, &id);
         return magentaTexture();
     }
 
     if (error != GL_NONE)
     {
-        std::cerr << "ERROR: OpenGL error " << error << " creating texture from " << path << "\n";
+        std::cerr << "Error: OpenGL error " << error << " creating texture from " << path << "\n";
         glDeleteTextures(1, &id);
         return magentaTexture();
     }
 
     if (target != GL_TEXTURE_2D && target != GL_IMAGE_1D_ARRAY)
     {
-        std::cerr << "ERROR: Wrong texture type for 2D texture for " << path << "\n";
+        std::cerr << "Error: Wrong texture type for 2D texture for " << path << "\n";
         glDeleteTextures(1, &id);
         return magentaTexture();
     }

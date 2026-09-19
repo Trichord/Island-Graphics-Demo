@@ -75,7 +75,7 @@ SceneProcessor::ProcessedScene SceneProcessor::processScene(const Scene &scene, 
 {
     if (!textureManager.allTexturesBuilt())
     {
-        std::cerr << "ERROR: SceneProcessor::processScene() called before TextureManager::buildAllTextures()\n";
+        std::cerr << "Error: SceneProcessor::processScene() called before TextureManager::buildAllTextures()\n";
         throw std::logic_error("SceneProcessor::processScene() called before TextureManager::buildAllTextures()");
     }
 
@@ -617,7 +617,7 @@ std::vector<Primitive::VertexSkin> SceneProcessor::createVertexSkins(
 
         if (iter == boneTransformMap.end())
         {
-            std::cerr << "ERROR: Handle " << entry.handle << " missing from bone transform map\n";
+            std::cerr << "Error: Handle " << entry.handle << " missing from bone transform map\n";
             throw std::runtime_error("Missing handle from bone transforms");
         }
 

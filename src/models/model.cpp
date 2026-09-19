@@ -21,7 +21,7 @@ Model::Model(const std::filesystem::path &path, ShaderType shader,
     {
         if (primitive.vertexSkins && vertexExplosion)
         {
-            std::cerr << "ERROR: Cannot explode animated models\n";
+            std::cerr << "Error: Cannot explode animated models\n";
             throw std::runtime_error("Cannot explode animated models");
         }
 

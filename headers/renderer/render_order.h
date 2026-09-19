@@ -46,7 +46,7 @@ constexpr RenderOrder toRenderOrder(ShaderType shader)
         break;
     }
 
-    assert(false && "ERROR: shader has no render bucket");
+    assert(false && "Error: shader has no render bucket");
     return RenderOrder::count;
 }
 

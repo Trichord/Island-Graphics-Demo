@@ -87,7 +87,11 @@ void Renderer::initializeResources(const Scene &scene, const Camera &camera)
     std::vector<std::set<Handle>> bucketHandles{std::move(processed.bufferDescriptors.drawBucketHandles)};
     std::vector<std::uint32_t> metadataBridge{std::move(processed.bufferDescriptors.metadataBridge)};
 
-    // Setup for cascade shadow maps
+    // Setup for cascade shadow maps. SceneAABB is stripped of infinite oceans. Create new far plane based on what
+    // geometry is visible, not the camera's true far plane which has been artificially extended to see distant ocean.
+    const glm::vec3 &halfExtent{sceneAABB.getHalfExtent()};
+    geometryOnlyFarPlane_ = glm::length(glm::vec2{halfExtent.x, halfExtent.z});
+
     float nearPlane{camera.getNearPlane()};
     const DirectionalLight &light{scene.getGlobalLight()};
     cascadeShadow_ = {light, sceneAABB, nearPlane};
@@ -149,7 +153,7 @@ void Renderer::setupComputeShaders(const SceneProcessor::ProcessedScene &process
 
     const std::uint32_t baseVBOIndex{static_cast<std::uint32_t>(processed.bufferDescriptors.particleBaseVBOIndex)};
     const glm::ivec2 hiZRes{graphicsSettings_.renderWidth / hiZResolutionReduction,
-                      graphicsSettings_.renderHeight / hiZResolutionReduction};
+                            graphicsSettings_.renderHeight / hiZResolutionReduction};
 
     particleShader_.setIntU("vboBaseIndex", baseVBOIndex);
     cullShader_.setIVec2("hiZResolution", hiZRes);

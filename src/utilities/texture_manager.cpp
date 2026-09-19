@@ -27,7 +27,7 @@ namespace
 {
 void missingHandleError(Handle handle)
 {
-    std::cerr << "ERROR: missing handle for " << handle << " .Could not get materials\n";
+    std::cerr << "Error: missing handle for " << handle << " .Could not get materials\n";
     throw std::runtime_error("Missing handle");
 }
 } // namespace
@@ -120,7 +120,7 @@ void TextureManager::reserveCubemaps(std::size_t numCubemaps, int resolution, GL
 {
     if (texturesBuilt_)
     {
-        std::cerr << "ERROR: Cannot reserve after TextureManager::buildAllTextures() called\n";
+        std::cerr << "Error: Cannot reserve after TextureManager::buildAllTextures() called\n";
         throw std::logic_error("Late function call");
     }
 
@@ -133,7 +133,7 @@ void TextureManager::borrowCubemaps(Handle self, Handle other)
 {
     if (!texturesBuilt_)
     {
-        std::cerr << "ERROR: Cannot borrow before TextureManager::buildAllTextures() called\n";
+        std::cerr << "Error: Cannot borrow before TextureManager::buildAllTextures() called\n";
         throw std::logic_error("Early function call");
     }
 
@@ -145,7 +145,7 @@ void TextureManager::borrowCubemaps(Handle self, Handle other)
 
     if (selfMaterials.size() > otherMaterials.size())
     {
-        std::cerr << "ERROR: " << self << " materials (" << selfMaterials.size() << ") larger than " << other
+        std::cerr << "Error: " << self << " materials (" << selfMaterials.size() << ") larger than " << other
                   << " materials (" << otherMaterials.size() << "), uninitialized materials\n";
         throw std::runtime_error("Material borrow size error");
     }
@@ -314,7 +314,7 @@ TextureManager::ArrayReference TextureManager::findArray(const loader::DeferredT
         }
     }
 
-    std::cerr << "ERROR: No array for " << width << "x" << height << ", format: " << internalFormat
+    std::cerr << "Error: No array for " << width << "x" << height << ", format: " << internalFormat
               << ", cubemap = " << isCubemap << "\n";
     throw std::runtime_error("Missing ArrayTexture");
 }
@@ -325,7 +325,7 @@ TextureManager::ArrayReference TextureManager::findCubemapArray(int size, GLenum
         if (arrayCubemaps_[i].getWidth() == size && arrayCubemaps_[i].getInternalFormat() == internalFormat)
             return {arrayCubemaps_[i], i};
 
-    std::cerr << "ERROR: No cubemap array for " << size << "x" << size << ", format: " << internalFormat << "\n";
+    std::cerr << "Error: No cubemap array for " << size << "x" << size << ", format: " << internalFormat << "\n";
     throw std::runtime_error("Missing ArrayTexture");
 }
 
@@ -333,7 +333,7 @@ void TextureManager::validateState()
 {
     if (texturesBuilt_)
     {
-        std::cerr << "ERROR: TextureManager::buildAllTextures() already called\n";
+        std::cerr << "Error: TextureManager::buildAllTextures() already called\n";
         throw std::logic_error("Duplicate function call");
     }
 
@@ -429,13 +429,13 @@ void TextureManager::assignFallbacks()
 
     if (needTextures && fallbackTexture.array == -1)
     {
-        std::cerr << "ERROR: Fallback texture not found\n";
+        std::cerr << "Error: Fallback texture not found\n";
         throw std::runtime_error("Fallback cubemap not found");
     }
 
     if (needCubemap && fallbackCubemap.array == -1)
     {
-        std::cerr << "ERROR: Fallback cubemap not found" << "\n";
+        std::cerr << "Error: Fallback cubemap not found" << "\n";
         throw std::runtime_error("Fallback cubemap not found");
     }
 }

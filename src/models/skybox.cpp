@@ -41,8 +41,8 @@ std::vector<Primitive> Skybox::takePrimitives()
 {
     if (primitivesTaken_)
     {
-        std::cerr << "Error: Skybox primitive already taken\n";
-        throw std::runtime_error("Primitive already moved");
+        std::cerr << "Error: Skybox primitives already taken\n";
+        throw std::runtime_error("Primitives already moved");
     }
 
     primitivesTaken_ = true;

@@ -13,7 +13,6 @@ constexpr float minPitch{-maxPitch};
 
 Camera::Camera(const Camera::Description &description, float aspectRatio)
     : yaw_{description.yaw}, pitch_{description.pitch}, position_{description.position},
-      projectionMatrix_{glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_)},
       fov_{description.fov}, nearPlane_{description.nearPlane}, farPlane_{description.farPlane},
       aspectRatio_{aspectRatio}
 {
@@ -59,6 +58,9 @@ const glm::mat4 &Camera::getViewMatrix() const
 
 const glm::mat4 &Camera::getProjectionMatrix() const
 {
+    if (dirtyMatrices_)
+        updateMatrices();
+
     return projectionMatrix_;
 }
 

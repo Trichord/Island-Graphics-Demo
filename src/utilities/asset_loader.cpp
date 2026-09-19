@@ -66,7 +66,7 @@ AnimationPath fastgltfToAnimationPath(fastgltf::AnimationPath path)
     case fastgltf::AnimationPath::Translation:
         return AnimationPath::translation;
     default:
-        std::cerr << "ERROR: Unsupported gLTF animation path\n";
+        std::cerr << "Error: Unsupported gLTF animation path\n";
         throw std::runtime_error("Unsupported gLTF animation path");
     }
 }
@@ -80,7 +80,7 @@ AnimationInterpolation fastgltfToAnimationInterpolation(fastgltf::AnimationInter
     case fastgltf::AnimationInterpolation::Step:
         return AnimationInterpolation::step;
     default:
-        std::cerr << "ERROR: Unsupported gLTF animation interpolation: " << static_cast<std::uint8_t>(interpolation)
+        std::cerr << "Error: Unsupported gLTF animation interpolation: " << static_cast<std::uint8_t>(interpolation)
                   << "\n";
         throw std::runtime_error("Unsupported gLTF interpolation");
     }
@@ -409,7 +409,7 @@ std::vector<std::filesystem::path> loader::getURIs(const fastgltf::Asset &asset,
         }
         else
         {
-            std::cerr << "ERROR: Non-URI images not supported\n";
+            std::cerr << "Error: Non-URI images not supported\n";
             throw std::runtime_error("Unsupported GLTF image format");
         }
     }
@@ -579,7 +579,7 @@ std::vector<Animation> loader::loadAnimations(const fastgltf::Asset &asset)
 
             if (srcSampler.interpolation == fastgltf::AnimationInterpolation::CubicSpline)
             {
-                std::cerr << "ERROR: Cubic spline interpolation not supported\n";
+                std::cerr << "Error: Cubic spline interpolation not supported\n";
                 throw std::runtime_error("Unsupported animation interpolation");
             }
 
@@ -630,7 +630,7 @@ std::vector<Animation> loader::loadAnimations(const fastgltf::Asset &asset)
 
             if (!srcChannel.nodeIndex)
             {
-                std::cerr << "ERROR: No node target for animation channel\n";
+                std::cerr << "Error: No node target for animation channel\n";
                 throw std::runtime_error("Empty animation channel target node");
             }
 

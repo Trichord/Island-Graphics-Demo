@@ -19,7 +19,7 @@ SoundEffect::SoundEffect(AudioEngine &engine, const SoundEffectEntry &entry, con
 
     if (volumeLow_ > volumeHigh_ || pitchLow_ > pitchHigh_)
     {
-        std::cerr << "ERROR: min value greater than max value from Sound Effect: " << entry.soundPath << "\n";
+        std::cerr << "Error: min value greater than max value from Sound Effect: " << entry.soundPath << "\n";
         throw std::runtime_error("Undefined sound effect range");
     }
 

@@ -22,11 +22,11 @@ struct Primitive
     struct Vertex
     {
         glm::vec3 position{0.0f};
-        std::uint32_t normal{0};
-        std::uint32_t tangent{0};
+        std::uint32_t normal{0x7fc00}; // (0, 1, 0, 0) a.k.a WorldVectors::worldUp
+        std::uint32_t tangent{0x5ff00000}; // (0, 0, 1, 1)
         std::uint32_t texCoords{0};
         std::uint32_t vboIndex{0};
-        std::uint32_t color{0};
+        std::uint32_t color{0xff000000}; // (0, 0, 0, 1)
     };
 
     struct VertexSkin

@@ -38,7 +38,7 @@ void jsonLoader::saveSettingsToJSON(const GraphicsSettings &settings, const std:
 
     if (!out.is_open())
     {
-        std::cerr << "ERROR: Could not save settings to " << target.string() << "\n"
+        std::cerr << "Error: Could not save settings to " << target.string() << "\n"
                   << std::generic_category().message(errno) << "\n";
         return;
     }
@@ -47,7 +47,7 @@ void jsonLoader::saveSettingsToJSON(const GraphicsSettings &settings, const std:
 
     if (!out)
     {
-        std::cerr << "ERROR: Could not save settings to " << target.string() << "\n"
+        std::cerr << "Error: Could not save settings to " << target.string() << "\n"
                   << std::generic_category().message(errno) << "\n";
     }
 }

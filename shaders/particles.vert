@@ -34,9 +34,7 @@ void main()
 {
 	Metadata meta = metadata[gl_BaseInstance];
 	uint matrixIndex = instances[meta.visibleInstancesBaseIndex + gl_InstanceID];
-
 	mat4 modelMatrix = matrices[matrixIndex];
-	mat3 normalMatrix = mat3(modelMatrix);
 
 	color = aColor;
 	

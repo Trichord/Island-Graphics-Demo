@@ -41,7 +41,7 @@ AudioPlayer::AudioPlayer(const Scene &scene, const std::filesystem::path &audioJ
 
     if (audioJson.empty() || !std::filesystem::exists(audioJson))
     {
-        std::cerr << "ERROR: Could not load scene " << audioJson << "\n";
+        std::cerr << "Error: Could not load scene " << audioJson << "\n";
         throw std::runtime_error("Invalid Scene");
     }
 
@@ -49,7 +49,7 @@ AudioPlayer::AudioPlayer(const Scene &scene, const std::filesystem::path &audioJ
 
     if (!file.is_open())
     {
-        std::cerr << "ERROR: Failed to open " << audioJson << "\n";
+        std::cerr << "Error: Failed to open " << audioJson << "\n";
         throw std::runtime_error("Failed to open file");
     }
 
@@ -87,7 +87,7 @@ AudioPlayer::AudioPlayer(const Scene &scene, const std::filesystem::path &audioJ
 
         if (!std::filesystem::exists(triggerEntry.soundEffectEntry.soundPath))
         {
-            std::cerr << "ERROR: File does not exist: " << triggerEntry.soundEffectEntry.soundPath.string()
+            std::cerr << "Error: File does not exist: " << triggerEntry.soundEffectEntry.soundPath.string()
                       << "\n";
             throw std::runtime_error("Missing file");
         }

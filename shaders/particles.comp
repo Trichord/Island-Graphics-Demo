@@ -77,7 +77,7 @@ void main()
     float dist = length(toBlackHole);
     vec3 force = (gravity / (dist * dist)) * normalize(toBlackHole);
 
-    // Ending condtions
+    // Ending conditions
     float innerRadius = min(aabb.extent.x, min(aabb.extent.y, aabb.extent.z));
     
     float decay = dist / innerRadius;
