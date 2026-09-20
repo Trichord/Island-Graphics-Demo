@@ -52,7 +52,8 @@ void Application::run()
     registerCallbacks();
     registerJolt();
 
-    Game game{graphicsSettings, windowWidth_, windowHeight_};
+    Game game{graphicsSettings, windowWidth_, windowHeight_, [this](const std::string &s) { updateProgress(s); }};
+    glfwShowWindow(window_);
 
     while (!glfwWindowShouldClose(window_))
     {
@@ -164,6 +165,7 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
     glfwWindowHint(GLFW_STENCIL_BITS, 0);
     glfwWindowHint(GLFW_DEPTH_BITS, 0);
     glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
 #ifdef _DEBUG
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
@@ -295,6 +297,12 @@ void Application::registerJolt()
     JPH::RegisterDefaultAllocator();
     JPH::Factory::sInstance = new JPH::Factory();
     JPH::RegisterTypes();
+}
+
+void Application::updateProgress(const std::string &message)
+{
+    std::cout << message;
+    glfwPollEvents();
 }
 
 #ifdef _DEBUG

@@ -206,7 +206,7 @@ std::size_t ArrayTexture::insert(RenderTarget &renderTarget)
         throw std::runtime_error("Source texture too big for ArrayTexture");
     }
 
-    if (current_ > capacity_)
+    if (current_ >= capacity_)
         capacityError(width_, height_, internalFormat_, current_, maxArrayTextureLayers_);
 
     const GLenum target{static_cast<GLenum>(cubemaps_ ? GL_TEXTURE_CUBE_MAP_ARRAY : GL_TEXTURE_2D_ARRAY)};

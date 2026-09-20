@@ -16,6 +16,7 @@
 #include <variant>
 #include <vector>
 
+#include "game/camera.h"
 #include "models/instanced_model.h"
 #include "models/model.h"
 #include "models/particles.h"
@@ -23,7 +24,6 @@
 #include "models/skybox.h"
 #include "physics/collision_shapes.h"
 #include "renderer/shader/graphics_shader.h"
-#include "game/camera.h"
 #include "scene/directional_light.h"
 #include "scene/entry_animation.h"
 #include "scene/handle.h"
@@ -162,9 +162,11 @@ std::optional<EntryAnimation> createEntryAnimation(const Model &model)
 
 } // namespace
 
-Scene::Scene(TextureManager &textureManager, const std::filesystem::path &jsonFile) : textureManager_{textureManager}
+Scene::Scene(TextureManager &textureManager, const std::filesystem::path &jsonFile,
+             const std::function<void(const std::string &)> &updateProgress)
+    : textureManager_{textureManager}
 {
-    setupScene(jsonFile);
+    setupScene(jsonFile, updateProgress);
 }
 
 const std::vector<Scene::Entry> &Scene::getAllSceneEntries() const
@@ -312,7 +314,8 @@ void Scene::addModel(Handle handle, Model &model, const std::optional<collision:
     });
 }
 
-void Scene::setupScene(const std::filesystem::path &jsonFile)
+void Scene::setupScene(const std::filesystem::path &jsonFile,
+                       const std::function<void(const std::string &)> &updateProgress)
 {
     using namespace nlohmann;
 
@@ -359,7 +362,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
     windStrength_ = scene.wind.strength;
     windDirection_ = scene.wind.direction;
 
-    std::cout << "Loading Models... ";
+    updateProgress("Loading Models... ");
     for (auto &fileEntry : scene.entries)
     {
         Handle handle{nextHandle_++};
@@ -395,7 +398,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
     }
 
     validateSceneEntries();
-    std::cout << "Done\n";
+    updateProgress("Done\n");
 }
 
 void Scene::validateSceneEntries()

@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "game/camera.h"
 #include "models/instanced_model.h"
 #include "models/model.h"
 #include "models/particles.h"
@@ -18,7 +19,6 @@
 #include "models/skybox.h"
 #include "physics/collision_shapes.h"
 #include "physics/player_state.h"
-#include "game/camera.h"
 #include "scene/directional_light.h"
 #include "scene/entry_animation.h"
 #include "scene/handle.h"
@@ -39,7 +39,8 @@ class Scene
         std::optional<collision::Geometry> collisionGeometry;
     };
 
-    Scene(TextureManager &_textureManager, const std::filesystem::path &jsonFile);
+    Scene(TextureManager &_textureManager, const std::filesystem::path &jsonFile,
+          const std::function<void(const std::string &)> &updateProgress);
     Scene(const Scene &) = delete;
     Scene &operator=(const Scene &) = delete;
     Scene(Scene &&other) noexcept = delete;
@@ -98,7 +99,8 @@ class Scene
     std::unordered_set<Handle> updatedEntries_;
     std::unordered_map<std::string, std::size_t, StringHash, std::equal_to<>> entriesByName_;
 
-    void setupScene(const std::filesystem::path &jsonFile);
+    void setupScene(const std::filesystem::path &jsonFile,
+                    const std::function<void(const std::string &)> &updateProgress);
     void validateSceneEntries();
 
     void loadGLTFTextures(Handle handle, const Model &model);

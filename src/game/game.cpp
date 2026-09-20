@@ -1,5 +1,6 @@
 #include "game/game.h"
 
+#include <functional>
 #include <glm/glm.hpp>
 #include <iostream>
 #include <memory>
@@ -12,10 +13,12 @@
 #include <algorithm>
 #include <thread>
 
-Game::Game(const GraphicsSettings &settings, int renderWidth, int renderHeight)
-    : threadPool_{std::max(2u, std::thread::hardware_concurrency() / 2u)}, textureManager_{threadPool_, settings},
+Game::Game(const GraphicsSettings &settings, int renderWidth, int renderHeight,
+           const std::function<void(const std::string &)> &updateProgress)
+    : threadPool_{std::max(2u, std::thread::hardware_concurrency() / 2u)},
+      textureManager_{threadPool_, settings, updateProgress},
       renderer_{textureManager_, settings, renderWidth, renderHeight},
-      scene_{std::make_unique<IslandScene>(textureManager_, "./res/scenes/island_scene.json")},
+      scene_{std::make_unique<IslandScene>(textureManager_, "./res/scenes/island_scene.json", updateProgress)},
       audio_{*scene_, "./res/scenes/island_audio.json"}
 {
 
@@ -23,9 +26,9 @@ Game::Game(const GraphicsSettings &settings, int renderWidth, int renderHeight)
     playerCamera_ = {scene_->getCameraDescription(), settings.renderWidth / static_cast<float>(settings.renderHeight)};
     renderer_.initializeResources(*scene_, playerCamera_);
 
-    std::cout << "Creating Collision Mesh... ";
+    updateProgress("Creating Collision Mesh... ");
     physics_.initializeScene(*scene_);
-    std::cout << "Done\n";
+    updateProgress("Done\n");
 
     threadPool_.stopAllThreads();
 }

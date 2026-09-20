@@ -3,15 +3,16 @@
 #include "Jolt/Jolt.h"
 
 #include <Jolt/Physics/PhysicsSystem.h>
+#include <functional>
 #include <memory>
 
 #include "application/graphics_settings.h"
 #include "application/input.h"
 #include "audio/audio_player.h"
+#include "game/camera.h"
 #include "physics/physics_world.h"
 #include "physics/player_state.h"
 #include "renderer/renderer.h"
-#include "game/camera.h"
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
 #include "utilities/thread_pool.h"
@@ -19,7 +20,8 @@
 class Game
 {
   public:
-    Game(const GraphicsSettings &settings, int renderWidth, int renderHeight);
+    Game(const GraphicsSettings &settings, int renderWidth, int renderHeight,
+         const std::function<void(const std::string &)> &updateProgress);
     Game(const Game &) = delete;
     Game &operator=(const Game &) = delete;
     Game(Game &&other) = delete;

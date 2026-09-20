@@ -2,6 +2,7 @@
 
 #include <fastgltf/types.hpp>
 #include <filesystem>
+#include <functional>
 #include <glad/glad.h>
 #include <span>
 #include <unordered_map>
@@ -19,7 +20,8 @@
 class TextureManager
 {
   public:
-    TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings);
+    TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings,
+                   const std::function<void(const std::string &)> &updateProgress);
 
     // Add a gLTF model
     void loadModelTextures(const Handle handle, const fastgltf::Asset &asset, const std::filesystem::path &parentPath);
@@ -72,6 +74,9 @@ class TextureManager
     // Helpers for assigning to texture buckets
     ArrayReference findCubemapArray(int size, GLenum internalFormat);
     ArrayReference findArray(const loader::DeferredTexture &deferred, const KTXTexture &texture);
+
+    // Callback function for sending progress updates
+    std::function<void(const std::string &)> updateProgress_;
 
     void countTexture(const loader::DeferredTexture &deferred, const KTXTexture &texture);
     void insertTexture(const loader::DeferredTexture &deferred, const KTXTexture &texture);

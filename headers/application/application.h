@@ -52,40 +52,13 @@ class Application
 
     void createWindow(const GraphicsSettings &graphicsSettings);
     void processKeyboard(UserInput &input);
-
-    /**
-     * @brief Registers OpenGL function pointers, checks for supported features, and creates an OpenGL viewport
-     */
     bool createOpenGLViewport();
-
-    /**
-     * @brief Registers GLFW callbacks.  Mouse callback is seperate and should be
-     * registered last with centerMouse()
-     */
     void registerCallbacks();
-
     void registerJolt();
+    void updateProgress(const std::string &message);
 
-    /**
-     * GLFW mouse callback. Recieves updated cursor coordinates.
-     *
-     * @param window The window that recieved the event
-     * @param xPos The new x-coordinate, in screen coordinates, of the cursor.
-     * @param yPos The new y-coordinate, in screen coordinates, of the cursor.
-     */
+    // Required GLFW callbacks
     static void mouse_callback(GLFWwindow *window, double xPos, double yPos);
-
-    /**
-     * GLFW key callback, triggered when a keyboard button is pressed, repeated or
-     * released.
-     *
-     * @param window The window that received the event.
-     * @param key The keyboard key that was pressed or released.
-     * @param scancode The system-specific scancode of the key.
-     * @param action The button action, such as GLFW_PRESS, GLFW_RELEASE or
-     * GLFW_REPEAT
-     * @param mods Bit field describing which modifier keys were held down.
-     */
     static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
 };
 

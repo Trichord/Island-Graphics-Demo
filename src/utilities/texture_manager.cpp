@@ -32,8 +32,10 @@ void missingHandleError(Handle handle)
 }
 } // namespace
 
-TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings)
-    : threadPool_{threadPool}, globalAnisotropicDegree_{static_cast<float>(settings.anisotropicFiltering)}
+TextureManager::TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings,
+                               const std::function<void(const std::string &)> &updateProgress)
+    : threadPool_{threadPool}, globalAnisotropicDegree_{static_cast<float>(settings.anisotropicFiltering)},
+      updateProgress_{updateProgress}
 {
     /*
      * Fallback textures only for the smallest and easiest format in both sets. All regular textures get a 512x512 and
@@ -195,13 +197,13 @@ void TextureManager::buildAllTextures()
     // Enforce strict order. This function should get called once and only once
     texturesBuilt_ = true;
 
-    std::cout << "Loading Textures... ";
+    updateProgress_("Loading Textures... ");
 
     // If models share an atlas and have deleted the file, correct array indexes will be assigned later from the cached
     // file names, but the texture itself will be empty.
     std::vector<KTXTexture> textures{loadTexturesFromPool(deferredTextures_)};
 
-    std::cout << "Done\n";
+    updateProgress_("Done\n");
 
     // Count all the buckets and pre-size the ArrrayTextures since they're immutable afterwards
     for (std::size_t i{0}; i < deferredTextures_.size(); ++i)
