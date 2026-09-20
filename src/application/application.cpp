@@ -132,12 +132,12 @@ void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
 
 void Application::registerCallbacks()
 {
+    glfwSetWindowUserPointer(window_, this);
     glfwSetFramebufferSizeCallback(window_, framebuffer_size_callback);
     glfwSetKeyCallback(window_, Application::keyCallback);
     glfwSetCursorPosCallback(window_, Application::mouse_callback);
     glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetWindowIconifyCallback(window_, window_iconify_callback);
-    glfwSetWindowUserPointer(window_, this);
 }
 
 void Application::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -174,9 +174,17 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
     if (graphicsSettings.fullscreen)
     {
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 
-        const GLFWvidmode *mode{glfwGetVideoMode(glfwGetPrimaryMonitor())};
-        window_ = glfwCreateWindow(mode->width, mode->height, "Island Graphics Demo", glfwGetPrimaryMonitor(), nullptr);
+        GLFWmonitor *monitor{glfwGetPrimaryMonitor()};
+        const GLFWvidmode *mode{glfwGetVideoMode(monitor)};
+
+        int monitorX{0};
+        int monitorY{0};
+        glfwGetMonitorPos(monitor, &monitorX, &monitorY);
+        
+        window_ = glfwCreateWindow(mode->width, mode->height, "Island Graphics Demo", nullptr, nullptr);
+        glfwSetWindowPos(window_, monitorX, monitorY);
     }
     else
         window_ = glfwCreateWindow(graphicsSettings.renderWidth, graphicsSettings.renderHeight, "Island Graphics Demo",
