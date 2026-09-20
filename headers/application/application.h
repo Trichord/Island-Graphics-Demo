@@ -7,9 +7,7 @@
 #include "application/input.h"
 
 /**
- * @brief Handles window creation, user input, and the main loop.
- *
- * Also initializes OpenGL and passes settings from the config window to OpenGL.
+ * @brief Verifies OpenGL capabilities, handles window creation, user input, and the main loop.
  */
 class Application
 {
@@ -51,18 +49,13 @@ class Application
     std::filesystem::path savePath{"./settings.json"};
 
     void createWindow(const GraphicsSettings &graphicsSettings);
-    void processKeyboard(UserInput &input);
     bool createOpenGLViewport();
     void registerCallbacks();
     void registerJolt();
     void updateProgress(const std::string &message);
+    void processKeyboard(UserInput &input);
 
     // Required GLFW callbacks
     static void mouse_callback(GLFWwindow *window, double xPos, double yPos);
     static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
 };
-
-#ifdef _DEBUG
-void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length,
-                            const char *message, const void *userParam);
-#endif

@@ -21,6 +21,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 set(HEADERS
     headers/application/application.h
     headers/application/gl_context.h
+    headers/application/gl_debug.h
     headers/application/glfw_callbacks.h
     headers/application/graphics_settings.h
     headers/application/input.h
