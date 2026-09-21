@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "application/gl_context.h"
+#include "application/glfw_callbacks.h"
 #include "application/graphics_settings.h"
 #include "renderer/textures.h"
 #include "utilities/texture_loader.h"
@@ -24,11 +25,6 @@ SettingsWindow::~SettingsWindow()
 {
     if (textureID_)
         glDeleteTextures(1, &textureID_);
-}
-
-static void glfw_error_callback(int error, const char *description)
-{
-    std::cerr << "GLFW Error " << error << description << "\n";
 }
 
 bool SettingsWindow::launchSettingsWindow(GraphicsSettings &settings)
@@ -60,7 +56,6 @@ bool SettingsWindow::launchSettingsWindow(GraphicsSettings &settings)
 
 bool SettingsWindow::createWindow()
 {
-    // Set the callback before trying to init, to capture any error messages
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
         return false;

@@ -87,7 +87,6 @@ set(HEADERS
 set(SOURCES
     src/main.cpp
     src/application/application.cpp
-    src/application/glfw_callbacks.cpp
     src/application/settings_window.cpp
     src/audio/audio_player.cpp
     src/audio/miniaudio_impl.cpp

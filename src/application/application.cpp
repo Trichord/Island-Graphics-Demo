@@ -20,6 +20,20 @@
 #include "application/gl_debug.h"
 #endif
 
+namespace
+{
+// Callback for GLFW
+void framebuffer_size_callback(GLFWwindow *window, int width, int height)
+{
+    Application *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
+    if (!app)
+        return;
+
+    app->setWindow(width, height);
+}
+} // namespace
+
 Application::~Application()
 {
     delete JPH::Factory::sInstance;
@@ -162,6 +176,8 @@ void Application::keyCallback(GLFWwindow *window, int key, int scancode, int act
 
 void Application::createWindow(const GraphicsSettings &graphicsSettings)
 {
+    // Set the callback before trying to init, to capture any error messages
+    glfwSetErrorCallback(glfw_error_callback);
     glfwInit();
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);

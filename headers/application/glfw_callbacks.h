@@ -1,17 +1,23 @@
 #pragma once
 
-#include "application/gl_context.h"
+#include <GLFW/glfw3.h>
+#include <iostream>
 
-/**
- * @brief Callback handles iconfiying and restoring the application window
- */
-void window_iconify_callback(GLFWwindow* window, int iconified);
+inline void window_iconify_callback(GLFWwindow *window, int iconified)
+{
+    if (iconified)
+    {
+        // minimized = true;
+        glfwWaitEvents();
+    }
+    else
+    {
+        // minimized = false;
+        glfwRestoreWindow(window);
+    }
+}
 
-/**
- * GLFW window resize callback. Receives the new size of the framebuffer
- *
- * @param window The window whose framebuffer was resized.
- * @param width The new width, in pixels, of the framebuffer.
- * @param height The new height, in pixels, of the framebuffer.
- */
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+inline void glfw_error_callback(int error, const char *description)
+{
+    std::cerr << "GLFW Error " << error << ": " << description << "\n";
+}
