@@ -63,6 +63,7 @@ class TextureManager
     std::unordered_map<Handle, MaterialRange> materialLookup_;
 
     // Cached filenames for sharing atlases. Paths are ignored - image filenames must be unique across the project
+    std::unordered_set<std::filesystem::path> seenPaths_;
     std::unordered_map<std::filesystem::path, SamplerArrayIndex> filepathCache_;
 
     // Textures to be uploaded

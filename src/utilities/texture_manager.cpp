@@ -23,6 +23,8 @@
 #include "utilities/texture_utilities.h"
 #include "utilities/thread_pool.h"
 
+#include <iostream>
+
 namespace
 {
 void missingHandleError(Handle handle)
@@ -230,6 +232,7 @@ void TextureManager::buildAllTextures()
             arrayCubemaps_[i].bindTextureUnit(TextureUnit::arrayCubemapBase + i);
 
     assignFallbacks();
+    seenPaths_.clear();
     filepathCache_.clear();
     deferredTextures_.clear();
 }
@@ -251,6 +254,11 @@ std::vector<KTXTexture> TextureManager::loadTexturesFromPool(const std::vector<l
 void TextureManager::countTexture(const loader::DeferredTexture &deferred, const KTXTexture &texture)
 {
     if (!texture)
+        return;
+
+    auto [iter, inserted] = seenPaths_.insert(deferred.path.filename());
+
+    if (!inserted)
         return;
 
     ArrayReference arrayRef{findArray(deferred, texture)};
