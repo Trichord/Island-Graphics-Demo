@@ -20,7 +20,7 @@
 class Game
 {
   public:
-    Game(const GraphicsSettings &settings, int renderWidth, int renderHeight,
+    Game(const GraphicsSettings &settings, int windowWidth, int windowHeight,
          const std::function<void(const std::string &)> &updateProgress);
     Game(const Game &) = delete;
     Game &operator=(const Game &) = delete;
@@ -32,7 +32,6 @@ class Game
     void update(const UserInput &input, float time, float deltaTime);
 
   private:
-    // Critical resources
     ThreadPool threadPool_;
     TextureManager textureManager_;
     Renderer renderer_;
@@ -40,9 +39,6 @@ class Game
     PhysicsWorld physics_;
     AudioPlayer audio_;
     Camera playerCamera_;
-
-    // Setup
-    void registerJolt();
 
     PlayerState updatePhysics(const UserInput &input, float deltaTime);
     void updateAudio(const PlayerState &state, float deltaTime);

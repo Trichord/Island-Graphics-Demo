@@ -24,6 +24,8 @@ SoundEffect::SoundEffect(AudioEngine &engine, const SoundEffectEntry &entry, con
     }
 
     ma_uint32 flags{0};
+
+    // Avoids static cast for brace initialization
     if (entry.streaming)
         flags |= MA_SOUND_FLAG_STREAM;
     else

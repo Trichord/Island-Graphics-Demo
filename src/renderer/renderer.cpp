@@ -134,9 +134,6 @@ void Renderer::render(const Scene &scene, const Camera &camera, float time, floa
 
     updateParticles();
     updateSkinnedVertices();
-
-    // Must follow skinned. Any animated + exploding vertices will have a fresh write into the main VBO and can be used
-    // as a source vertex instead of the positions stored in the SSBO
     updateExplodingVertices();
 
     if (graphicsSettings_.shadowResolution && (framesRendered_ % 2u || directionChanged))

@@ -12,9 +12,8 @@ constexpr float maxPitch{85.0f};
 constexpr float minPitch{-maxPitch};
 
 Camera::Camera(const Camera::Description &description, float aspectRatio)
-    : yaw_{description.yaw}, pitch_{description.pitch}, position_{description.position},
-      fov_{description.fov}, nearPlane_{description.nearPlane}, farPlane_{description.farPlane},
-      aspectRatio_{aspectRatio}
+    : yaw_{description.yaw}, pitch_{description.pitch}, position_{description.position}, fov_{description.fov},
+      nearPlane_{description.nearPlane}, farPlane_{description.farPlane}, aspectRatio_{aspectRatio}
 {
 }
 
@@ -116,7 +115,8 @@ void Camera::setPosition(const glm::vec3 &position)
     dirtyMatrices_ = true;
 }
 
-// Maps world orientation to cubemap directions
+// Sets camera to all the world vectors, including ones unreachable through pitch assignments. Useful for cubemap face
+// generation.
 void Camera::setWorldOrientation(WorldOrientation orientation)
 {
     using enum WorldOrientation;

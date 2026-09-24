@@ -26,7 +26,7 @@
 class Renderer
 {
   public:
-    Renderer(TextureManager &textureManager, const GraphicsSettings &settings, int screenWidth, int screenHeight);
+    Renderer(TextureManager &textureManager, const GraphicsSettings &settings, int windowWidth, int windowHeight);
     Renderer(const Renderer &) = delete;
     Renderer &operator=(const Renderer &) = delete;
     Renderer(Renderer &&other) = delete;

@@ -15,15 +15,20 @@
 #include "scene/handle.h"
 #include "scene/scene.h"
 
+/**
+ * @brief Audio player for a Scene. Loads sounds from JSON and links named audio triggers to identically named Scene
+ * objects.
+ */
 class AudioPlayer
 {
   public:
     AudioPlayer(const Scene &scene, const std::filesystem::path &audioJson);
 
     void playCharacterEffects(const PlayerState &state);
-    void updateFromScene(UpdatedSceneEntries updatedEntries);
     void playTriggers(const PlayerState &state, float deltaTime);
     void playCollisionSounds(const std::vector<physics::ObjectCollision> &collisions, float deltaTime);
+
+    void updateFromScene(UpdatedSceneEntries updatedEntries);
 
   private:
     struct Trigger
@@ -43,7 +48,7 @@ class AudioPlayer
 
         float getFadeFactor(const glm::vec3 &position) const
         {
-            // No fade distance defined
+            // No fade distance defined, return 1.0 so volume is unaffected.
             if (fadeDistance <= 0.0f)
                 return 1.0f;
 
@@ -83,6 +88,8 @@ class AudioPlayer
 
     std::vector<Trigger> triggers_;
     std::vector<CollisionSound> collisionSounds_;
+
+    // Using unique pointer because resizing of the vector invalidates the address of the stored sound (ma_sound)
     std::vector<std::unique_ptr<SoundEffect>> soundEffects_;
 
     std::unordered_map<Handle, std::size_t> triggersByHandle_;

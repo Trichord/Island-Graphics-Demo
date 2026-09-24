@@ -13,24 +13,25 @@
 #include <algorithm>
 #include <thread>
 
-Game::Game(const GraphicsSettings &settings, int renderWidth, int renderHeight,
+Game::Game(const GraphicsSettings &settings, int windowWidth, int windowHeight,
            const std::function<void(const std::string &)> &updateProgress)
     : threadPool_{std::max(2u, std::thread::hardware_concurrency() / 2u)},
       textureManager_{threadPool_, settings, updateProgress},
-      renderer_{textureManager_, settings, renderWidth, renderHeight},
+      renderer_{textureManager_, settings, windowWidth, windowHeight},
       scene_{std::make_unique<IslandScene>(textureManager_, "./res/scenes/island_scene.json", updateProgress)},
       audio_{*scene_, "./res/scenes/island_audio.json"}
 {
-
     // Initialize scene dependent resources
     playerCamera_ = {scene_->getCameraDescription(), settings.renderWidth / static_cast<float>(settings.renderHeight)};
     renderer_.initializeResources(*scene_, playerCamera_);
 
+    // Texture Manager defers loading of textures from file until all arrays have been pre-allocated from
+    // Renderer::initializeResources. Safe to stop the pool now.
+    threadPool_.stopAllThreads();
+
     updateProgress("Creating Collision Mesh... ");
     physics_.initializeScene(*scene_);
     updateProgress("Done\n");
-
-    threadPool_.stopAllThreads();
 }
 
 void Game::resizeExternalResolution(int width, int height)
@@ -47,10 +48,8 @@ void Game::update(const UserInput &input, float time, float deltaTime)
     scene_->onUpdate(state, time, deltaTime);
     updateAudio(state, deltaTime);
 
-    // Draw
     renderer_.render(*scene_, playerCamera_, time, deltaTime);
 
-    // Clear
     scene_->clearUpdates();
     physics_.clearFlags();
 }
@@ -60,7 +59,7 @@ PlayerState Game::updatePhysics(const UserInput &userInput, float deltaTime)
     physics_.update(userInput, playerCamera_.getFront(), deltaTime);
     physics_.postPhysicsSync(*scene_);
 
-    // Synchronize camera
+    // Synchronize camera with character position from the physics engine
     const glm::vec3 pos{physics_.getPlayerPosition()};
     playerCamera_.setPosition(pos);
 

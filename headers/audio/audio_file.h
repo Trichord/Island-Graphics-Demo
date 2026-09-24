@@ -36,7 +36,10 @@ struct AudioTriggerEntry
 
 struct CharacterSoundEntry
 {
+    // Pitch modifier applied to all footstep sounds to create a different sounding landing effect (typically pitched down).
     float landingPitchScale{1.0f};
+
+    // Volume modifier applied to all footstep sounds to create a (usually louder) landing effect.
     float landingVolumeScale{1.0f};
 
     std::vector<SoundEffectEntry> footsteps;

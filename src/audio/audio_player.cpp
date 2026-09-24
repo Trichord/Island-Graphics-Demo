@@ -87,8 +87,7 @@ AudioPlayer::AudioPlayer(const Scene &scene, const std::filesystem::path &audioJ
 
         if (!std::filesystem::exists(triggerEntry.soundEffectEntry.soundPath))
         {
-            std::cerr << "Error: File does not exist: " << triggerEntry.soundEffectEntry.soundPath.string()
-                      << "\n";
+            std::cerr << "Error: File does not exist: " << triggerEntry.soundEffectEntry.soundPath.string() << "\n";
             throw std::runtime_error("Missing file");
         }
 
@@ -96,6 +95,13 @@ AudioPlayer::AudioPlayer(const Scene &scene, const std::filesystem::path &audioJ
         if (!triggerEntry.name.empty())
         {
             const Scene::Entry &sceneEntry{scene.viewEntry(triggerEntry.name)};
+
+            if (sceneEntry.worldTransforms.size() != 1)
+            {
+                std::cerr << "Error: Cannot match audio to instanced object: " << triggerEntry.name << "\n";
+                throw std::logic_error("Cannot instance audio");
+            }
+
             triggersByHandle_.emplace(sceneEntry.handle, triggers_.size());
         }
 
@@ -125,6 +131,13 @@ AudioPlayer::AudioPlayer(const Scene &scene, const std::filesystem::path &audioJ
             continue;
 
         const Scene::Entry &sceneEntry{scene.viewEntry(collisionEntry.name)};
+
+        if (sceneEntry.worldTransforms.size() != 1)
+        {
+            std::cerr << "Error: Cannot match audio to instanced object: " << collisionEntry.name << "\n";
+            throw std::logic_error("Cannot instance audio");
+        }
+
         const std::size_t index{addSound(collisionEntry.soundEffectEntry)};
         collisionsByHandle_.emplace(sceneEntry.handle, collisionSounds_.size());
 
@@ -159,9 +172,6 @@ void AudioPlayer::updateFromScene(UpdatedSceneEntries updatedEntries)
         if (handleIter == triggersByHandle_.end())
             continue;
 
-        if (entry.worldTransforms.size() != 1)
-            throw std::logic_error("Cannot update instanced audio");
-
         Trigger &trigger{triggers_[handleIter->second]};
 
         // No instanced triggers.
@@ -177,9 +187,6 @@ void AudioPlayer::updateFromScene(UpdatedSceneEntries updatedEntries)
 
         if (collisionIter == collisionsByHandle_.end())
             continue;
-
-        if (entry.worldTransforms.size() != 1)
-            throw std::logic_error("Cannot update instanced audio");
 
         CollisionSound &collisionSound{collisionSounds_[collisionIter->second]};
         SoundEffect &effect{*soundEffects_[collisionSound.soundIndex]};
@@ -299,6 +306,7 @@ std::vector<SoundEffectEntry> AudioPlayer::createLandings(const std::vector<Soun
         landings.emplace_back(footsteps.front());
     }
 
+    // Add the landing effect modifiers to create distinct sounds out of footsteps
     for (SoundEffectEntry &landing : landings)
     {
         landing.volumeLow *= volumeMultiplier;

@@ -28,7 +28,7 @@
  * Matrices: Per (primitive × instance) pair. World-space transforms.
  *
  * Visible Instances: Per (primitive × instance) pair. Indices into Matrices buffer for
- *                   instances that passed the frustum test. Each primitive owns a
+ *                   instances that passed the culling test(s). Each primitive owns a
  *                   contiguous section sized to its instance count.
  *
  * Visibility Map: Per (primitive × instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
