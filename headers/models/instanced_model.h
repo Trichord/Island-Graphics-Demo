@@ -14,7 +14,7 @@ class InstancedModel : public Model
     InstancedModel(const std::filesystem::path &modelPath, ShaderType shader,
                    const std::filesystem::path &positionsPath, float minScale = 1.0f, float maxScale = 1.0f);
 
-    // Load positions from storage and generate matrices
+    // Load positions from disk and generate matrices
     std::vector<Transform> loadInstancedTransforms() const;
 
   private:

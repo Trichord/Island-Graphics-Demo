@@ -1,9 +1,11 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <unordered_map>
 #include <vector>
 
+// Simplified node graph from gLTF, for animations
 struct NodeGraph
 {
     std::vector<int> parents;

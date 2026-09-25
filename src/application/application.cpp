@@ -76,6 +76,13 @@ void Application::run()
 
     while (!glfwWindowShouldClose(window_))
     {
+        // Sleep if minimized
+        while (glfwGetWindowAttrib(window_, GLFW_ICONIFIED) && !glfwWindowShouldClose(window_))
+        {
+            glfwWaitEvents();
+            lastFrame_ = glfwGetTime();
+        }
+
         // Delta Time
         currentFrame_ = glfwGetTime();
         deltaTime_ = static_cast<float>(currentFrame_ - lastFrame_);
@@ -156,7 +163,6 @@ void Application::registerCallbacks()
     glfwSetKeyCallback(window_, Application::keyCallback);
     glfwSetCursorPosCallback(window_, Application::mouse_callback);
     glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetWindowIconifyCallback(window_, window_iconify_callback);
 }
 
 void Application::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -200,12 +206,7 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
         GLFWmonitor *monitor{glfwGetPrimaryMonitor()};
         const GLFWvidmode *mode{glfwGetVideoMode(monitor)};
 
-        int monitorX{0};
-        int monitorY{0};
-        glfwGetMonitorPos(monitor, &monitorX, &monitorY);
-
         window_ = glfwCreateWindow(mode->width, mode->height, "Island Graphics Demo", nullptr, nullptr);
-        glfwSetWindowPos(window_, monitorX, monitorY);
     }
     else
         window_ = glfwCreateWindow(graphicsSettings.renderWidth, graphicsSettings.renderHeight, "Island Graphics Demo",
@@ -215,6 +216,16 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
     {
         std::cout << "Failed to create GLFW window\n";
         glfwTerminate();
+    }
+
+    // Safe to set now the window pointer check has passed
+    if (graphicsSettings.fullscreen)
+    {
+        int monitorX{0};
+        int monitorY{0};
+        GLFWmonitor *monitor{glfwGetPrimaryMonitor()};
+        glfwGetMonitorPos(monitor, &monitorX, &monitorY);
+        glfwSetWindowPos(window_, monitorX, monitorY);
     }
 
     glfwMakeContextCurrent(window_);

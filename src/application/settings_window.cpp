@@ -148,6 +148,12 @@ bool SettingsWindow::renderSettingsWindow(GraphicsSettings &settings)
     {
         using namespace ImGui;
 
+        if (glfwGetWindowAttrib(settingsWindow_, GLFW_ICONIFIED))
+        {
+            glfwWaitEvents();
+            continue;
+        }
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         NewFrame();

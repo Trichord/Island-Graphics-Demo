@@ -9,7 +9,8 @@ AABB::AABB(float minX, float minY, float minZ, float maxX, float maxY, float max
 {
 }
 
-AABB::AABB(const glm::vec3 &min_, const glm::vec3 &max_) : center_{0.5f * (min_ + max_)}, halfExtent_{0.5f * (max_ - min_)}
+AABB::AABB(const glm::vec3 &min_, const glm::vec3 &max_)
+    : center_{0.5f * (min_ + max_)}, halfExtent_{0.5f * (max_ - min_)}
 {
 }
 
@@ -29,31 +30,12 @@ AABB AABB::transform(const glm::mat4 &modelMatrix) const
 bool AABB::intersects(const std::array<glm::vec4, 6> &planes, const glm::mat4 &modelMatrix) const
 {
     const AABB worldAABB{transform(modelMatrix)};
-
-    for (const glm::vec4 &plane : planes)
-    {
-        float d{glm::dot(worldAABB.center_, glm::vec3{plane})};
-        float r{glm::dot(worldAABB.halfExtent_, glm::vec3{glm::abs(plane)})};
-
-        if (d + r < -plane.w)
-            return false;
-    }
-
-    return true;
+    return aabbIntersects(planes, worldAABB.getCenter(), worldAABB.getHalfExtent());
 }
 
 bool AABB::intersects(const std::array<glm::vec4, 6> &planes) const
 {
-    for (const glm::vec4 &plane : planes)
-    {
-        float d{glm::dot(center_, glm::vec3{plane})};
-        float r{glm::dot(halfExtent_, glm::vec3{glm::abs(plane)})};
-
-        if (d + r < -plane.w)
-            return false;
-    }
-
-    return true;
+    return aabbIntersects(planes, center_, halfExtent_);
 }
 
 bool AABB::pointInside(const glm::vec3 &point) const
@@ -97,4 +79,19 @@ glm::vec3 AABB::getMin() const
 glm::vec3 AABB::getMax() const
 {
     return center_ + halfExtent_;
+}
+
+bool AABB::aabbIntersects(const std::array<glm::vec4, 6> &planes, const glm::vec3 &center,
+                          const glm::vec3 &halfExtent) const
+{
+    for (const glm::vec4 &plane : planes)
+    {
+        float d{glm::dot(center, glm::vec3{plane})};
+        float r{glm::dot(halfExtent, glm::vec3{glm::abs(plane)})};
+
+        if (d + r < -plane.w)
+            return false;
+    }
+
+    return true;
 }

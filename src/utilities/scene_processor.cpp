@@ -43,12 +43,12 @@ AABB getSceneBounds(const Scene &scene)
     {
         using enum ShaderType;
 
-        hasGeometry = true;
-
         for (const Primitive &primitive : entry.primitives)
         {
             if (primitive.shaderType == ocean || primitive.shaderType == skybox)
                 continue;
+
+            hasGeometry = true;
 
             for (const Transform &transform : entry.worldTransforms)
             {
@@ -670,7 +670,7 @@ std::vector<ExplodingVertexMap> SceneProcessor::createExplodingVerticesMap(const
         {
             const glm::vec3 a{entry.primitive->vertices[i].position};
             const glm::vec3 b{entry.primitive->vertices[i + 1].position};
-            const glm::vec3 c{entry.primitive->vertices[i + 2].position};      
+            const glm::vec3 c{entry.primitive->vertices[i + 2].position};
             glm::vec3 centroidNormal{glm::cross(b - a, c - a)};
 
             if (glm::length(centroidNormal) > 0.0001f)

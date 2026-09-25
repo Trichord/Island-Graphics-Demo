@@ -234,7 +234,7 @@ std::size_t ArrayTexture::insert(const KTXTexture &texture)
         throw std::runtime_error("Uninitialized array texture");
     }
 
-    if (current_ > capacity_)
+    if (current_ >= capacity_)
         capacityError(width_, height_, internalFormat_, current_, maxArrayTextureLayers_);
 
     validate(texture);

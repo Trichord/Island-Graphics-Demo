@@ -17,6 +17,10 @@
 #include "utilities/texture_manager.h"
 #include "utilities/thread_pool.h"
 
+/**
+ * @brief High level coordinator between the renderer and game world. Owns all resources to load and play the game.
+ * Recieves user input from application layer above.
+ */
 class Game
 {
   public:

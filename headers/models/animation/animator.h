@@ -31,10 +31,12 @@ class Animator
     Animation *currentAnimation_{nullptr};
     Animation *nextAnimation_{nullptr};
 
+    // Scratch space for accumulating new animations. Avoids heap allocations every frame.
     std::vector<glm::vec3> localTranslations_;
     std::vector<glm::quat> localRotations_;
     std::vector<glm::vec3> localScales_;
 
+    // Scratch space for blending two animations
     std::vector<glm::vec3> nextLocalTranslations_;
     std::vector<glm::quat> nextLocalRotations_;
     std::vector<glm::vec3> nextLocalScales_;
