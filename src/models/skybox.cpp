@@ -12,17 +12,17 @@
 #include "models/primitive.h"
 #include "renderer/shader/graphics_shader.h"
 
-constexpr float skyboxSize{1e18f};
-
 Skybox::Skybox(const std::filesystem::path &imagePath) : imagePath_{imagePath}
 {
+    constexpr float skyboxSize{1e18f};
+
     // Make the skybox have a massive AABB so it never gets culled
     AABB aabb{glm::vec3{-skyboxSize}, glm::vec3{skyboxSize}};
 
     std::vector<Primitive::Vertex> vertices{
-        {.position = glm::vec3{-3.0f, -1.0f, 1.0f}},
+        {.position = glm::vec3{-1.0f, 3.0f, 1.0f}},
+        {.position = glm::vec3{-1.0f, -1.0f, 1.0f}},
         {.position = glm::vec3{3.0f, -1.0f, 1.0f}},
-        {.position = glm::vec3{0.0f, 2.0f, 1.0f}},
     };
 
     std::vector<std::uint32_t> indices{0u, 1u, 2u};

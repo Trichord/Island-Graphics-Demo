@@ -6,6 +6,10 @@
 #include "models/aabb.h"
 #include "models/primitive.h"
 
+/**
+ * @brief A screen space triangle with massive (nearly uncullable) AABB, designed to fit into the GPU driven pipeline
+ * without special draw calls.
+ */
 class Skybox
 {
   public:

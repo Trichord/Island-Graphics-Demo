@@ -8,6 +8,9 @@
 #include "renderer/shader/graphics_shader.h"
 #include "utilities/transform.h"
 
+/**
+ * @brief Instanced gLTF model, with positions loaded from disk. Supports animation but all models will run in lockstep.
+ */
 class InstancedModel : public Model
 {
   public:
@@ -23,5 +26,5 @@ class InstancedModel : public Model
     float maxScale_{1.0f};
 
     std::vector<glm::vec3> loadPositions() const;
-    std::vector<Transform> randomizeRotationScale(std::vector<glm::vec3> &positions) const;
+    std::vector<Transform> randomizeRotationScale(const std::vector<glm::vec3> &positions) const;
 };

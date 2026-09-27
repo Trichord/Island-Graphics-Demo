@@ -12,6 +12,12 @@
 #include "models/primitive.h"
 #include "renderer/shader/graphics_shader.h"
 
+/**
+ * @brief gLTF model. Non animated models can opt into the vertex explosion visual effect. Exists only as a load-time
+ * container, to be consumed and turned into a Scene entry.
+ *
+ * Warning: Explosion effect may hugely increase vertex count.
+ */
 class Model
 {
   public:

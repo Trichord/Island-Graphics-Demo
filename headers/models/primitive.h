@@ -22,10 +22,10 @@ struct Primitive
     struct Vertex
     {
         glm::vec3 position{0.0f};
-        std::uint32_t normal{0x7fc00}; // (0, 1, 0, 0) a.k.a WorldVectors::worldUp
+        std::uint32_t normal{0x7fc00};     // (0, 1, 0, 0) a.k.a WorldVectors::worldUp
         std::uint32_t tangent{0x5ff00000}; // (0, 0, 1, 1)
         std::uint32_t texCoords{0};
-        std::uint32_t vboIndex{0};
+        std::uint32_t vboIndex{0}; // Allows GPU threads working at the vertex level to write back to the main VBO.
         std::uint32_t color{0xff000000}; // (0, 0, 0, 1)
     };
 
@@ -35,9 +35,13 @@ struct Primitive
         glm::uvec4 boneIDs{0u};
     };
 
+    // Explosion effect driven by world space player distance
     struct VertexExplosion
     {
+        // Minimum distance, where if the player <= original position + this value, the primitive will be whole.
         float minDistance{0.0f};
+
+        // If the player is >= original position + max distance, the triangles will stop here
         float maxDistance{0.0f};
     };
 

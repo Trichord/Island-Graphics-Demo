@@ -32,16 +32,21 @@ Model::Model(const std::filesystem::path &path, ShaderType shader,
 
         primitive.explosionDistances = vertexExplosion;
 
+        // Expand all indices to eliminate shared verts. For the explosion effect, each triangle must be distinct with
+        // its own geometric normal.
         std::vector<Primitive::Vertex> expandedTris;
         expandedTris.reserve(primitive.indices.size());
-
         for (std::uint32_t i{0}; i < primitive.indices.size(); ++i)
             expandedTris.emplace_back(primitive.vertices[primitive.indices[i]]);
 
+        // Rewrite indices to match new verts (identity indices, i.e. 0, 1, 2, ..., n)
         primitive.vertices = std::move(expandedTris);
         std::iota(primitive.indices.begin(), primitive.indices.end(), 0);
 
+        // Fix AABB so its not culled at max explosion size
         primitive.aabb.setHalfExtent(primitive.aabb.getHalfExtent() + vertexExplosion->maxDistance);
+
+        // Since we can now see the back sides of triangles when exploded, force the alpha mode
         primitive.alphaMode = AlphaMode::mask;
     }
 }

@@ -384,7 +384,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile,
                                                         entry.instancedEntry->positionsPath,
                                                         entry.instancedEntry->minScale, entry.instancedEntry->maxScale};
                                addModel(handle, instanced, entry.collisionGeometry, entry.name, entry.cubemapPath);
-                               entries_.back().worldTransforms = std::move(instanced.loadInstancedTransforms());
+                               entries_.back().worldTransforms = instanced.loadInstancedTransforms();
                            }
                            else
                            {
@@ -405,6 +405,12 @@ void Scene::validateSceneEntries()
 {
     for (Scene::Entry &entry : entries_)
     {
+        if (entry.worldTransforms.empty())
+        {
+            std::cerr << "Error: scene entry handle: " << entry.handle << " has no world transforms\n";
+            throw std::runtime_error("Empty transforms");
+        }
+
         validatePrimitives(entry);
         splitOnShaderType(entry);
         expandAnimatedAABBs(entry);
