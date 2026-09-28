@@ -50,12 +50,14 @@ Soon after learning instancing, I found my school laptop (running an Intel Iris 
 ![Vertex Explosion][explosion-effect]
 
 ### Culling Demo
-<a href="https://www.youtube.com/watch?v=4OVsnVp6WYw" target="_blank"><img src="https://img.youtube.com/vi/4OVsnVp6WYw/hqdefault.jpg" alt="GPU Culling Demo" width="480"></a>
+[![GPU Culling Demo][culling-thumb]][culling-video]
 
 <!-- Markdown links & images -->
 [grass-screen]: images/screenshot_1.jpg
 [torus-screen]: images/screenshot_2.jpg
 [beach-screen]: images/screenshot_3.jpg
 [explosion-effect]: images/vertex_explosion.webp
+[culling-thumb]: https://img.youtube.com/vi/4OVsnVp6WYw/maxresdefault.jpg
+[culling-video]: https://www.youtube.com/watch?v=4OVsnVp6WYw
 
 
