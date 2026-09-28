@@ -9,7 +9,7 @@
 
 <br>Code samples licensed under
 <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a>
-<br><br> This project started as LearnOpenGL tutorials. Most recognizable are the camera, shader base class, and several shaders (PBR, shadow implementation). Treat anything resembling LearnOpenGL material as derived.
+<br><br> This project started as LearnOpenGL tutorials. The following implementations should be considered as derived from LearnOpenGL and retains the original license: Camera class, Shader class, PBR implementation, Application::mouse_callback
 
 </details>
 

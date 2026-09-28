@@ -15,9 +15,9 @@
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/Shape/SubShapeID.h>
 #include <Jolt/Physics/PhysicsSystem.h>
-#include <vector>
 #include <glm/glm.hpp>
 #include <optional>
+#include <vector>
 
 #include "physics/physics_utilities.h"
 
@@ -68,6 +68,7 @@ class CharacterCapsule : public JPH::CharacterContactListener
     // Terrain interaction
     static constexpr float maxSlopeAngle_{JPH::DegreesToRadians(50.0f)};
 
+    // State tracking
     bool crouched_{false};
     bool allowSliding_{false};
     bool characterSprinting_{false};
@@ -75,8 +76,6 @@ class CharacterCapsule : public JPH::CharacterContactListener
 
     JPH::Vec3 desiredVelocity_{0.0f, 0.0f, 0.0f};
     Settings capsuleSettings_;
-
-    // Non-owning pointers
     JPH::PhysicsSystem &physicsSystem_;
     JPH::TempAllocatorImpl &tempAllocator_;
 
