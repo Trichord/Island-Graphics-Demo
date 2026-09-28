@@ -60,4 +60,42 @@ Soon after learning instancing, I found my school laptop (running an Intel Iris 
 [culling-thumb]: https://img.youtube.com/vi/4OVsnVp6WYw/maxresdefault.jpg
 [culling-video]: https://www.youtube.com/watch?v=4OVsnVp6WYw
 
+## Performance
 
+### Intel Iris Xe
+Average 30-45 FPS
+
+* 1920x1080 resolution
+* 2x MSAA 
+* 2x anisotropic filtering 
+* 1024x1024 shadow maps 
+* 512x512 cubemaps
+
+Crouched in heavy grass: 25 FPS
+
+### 4080 Super
+Average 600-900 FPS
+
+* 2560x1440 resolution
+* 8x MSAA 
+* 16x anisotropic filtering 
+* 4096x4096 shadow maps 
+* 2048x2048 cubemaps
+
+Crouched in heavy grass: ~550 FPS
+
+## Fun Bugs
+
+* Broke the MSVC compiler. Started a [Visual Studio Developer Thread](https://developercommunity.visualstudio.com/t/Fatal-error-C1001:-Internal-compiler-err/11055388) to report it, worked for months to catch it, and got it moved to "Under Consideration". It appears to be a race condition in link time code generation under partial recompilation. The script to reproduce it commented out a single line of code, compiled, uncommented, then recompiled, in a loop.
+* Hi-Z. All of it. Including finding out the debug camera was sending its depth information to the Hi-Z buffer. I thought it was broken - turns out when the depth map contains the entire island, and you're testing against that, not much gets culled.
+
+## Build Requirements
+
+## Build Instructions
+
+## AI Use Disclaimer
+The following code is 100% AI generated:
+* Build scripts (CMake, vcpkg)
+* Blender tools (terrain chunking, position generation)
+
+AI was used heavily for debugging, walking through new algorithms, OpenGL API usage, and providing guidance on architectural decisions. Ultimately, the best design came from not consulting AI at all and fixing the code that bothered me.
