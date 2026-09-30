@@ -52,17 +52,9 @@ Soon after learning instancing, I found my school laptop (running an Intel Iris 
 ### Culling Demo
 [![GPU Culling Demo][culling-thumb]][culling-video]
 
-<!-- Markdown links & images -->
-[grass-screen]: images/screenshot_1.jpg
-[torus-screen]: images/screenshot_2.jpg
-[beach-screen]: images/screenshot_3.jpg
-[explosion-effect]: images/vertex_explosion.webp
-[culling-thumb]: https://img.youtube.com/vi/4OVsnVp6WYw/maxresdefault.jpg
-[culling-video]: https://www.youtube.com/watch?v=4OVsnVp6WYw
-
 ## Performance
 
-### Intel Iris Xe
+### Intel Iris Xe (Integrated Graphics)
 Average 30-45 FPS
 
 * 1920x1080 resolution
@@ -73,7 +65,7 @@ Average 30-45 FPS
 
 Crouched in heavy grass: 25 FPS
 
-### 4080 Super
+### GeForce RTX 4080 Super
 Average 600-900 FPS
 
 * 2560x1440 resolution
@@ -82,7 +74,7 @@ Average 600-900 FPS
 * 4096x4096 shadow maps 
 * 2048x2048 cubemaps
 
-Crouched in heavy grass: ~550 FPS
+Crouched in heavy grass: 550 FPS
 
 ## Fun Bugs
 
@@ -90,6 +82,21 @@ Crouched in heavy grass: ~550 FPS
 * Hi-Z. All of it. Including finding out the debug camera was sending its depth information to the Hi-Z buffer. I thought it was broken - turns out when the depth map contains the entire island, and you're testing against that, not much gets culled.
 
 ## Build Requirements
+* CMake
+* vcpkg
+* Windows operating system
+
+## Runtime Requirements
+Requires **OpenGL 4.6 Core**, plus the following limits:
+
+| Limit                                | Minimum | Unsupported |
+|--------------------------------------|--------:|------------:|
+| MAX_COMBINED_SHADER_STORAGE_BLOCKS   |   16    |       0.09% |
+| MAX_SHADER_STORAGE_BUFFER_BINDINGS   |   16    |       0.09% |
+| MAX_VERTEX_SHADER_STORAGE_BLOCKS     |    8    |       0.04% |
+| MAX_TEXTURE_IMAGE_UNITS`             |   32    |       1.24% |
+
+Based on 4.6 Core device reports from [GPUinfo.org][gpu-info]. Minimums were chosen to exclude as few cards as possible while exceeding spec guarantees. 
 
 ## Build Instructions
 
@@ -99,3 +106,12 @@ The following code is 100% AI generated:
 * Blender tools (terrain chunking, position generation)
 
 AI was used heavily for debugging, walking through new algorithms, OpenGL API usage, and providing guidance on architectural decisions. Ultimately, the best design came from not consulting AI at all and fixing the code that bothered me.
+
+<!-- Markdown links & images -->
+[grass-screen]: images/screenshot_1.jpg
+[torus-screen]: images/screenshot_2.jpg
+[beach-screen]: images/screenshot_3.jpg
+[explosion-effect]: images/vertex_explosion.webp
+[culling-thumb]: https://img.youtube.com/vi/4OVsnVp6WYw/maxresdefault.jpg
+[culling-video]: https://www.youtube.com/watch?v=4OVsnVp6WYw
+[gpu-info]: https://opengl.gpuinfo.org/
