@@ -14,12 +14,10 @@
 <div>
   <img src="images/logo.png" alt="Island Demo Logo" width="250">
 </div>
-<p>
-After second year, I wanted a summer project and chose something ambitious: graphics. Throughout the summer I followed the LearnOpenGL tutorials, as evidenced by the repository history. Sometime before the PBR chapter, I decided to make a small demo, not intended to be a generic solution, but a polished final product.
-</p>
-<p>
-Soon after learning instancing, I found my school laptop (running an Intel Iris Xe) was unable to keep up with the workload. Thus began the journey to get decent framerates on a very modest system. I tried to do as much work as possible on the GPU and arrived at a full glMultiDrawElementsIndirectCount (MDIC) pipeline.
-</p>
+
+After second year of a CIS degree, I wanted a summer project and chose something ambitious: graphics. I followed the [LearnOpenGL][learn-opengl] tutorials, and [early commits][early-commits] were simple lesson checkpoints. Sometime before PBR, I decided to make a small demo: not a general-purpose engine, but a polished final product.
+
+I created an island in Gaea and Blender, tried populating it with some vegetation, and found my school laptop (running an Intel Iris Xe) was unable to keep up. Thus began the journey to get decent framerates on a very modest system. I tried to do as much work as possible on the GPU and arrived at a full glMultiDrawElementsIndirectCount (MDIC) pipeline.
 
 <!-- Features -->
 ## Features
@@ -80,7 +78,7 @@ Crouched in heavy grass: 550
 ## Fun Bugs
 
 * Broke the MSVC compiler. Started a [Visual Studio Developer Thread](https://developercommunity.visualstudio.com/t/Fatal-error-C1001:-Internal-compiler-err/11055388) to report it, worked for months to catch it, and got it moved to "Under Consideration". It appears to be a race condition in link time code generation under partial recompilation. The script to reproduce it commented out a single line of code, compiled, uncommented, then recompiled, in a loop.
-* Hi-Z. All of it. Including finding out the debug camera was sending its depth information to the Hi-Z buffer. I thought it was broken - turns out when the depth map contains the entire island, and you're testing against that, not much gets culled.
+* Hi-Z. All of it. Like finding out the debug camera was the one feeding the depth pyramid, not the player camera. I thought Hi-Z had failed again - it turns out, when doing occlusion culling from hundreds of feet in the air, not much gets culled.
 
 ## Build Requirements
 * CMake
@@ -88,16 +86,16 @@ Crouched in heavy grass: 550
 * Windows operating system
 
 ## Runtime Requirements
-Requires **OpenGL 4.6 Core**, plus the following limits:
+OpenGL 4.6 Core, plus the following limits:
 
-| Limit                                | Minimum | Unsupported |
-|--------------------------------------|--------:|------------:|
-| MAX_COMBINED_SHADER_STORAGE_BLOCKS   |   16    |       0.09% |
-| MAX_SHADER_STORAGE_BUFFER_BINDINGS   |   16    |       0.09% |
-| MAX_VERTEX_SHADER_STORAGE_BLOCKS     |    8    |       0.04% |
-| MAX_TEXTURE_IMAGE_UNITS              |   32    |       1.24% |
+| Limit                                | Minimum | Percent Unsupported |
+|--------------------------------------|--------:|--------------------:|
+| MAX_COMBINED_SHADER_STORAGE_BLOCKS   |   16    |               0.09% |
+| MAX_SHADER_STORAGE_BUFFER_BINDINGS   |   16    |               0.09% |
+| MAX_VERTEX_SHADER_STORAGE_BLOCKS     |    8    |               0.04% |
+| MAX_TEXTURE_IMAGE_UNITS              |   32    |               1.24% |
 
-Based on 4.6 Core device reports from [GPUinfo.org][gpu-info]. Minimums were chosen to exclude as few cards as possible while exceeding spec guarantees. 
+These limits exceed those guaranteed by 4.6 Core. Percentages are based on devices reporting 4.6 Core capability, from [GPUinfo.org][gpu-info].
 
 ## Build Instructions
 
@@ -116,3 +114,5 @@ AI was used heavily for debugging, walking through new algorithms, OpenGL API us
 [culling-thumb]: https://img.youtube.com/vi/4OVsnVp6WYw/maxresdefault.jpg
 [culling-video]: https://www.youtube.com/watch?v=4OVsnVp6WYw
 [gpu-info]: https://opengl.gpuinfo.org/
+[learn-opengl]: https://learnopengl.com/
+[early-commits]: https://github.com/Trichord/Island-Graphics-Demo/pull/1/commits
