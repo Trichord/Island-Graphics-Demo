@@ -23,20 +23,21 @@ Soon after learning instancing, I found my school laptop (running an Intel Iris 
 
 <!-- Features -->
 ## Features
-* Written against the OpenGL 4.6 Core spec, with no extensions.
-* All geometry, including the skybox and shadows, is run through the MDIC pipeline.
+* Written against OpenGL 4.6 Core spec, no extensions.
+* Unified MDIC pipeline for all geometry, including animated geometry, skybox, and shadows.
 * GPU frustum culling.
 * GPU Hi-Z culling.
-* Compute vertex skinning, written back to the main VBOs.
-* 32-byte packed vertices including vertex color.
-* 2 VAOs total.
-* Compute particle simulation smuggled inside the 32-byte vertex.
-* Compute vertex explosion (an homage to the LearnOpenGL geometry shader).
-* Jolt Physics.
-* miniaudio with AABB-style audio triggers, one-shot effects, and character sounds.
-* Launch window for configuring graphics settings.
-* Load-time cubemap generation for water reflections.
+* 32-byte packed vertex including vertex color.
+* Compute shaders:
+  * Vertex skinning, written back to main VBOs.
+  * Particle simulation smuggled inside the 32-byte vertex.
+  * Vertex explosion (an homage to LearnOpenGL's geometry shader).
+  * MSAA depth map resolve.
+* Settings window on startup.
+* Load-time cubemap generation.
 * KTX2 compressed textures, loaded via thread pool.
+* Jolt Physics.
+* miniaudio with AABB-based audio triggers, one-shot effects, and character sounds.
 
 <!-- Gallery -->
 ## Gallery
@@ -55,7 +56,6 @@ Soon after learning instancing, I found my school laptop (running an Intel Iris 
 ## Performance
 
 ### Intel Iris Xe (Integrated Graphics)
-Average 30-45 FPS
 
 * 1920x1080 resolution
 * 2x MSAA 
@@ -63,10 +63,10 @@ Average 30-45 FPS
 * 1024x1024 shadow maps 
 * 512x512 cubemaps
 
-Crouched in heavy grass: 25 FPS
+Average FPS: 30-45<br>
+Crouched in heavy grass: 25
 
 ### GeForce RTX 4080 Super
-Average 600-900 FPS
 
 * 2560x1440 resolution
 * 8x MSAA 
@@ -74,7 +74,8 @@ Average 600-900 FPS
 * 4096x4096 shadow maps 
 * 2048x2048 cubemaps
 
-Crouched in heavy grass: 550 FPS
+Average FPS: 600-900<br>
+Crouched in heavy grass: 550
 
 ## Fun Bugs
 
@@ -94,7 +95,7 @@ Requires **OpenGL 4.6 Core**, plus the following limits:
 | MAX_COMBINED_SHADER_STORAGE_BLOCKS   |   16    |       0.09% |
 | MAX_SHADER_STORAGE_BUFFER_BINDINGS   |   16    |       0.09% |
 | MAX_VERTEX_SHADER_STORAGE_BLOCKS     |    8    |       0.04% |
-| MAX_TEXTURE_IMAGE_UNITS`             |   32    |       1.24% |
+| MAX_TEXTURE_IMAGE_UNITS              |   32    |       1.24% |
 
 Based on 4.6 Core device reports from [GPUinfo.org][gpu-info]. Minimums were chosen to exclude as few cards as possible while exceeding spec guarantees. 
 
