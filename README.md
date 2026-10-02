@@ -82,16 +82,15 @@ Crouched in heavy grass: 550
 
 ## Build Requirements
 * Windows operating system
-* MSVC: Visual Studio 2026 with the *Desktop development with C++* workload
-  * Ninja-only builds can use Build Tools for Visual Studio 2026 instead
+* MSVC: Visual Studio 2026 using *Desktop development with C++*
 * CMake 3.26 or higher
-  * Visual Studio presets require a CMake that supports the VS 2026 generator, such as the one bundled with Visual Studio 2026
 * [vcpkg](https://github.com/microsoft/vcpkg), with VCPKG_ROOT set
 * x64 Native Tools Command Prompt for Ninja builds
 
 ## Runtime Requirements
 * MSAA cannot be disabled, 2x minimum.
 * OpenGL 4.6 Core, plus the following limits:
+
 | Limit                                | Minimum | Percent Unsupported |
 |--------------------------------------|--------:|--------------------:|
 | MAX_COMBINED_SHADER_STORAGE_BLOCKS   |   16    |               0.09% |
