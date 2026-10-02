@@ -1,19 +1,15 @@
 <!-- Intro -->
 <br />
 <div align="center">
-  <h3 align="center">Island Graphics Demo</h3>
-
-  <p align="center">
-    A GPU-Driven Walking Simulator
-  </p>
+  <h1 align="center">Island Graphics Demo</h1>
+  <p align="center"><b>A GPU-Driven Walking Simulator</b></p>
+  <div>
+  <img src="images/logo.png" alt="Island Demo Logo" width="250">
+</div>
 </div>
 
 <!-- About -->
 ## About The Project
-
-<div>
-  <img src="images/logo.png" alt="Island Demo Logo" width="250">
-</div>
 
 After my second year of a CIS degree, I wanted a summer project and chose something ambitious: graphics. I followed the [LearnOpenGL][learn-opengl] tutorials, and [early commits][early-commits] were simple lesson checkpoints. Sometime before PBR, I decided to make a small demo: not a general-purpose engine, but a polished final product.
 
@@ -82,8 +78,10 @@ Crouched in heavy grass: 550
 
 ## Build Requirements
 * Windows operating system
-* MSVC: Visual Studio 2026 using *Desktop development with C++*
+* MSVC: Visual Studio 2026 with the *Desktop development with C++* workload
+  * Ninja-only builds can use Build Tools for Visual Studio 2026 instead
 * CMake 3.26 or higher
+  * Visual Studio presets require a CMake that supports the VS 2026 generator, such as the one bundled with Visual Studio 2026
 * [vcpkg](https://github.com/microsoft/vcpkg), with VCPKG_ROOT set
 * x64 Native Tools Command Prompt for Ninja builds
 
