@@ -1,9 +1,9 @@
-cmake_minimum_required(VERSION 3.25)
-project(island_demo LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.26)
+project(island_demo VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/$<CONFIG>)
 
 # Dependencies
 
@@ -15,6 +15,7 @@ find_package(fastgltf CONFIG REQUIRED)
 find_package(Jolt CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h REQUIRED)
 
 # Source files
 
@@ -137,6 +138,7 @@ add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/headers
+    ${MINIAUDIO_INCLUDE_DIR}
 )
 
 # Link libraries
@@ -158,23 +160,28 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 target_compile_options(${PROJECT_NAME} PRIVATE
     /permissive-
-    $<$<CONFIG:Release>:/GL /Ot /Gy /GR->
+    /GR-
+    /we4541
+    $<$<CONFIG:Release>:/GL>
 )
 target_link_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:Release>:/LTCG>
 )
+# Speed up MSBuild
+if(CMAKE_GENERATOR MATCHES "Visual Studio")
+    target_compile_options(${PROJECT_NAME} PRIVATE /MP)
+endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     NOMINMAX
 )
 
-# Use PWD for debug / release
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+# Mirror res/ and shaders/ next to the exe on every build (only changed files are copied)
+add_custom_target(copy_assets ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+            ${CMAKE_SOURCE_DIR}/res $<TARGET_FILE_DIR:${PROJECT_NAME}>/res
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+            ${CMAKE_SOURCE_DIR}/shaders $<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders
+    COMMENT "Syncing res/ and shaders/ to output directory"
 )
-
-# Install with full copy of resources
-
-install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION .)
-install(DIRECTORY res/ DESTINATION res)
-install(DIRECTORY shaders/ DESTINATION shaders)
+add_dependencies(${PROJECT_NAME} copy_assets)

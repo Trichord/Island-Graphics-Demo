@@ -2,8 +2,8 @@
   "version": 6,
   "configurePresets": [
     {
-      "name": "vs",
-      "displayName": "Visual Studio",
+      "name": "vs-debug",
+      "displayName": "Visual Studio Debug",
       "generator": "Visual Studio 18 2026",
       "architecture": {
         "value": "x64",
@@ -12,14 +12,28 @@
       "binaryDir": "${sourceDir}/build/${presetName}",
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
+        "CMAKE_CONFIGURATION_TYPES": "Debug",
         "VCPKG_TARGET_TRIPLET": "x64-windows-static",
-        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebug"
+      }
+    },
+    {
+      "name": "vs-release",
+      "displayName": "Visual Studio Release",
+      "inherits": "vs-debug",
+      "cacheVariables": {
+        "CMAKE_CONFIGURATION_TYPES": "Release",
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded"
       }
     },
     {
       "name": "ninja-debug",
       "displayName": "Ninja Debug",
       "generator": "Ninja",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
       "binaryDir": "${sourceDir}/build/${presetName}",
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
@@ -42,14 +56,42 @@
     {
       "name": "vs-debug",
       "displayName": "VS Debug",
-      "configurePreset": "vs",
+      "configurePreset": "vs-debug",
       "configuration": "Debug"
     },
     {
       "name": "vs-release",
       "displayName": "VS Release",
-      "configurePreset": "vs",
+      "configurePreset": "vs-release",
       "configuration": "Release"
+    },
+    {
+      "name": "ninja-debug",
+      "displayName": "Ninja Debug",
+      "configurePreset": "ninja-debug"
+    },
+    {
+      "name": "ninja-release",
+      "displayName": "Ninja Release",
+      "configurePreset": "ninja-release"
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "release",
+      "displayName": "Configure and build a release into bin/Release (Ninja)",
+      "steps": [
+        { "type": "configure", "name": "ninja-release" },
+        { "type": "build", "name": "ninja-release" }
+      ]
+    },
+    {
+      "name": "vs-release",
+      "displayName": "Configure and build a release into bin/Release (Visual Studio)",
+      "steps": [
+        { "type": "configure", "name": "vs-release" },
+        { "type": "build", "name": "vs-release" }
+      ]
     }
   ]
 }

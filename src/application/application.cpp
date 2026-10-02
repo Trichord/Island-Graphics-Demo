@@ -149,8 +149,8 @@ void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
     float xOffset{static_cast<float>(xPos - app->lastMouseX_)};
     float yOffset{static_cast<float>(app->lastMouseY_ - yPos)};
 
-    app->userInput_.mouseDeltaX = xOffset * app->mouseSensitivity_;
-    app->userInput_.mouseDeltaY = yOffset * app->mouseSensitivity_;
+    app->userInput_.mouseDeltaX += xOffset * app->mouseSensitivity_;
+    app->userInput_.mouseDeltaY += yOffset * app->mouseSensitivity_;
 
     app->lastMouseX_ = static_cast<float>(xPos);
     app->lastMouseY_ = static_cast<float>(yPos);

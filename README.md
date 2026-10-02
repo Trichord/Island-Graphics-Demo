@@ -15,7 +15,7 @@
   <img src="images/logo.png" alt="Island Demo Logo" width="250">
 </div>
 
-After second year of a CIS degree, I wanted a summer project and chose something ambitious: graphics. I followed the [LearnOpenGL][learn-opengl] tutorials, and [early commits][early-commits] were simple lesson checkpoints. Sometime before PBR, I decided to make a small demo: not a general-purpose engine, but a polished final product.
+After my second year of a CIS degree, I wanted a summer project and chose something ambitious: graphics. I followed the [LearnOpenGL][learn-opengl] tutorials, and [early commits][early-commits] were simple lesson checkpoints. Sometime before PBR, I decided to make a small demo: not a general-purpose engine, but a polished final product.
 
 I created an island in Gaea and Blender, tried populating it with some vegetation, and found my school laptop (running an Intel Iris Xe) was unable to keep up. Thus began the journey to get decent framerates on a very modest system. I tried to do as much work as possible on the GPU and arrived at a full glMultiDrawElementsIndirectCount (MDIC) pipeline.
 
@@ -77,17 +77,21 @@ Crouched in heavy grass: 550
 
 ## Fun Bugs
 
-* Broke the MSVC compiler. Started a [Visual Studio Developer Thread](https://developercommunity.visualstudio.com/t/Fatal-error-C1001:-Internal-compiler-err/11055388) to report it, worked for months to catch it, and got it moved to "Under Consideration". It appears to be a race condition in link time code generation under partial recompilation. The script to reproduce it commented out a single line of code, compiled, uncommented, then recompiled, in a loop.
+* Broke the MSVC compiler. Started a [Visual Studio Developer Thread][crash-thread] to report it, worked for months to catch it, and got it moved to "Under Consideration". It appears to be a race condition in link time code generation under partial recompilation. The script to reproduce it commented out a single line of code, compiled, uncommented, then recompiled, in a loop.
 * Hi-Z. All of it. Like finding out the debug camera was the one feeding the depth pyramid, not the player camera. I thought Hi-Z had failed again - it turns out, when doing occlusion culling from hundreds of feet in the air, not much gets culled.
 
 ## Build Requirements
-* CMake
-* vcpkg
 * Windows operating system
+* MSVC: Visual Studio 2026 with the *Desktop development with C++* workload
+  * Ninja-only builds can use Build Tools for Visual Studio 2026 instead
+* CMake 3.26 or higher
+  * Visual Studio presets require a CMake that supports the VS 2026 generator, such as the one bundled with Visual Studio 2026
+* [vcpkg](https://github.com/microsoft/vcpkg), with VCPKG_ROOT set
+* x64 Native Tools Command Prompt for Ninja builds
 
 ## Runtime Requirements
-OpenGL 4.6 Core, plus the following limits:
-
+* MSAA cannot be disabled, 2x minimum.
+* OpenGL 4.6 Core, plus the following limits:
 | Limit                                | Minimum | Percent Unsupported |
 |--------------------------------------|--------:|--------------------:|
 | MAX_COMBINED_SHADER_STORAGE_BLOCKS   |   16    |               0.09% |
@@ -99,12 +103,53 @@ These limits exceed those guaranteed by 4.6 Core. Percentages are based on devic
 
 ## Build Instructions
 
+Clone the repo. Requires [Git LFS][git-lfs].
+
+```
+git clone https://github.com/Trichord/Island-Graphics-Demo.git
+cd Island-Graphics-Demo
+```
+
+Build through CLI or Visual Studio. First build will be slow from vcpkg pulling in dependencies.
+
+### CLI
+
+Build the project using either the Visual Studio generator:
+
+```
+cmake --workflow --preset vs-release
+```
+
+or Ninja:
+
+```
+cmake --workflow --preset release
+```
+
+### Visual Studio
+
+Open the directory in Visual Studio, select a preset, and build.
+
+## Running The Demo
+
+After building, the demo sits in ./bin/{Release|Debug}/island_demo.exe
+
+*Note: If your resolution is not listed, run the demo once and settings.json will appear next to the exe. Edit the "renderWidth" and "renderHeight" fields to match your desired resolution.*
+
+### Controls
+**WSAD** - Movement<br>
+**Mouse** - Look<br>
+**Space** - Jump<br>
+**Left Ctrl** - Crouch Toggle<br>
+**Left Shift** - Sprint Toggle<br>
+**Esc** - Quit
+
 ## AI Use Disclaimer
 The following code is 100% AI generated:
 * Build scripts (CMake, vcpkg)
 * Blender tools (terrain chunking, position generation)
 
-AI was used heavily for debugging, walking through new algorithms, OpenGL API usage, and providing guidance on architectural decisions. Ultimately, the best design came from not consulting AI at all and fixing the code that bothered me.
+AI was used heavily for debugging, walking through new algorithms, OpenGL API usage, and providing guidance on architectural decisions. This project would not be what it is without modern tooling. Ultimately, some of my best work came from ignoring AI and just fixing the code that bothered me.
 
 <!-- Markdown links & images -->
 [grass-screen]: images/screenshot_1.jpg
@@ -116,3 +161,5 @@ AI was used heavily for debugging, walking through new algorithms, OpenGL API us
 [gpu-info]: https://opengl.gpuinfo.org/
 [learn-opengl]: https://learnopengl.com/
 [early-commits]: https://github.com/Trichord/Island-Graphics-Demo/pull/1/commits
+[crash-thread]: https://developercommunity.visualstudio.com/t/Fatal-error-C1001:-Internal-compiler-err/11055388
+[git-lfs]: https://git-lfs.com/

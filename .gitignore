@@ -1,11 +1,6 @@
-imgui.ini
-settings.json
-
 /.vs
 /x64
 /bin/
 /build/
 
-OpenGL.vcxproj
-OpenGL.vcxproj.user
-OpenGL.vcxproj.filters
+settings.json
