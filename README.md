@@ -27,6 +27,7 @@ I created an island in Gaea and Blender, tried populating it with some vegetatio
   * Particle simulation smuggled inside the 32-byte vertex.
   * Vertex explosion (an homage to LearnOpenGL's geometry shader).
   * MSAA depth map resolve.
+* Cascaded Shadow Maps
 * Settings window on startup.
 * Load-time cubemap generation.
 * KTX2 compressed textures, loaded via thread pool.
@@ -79,9 +80,7 @@ Crouched in heavy grass: 550
 ## Build Requirements
 * Windows operating system
 * MSVC: Visual Studio 2026 with the *Desktop development with C++* workload
-  * Ninja-only builds can use Build Tools for Visual Studio 2026 instead
 * CMake 3.26 or higher
-  * Visual Studio presets require a CMake that supports the VS 2026 generator, such as the one bundled with Visual Studio 2026
 * [vcpkg](https://github.com/microsoft/vcpkg), with VCPKG_ROOT set
 * x64 Native Tools Command Prompt for Ninja builds
 
