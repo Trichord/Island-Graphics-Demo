@@ -28,7 +28,7 @@ class BufferBuilder
     [[nodiscard]] VAOs buildVAO(const std::vector<Primitive::Vertex> &vertices,
                                 const std::vector<std::uint32_t> &indices) const;
 
-    [[nodiscard]] SSBOs buildSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
+    [[nodiscard]] SSBOs buildSSBOs(const std::vector<SourceDrawElementsIndirectCommand> &commands,
                                    const std::vector<glm::mat4> &matrices,
                                    const std::vector<PrimitiveMetadata> &metadata,
                                    const std::vector<Primitive::VertexSkin> &vertexSkins,

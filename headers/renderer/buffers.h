@@ -8,7 +8,7 @@
 
 /* Shader Storage Buffer Objects
  * -----------------------------
- * 
+ *
  * ******************************************
  * Multi Draw Elements Indirect Count Buffers
  * ******************************************
@@ -19,7 +19,10 @@
  *
  * Draw Commands: Per primitive. Compacted each frame from DrawCommandsSource.
  *
- * Draw Commands Source: Per primitive. Immutable source of truth, set once at load.
+ * Draw Commands Source: Per primitive. Immutable source of truth, set once at load. Standard
+ * DrawElementsIndirectCommand with 2 extra fields:
+ *      - drawBucket: which draw bucket this primitive belongs to
+ *      - drawCommandsBaseIndex: start of the draw bucket in Draw Commands.
  *
  * Cull Results: Per primitive. Number of surviving instances after frustum test.
  *
@@ -33,8 +36,6 @@
  *
  * Visibility Map: Per (primitive × instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
  *      - sharedIndex: index into AABBs/Metadata/Draw Commands/Model Matrix buffers (the primitive)
- *      - drawBucket: which draw bucket this primitive belongs to
- *      - drawCommandsBaseIndex: start of that bucket in DrawCommands
  *      - visibleInstancesBaseIndex: start of the (primitive x instance) range in the visibility buffer
  *
  ********************
@@ -51,8 +52,8 @@
  *
  * Particle Map: Per particle vertex. Allows any index in map buffer to look up its shared index (aabb, metadata, etc).
  *
- * Exploding Vertices Map: Per exploded vertex (non-instanced). Allows any model which subscribes to the exploding effect to look up
- * its original VBO index, world space transform index, and metadata for driving the effect.
+ * Exploding Vertices Map: Per exploded vertex (non-instanced). Allows any model which subscribes to the exploding
+ * effect to look up its original VBO index, world space transform index, and metadata for driving the effect.
  *
  **********************
  * Implementation Notes

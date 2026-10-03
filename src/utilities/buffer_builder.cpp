@@ -37,7 +37,7 @@ std::vector<SimpleAABB> simplifyAABBs(const std::vector<AABB> &aabbs)
 
 } // namespace
 
-SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &commands,
+SSBOs BufferBuilder::buildSSBOs(const std::vector<SourceDrawElementsIndirectCommand> &commands,
                                 const std::vector<glm::mat4> &matrices, const std::vector<PrimitiveMetadata> &metadata,
                                 const std::vector<Primitive::VertexSkin> &vertexSkins,
                                 const std::vector<Primitive::Vertex> &originalSkinnedVerts,
@@ -58,7 +58,7 @@ SSBOs BufferBuilder::buildSSBOs(const std::vector<DrawElementsIndirectCommand> &
     buildSSBO(&buffers.cullResults, sizes.cullResults, BindingPointSSBO::cullResults, false, nullptr);
     buildSSBO(&buffers.drawCommands, sizes.drawCommands, BindingPointSSBO::drawCommands, false, nullptr);
     buildSSBO(&buffers.visibleInstances, sizes.visibleInstances, BindingPointSSBO::visibleInstances, false, nullptr);
-    buildSSBO(&buffers.drawCommandsSource, commands.size() * sizeof(DrawElementsIndirectCommand),
+    buildSSBO(&buffers.drawCommandsSource, commands.size() * sizeof(SourceDrawElementsIndirectCommand),
               BindingPointSSBO::drawCommandsSource, false, commands.data());
 
     // Animation related SSBOs

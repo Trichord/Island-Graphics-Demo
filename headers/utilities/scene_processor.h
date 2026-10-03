@@ -126,8 +126,8 @@ class SceneProcessor
     [[nodiscard]] static std::vector<PrimitiveMetadata> createMetadata(const TextureManager &manager,
                                                                        const BucketEntries &entries);
 
-    [[nodiscard]] static std::vector<DrawElementsIndirectCommand> createDrawCommands(const BucketEntries &entries,
-                                                                                     const SceneTotals &totals);
+    [[nodiscard]] static std::vector<SourceDrawElementsIndirectCommand> createDrawCommands(
+        const BucketEntries &entries, const std::vector<MultiDrawBucket> &buckets, const SceneTotals &totals);
 
     [[nodiscard]] static std::vector<Primitive::VertexSkin> createVertexSkins(
         const BucketEntries &entries, const std::unordered_map<Handle, std::uint32_t> &boneTransformMap,
@@ -135,17 +135,17 @@ class SceneProcessor
 
     [[nodiscard]] static std::vector<VisibilityBufferMap> createVisibilityBufferMap(
         const std::vector<SceneProcessor::BucketEntry> &entries, const std::vector<PrimitiveMetadata> &metadata,
-        const std::vector<MultiDrawBucket> &buckets, const SceneTotals &totals);
+        const SceneTotals &totals);
 
     [[nodiscard]] static BufferBuilder::Sizes calculateBufferSizes(
-        const std::vector<DrawElementsIndirectCommand> &commands, const std::vector<MultiDrawBucket> &buckets,
+        const std::vector<SourceDrawElementsIndirectCommand> &commands, const std::vector<MultiDrawBucket> &buckets,
         const SceneTotals &totals, bool shadows);
 
     // GPU upload
     [[nodiscard]] static VAOs createVAO(const BucketEntries &entries, const std::vector<Primitive::Vertex> &vertices,
                                         const SceneTotals &totals);
     [[nodiscard]] static SSBOs createSSBOs(
-        const std::vector<DrawElementsIndirectCommand> &commands, const std::vector<glm::mat4> &matrices,
+        const std::vector<SourceDrawElementsIndirectCommand> &commands, const std::vector<glm::mat4> &matrices,
         const std::vector<PrimitiveMetadata> &metadata, const std::vector<Primitive::VertexSkin> &vertexSkins,
         const std::vector<Primitive::Vertex> &originalSkinnedVerts,
         const std::vector<VisibilityBufferMap> &visibilityMap, const std::vector<ExplodingVertexMap> &expVertMap,

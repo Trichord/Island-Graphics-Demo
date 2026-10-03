@@ -1,4 +1,15 @@
 // Types
+struct SourceDrawElementsIndirectCommand
+{
+    unsigned int count;
+    unsigned int instanceCount;
+    unsigned int firstIndex;
+    int baseVertex;
+    unsigned int baseInstance;
+    unsigned int drawBucket;
+    unsigned int drawCommandsBaseIndex;
+};
+
 struct DrawElementsIndirectCommand
 {
     uint count;
@@ -24,8 +35,6 @@ struct Metadata
 struct BufferMap
 {
     uint sharedIndex;
-    uint drawBucket;
-    uint drawCommandsBaseIndex;
     uint visibleInstancesBaseIndex;
 };
 
