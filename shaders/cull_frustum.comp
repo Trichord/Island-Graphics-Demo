@@ -57,7 +57,7 @@ void main()
     mat4 modelMatrix = matrices[instance];
     BufferMap map = maps[instance];
     
-    AABB aabb = AABBs[map.sharedBaseIndex];
+    AABB aabb = AABBs[map.sharedIndex];
     uint visibilityBufferBaseIndex = map.visibleInstancesBaseIndex;
 
     // World space AABB
@@ -70,6 +70,6 @@ void main()
     if (!aabbIntersectsFrustum(worldCenter, worldExtent))
         return;
      
-    uint counter = atomicAdd(cullResults[map.sharedBaseIndex], 1);
+    uint counter = atomicAdd(cullResults[map.sharedIndex], 1);
     visibleInstances[visibilityBufferBaseIndex + counter] = instance;        
 }

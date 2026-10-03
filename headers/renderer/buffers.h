@@ -32,7 +32,7 @@
  *                   contiguous section sized to its instance count.
  *
  * Visibility Map: Per (primitive × instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
- *      - sharedBaseIndex: index into AABBs/Metadata/Draw Commands/Model Matrix (the primitive)
+ *      - sharedIndex: index into AABBs/Metadata/Draw Commands/Model Matrix buffers (the primitive)
  *      - drawBucket: which draw bucket this primitive belongs to
  *      - drawCommandsBaseIndex: start of that bucket in DrawCommands
  *      - visibleInstancesBaseIndex: start of the (primitive x instance) range in the visibility buffer

@@ -17,22 +17,22 @@ I created an island in Gaea and Blender, tried populating it with some vegetatio
 
 <!-- Features -->
 ## Features
-* Written against OpenGL 4.6 Core spec, no extensions.
-* Unified MDIC pipeline for all geometry, including animated geometry, skybox, and shadows.
-* GPU frustum culling.
-* GPU Hi-Z culling.
-* 32-byte packed vertex including vertex color.
+* Written against OpenGL 4.6 Core spec, no extensions
+* Unified MDIC pipeline for all geometry, including animated geometry, skybox, and shadows
+* GPU frustum culling
+* GPU Hi-Z culling
+* 32-byte packed vertex including vertex color
 * Compute shaders:
-  * Vertex skinning, written back to main VBOs.
-  * Particle simulation smuggled inside the 32-byte vertex.
-  * Vertex explosion (an homage to LearnOpenGL's geometry shader).
-  * MSAA depth map resolve.
-* Cascaded Shadow Maps
-* Settings window on startup.
-* Load-time cubemap generation.
-* KTX2 compressed textures, loaded via thread pool.
-* Jolt Physics.
-* miniaudio with AABB-based audio triggers, one-shot effects, and character sounds.
+  * Vertex skinning, written back to main VBOs
+  * Particle simulation smuggled inside the 32-byte vertex
+  * Vertex explosion (an homage to LearnOpenGL's geometry shader)
+  * MSAA depth map resolve
+* Cascaded shadow maps
+* Settings window on startup
+* Load-time cubemap generation
+* KTX2 compressed textures, loaded via thread pool
+* Jolt Physics
+* miniaudio with AABB-based audio triggers, one-shot effects, and character sounds
 
 <!-- Gallery -->
 ## Gallery
@@ -47,6 +47,11 @@ I created an island in Gaea and Blender, tried populating it with some vegetatio
 
 ### Culling Demo
 [![GPU Culling Demo][culling-thumb]][culling-video]
+
+## MDIC Pipeline
+### Culling
+![Culling pipeline][cull-pipeline-light]
+![Culling pipeline][cull-pipeline-light]
 
 ## Performance
 
@@ -151,6 +156,8 @@ AI was used heavily for debugging, walking through new algorithms, OpenGL API us
 [grass-screen]: images/screenshot_1.jpg
 [torus-screen]: images/screenshot_2.jpg
 [beach-screen]: images/screenshot_3.jpg
+[cull-pipeline-light]: images/culling_pipeline_light.svg#gh-light-mode-only
+[cull-pipeline-dark]: images/culling_pipeline_dark.svg#gh-dark-mode-only
 [explosion-effect]: images/vertex_explosion.webp
 [culling-thumb]: https://img.youtube.com/vi/4OVsnVp6WYw/maxresdefault.jpg
 [culling-video]: https://www.youtube.com/watch?v=4OVsnVp6WYw
