@@ -51,7 +51,7 @@ I created an island in Gaea and Blender, tried populating it with some vegetatio
 ## MDIC Pipeline
 ### Culling
 ![Culling pipeline][cull-pipeline-light]
-![Culling pipeline][cull-pipeline-light]
+![Culling pipeline][cull-pipeline-dark]
 
 ## Performance
 
