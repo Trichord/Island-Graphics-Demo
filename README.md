@@ -160,7 +160,7 @@ LearnOpenGL derived code: camera.cpp/camera.h, shader_base.cpp/shader_base.h, pb
 
 NVIDIA source code: calculateCascadeSplits (cascade_shadows.cpp)
 
-All art / music / sound-effects / third-party-libraries retain their original licenses. See [licenses and attributions][third-party] for details.
+All art / music / sound-effects / third-party-libraries retain their original licenses. See [Third Party Notices][third-party] for details.
 
 <!-- Markdown links & images -->
 [grass-screen]: images/screenshot_1.jpg
@@ -177,3 +177,4 @@ All art / music / sound-effects / third-party-libraries retain their original li
 [crash-thread]: https://developercommunity.visualstudio.com/t/Fatal-error-C1001:-Internal-compiler-err/11055388
 [git-lfs]: https://git-lfs.com/
 [third-party]: THIRD_PARTY_NOTICES.md
+[joey-de-vries-home]: https://joeydevries.com/#home
