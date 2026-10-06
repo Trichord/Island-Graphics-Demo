@@ -178,3 +178,4 @@ All art / music / sound-effects / third-party-libraries retain their original li
 [git-lfs]: https://git-lfs.com/
 [third-party]: THIRD_PARTY_NOTICES.md
 [joey-de-vries-home]: https://joeydevries.com/#home
+[cc-by-4.0]: https://creativecommons.org/licenses/by-nc/4.0/legalcode
