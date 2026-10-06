@@ -1,13 +1,13 @@
 // Types
 struct SourceDrawElementsIndirectCommand
 {
-    unsigned int count;
-    unsigned int instanceCount;
-    unsigned int firstIndex;
+    uint count;
+    uint instanceCount;
+    uint firstIndex;
     int baseVertex;
-    unsigned int baseInstance;
-    unsigned int drawBucket;
-    unsigned int drawCommandsBaseIndex;
+    uint baseInstance;
+    uint drawBucket;
+    uint drawCommandsBaseIndex;
 };
 
 struct DrawElementsIndirectCommand

@@ -98,12 +98,12 @@ void PhysicsWorld::initializeScene(const Scene &scene)
 {
     using namespace JPH;
 
-    const glm::vec3 &startingPosition{scene.getCameraDescription().position};
+    const JPH::Vec3 startingPosition{toJPHVec3(scene.getCameraDescription().position)};
 
-    physics::StaticBodies collisionMeshes{physics::buildCollisionGeometry(scene, physicsSystem_.GetBodyInterface())};
+    physics::SceneBodies collisionMeshes{physics::buildCollisionGeometry(scene, physicsSystem_.GetBodyInterface())};
     resetHeight_ = collisionMeshes.minimumHeight;
-    resetPosition_ = toJPHVec3(startingPosition);
-    player_.setCenter(toJPHVec3(startingPosition));
+    resetPosition_ = startingPosition;
+    player_.setCenter(startingPosition);
     bodyIDs_ = std::move(collisionMeshes.ids);
     physicsSystem_.OptimizeBroadPhase();
 
@@ -179,10 +179,11 @@ void PhysicsWorld::update(const UserInput &input, const glm::vec3 &front, float 
     {
         const bool wasSupported{player_.isSupported()};
         const Vec3 preVelocity{player_.getVelocity()};
-
         previousPosition_ = player_.getCenter();
+
         tick(input.direction, front, jump && wasSupported, physicsTick_);
-        flagMovedEntities();
+        updateMovedBodies();
+
         timeAccumulator_ -= physicsTick_;
 
         // Ignore footstep accumulator on steep slopes
@@ -226,6 +227,8 @@ void PhysicsWorld::tick(std::uint8_t direction, const glm::vec3 &front, bool jum
         previousPosition_ = player_.getCenter();
 
         Vec3 velocity{player_.getVelocity()};
+
+        // Limit, so the player doesn't start their respawn with crazy downward velocity
         Vec3 newVelocity{velocity.GetX(), std::max(velocity.GetY(), maxFallVelocity), velocity.GetZ()};
         player_.setVelocity(newVelocity);
 
@@ -318,7 +321,7 @@ bool PhysicsWorld::landingEvent() const
     return landingTriggered_;
 }
 
-void PhysicsWorld::flagMovedEntities()
+void PhysicsWorld::updateMovedBodies()
 {
     using namespace JPH;
 

@@ -93,13 +93,11 @@ float CharacterCapsule::getRadius() const
     return capsuleSettings_.radius;
 }
 
-// Returns the center of mass of the capsule
 JPH::Vec3 CharacterCapsule::getCenter() const
 {
     return capsule_->GetCenterOfMassPosition();
 }
 
-// Returns the bottom of the capsule, per JPH
 JPH::Vec3 CharacterCapsule::getPosition() const
 {
     return capsule_->GetPosition();
@@ -323,14 +321,14 @@ std::optional<float> CharacterCapsule::predictImpactSpeed(float lookAheadTime) c
     const Vec3 velocity{capsule_->GetLinearVelocity()};
     const Vec3 gravity{physicsSystem_.GetGravity()};
     const Vec3 up{capsule_->GetUp()};
-    const Vec3 sweep{velocity * lookAheadTime + 0.5f * gravity * lookAheadTime * lookAheadTime};
+    const Vec3 lookAhead{velocity * lookAheadTime + 0.5f * gravity * lookAheadTime * lookAheadTime};
 
     // Not falling
-    if (sweep.Dot(up) >= 0.0f)
+    if (lookAhead.Dot(up) >= 0.0f)
         return std::nullopt;
 
     RShapeCast shapeCast{
-        RShapeCast::sFromWorldTransform(capsule_->GetShape(), Vec3::sOne(), capsule_->GetWorldTransform(), sweep)};
+        RShapeCast::sFromWorldTransform(capsule_->GetShape(), Vec3::sOne(), capsule_->GetWorldTransform(), lookAhead)};
 
     ShapeCastSettings settings;
     ClosestHitCollisionCollector<CastShapeCollector> collector;

@@ -25,6 +25,9 @@
 #include "physics/physics_utilities.h"
 #include "scene/scene.h"
 
+/**
+ * @brief Connection between the physics engine and Scene. Owns the player capsule and directs the simulation.
+ */
 class PhysicsWorld
 {
   public:
@@ -50,9 +53,11 @@ class PhysicsWorld
     bool landingEvent() const;
     const std::vector<physics::ObjectCollision> &getCollisions() const;
 
+    // Write new positions and rotations back to Scene's tranforms
     void postPhysicsSync(Scene &scene);
 
   private:
+    // Data for interpolating objects between physics steps
     struct MovedBody
     {
         JPH::Vec3 prevPos{JPH::Vec3::sZero()};
@@ -113,12 +118,12 @@ class PhysicsWorld
     JPH::BodyIDVector activeBodies_;
     std::unordered_set<JPH::BodyID> spheres_;
 
-    // Water bodies
+    // Water bodies for buoyancy testing
     std::vector<JPH::AABox> waterAABBs_;
 
     void movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime);
     void tick(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime);
-    void flagMovedEntities();
+    void updateMovedBodies();
     void applyWaterBuoyancy(float deltaTime);
     void applySphereDrag(float deltaTime);
 };

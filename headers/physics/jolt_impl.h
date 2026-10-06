@@ -69,8 +69,7 @@ class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
     }
 };
 
-// BroadPhaseLayerInterface implementation
-// This defines a mapping between object and broadphase layers.
+// Defines a mapping between object and broadphase layers.
 class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
 {
   public:
@@ -98,7 +97,7 @@ class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
     JPH::BroadPhaseLayer objectToBroadPhase_[Layers::NUM_LAYERS];
 };
 
-/// Class that determines if an object layer can collide with a broadphase layer
+/// Determines if an object layer can collide with a broadphase layer
 class ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFilter
 {
   public:

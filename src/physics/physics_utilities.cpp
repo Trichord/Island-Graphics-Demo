@@ -163,7 +163,7 @@ JPH::BodyCreationSettings createBodySettings(const JPH::Ref<JPH::Shape> &shape, 
     return settings;
 }
 
-void addBody(physics::StaticBodies &bodies, JPH::BodyInterface &interface, const JPH::BodyCreationSettings &settings,
+void addBody(physics::SceneBodies &bodies, JPH::BodyInterface &interface, const JPH::BodyCreationSettings &settings,
              bool dynamic)
 {
     JPH::BodyID id{
@@ -175,9 +175,9 @@ void addBody(physics::StaticBodies &bodies, JPH::BodyInterface &interface, const
 }
 } // namespace
 
-physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::BodyInterface &bodyInterface)
+physics::SceneBodies physics::buildCollisionGeometry(const Scene &scene, JPH::BodyInterface &bodyInterface)
 {
-    StaticBodies bodies;
+    SceneBodies bodies;
 
     for (const Scene::Entry &entry : scene.getAllSceneEntries())
     {
