@@ -9,7 +9,7 @@
 
 <br>Code samples licensed under
 <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a>
-<br><br> This project started as LearnOpenGL tutorials. The following implementations should be considered as derived from LearnOpenGL and retains the original license: Camera class, Shader class, PBR implementation, Application::mouse_callback
+<br><br> This project started as LearnOpenGL tutorials. The following implementations should be considered as derived from LearnOpenGL and retain the original license: camera.cpp/camera.h, shader_base.cpp/shader_base.h, pbr.vert/pbr.frag
 
 </details>
 
@@ -201,6 +201,15 @@ MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
 
 <h2>Bevy Engine</h2>
 <details>
+<summary>Copyright © Bevy Contributors</summary>
+
+<a href="#mit-license">MIT License</a>
+</details>
+
+<h2>miniaudio</h2>
+<details>
+<summary>Copyright 2025 David Reid</summary>
+
 <a href="#mit-license">MIT License</a>
 </details>
 

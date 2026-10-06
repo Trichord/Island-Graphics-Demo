@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: CC-BY-NC-4.0
+// Derived from LearnOpenGL by Joey de Vries (CC BY-NC 4.0). Modified by James Midtdal.
+// See THIRD_PARTY_NOTICES.md for details.
+
 #include "game/camera.h"
 
 #include <algorithm>

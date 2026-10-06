@@ -1,5 +1,13 @@
 #version 460 core
 
+// SPDX-License-Identifier: CC-BY-NC-4.0
+//
+// Derived from LearnOpenGL (https://learnopengl.com) by Joey de Vries.
+// Original code licensed under CC BY-NC 4.0: https://creativecommons.org/licenses/by-nc/4.0/
+// Modified by James Midtdal: Added MDIC pipeline implementation and tangent space lighting
+//
+// This file is NOT covered by the project's MIT License.
+
 #include "shared/binding_points.glsl"
 #include "shared/types.glsl"
 #include "shared/ubo.glsl"

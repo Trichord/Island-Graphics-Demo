@@ -152,6 +152,16 @@ The following code is 100% AI generated:
 
 AI was used heavily for debugging, walking through new algorithms, OpenGL API usage, and providing guidance on architectural decisions. This project would not be what it is without modern tooling. Ultimately, some of my best work came from ignoring AI and just fixing the code that bothered me.
 
+## License
+The source code in this project is licensed under the [MIT License](LICENSE) except:
+
+LearnOpenGL derived code: camera.cpp/camera.h, shader_base.cpp/shader_base.h, pbr.vert/pbr.frag
+© [Joey de Vries][joey-de-vries-home] licensed under [CC BY 4.0][cc-by-4.0]
+
+NVIDIA source code: calculateCascadeSplits (cascade_shadows.cpp)
+
+All art / music / sound-effects / third-party-libraries retain their original licenses. See [licenses and attributions][third-party] for details.
+
 <!-- Markdown links & images -->
 [grass-screen]: images/screenshot_1.jpg
 [torus-screen]: images/screenshot_2.jpg
@@ -166,3 +176,4 @@ AI was used heavily for debugging, walking through new algorithms, OpenGL API us
 [early-commits]: https://github.com/Trichord/Island-Graphics-Demo/pull/1/commits
 [crash-thread]: https://developercommunity.visualstudio.com/t/Fatal-error-C1001:-Internal-compiler-err/11055388
 [git-lfs]: https://git-lfs.com/
+[third-party]: THIRD_PARTY_NOTICES.md

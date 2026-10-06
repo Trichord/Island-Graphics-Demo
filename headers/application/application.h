@@ -39,9 +39,8 @@ class Application
     // Input tracking
     bool leftCtrlToggle_{false};
     bool leftShiftToggle_{false};
-    bool firstMouse_{true};
-    float lastMouseX_{0.0f};
-    float lastMouseY_{0.0f};
+    double mouseX_{0.0f};
+    double mouseY_{0.0f};
     float mouseSensitivity_{0.1f};
     UserInput userInput_;
 
@@ -54,8 +53,8 @@ class Application
     void registerJolt();
     void updateProgress(const std::string &message);
     void processKeyboard(UserInput &input);
+    void processMouse(UserInput &input);
 
-    // Required GLFW callbacks
-    static void mouse_callback(GLFWwindow *window, double xPos, double yPos);
+    // Required GLFW callback
     static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
 };

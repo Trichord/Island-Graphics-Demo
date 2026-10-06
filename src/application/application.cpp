@@ -74,6 +74,9 @@ void Application::run()
     Game game{graphicsSettings, windowWidth_, windowHeight_, [this](const std::string &s) { updateProgress(s); }};
     glfwShowWindow(window_);
 
+    //Grab the latest mouse position just before the loop
+    glfwGetCursorPos(window_, &mouseX_, &mouseY_);
+
     while (!glfwWindowShouldClose(window_))
     {
         // Sleep if minimized
@@ -94,6 +97,7 @@ void Application::run()
 
         glfwPollEvents();
         processKeyboard(userInput_);
+        processMouse(userInput_);
 
         if (windowResized_)
         {
@@ -132,28 +136,18 @@ void Application::processKeyboard(UserInput &input)
     userInput_.sprintToggle = leftShiftToggle_;
 }
 
-void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
+void Application::processMouse(UserInput &input)
 {
-    Application *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
+    double newX{0.0};
+    double newY{0.0};
+    glfwGetCursorPos(window_, &newX, &newY);
 
-    if (!app)
-        return;
+    input.mouseDeltaX = static_cast<float>((newX - mouseX_) * mouseSensitivity_);
 
-    if (app->firstMouse_)
-    {
-        app->lastMouseX_ = static_cast<float>(xPos);
-        app->lastMouseY_ = static_cast<float>(yPos);
-        app->firstMouse_ = false;
-    }
-
-    float xOffset{static_cast<float>(xPos - app->lastMouseX_)};
-    float yOffset{static_cast<float>(app->lastMouseY_ - yPos)};
-
-    app->userInput_.mouseDeltaX += xOffset * app->mouseSensitivity_;
-    app->userInput_.mouseDeltaY += yOffset * app->mouseSensitivity_;
-
-    app->lastMouseX_ = static_cast<float>(xPos);
-    app->lastMouseY_ = static_cast<float>(yPos);
+    //Negation to turn increasing mouse Y coords into negative pitch
+    input.mouseDeltaY = static_cast<float>(-(newY - mouseY_) * mouseSensitivity_);
+    mouseX_ = newX;
+    mouseY_ = newY;
 }
 
 void Application::registerCallbacks()
@@ -161,7 +155,6 @@ void Application::registerCallbacks()
     glfwSetWindowUserPointer(window_, this);
     glfwSetFramebufferSizeCallback(window_, framebuffer_size_callback);
     glfwSetKeyCallback(window_, Application::keyCallback);
-    glfwSetCursorPosCallback(window_, Application::mouse_callback);
     glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
