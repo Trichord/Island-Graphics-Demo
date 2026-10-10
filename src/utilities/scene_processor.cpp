@@ -52,7 +52,8 @@ AABB getSceneBounds(const Scene &scene)
 
             for (const Transform &transform : entry.worldTransforms)
             {
-                const AABB worldAABB{primitive.aabb.transform(transform.getModelMatrix())};
+                const AABB worldAABB{
+                    primitive.aabb.transform(transform.getModelMatrix() * primitive.modelSpaceTransform)};
                 const glm::vec3 aabbMin{worldAABB.getMin()};
                 const glm::vec3 aabbMax{worldAABB.getMax()};
 

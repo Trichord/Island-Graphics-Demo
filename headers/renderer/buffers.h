@@ -21,8 +21,9 @@
  *
  * Draw Commands Source: Per primitive. Immutable source of truth, set once at load. Standard
  * DrawElementsIndirectCommand with 2 extra fields:
- *      - drawBucket: which draw bucket this primitive belongs to
- *      - drawCommandsBaseIndex: start of the draw bucket in Draw Commands.
+ *      - drawBucket: which draw bucket this primitive belongs to (i.e. which index in the GL_PARAMETER_BUFFER)
+ *      - drawCommandsBaseIndex: start of the draw bucket in Draw Commands. The draw commands buffer is sized to
+ *        hold all primitives (no culling), we must write into the appropriate section per bucket.
  *
  * Cull Results: Per primitive. Number of surviving instances after frustum test.
  *
@@ -35,8 +36,8 @@
  *                   contiguous section sized to its instance count.
  *
  * Visibility Map: Per (primitive × instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
- *      - sharedIndex: index into AABBs/Metadata/Draw Commands/Model Matrix buffers (the primitive)
- *      - visibleInstancesBaseIndex: start of the (primitive x instance) range in the visibility buffer
+ *      - sharedIndex: index into AABBs / Metadata / Source Draw Commands buffers (the primitive)
+ *      - visibleInstancesBaseIndex: start of the (primitive x instance) range in the Visible Instances buffer
  *
  ********************
  * Supporting Buffers
