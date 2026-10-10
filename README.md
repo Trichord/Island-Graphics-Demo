@@ -57,6 +57,10 @@ I created an island in Gaea and Blender, tried populating it with some vegetatio
 ![Compaction pipeline][compaction-pipeline-light]
 ![Compaction pipeline][compaction-pipeline-dark]
 
+## Vertex Shading
+![Vertex shading][vertex-light]
+![Vertex shading][vertex-dark]
+
 ## Performance
 
 ### Intel Iris Xe (Integrated Graphics)
@@ -174,6 +178,8 @@ All art / music / sound-effects / third-party-libraries retain their original li
 [cull-pipeline-dark]: images/culling_pipeline_dark.svg#gh-dark-mode-only
 [compaction-pipeline-light]: images/compaction_pipeline_light.svg#gh-light-mode-only
 [compaction-pipeline-dark]: images/compaction_pipeline_dark.svg#gh-dark-mode-only
+[vertex-light]: images/vertex_light.svg#gh-light-mode-only
+[vertex-dark]: images/vertex_dark.svg#gh-dark-mode-only
 [explosion-effect]: images/vertex_explosion.webp
 [culling-thumb]: https://img.youtube.com/vi/4OVsnVp6WYw/maxresdefault.jpg
 [culling-video]: https://www.youtube.com/watch?v=4OVsnVp6WYw
