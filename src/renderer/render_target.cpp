@@ -38,7 +38,7 @@ RenderTarget::RenderTarget(int width, int height, Settings settings)
     GLenum status = glCheckNamedFramebufferStatus(FBO_, GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE)
     {
-        std::cerr << "Error: framebuffer incomplete, status = 0x" << status << "\n";
+        std::cerr << "Error: framebuffer incomplete, status = 0x" << std::hex << status << std::dec << "\n";
         throw std::runtime_error("Framebuffer incomplete");
     }
 }

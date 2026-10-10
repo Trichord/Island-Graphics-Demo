@@ -18,6 +18,10 @@
 #include <unordered_set>
 #include <vector>
 
+/**
+ * @brief Provides compilation and linking of vertex, fragment, and compute shader programs. Uniforms set through
+ * accessors. Basic pre-processor included.
+ */
 class Shader
 {
   public:

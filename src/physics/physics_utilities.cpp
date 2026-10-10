@@ -194,12 +194,18 @@ physics::SceneBodies physics::buildCollisionGeometry(const Scene &scene, JPH::Bo
                     if (collisionMesh.empty())
                         return;
 
-                    auto shape = JPH::MeshShapeSettings{collisionMesh}.Create().Get();
+                    JPH::ShapeSettings::ShapeResult result{JPH::MeshShapeSettings{collisionMesh}.Create()};
+
+                    if (result.HasError())
+                    {
+                        std::cerr << "Error creating collision mesh: " << result.GetError() << "\n";
+                        return;
+                    }
 
                     for (std::size_t i{0}; i < entry.worldTransforms.size(); ++i)
                     {
-                        const JPH::BodyCreationSettings bodySettings{
-                            createBodySettings(shape, entry.worldTransforms[i], mesh.material, entry.handle, i, false)};
+                        const JPH::BodyCreationSettings bodySettings{createBodySettings(
+                            result.Get(), entry.worldTransforms[i], mesh.material, entry.handle, i, false)};
                         addBody(bodies, bodyInterface, bodySettings, false);
                     }
                 },
@@ -240,6 +246,12 @@ physics::SceneBodies physics::buildCollisionGeometry(const Scene &scene, JPH::Bo
 
                     JPH::ShapeSettings::ShapeResult result{shapeSettings.Create()};
 
+                    if (result.HasError())
+                    {
+                        std::cerr << "Error creating capsule: " << result.GetError() << "\n";
+                        return;
+                    }
+
                     // Add a model space transform before world space transform
                     auto offsetShape{new JPH::RotatedTranslatedShape(toJPHVec3(capsule.offset), JPH::Quat::sIdentity(),
                                                                      result.Get())};
@@ -257,6 +269,12 @@ physics::SceneBodies physics::buildCollisionGeometry(const Scene &scene, JPH::Bo
                     shapeSettings.mDensity = sphere.material.density;
 
                     JPH::ShapeSettings::ShapeResult result{shapeSettings.Create()};
+
+                    if (result.HasError())
+                    {
+                        std::cerr << "Error creating sphere: " << result.GetError() << "\n";
+                        return;
+                    }
 
                     // Model transform
                     auto offsetShape{new JPH::RotatedTranslatedShape(toJPHVec3(sphere.offset), JPH::Quat::sIdentity(),

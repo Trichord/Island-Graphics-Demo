@@ -1,6 +1,7 @@
 #include "utilities/random.h"
 
 #include <cassert>
+#include <cmath>
 #include <random>
 #include <stdexcept>
 
@@ -38,6 +39,10 @@ float random::floatMS(float min, float max)
     if (max < min)
         throw std::runtime_error("Random min greater than random max");
 
+    // uniform_real_distribution requires max - min to be representable
+    if (!std::isfinite(max - min))
+        throw std::runtime_error("Random range is not finite");
+
     return std::uniform_real_distribution<float>(min, max)(rnd());
 }
 
@@ -48,6 +53,9 @@ float random::floatMT(float min, float max)
 
     if (max < min)
         throw std::runtime_error("Random min greater than random max");
+
+    if (!std::isfinite(max - min))
+        throw std::runtime_error("Random range is not finite");
 
     std::uniform_real_distribution<float> rnd{min, max};
     return rnd(rndMT());

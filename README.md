@@ -164,7 +164,7 @@ AI was used heavily for debugging, walking through new algorithms, OpenGL API us
 The source code in this project is licensed under the [MIT License](LICENSE) except:
 
 LearnOpenGL derived code: camera.cpp/camera.h, shader_base.cpp/shader_base.h, pbr.vert/pbr.frag
-© [Joey de Vries][joey-de-vries-home] licensed under [CC BY 4.0][cc-by-4.0]
+© [Joey de Vries][joey-de-vries-home] licensed under [CC BY-NC 4.0][cc-by-nc-4.0]
 
 NVIDIA source code: calculateCascadeSplits (cascade_shadows.cpp)
 
@@ -190,4 +190,4 @@ All art / music / sound-effects / third-party-libraries retain their original li
 [git-lfs]: https://git-lfs.com/
 [third-party]: THIRD_PARTY_NOTICES.md
 [joey-de-vries-home]: https://joeydevries.com/#home
-[cc-by-4.0]: https://creativecommons.org/licenses/by-nc/4.0/legalcode
+[cc-by-nc-4.0]: https://creativecommons.org/licenses/by-nc/4.0/legalcode

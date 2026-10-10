@@ -70,7 +70,8 @@
  *
  */
 
-// Holds the OpenGL handles for all Shader Storage Buffer Objects
+// Holds the OpenGL handles for all Shader Storage Buffer Objects. Left as RAII on raw GLuint because of the hard 16
+// SSBO limit
 struct SSBOs
 {
     GLuint aabb{0};
