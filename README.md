@@ -57,7 +57,7 @@ I created an island in Gaea and Blender, tried populating it with some vegetatio
 ![Compaction pipeline][compaction-pipeline-light]
 ![Compaction pipeline][compaction-pipeline-dark]
 
-## Vertex Shading
+### Vertex Shading
 ![Vertex shading][vertex-light]
 ![Vertex shading][vertex-dark]
 
