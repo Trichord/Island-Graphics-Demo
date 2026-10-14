@@ -3,6 +3,7 @@
 #include <fastgltf/types.hpp>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <glm/glm.hpp>
 #include <ios>
 #include <iostream>
@@ -11,7 +12,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -23,6 +23,7 @@
 #include "models/primitive.h"
 #include "models/skybox.h"
 #include "physics/collision_shapes.h"
+#include "physics/moved.h"
 #include "renderer/shader/graphics_shader.h"
 #include "scene/directional_light.h"
 #include "scene/entry_animation.h"
@@ -254,7 +255,7 @@ const Camera::Description &Scene::getCameraDescription() const
     return cameraDescription_;
 }
 
-void Scene::clearUpdates()
+void Scene::clear()
 {
     updatedEntries_.clear();
     globalLightSource_.clearFlags();
@@ -414,5 +415,16 @@ void Scene::validateSceneEntries()
         validatePrimitives(entry);
         splitOnShaderType(entry);
         expandAnimatedAABBs(entry);
+    }
+}
+
+void Scene::physicsSync(const std::vector<MovedSceneObject> &movedObjects)
+{
+    for (const MovedSceneObject &moved : movedObjects)
+    {
+        Entry &entry{editEntry(moved.handle)};
+        Transform &transform{entry.worldTransforms[moved.transformIndex]};
+        transform.setAbsoluteRotation(moved.rotation);
+        transform.setAbsoluteTranslation(moved.position);
     }
 }

@@ -13,8 +13,6 @@
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Body/BodyLock.h>
-#include <Jolt/Physics/Body/BodyLockInterface.h>
-#include <Jolt/Physics/Body/BodyType.h>
 #include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseQuery.h>
@@ -39,6 +37,7 @@
 #include "physics/character_capsule.h"
 #include "physics/collision_shapes.h"
 #include "physics/jolt_impl.h"
+#include "physics/moved.h"
 #include "physics/physics_utilities.h"
 #include "renderer/shader/graphics_shader.h"
 #include "scene/scene.h"
@@ -143,15 +142,16 @@ void PhysicsWorld::initializeScene(const Scene &scene)
         if (interface.GetMotionType(id) != EMotionType::Dynamic)
             continue;
 
+        const physics::BodyIdentifier bodyIdentifier{physics::getBodyIdentifier(userData)};
+
         // Seed starting position / rotation for starting dynamics
-        MovedBody body;
-        interface.GetPositionAndRotation(id, body.currentPos, body.currentRot);
-        body.prevPos = body.currentPos;
-        body.prevRot = body.currentRot;
-        movedEntities_.emplace(id, std::move(body));
+        MovedBody movedBody{.identifier = bodyIdentifier};
+        interface.GetPositionAndRotation(id, movedBody.currentPos, movedBody.currentRot);
+        movedBody.prevPos = movedBody.currentPos;
+        movedBody.prevRot = movedBody.currentRot;
+        dynamicBodies_.emplace(id, std::move(movedBody));
 
         // Tag all sphere shapes for applying drag later
-        const physics::BodyIdentifier bodyIdentifier{physics::getBodyIdentifier(userData)};
         const Scene::Entry &entry{scene.viewEntry(bodyIdentifier.handle)};
 
         if (entry.collisionGeometry && std::holds_alternative<collision::Sphere>(entry.collisionGeometry.value()))
@@ -209,6 +209,7 @@ void PhysicsWorld::update(const UserInput &input, const glm::vec3 &front, float 
     }
 
     interpolationAlpha_ = timeAccumulator_ / physicsTick_;
+    postPhysicsSync();
 }
 
 void PhysicsWorld::tick(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime)
@@ -303,6 +304,11 @@ glm::vec3 PhysicsWorld::getPlayerPosition() const
     return glm::mix(toGLMVec3(previousPosition_), toGLMVec3(player_.getCenter()), interpolationAlpha_);
 };
 
+const std::vector<MovedSceneObject> &PhysicsWorld::getMovedObjects() const
+{
+    return movedSceneObjects_;
+}
+
 bool PhysicsWorld::footstepEvent() const
 {
     if (footstepAccumulator_ >= footstepDistance_)
@@ -325,42 +331,23 @@ void PhysicsWorld::updateMovedBodies()
 {
     using namespace JPH;
 
-    physicsSystem_.GetActiveBodies(EBodyType::RigidBody, activeBodies_);
-    const BodyLockInterfaceNoLock &lockInterface{physicsSystem_.GetBodyLockInterfaceNoLock()};
-    const BodyInterface &interface{physicsSystem_.GetBodyInterface()};
+    const BodyInterface &interface{physicsSystem_.GetBodyInterfaceNoLock()};
 
-    for (const BodyID &id : activeBodies_)
-    {
-        uint64 userData{interface.GetUserData(id)};
-
-        if (userData == playerID_)
-            continue;
-
-        auto iter = movedEntities_.find(id);
-
-        if (iter == movedEntities_.end())
-            continue;
-
-        iter->second.update(interface.GetPosition(id), interface.GetRotation(id));
-    }
+    for (auto &[id, body] : dynamicBodies_)
+        body.update(interface.GetPosition(id), interface.GetRotation(id));
 }
 
-void PhysicsWorld::postPhysicsSync(Scene &scene)
+void PhysicsWorld::postPhysicsSync()
 {
-    using namespace JPH;
-
-    const BodyInterface &interface{physicsSystem_.GetBodyInterface()};
-
-    for (auto &[id, movedBody] : movedEntities_)
+    for (const auto &[id, moved] : dynamicBodies_)
     {
-        physics::BodyIdentifier sceneBody{physics::getBodyIdentifier(interface.GetUserData(id))};
-        Scene::Entry &entry{scene.editEntry(sceneBody.handle)};
-        Transform &transform{entry.worldTransforms[sceneBody.transformIndex]};
+        if (moved.prevPos == moved.currentPos && moved.prevRot == moved.currentRot)
+            continue;
 
-        transform.setAbsoluteRotation(
-            glm::slerp(toGLMQuat(movedBody.prevRot), toGLMQuat(movedBody.currentRot), interpolationAlpha_));
-        transform.setAbsoluteTranslation(
-            glm::mix(toGLMVec3(movedBody.prevPos), toGLMVec3(movedBody.currentPos), interpolationAlpha_));
+        movedSceneObjects_.emplace_back(
+            moved.identifier.handle, moved.identifier.transformIndex,
+            glm::mix(toGLMVec3(moved.prevPos), toGLMVec3(moved.currentPos), interpolationAlpha_),
+            glm::slerp(toGLMQuat(moved.prevRot), toGLMQuat(moved.currentRot), interpolationAlpha_));
     }
 }
 
@@ -461,11 +448,13 @@ const std::vector<physics::ObjectCollision> &PhysicsWorld::getCollisions() const
     return player_.getContactedBodies();
 }
 
-void PhysicsWorld::clearFlags()
+void PhysicsWorld::clear()
 {
     jumpTriggered_ = false;
     landingTriggered_ = false;
 
     if (footstepAccumulator_ >= footstepDistance_)
         footstepAccumulator_ = std::fmod(footstepAccumulator_, footstepDistance_);
+
+    movedSceneObjects_.clear();
 }

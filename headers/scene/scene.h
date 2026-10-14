@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <functional>
 #include <glm/glm.hpp>
 #include <optional>
 #include <ranges>
@@ -12,12 +13,12 @@
 #include <vector>
 
 #include "game/camera.h"
-#include "models/instanced_model.h"
 #include "models/model.h"
 #include "models/particles.h"
 #include "models/primitive.h"
 #include "models/skybox.h"
 #include "physics/collision_shapes.h"
+#include "physics/moved.h"
 #include "physics/player_state.h"
 #include "scene/directional_light.h"
 #include "scene/entry_animation.h"
@@ -26,6 +27,10 @@
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 
+/**
+ * @brief Owner of all scene objects in a unified format (Scene::Entry). Subclassed to provide gameplay logic through
+ * virtual onUpdate method.
+ */
 class Scene
 {
   public:
@@ -58,10 +63,12 @@ class Scene
     const std::vector<Scene::Entry> &getAllSceneEntries() const;
     const Scene::Entry &viewEntry(Handle handle) const;
     const Scene::Entry &viewEntry(std::string_view name) const;
-    [[nodiscard]] Scene::Entry &editEntry(Handle handle);
 
-    // Returns a non-contiguous view of updated scene entries, based on dirty handles. Return value must not outlive
-    // Scene.
+    /**
+     * @brief Gets all Scene entries that have been edited since the last call to clearUpdates()
+     *
+     * @return A const, non-contiguous view of updated scene entries, based on dirty handles
+     */
     auto getUpdatedEntries() const
     {
         return updatedEntries_ | std::views::transform([this](Handle handle) -> const Scene::Entry & {
@@ -69,10 +76,36 @@ class Scene
                });
     }
 
+    /**
+     * @brief Updates all objects moved by the physics engine.
+     */
+    void physicsSync(const std::vector<MovedSceneObject> &movedObjects);
+
+    /**
+     * @brief This method is called once per frame, allowing subclasses to move scene objects and react to the player.
+     */
     virtual void onUpdate(const PlayerState &player, float time, float deltaTime) = 0;
-    void clearUpdates();
+    void clear();
 
   protected:
+    /**
+     * @brief Gets a modifiable / updateable Scene object. Automatically flags the entry as modified. If no modification
+     * is needed, use viewEntry.
+     *
+     * @param handle The unique Scene::Entry identifier.
+     *
+     * @return A reference to the entry.
+     */
+    [[nodiscard]] Scene::Entry &editEntry(Handle handle);
+
+    /**
+     * @brief Gets a modifiable / updateable Scene object. Automatically flags the entry as modified. If no modification
+     * is needed, use viewEntry.
+     *
+     * @param name The Scene::Entry, as named by the Scene creator.
+     *
+     * @return A reference to the entry.
+     */
     [[nodiscard]] Scene::Entry &editEntry(std::string_view name);
 
     void setAmbientLight(const glm::vec3 &ambient);

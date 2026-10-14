@@ -46,6 +46,7 @@ set(HEADERS
     headers/physics/character_capsule.h
     headers/physics/collision_shapes.h
     headers/physics/jolt_impl.h
+    headers/physics/moved.h
     headers/physics/physics_utilities.h
     headers/physics/physics_world.h
     headers/physics/player_state.h

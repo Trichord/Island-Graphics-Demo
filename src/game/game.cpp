@@ -2,7 +2,6 @@
 
 #include <functional>
 #include <glm/glm.hpp>
-#include <iostream>
 #include <memory>
 
 #include "application/graphics_settings.h"
@@ -45,19 +44,19 @@ void Game::update(const UserInput &input, float time, float deltaTime)
     playerCamera_.addYaw(input.mouseDeltaX);
 
     PlayerState state{updatePhysics(input, deltaTime)};
+    scene_->physicsSync(physics_.getMovedObjects());
     scene_->onUpdate(state, time, deltaTime);
     updateAudio(state, deltaTime);
 
     renderer_.render(*scene_, playerCamera_, time, deltaTime);
 
-    scene_->clearUpdates();
-    physics_.clearFlags();
+    scene_->clear();
+    physics_.clear();
 }
 
 PlayerState Game::updatePhysics(const UserInput &userInput, float deltaTime)
 {
     physics_.update(userInput, playerCamera_.getFront(), deltaTime);
-    physics_.postPhysicsSync(*scene_);
 
     // Synchronize camera with character position from the physics engine
     const glm::vec3 pos{physics_.getPlayerPosition()};
