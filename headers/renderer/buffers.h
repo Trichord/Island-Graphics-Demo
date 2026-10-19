@@ -13,7 +13,7 @@
  * Multi Draw Elements Indirect Count Buffers
  * ******************************************
  *
- * Draw Counts: Per draw bucket. Number of surviving draw commands after compaction.
+ * Draw Counts: Per draw bucket. Number of surviving draw commands after compaction. Bound to GL_PARAMETER_BUFFER.
  *
  * AABB: Per primitive. Local-space bounding boxes.
  *
@@ -29,13 +29,13 @@
  *
  * Metadata: Per primitive. Material textures, visibility buffer base index.
  *
- * Matrices: Per (primitive × instance) pair. World-space transforms.
+ * Matrices: Per (primitive x instance) pair. World-space transforms.
  *
- * Visible Instances: Per (primitive × instance) pair. Indices into Matrices buffer for
+ * Visible Instances: Per (primitive x instance) pair. Indices into Matrices buffer for
  *                   instances that passed the culling test(s). Each primitive owns a
  *                   contiguous section sized to its instance count.
  *
- * Visibility Map: Per (primitive × instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
+ * Visibility Map: Per (primitive x instance) pair. Allows any index in the VisibleInstances buffer to see its matching:
  *      - sharedIndex: index into AABBs / Metadata / Source Draw Commands buffers (the primitive)
  *      - visibleInstancesBaseIndex: start of the (primitive x instance) range in the Visible Instances buffer
  *
@@ -43,7 +43,8 @@
  * Supporting Buffers
  ********************
  *
- * Bone Transforms: Per skinned model. Each model gets a dedicated section, allowing for skeletal animation.
+ * Bone Transforms: Per skinned model. Each model gets a dedicated section sized to its number of inverse bind matrices,
+ * allowing for skeletal animation.
  *
  * Vertex Bone Data: Per skinned vertex. Each skinned vertex gets its Bone IDs remapped as a direct index into this
  * buffer. Holds weights and bone IDs, keeping the vertex struct at 32 bytes.
@@ -54,14 +55,14 @@
  * Particle Map: Per particle vertex. Allows any index in map buffer to look up its shared index (aabb, metadata, etc).
  *
  * Exploding Vertices Map: Per exploded vertex (non-instanced). Allows any model which subscribes to the exploding
- * effect to look up its original VBO index, world space transform index, and metadata for driving the effect.
+ * effect to look up its original VBO index, model matrix index, and some source of truth data to drive the effect.
  *
  **********************
  * Implementation Notes
  **********************
  *
  * 1:1 indexed buffers: Draw Commands Source[i], AABB[i], Metadata[i]
- * Matrices[j], Visibility Map[j], Visible Instances[j] where j spans all (primitive × instance) pairs
+ * Matrices[j], Visibility Map[j], Visible Instances[j] where j spans all (primitive x instance) pairs
  * Vertex Bone Data[k], Skinned Vertex Source[k]
  *
  * Buffers resized for cascade shadows: Draw Commands, Draw Counts, Cull Results, Visible Instances. Allows the main
@@ -268,7 +269,7 @@ enum class BindingPointUBO : std::uint32_t
     cascadeShadows,
 };
 
-// Shader Storage Buffer Object binding points (std::uint32_). Total number of buffers bound at any time must be <= 16
+// Shader Storage Buffer Object binding points (std::uint32_t). Total number of buffers bound at any time must be <= 16
 enum class BindingPointSSBO : std::uint32_t
 {
     // Aliased VBOs
@@ -302,6 +303,7 @@ inline constexpr int vertexBlocks{8};
 inline constexpr int fragmentBlocks{8};
 } // namespace SSBOMinimum
 
+// Binding ranges for main pass plus shadows (std::size_t)
 enum class BufferRange : std::size_t
 {
     mainPass,
@@ -328,7 +330,7 @@ constexpr BufferRange bufferRangeFromIndex(std::size_t index)
 constexpr BufferRange &operator++(BufferRange &r)
 {
     const std::size_t n{static_cast<std::size_t>(r) + 1};
-    assert(n < static_cast<std::size_t>(BufferRange::count));
+    assert(n <= static_cast<std::size_t>(BufferRange::count));
     r = static_cast<BufferRange>(n);
     return r;
 }

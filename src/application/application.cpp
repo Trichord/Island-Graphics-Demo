@@ -72,9 +72,11 @@ void Application::run()
     // Game must have a valid OpenGL context with Jolt setup and ready to go. The callback passed to Game allows it to
     // update the console with messages and keep the window from being flagged as unresponsive.
     Game game{graphicsSettings, windowWidth_, windowHeight_, [this](const std::string &s) { updateProgress(s); }};
-    glfwShowWindow(window_);
 
-    //Grab the latest mouse position just before the loop
+    // Grab the latest mouse position just before the loop
+    glfwShowWindow(window_);
+    glfwFocusWindow(window_);
+    glfwPollEvents();
     glfwGetCursorPos(window_, &mouseX_, &mouseY_);
 
     while (!glfwWindowShouldClose(window_))
@@ -144,7 +146,7 @@ void Application::processMouse(UserInput &input)
 
     input.mouseDeltaX = static_cast<float>((newX - mouseX_) * mouseSensitivity_);
 
-    //Negation to turn increasing mouse Y coords into negative pitch
+    // Negation to turn increasing mouse Y coords into negative pitch
     input.mouseDeltaY = static_cast<float>(-(newY - mouseY_) * mouseSensitivity_);
     mouseX_ = newX;
     mouseY_ = newY;

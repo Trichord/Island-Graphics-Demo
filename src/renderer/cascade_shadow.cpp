@@ -40,9 +40,6 @@ const CascadeShadow::Cascades &CascadeShadow::getCascades() const
     return cascades_;
 }
 
-/* Credit: Rouslan Dimitrov & NVIDIA Corporation
-Computes the near and far distances for every frustum slice in camera eye space - that is, at what distance does a
-slice start and end */
 void CascadeShadow::calculateCascadeSplits(float farPlane)
 {
     constexpr float cascadeOverlap{1.03f};
@@ -64,12 +61,11 @@ void CascadeShadow::calculateCascadeSplits(float farPlane)
     cascades_.farPlanes[CascadeShadow::cascadeCount - 1] = farPlane;
 }
 
-// Returns the bounding sphere of a frustum
 CascadeShadow::FrustumSphere CascadeShadow::getFrustumSphere(const std::array<glm::vec3, 8> &corners,
                                                              int textureResolution)
 {
     // Snaps radius to the nearest 1/amount to reduce shimmer
-    float snapResolution{worldExtent_ / textureResolution};
+    const float snapResolution{worldExtent_ / textureResolution};
 
     glm::vec3 center{0.0f};
 
@@ -88,7 +84,6 @@ CascadeShadow::FrustumSphere CascadeShadow::getFrustumSphere(const std::array<gl
     return {center, std::ceil(radius / snapResolution) * snapResolution};
 }
 
-// Main technique: Antonio Hernandez Bejarano, texel snapping: Alex Tardiff
 void CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraVP, const DirectionalLight &light, int shadowResolution,
                                          float farPlane)
 {
@@ -101,17 +96,18 @@ void CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraVP, const Direct
 
     calculateCascadeSplits(farPlane);
 
+    // Outer cascade is world-sized and stable
     for (int i{0}; i < CascadeShadow::cascadeCount - 1; ++i)
     {
         std::array<glm::vec3, 8> frustumCorners{fullFrustumCorners};
-        float &near{cascades_.nearPlanes[i]};
-        float &far{cascades_.farPlanes[i]};
+        const float &near{cascades_.nearPlanes[i]};
+        const float &far{cascades_.farPlanes[i]};
         float &texelDensity{cascades_.texelSizes[i]};
         glm::mat4 &vpMatrix{cascades_.viewProjections[i]};
 
         // Linearly interpolate to get the frustum split's near and far planes into [0,1]
-        float splitDistance{(far - nearPlane_) / (farPlane - nearPlane_)};
-        float lastSplitDist{(near - nearPlane_) / (farPlane - nearPlane_)};
+        const float splitDistance{(far - nearPlane_) / (farPlane - nearPlane_)};
+        const float lastSplitDist{(near - nearPlane_) / (farPlane - nearPlane_)};
 
         // Corners for this split
         for (int j{0}; j < 4; ++j)
@@ -122,8 +118,8 @@ void CascadeShadow::updateCascadeShadows(const glm::mat4 &cameraVP, const Direct
         }
 
         // Get center of frustum and texel density
-        CascadeShadow::FrustumSphere frustumSphere{getFrustumSphere(frustumCorners, shadowResolution)};
-        float texelsPerUnit{shadowResolution / (frustumSphere.radius * 2.0f)};
+        const CascadeShadow::FrustumSphere frustumSphere{getFrustumSphere(frustumCorners, shadowResolution)};
+        const float texelsPerUnit{shadowResolution / (frustumSphere.radius * 2.0f)};
 
         // Create a base lookAt with our light direction
         glm::mat4 scalarMatrix{glm::scale(glm::mat4{1.0f}, glm::vec3{texelsPerUnit})};

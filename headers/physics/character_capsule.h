@@ -23,8 +23,6 @@
 
 /**
  * @brief Capsule shaped character controller. Provides collision detection, walk, run, jump, and crouch.
- *
- * @details Wrapper around JPH::CharacterVirtual
  */
 class CharacterCapsule : public JPH::CharacterContactListener
 {
