@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <optional>
 #include <utility>
 #include <variant>

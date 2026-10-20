@@ -26,6 +26,12 @@ class CascadeShadow
     CascadeShadow(const DirectionalLight &light, AABB worldAABB, float nearPlane);
 
     const Cascades &getCascades() const;
+
+    /**
+    * @brief Main technique: Antonio Hernandez Bejarano, texel snapping: Alex Tardiff
+    *
+    * Calculate new near/far splits and light matrices.
+    */
     void updateCascadeShadows(const glm::mat4 &cameraVP, const DirectionalLight &light, int shadowResolution,
                               float farPlane);
 
@@ -57,9 +63,7 @@ class CascadeShadow
     FrustumSphere getFrustumSphere(const std::array<glm::vec3, 8> &corners, int shadowResolution);
 
     /**
-    * @brief Main technique: Antonio Hernandez Bejarano, texel snapping: Alex Tardiff
-    * 
-    * Calculate new near/far splits and light matrices.
+    * @brief Returns the world space corners of a frustum. 0-3 are the near plane, 4-7 are the far plane.
     */
     std::array<glm::vec3, 8> getFrustumCornersWorldSpace(const glm::mat4 &invViewProjection);
 };

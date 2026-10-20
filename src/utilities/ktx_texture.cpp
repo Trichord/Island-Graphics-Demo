@@ -1,5 +1,3 @@
-#pragma once
-
 #include "utilities/ktx_texture.h"
 
 #include <algorithm>

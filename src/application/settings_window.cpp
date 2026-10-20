@@ -1,9 +1,11 @@
 #include "application/settings_window.h"
 
+#include <cstdint>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 #include "application/gl_context.h"

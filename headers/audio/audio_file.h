@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "models/aabb.h"
+#include "utilities/json_parsing.h"
 
 struct SoundEffectEntry
 {
@@ -60,11 +61,6 @@ struct AudioFile
     std::vector<AudioTriggerEntry> audioTriggers;
     CharacterSoundEntry characterSounds;
 };
-
-inline glm::vec3 parseVec3(const nlohmann::json &j)
-{
-    return {j.at(0).get<float>(), j.at(1).get<float>(), j.at(2).get<float>()};
-}
 
 inline void from_json(const nlohmann::json &j, SoundEffectEntry &sfx)
 {

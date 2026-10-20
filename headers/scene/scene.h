@@ -65,7 +65,7 @@ class Scene
     const Scene::Entry &viewEntry(std::string_view name) const;
 
     /**
-     * @brief Gets all Scene entries that have been edited since the last call to clearUpdates()
+     * @brief Gets all Scene entries that have been edited since the last call to clear()
      *
      * @return A const, non-contiguous view of updated scene entries, based on dirty handles
      */

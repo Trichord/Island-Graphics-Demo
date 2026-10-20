@@ -22,4 +22,4 @@ int calculateMipmapLevels(int width, int height, bool compressed);
 GLenum vkFormatToGL(const ktx_uint32_t vkFormat);
 GLuint textureFromFile(std::filesystem::path path, TextureDetails details);
 GLuint createTextureID(int width, int height, GLenum internalFormat, Sampler sampler, bool mipmaps, float anisoLevel);
-} // namespace TextureUtilities
+} // namespace texture

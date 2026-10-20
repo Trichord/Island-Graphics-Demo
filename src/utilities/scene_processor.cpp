@@ -29,6 +29,7 @@
 #include "utilities/random.h"
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
+#include "utilities/world_vectors.h"
 
 namespace
 {

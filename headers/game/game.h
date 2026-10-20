@@ -5,6 +5,7 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <functional>
 #include <memory>
+#include <string>
 
 #include "application/graphics_settings.h"
 #include "application/input.h"

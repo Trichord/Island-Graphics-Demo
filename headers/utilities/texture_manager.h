@@ -5,7 +5,9 @@
 #include <functional>
 #include <glad/glad.h>
 #include <span>
+#include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "application/graphics_settings.h"

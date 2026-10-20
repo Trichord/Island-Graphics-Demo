@@ -1,12 +1,12 @@
 #include "utilities/array_texture.h"
 
 #include <cstdint>
+#include <cstring>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <iostream>
 #include <optional>
 #include <stdexcept>
-#include <string.h>
 #include <utility>
 #include <vector>
 

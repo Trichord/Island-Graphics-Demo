@@ -55,14 +55,14 @@ inline BodyIdentifier getBodyIdentifier(JPH::uint64 bodyUserData)
     return {.handle = static_cast<Handle>(handle), .transformIndex = static_cast<std::uint32_t>(transformIndex)};
 }
 
-// Unpack density from Jolt's Shape user data
+// Unpack the float stored by packDensity from Jolt's Shape user data (currently the material's buoyancy)
 inline float getDensity(JPH::uint64 shapeUserData)
 {
     const std::uint32_t lowBits{static_cast<std::uint32_t>(shapeUserData)};
     return std::bit_cast<float>(lowBits);
 }
 
-// Packs density information into a uint64 for Jolt's Shape user data
+// Packs a float into a uint64 for Jolt's Shape user data (currently the material's buoyancy, not density)
 inline JPH::uint64 packDensity(float density)
 {
     const std::uint32_t lowBits{std::bit_cast<std::uint32_t>(density)};

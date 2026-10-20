@@ -72,6 +72,7 @@ set(HEADERS
     headers/utilities/asset_loader.h
     headers/utilities/buffer_builder.h
     headers/utilities/json_loader.h
+    headers/utilities/json_parsing.h
     headers/utilities/ktx_texture.h
     headers/utilities/overloaded.h
     headers/utilities/random.h

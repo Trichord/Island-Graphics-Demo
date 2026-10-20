@@ -1,6 +1,6 @@
 #include "scene/island_scene/island_scene.h"
 
-#include <cstdlib>
+#include <cmath>
 #include <filesystem>
 #include <functional>
 #include <glm/glm.hpp>

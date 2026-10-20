@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
 
 #include "application/gl_context.h"
 #include "application/graphics_settings.h"

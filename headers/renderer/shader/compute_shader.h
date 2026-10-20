@@ -2,6 +2,7 @@
 
 #include "renderer/shader/shader_base.h"
 
+#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <vector>

@@ -7,7 +7,8 @@
 #include "utilities/ktx_texture.h"
 
 /**
- * @brief Wrapper around GL_TEXTURE_2D_ARRAY / GL_TEXTURE_CUBE_MAP_ARRAY. Only accepts compressed textures.
+ * @brief Wrapper around GL_TEXTURE_2D_ARRAY / GL_TEXTURE_CUBE_MAP_ARRAY. Textures inserted from KTX files must be
+ * compressed. Render target copies (e.g. dynamic cubemaps) may be uncompressed.
  */
 class ArrayTexture
 {
