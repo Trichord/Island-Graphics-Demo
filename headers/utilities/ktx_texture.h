@@ -8,6 +8,9 @@
 #include <glad/glad.h>
 #include <ktx.h>
 
+/**
+ * @brief RAII wrapper around KTX2 texture.
+ */
 class KTXTexture
 {
   public:

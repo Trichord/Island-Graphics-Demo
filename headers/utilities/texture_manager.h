@@ -17,6 +17,9 @@
 #include "utilities/ktx_texture.h"
 #include "utilities/thread_pool.h"
 
+/**
+ * @brief Owns array textures, tracks Handles and returns array indices / layers for that Handle's gLTF textures.
+ */
 class TextureManager
 {
   public:

@@ -6,6 +6,9 @@
 #include "renderer/render_target.h"
 #include "utilities/ktx_texture.h"
 
+/**
+ * @brief Wrapper around GL_TEXTURE_2D_ARRAY / GL_TEXTURE_CUBE_MAP_ARRAY. Only accepts compressed textures.
+ */
 class ArrayTexture
 {
   public:

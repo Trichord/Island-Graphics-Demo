@@ -14,6 +14,9 @@
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
 
+/**
+ * @brief Concrete implementation of a Scene. An example of gameplay logic implemented through Scene's onUpdate method.
+ */
 class IslandScene : public Scene
 {
   public:

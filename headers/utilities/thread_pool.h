@@ -8,6 +8,9 @@
 #include <thread>
 #include <vector>
 
+/**
+ * @brief General purpose thread pool, takes void functions as tasks.
+ */
 class ThreadPool
 {
   public:

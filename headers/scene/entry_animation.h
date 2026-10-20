@@ -14,6 +14,9 @@
 #include "models/primitive.h"
 #include "utilities/string_hash.h"
 
+/**
+ * @brief Owner of all animation data for a Scene::Entry. Plays and blends animations.
+ */
 class EntryAnimation
 {
   public:

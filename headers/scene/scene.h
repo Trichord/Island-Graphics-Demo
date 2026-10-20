@@ -102,7 +102,7 @@ class Scene
      * @brief Gets a modifiable / updateable Scene object. Automatically flags the entry as modified. If no modification
      * is needed, use viewEntry.
      *
-     * @param name The Scene::Entry, as named by the Scene creator.
+     * @param name The Scene::Entry, as named by the Scene creator. Warning: throws if no name is found.
      *
      * @return A reference to the entry.
      */

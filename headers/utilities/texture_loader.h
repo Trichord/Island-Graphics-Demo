@@ -9,11 +9,10 @@
 #include "utilities/ktx_texture.h"
 #include "utilities/thread_pool.h"
 
-/*
-TextureLoader takes in a vector of image filepaths, and returns a vector of
-textures loaded from disk in the same order. Not intended for loading single textures.
-*/
-
+/**
+ * @brief Takes in a vector of image filepaths, and returns a vector of
+ * textures loaded from disk (via thread pool) in the same order. Not intended for loading single textures.
+ */
 class TextureLoader
 {
   public:

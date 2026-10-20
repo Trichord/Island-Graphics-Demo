@@ -19,6 +19,9 @@
 #include "utilities/texture_manager.h"
 #include "utilities/transform.h"
 
+/**
+ * @brief Compiles a Scene into GPU ready buffers and descriptors of the data.
+ */
 class SceneProcessor
 {
   public:

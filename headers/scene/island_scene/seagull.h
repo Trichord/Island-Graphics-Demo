@@ -4,6 +4,10 @@
 
 #include "utilities/transform.h"
 
+/**
+ * @brief Seagull state machine with simple behavior. Flees when something gets too close, orbits, and attempts to
+ * return home.
+ */
 class Seagull
 {
   public:

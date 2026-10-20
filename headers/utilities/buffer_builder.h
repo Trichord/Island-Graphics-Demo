@@ -9,6 +9,9 @@
 #include "renderer/buffers.h"
 #include "renderer/renderer_types.h"
 
+/**
+ * @brief Creates SSBOs, UBOs, and VAOs. Owns the VAO layout.
+ */
 class BufferBuilder
 {
   public:
