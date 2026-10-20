@@ -15,12 +15,15 @@
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/Shape/SubShapeID.h>
 #include <Jolt/Physics/PhysicsSystem.h>
-#include <vector>
 #include <glm/glm.hpp>
 #include <optional>
+#include <vector>
 
 #include "physics/physics_utilities.h"
 
+/**
+ * @brief Capsule shaped character controller. Provides collision detection, walk, run, jump, and crouch.
+ */
 class CharacterCapsule : public JPH::CharacterContactListener
 {
   public:
@@ -46,19 +49,29 @@ class CharacterCapsule : public JPH::CharacterContactListener
     CharacterCapsule &operator=(CharacterCapsule &&other) = delete;
 
     float getRadius() const;
+
+    // Returns the center of mass of the capsule
     JPH::Vec3 getCenter() const;
+
+    // Returns the bottom of the capsule, per JPH
     JPH::Vec3 getPosition() const;
     JPH::Vec3 getVelocity() const;
     JPH::BodyID getBodyID() const;
+
+    // Capsule has either ground or steep ground under it
     bool isSupported() const;
+
+    // Capsule is grounded, not on a steep slope
     bool isGrounded() const;
     const std::vector<physics::ObjectCollision> &getContactedBodies() const;
 
-    void setCenter(const JPH::Vec3 &center);
-    void setPosition(const JPH::Vec3 &position);
-    void setVelocity(const JPH::Vec3 &velocity);
     void toggleCrouch(bool enable);
     void toggleSprint(bool enable);
+    void setCenter(const JPH::Vec3 &center);
+
+    // Sets bottom position of the capsule
+    void setPosition(const JPH::Vec3 &position);
+    void setVelocity(const JPH::Vec3 &velocity);
 
     void physicsUpdate(float deltaTime);
     void handleInput(const JPH::Vec3 &direction, bool jump, float deltaTime);
@@ -68,6 +81,7 @@ class CharacterCapsule : public JPH::CharacterContactListener
     // Terrain interaction
     static constexpr float maxSlopeAngle_{JPH::DegreesToRadians(50.0f)};
 
+    // State tracking
     bool crouched_{false};
     bool allowSliding_{false};
     bool characterSprinting_{false};
@@ -75,8 +89,6 @@ class CharacterCapsule : public JPH::CharacterContactListener
 
     JPH::Vec3 desiredVelocity_{0.0f, 0.0f, 0.0f};
     Settings capsuleSettings_;
-
-    // Non-owning pointers
     JPH::PhysicsSystem &physicsSystem_;
     JPH::TempAllocatorImpl &tempAllocator_;
 

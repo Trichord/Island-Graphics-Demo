@@ -1,5 +1,14 @@
 #version 460 core
 
+// SPDX-License-Identifier: CC-BY-NC-4.0
+//
+// Derived from LearnOpenGL (https://learnopengl.com) by Joey de Vries.
+// Original code licensed under CC BY-NC 4.0: https://creativecommons.org/licenses/by-nc/4.0/
+// Modified by James Midtdal: Added Burley diffuse, cascaded shadow maps, optimized instruction count, texture lookup through texture arrays
+// Additional references: Burley 2012 (Physically-Based Shading at Disney).
+//
+// This file is NOT covered by the project's MIT License.
+
 #include "shared/binding_points.glsl"
 #include "shared/constants.glsl"
 #include "shared/samplers.glsl"
@@ -57,7 +66,7 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 	return F0 + (1.0 - F0) * x5;
 }
 
-// Burely diffuse (unrolled)
+// Burley diffuse (unrolled)
 float burleyDiffuseFactor(float FD90, float NdotL, float NdotV)
 {
 	float L = 1.0 - NdotL;
@@ -107,19 +116,12 @@ void main()
 	N.z = sqrt(1 - dot(N.xy, N.xy));
 	N = normalize(N);
 
-	#ifdef REFLECTIVE
-	vec3 t = reflect(-V, N);
-	t.z = reflectionDepth * texture(noise, fsIn.texCoords).r / abs(t.z);
-	texCoords += t.xy * t.z;
-	#endif
-
 	// Dot products
 	float NdotV = max(dot(N, V), 0.0);
 	float NdotL = max(dot(N, L), 0.0);
 	float NdotH = max(dot(N, H), 0.0);
 	float HdotV = max(dot(H, V), 0.0);
 
-	// Material properties, remap normal from [0, 1] to [-1, 1]
 	vec4 albedo = texture(textures[meta.albedoArray], vec3(texCoords, meta.albedoLayer));
 	vec3 ARM = texture(textures[meta.armArray], vec3(texCoords, meta.armLayer)).rgb;
 
@@ -127,7 +129,7 @@ void main()
 	float roughness = ARM.g;
 	float metallic = ARM.b;
 
-	// Fresnel-Shlick base reflectivity
+	// Fresnel-Schlick base reflectivity
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo.rgb, metallic);
 
@@ -150,11 +152,8 @@ void main()
 	vec3 ambient = ambientLight.rgb * albedo.rgb * ao;
 
 	#ifdef ALPHA_TESTED_SHADOWS
-	// Pick shadow cascade off frag depth
-	int layer = calculateCascadeIndex(-fsIn.viewFragDepth);
-
 	// Shadows
-	float shadow = shadowContribution(lightMatrices[layer], fsIn.worldFragPos, normalize(fsIn.geoNormal), layer);
+	float shadow = shadowContribution(fsIn.worldFragPos, normalize(fsIn.geoNormal), -fsIn.viewFragDepth);
 	vec3 color = ambient + Lo * shadow;
 	
 	#else

@@ -3,6 +3,7 @@
 #include <fastgltf/types.hpp>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <glm/glm.hpp>
 #include <ios>
 #include <iostream>
@@ -11,19 +12,19 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
 
+#include "game/camera.h"
 #include "models/instanced_model.h"
 #include "models/model.h"
 #include "models/particles.h"
 #include "models/primitive.h"
 #include "models/skybox.h"
 #include "physics/collision_shapes.h"
+#include "physics/moved.h"
 #include "renderer/shader/graphics_shader.h"
-#include "scene/camera.h"
 #include "scene/directional_light.h"
 #include "scene/entry_animation.h"
 #include "scene/handle.h"
@@ -53,11 +54,11 @@ void validatePrimitives(Scene::Entry &entry)
         {
         case ocean:
             if (isInstanced)
-                std::cerr << "WARNING: Multiple ocean instances sharing one reflection" << std::endl;
+                std::cerr << "WARNING: Multiple ocean instances sharing one reflection\n";
 
             if (primitive.alphaMode != opaque)
             {
-                std::cerr << "WARNING: Overriding ocean shader primitive alpha mode with Opaque" << std::endl;
+                std::cerr << "WARNING: Overriding ocean shader primitive alpha mode with Opaque\n";
                 primitive.alphaMode = opaque;
             }
 
@@ -65,11 +66,11 @@ void validatePrimitives(Scene::Entry &entry)
 
         case water:
             if (isInstanced)
-                std::cerr << "WARNING: Multiple water instances sharing one reflection" << std::endl;
+                std::cerr << "WARNING: Multiple water instances sharing one reflection\n";
 
             if (primitive.alphaMode != blend)
             {
-                std::cerr << "WARNING: Overriding water shader primitive alpha mode with Blend" << std::endl;
+                std::cerr << "WARNING: Overriding water shader primitive alpha mode with Blend\n";
                 primitive.alphaMode = blend;
             }
 
@@ -162,9 +163,11 @@ std::optional<EntryAnimation> createEntryAnimation(const Model &model)
 
 } // namespace
 
-Scene::Scene(TextureManager &textureManager, const std::filesystem::path &jsonFile) : textureManager_{textureManager}
+Scene::Scene(TextureManager &textureManager, const std::filesystem::path &jsonFile,
+             const std::function<void(const std::string &)> &updateProgress)
+    : textureManager_{textureManager}
 {
-    setupScene(jsonFile);
+    setupScene(jsonFile, updateProgress);
 }
 
 const std::vector<Scene::Entry> &Scene::getAllSceneEntries() const
@@ -176,7 +179,7 @@ std::size_t Scene::findIndex(Handle handle) const
 {
     if (handle < 1 || handle > entries_.size() || entries_[handle - 1].handle != handle)
     {
-        std::cerr << "ERROR: Could not find handle " << handle << std::endl;
+        std::cerr << "Error: Could not find handle " << handle << "\n";
         throw std::runtime_error("Invalid handle");
     }
 
@@ -189,7 +192,7 @@ std::size_t Scene::findIndex(std::string_view name) const
 
     if (iter == entriesByName_.end() || iter->second >= entries_.size())
     {
-        std::cerr << "ERROR: Cannot find named scene entry " << name << std::endl;
+        std::cerr << "Error: Cannot find named scene entry " << name << "\n";
         throw std::runtime_error("Invalid key");
     }
 
@@ -252,7 +255,7 @@ const Camera::Description &Scene::getCameraDescription() const
     return cameraDescription_;
 }
 
-void Scene::clearUpdates()
+void Scene::clear()
 {
     updatedEntries_.clear();
     globalLightSource_.clearFlags();
@@ -312,13 +315,14 @@ void Scene::addModel(Handle handle, Model &model, const std::optional<collision:
     });
 }
 
-void Scene::setupScene(const std::filesystem::path &jsonFile)
+void Scene::setupScene(const std::filesystem::path &jsonFile,
+                       const std::function<void(const std::string &)> &updateProgress)
 {
     using namespace nlohmann;
 
     if (jsonFile.empty() || !std::filesystem::exists(jsonFile))
     {
-        std::cerr << "ERROR: Could not load scene " << jsonFile << std::endl;
+        std::cerr << "Error: Could not load scene " << jsonFile << "\n";
         throw std::runtime_error("Invalid Scene");
     }
 
@@ -326,7 +330,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
 
     if (!file.is_open())
     {
-        std::cerr << "ERROR: Failed to open " << jsonFile << std::endl;
+        std::cerr << "Error: Failed to open " << jsonFile << "\n";
         throw std::runtime_error("Failed to open file");
     }
 
@@ -342,7 +346,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
 
     catch (const json::exception &e)
     {
-        std::cerr << e.what() << std::endl;
+        std::cerr << e.what() << "\n";
         throw;
     }
 
@@ -359,7 +363,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
     windStrength_ = scene.wind.strength;
     windDirection_ = scene.wind.direction;
 
-    std::cout << "Loading Models... ";
+    updateProgress("Loading Models... ");
     for (auto &fileEntry : scene.entries)
     {
         Handle handle{nextHandle_++};
@@ -381,7 +385,7 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
                                                         entry.instancedEntry->positionsPath,
                                                         entry.instancedEntry->minScale, entry.instancedEntry->maxScale};
                                addModel(handle, instanced, entry.collisionGeometry, entry.name, entry.cubemapPath);
-                               entries_.back().worldTransforms = std::move(instanced.loadInstancedTransforms());
+                               entries_.back().worldTransforms = instanced.loadInstancedTransforms();
                            }
                            else
                            {
@@ -395,15 +399,32 @@ void Scene::setupScene(const std::filesystem::path &jsonFile)
     }
 
     validateSceneEntries();
-    std::cout << "Done" << std::endl;
+    updateProgress("Done\n");
 }
 
 void Scene::validateSceneEntries()
 {
     for (Scene::Entry &entry : entries_)
     {
+        if (entry.worldTransforms.empty())
+        {
+            std::cerr << "Error: scene entry handle: " << entry.handle << " has no world transforms\n";
+            throw std::runtime_error("Empty transforms");
+        }
+
         validatePrimitives(entry);
         splitOnShaderType(entry);
         expandAnimatedAABBs(entry);
+    }
+}
+
+void Scene::physicsSync(const std::vector<MovedSceneObject> &movedObjects)
+{
+    for (const MovedSceneObject &moved : movedObjects)
+    {
+        Entry &entry{editEntry(moved.handle)};
+        Transform &transform{entry.worldTransforms[moved.transformIndex]};
+        transform.setAbsoluteRotation(moved.rotation);
+        transform.setAbsoluteTranslation(moved.position);
     }
 }

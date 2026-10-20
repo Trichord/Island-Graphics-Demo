@@ -7,16 +7,6 @@
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 // SSBOs
-layout(binding = SSBO_BINDING_VISIBILITY_MAP, std430) restrict readonly buffer mapSSBO
-{
-    BufferMap maps[];
-};
-
-layout(binding = SSBO_BINDING_METADATA, std430) restrict readonly buffer metadataSSBO
-{
-    Metadata metadata[];
-};
-
 layout(binding = SSBO_BINDING_DRAW_COUNTS, std430) buffer drawCountsSSBO
 {
     uint drawCounts[];
@@ -34,7 +24,7 @@ layout(binding = SSBO_BINDING_DRAW_COMMANDS, std430) restrict writeonly buffer d
 
 layout(binding = SSBO_BINDING_DRAW_COMMANDS_SOURCE, std430) restrict readonly buffer drawCommandsSourceSSBO
 {
-    DrawElementsIndirectCommand commandsSource[];
+    SourceDrawElementsIndirectCommand commandsSource[];
 };
 
 void main()
@@ -48,15 +38,13 @@ void main()
 
     if (cullResult == 0)
         return;
-
-    uint mapIndex = metadata[sharedIndex].visibleInstancesBaseIndex;
-    BufferMap map = maps[mapIndex];
+    
+    SourceDrawElementsIndirectCommand srcCmd = commandsSource[sharedIndex];
 
     // Use the MDI drawcount as a write index. As we write draw commands, the final number for the draw call
     // increases, so we can take advantage of that as our new offset
-    uint writeOffset = atomicAdd(drawCounts[map.drawBucket], 1);
-    uint writeIndex = map.drawCommandsBaseIndex + writeOffset;
+    uint writeOffset = atomicAdd(drawCounts[srcCmd.drawBucket], 1);
+    uint writeIndex = srcCmd.drawCommandsBaseIndex + writeOffset;
 
-    commandsDestination[writeIndex] = commandsSource[sharedIndex];
-    commandsDestination[writeIndex].instanceCount = cullResult;
+    commandsDestination[writeIndex] = DrawElementsIndirectCommand(srcCmd.count, cullResult, srcCmd.firstIndex, srcCmd.baseVertex, srcCmd.baseInstance);
 }

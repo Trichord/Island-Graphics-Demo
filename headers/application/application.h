@@ -1,15 +1,14 @@
 #pragma once
 
 #include <filesystem>
+#include <string>
 
 #include "application/gl_context.h"
 #include "application/graphics_settings.h"
 #include "application/input.h"
 
 /**
- * @brief Handles window creation, user input, and the main loop.
- *
- * Also initializes OpenGL and passes settings from the config window to OpenGL.
+ * @brief Verifies OpenGL capabilities, handles window creation, user input, and the main loop.
  */
 class Application
 {
@@ -41,9 +40,8 @@ class Application
     // Input tracking
     bool leftCtrlToggle_{false};
     bool leftShiftToggle_{false};
-    bool firstMouse_{true};
-    float lastMouseX_{0.0f};
-    float lastMouseY_{0.0f};
+    double mouseX_{0.0f};
+    double mouseY_{0.0f};
     float mouseSensitivity_{0.1f};
     UserInput userInput_;
 
@@ -51,45 +49,13 @@ class Application
     std::filesystem::path savePath{"./settings.json"};
 
     void createWindow(const GraphicsSettings &graphicsSettings);
-    void processKeyboard(UserInput &input);
-
-    /**
-     * @brief Registers OpenGL function pointers, checks for supported features, and creates an OpenGL viewport
-     */
     bool createOpenGLViewport();
-
-    /**
-     * @brief Registers GLFW callbacks.  Mouse callback is seperate and should be
-     * registered last with centerMouse()
-     */
     void registerCallbacks();
-
     void registerJolt();
+    void updateProgress(const std::string &message);
+    void processKeyboard(UserInput &input);
+    void processMouse(UserInput &input);
 
-    /**
-     * GLFW mouse callback. Recieves updated cursor coordinates.
-     *
-     * @param window The window that recieved the event
-     * @param xPos The new x-coordinate, in screen coordinates, of the cursor.
-     * @param yPos The new y-coordinate, in screen coordinates, of the cursor.
-     */
-    static void mouse_callback(GLFWwindow *window, double xPos, double yPos);
-
-    /**
-     * GLFW key callback, triggered when a keyboard button is pressed, repeated or
-     * released.
-     *
-     * @param window The window that received the event.
-     * @param key The keyboard key that was pressed or released.
-     * @param scancode The system-specific scancode of the key.
-     * @param action The button action, such as GLFW_PRESS, GLFW_RELEASE or
-     * GLFW_REPEAT
-     * @param mods Bit field describing which modifier keys were held down.
-     */
+    // Required GLFW callback
     static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
 };
-
-#ifdef _DEBUG
-void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length,
-                            const char *message, const void *userParam);
-#endif

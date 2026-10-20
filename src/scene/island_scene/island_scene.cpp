@@ -1,8 +1,10 @@
 #include "scene/island_scene/island_scene.h"
 
-#include <cstdlib>
+#include <cmath>
 #include <filesystem>
+#include <functional>
 #include <glm/glm.hpp>
+#include <string>
 #include <string_view>
 #include <variant>
 #include <vector>
@@ -53,8 +55,9 @@ constexpr glm::vec3 oddAxisAngle2{-0.3197f, 0.7975f, 0.5117f};
 } // namespace SpaceModel
 } // namespace
 
-IslandScene::IslandScene(TextureManager &textureManager, const std::filesystem::path &jsonFile)
-    : Scene(textureManager, jsonFile)
+IslandScene::IslandScene(TextureManager &textureManager, const std::filesystem::path &jsonFile,
+                         const std::function<void(const std::string &)> &updateProgress)
+    : Scene(textureManager, jsonFile, updateProgress)
 {
     // Cache original positions so that animated models can return or calculate updated positions
     Scene::Entry &butterfly{editEntry("butterfly")};

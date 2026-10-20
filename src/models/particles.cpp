@@ -25,7 +25,7 @@ std::vector<Primitive> Particles::takePrimitives()
 {
     if (primitivesTaken_)
     {
-        std::cerr << "Error: Particle primitives already taken " << std::endl;
+        std::cerr << "Error: Particle primitives already taken\n";
         throw std::runtime_error("Primitives already moved");
     }
 
@@ -34,7 +34,7 @@ std::vector<Primitive> Particles::takePrimitives()
 }
 
 std::vector<Primitive> Particles::generateParticles(const glm::vec3 &position, const glm::vec3 &extent,
-                                                    const glm::vec4 &color, const glm::vec4 colorVariation,
+                                                    const glm::vec4 &color, const glm::vec4& colorVariation,
                                                     float lifetime, int numParticles)
 {
     constexpr float minLifetimePercent{0.50};

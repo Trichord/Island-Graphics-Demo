@@ -1,31 +1,32 @@
 #include "application/settings_window.h"
 
+#include <cstdint>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 #include "application/gl_context.h"
+#include "application/glfw_callbacks.h"
 #include "application/graphics_settings.h"
 #include "renderer/textures.h"
 #include "utilities/texture_loader.h"
 #include "utilities/texture_utilities.h"
 
+namespace
+{
 constexpr int GUIWidth{1024};
 constexpr int GUIHeight{655};
 constexpr int numColumns{2};
 constexpr float baseFontSize = 22.0f;
+} // namespace
 
 SettingsWindow::~SettingsWindow()
 {
     if (textureID_)
         glDeleteTextures(1, &textureID_);
-}
-
-static void glfw_error_callback(int error, const char *description)
-{
-    std::cerr << "GLFW Error " << error << description << std::endl;
 }
 
 bool SettingsWindow::launchSettingsWindow(GraphicsSettings &settings)
@@ -34,16 +35,15 @@ bool SettingsWindow::launchSettingsWindow(GraphicsSettings &settings)
         return false;
 
     loadConfigWindowImage();
-
     setupImGui();
 
-    const bool settingsConfirmed{renderImGui(settings)};
+    const bool settingsConfirmed{renderSettingsWindow(settings)};
 
-    // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
+    // Must destroy texture before terminating GLFW, since the OpenGL context is tied to the window
     if (textureID_)
     {
         glDeleteTextures(1, &textureID_);
@@ -58,14 +58,10 @@ bool SettingsWindow::launchSettingsWindow(GraphicsSettings &settings)
 
 bool SettingsWindow::createWindow()
 {
-    // Init window
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
         return false;
 
-    GLFWmonitor *primary = glfwGetPrimaryMonitor();
-
-    // Hints
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -84,7 +80,7 @@ bool SettingsWindow::createWindow()
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        std::cout << "Failed to initialize GLAD\n";
         return false;
     }
 
@@ -92,13 +88,16 @@ bool SettingsWindow::createWindow()
     glfwFocusWindow(settingsWindow_);
 
     // Center
-    int xpos, ypos, width, height;
-    glfwGetMonitorWorkarea(primary, &xpos, &ypos, &width, &height);
+    int xPos{0};
+    int yPos{0};
+    int width{0};
+    int height{0};
+    glfwGetMonitorWorkarea(glfwGetPrimaryMonitor(), &xPos, &yPos, &width, &height);
 
-    int winW, winH;
-    glfwGetWindowSize(settingsWindow_, &winW, &winH);
-
-    glfwSetWindowPos(settingsWindow_, xpos + width / 2 - winW / 2, ypos + height / 2 - winH / 2);
+    int windowWidth{GUIWidth};
+    int windowHeight{GUIHeight};
+    glfwGetWindowSize(settingsWindow_, &windowWidth, &windowHeight);
+    glfwSetWindowPos(settingsWindow_, xPos + width / 2 - windowWidth / 2, yPos + height / 2 - windowHeight / 2);
 
     return true;
 }
@@ -136,7 +135,7 @@ void SettingsWindow::setupImGui()
     style.Colors[ImGuiCol_PopupBg] = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
-bool SettingsWindow::renderImGui(GraphicsSettings &settings)
+bool SettingsWindow::renderSettingsWindow(GraphicsSettings &settings)
 {
     bool settingsConfirmed{false};
 
@@ -150,6 +149,12 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
     while (!glfwWindowShouldClose(settingsWindow_))
     {
         using namespace ImGui;
+
+        if (glfwGetWindowAttrib(settingsWindow_, GLFW_ICONIFIED))
+        {
+            glfwWaitEvents();
+            continue;
+        }
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -365,15 +370,14 @@ bool SettingsWindow::renderImGui(GraphicsSettings &settings)
             glfwSetWindowShouldClose(settingsWindow_, true);
         }
 
-        // End
+        // All objects displayed
         End();
 
-        // Rendering
         Render();
         int displayWidth{0};
         int displayHeight{0};
         glfwGetFramebufferSize(settingsWindow_, &displayWidth, &displayHeight);
-        glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 

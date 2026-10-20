@@ -64,13 +64,12 @@ class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
         case Layers::MOVING:
             return true; // Moving collides with everything
         default:
-            throw std::runtime_error("ERROR: Unknown Jolt ObjectLayer");
+            throw std::runtime_error("Error: Unknown Jolt ObjectLayer");
         }
     }
 };
 
-// BroadPhaseLayerInterface implementation
-// This defines a mapping between object and broadphase layers.
+// Defines a mapping between object and broadphase layers.
 class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
 {
   public:
@@ -89,7 +88,7 @@ class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
     JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer layer) const override
     {
         if (layer >= Layers::NUM_LAYERS)
-            throw std::runtime_error("ERROR: Unknown Jolt ObjectLayer");
+            throw std::runtime_error("Error: Unknown Jolt ObjectLayer");
 
         return objectToBroadPhase_[layer];
     }
@@ -98,7 +97,7 @@ class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
     JPH::BroadPhaseLayer objectToBroadPhase_[Layers::NUM_LAYERS];
 };
 
-/// Class that determines if an object layer can collide with a broadphase layer
+/// Determines if an object layer can collide with a broadphase layer
 class ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFilter
 {
   public:
@@ -111,7 +110,7 @@ class ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFil
         case Layers::MOVING:
             return true;
         default:
-            throw std::runtime_error("ERROR: Uknown Jolt ObjectVsObject layer");
+            throw std::runtime_error("Error: Uknown Jolt ObjectVsObject layer");
         }
     }
 };

@@ -9,7 +9,6 @@
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/BodyID.h>
-#include <Jolt/Physics/Body/BodyManager.h>
 #include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <cstdint>
@@ -22,9 +21,13 @@
 #include "application/input.h"
 #include "physics/character_capsule.h"
 #include "physics/jolt_impl.h"
+#include "physics/moved.h"
 #include "physics/physics_utilities.h"
 #include "scene/scene.h"
 
+/**
+ * @brief Connection between the physics engine and Scene. Owns the player capsule and directs the simulation.
+ */
 class PhysicsWorld
 {
   public:
@@ -42,19 +45,21 @@ class PhysicsWorld
     glm::vec3 getPlayerVelocity() const;
     glm::vec3 getPlayerPosition() const;
     void setPlayerPosition(const glm::vec3 &newPosition);
-    void clearFlags();
+    void clear();
 
     void update(const UserInput &input, const glm::vec3 &front, float deltaTime);
     bool footstepEvent() const;
     bool jumpEvent() const;
     bool landingEvent() const;
     const std::vector<physics::ObjectCollision> &getCollisions() const;
-
-    void postPhysicsSync(Scene &scene);
+    const std::vector<MovedSceneObject> &getMovedObjects() const;
 
   private:
+    // Data for interpolating objects between physics steps
     struct MovedBody
     {
+        physics::BodyIdentifier identifier;
+
         JPH::Vec3 prevPos{JPH::Vec3::sZero()};
         JPH::Vec3 currentPos{JPH::Vec3::sZero()};
 
@@ -108,17 +113,22 @@ class PhysicsWorld
     CharacterCapsule player_;
 
     // Dirty list of moved entities
-    std::unordered_map<JPH::BodyID, MovedBody> movedEntities_;
+    std::unordered_map<JPH::BodyID, MovedBody> dynamicBodies_;
     std::vector<JPH::BodyID> bodyIDs_;
-    JPH::BodyIDVector activeBodies_;
     std::unordered_set<JPH::BodyID> spheres_;
+    std::vector<MovedSceneObject> movedSceneObjects_;
 
-    // Water bodies
+    // Water bodies for buoyancy testing
     std::vector<JPH::AABox> waterAABBs_;
 
     void movePlayer(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime);
     void tick(std::uint8_t direction, const glm::vec3 &front, bool jump, float deltaTime);
-    void flagMovedEntities();
+    void updateMovedBodies();
     void applyWaterBuoyancy(float deltaTime);
     void applySphereDrag(float deltaTime);
+
+    /**
+     * @brief Update the list of moved objects for outside consumers
+     */
+    void postPhysicsSync();
 };

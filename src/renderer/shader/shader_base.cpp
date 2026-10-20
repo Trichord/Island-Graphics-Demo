@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: CC-BY-NC-4.0
+// Derived from LearnOpenGL by Joey de Vries (CC BY-NC 4.0). Modified by James Midtdal.
+// See THIRD_PARTY_NOTICES.md for details.
+
 #include "renderer/shader/shader_base.h"
 
 #include <cctype>
@@ -206,8 +210,8 @@ GLuint Shader::createShaderID(GLenum type, const std::filesystem::path &path, co
             shaderTypeString = "UNKNOWN_SHADER_TYPE";
         }
 
-        std::cerr << "ERROR: " << shaderTypeString << " compilation from " << path.filename() << " failed" << std::endl
-                  << infoLog.data() << std::endl;
+        std::cerr << "ERROR: " << shaderTypeString << " compilation from " << path.filename() << " failed" << "\n"
+                  << infoLog.data() << "\n";
         glDeleteShader(shaderID);
 
         throw std::runtime_error("Shader compilation failed");
@@ -231,7 +235,7 @@ std::string Shader::loadFile(const std::filesystem::path &path)
 
     catch (const std::ifstream::failure &e)
     {
-        std::cerr << "ERROR: shader file " << path << " read unsuccessful" << std::endl << e.what() << std::endl;
+        std::cerr << "ERROR: shader file " << path << " read unsuccessful" << "\n" << e.what() << "\n";
         throw;
     }
 
@@ -340,7 +344,7 @@ void Shader::linkShader(std::span<GLuint> sourceIDs, const std::string_view path
         infoLog.resize(logLength);
 
         glGetProgramInfoLog(id_, logLength, NULL, infoLog.data());
-        std::cerr << "ERROR: Shader program link error: " << path << std::endl << infoLog.data() << std::endl;
+        std::cerr << "ERROR: Shader program link error: " << path << "\n" << infoLog.data() << "\n";
 
         for (GLuint sourceID : sourceIDs)
             glDeleteShader(sourceID);

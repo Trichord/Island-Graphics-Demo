@@ -22,14 +22,7 @@ InstancedModel::InstancedModel(const std::filesystem::path &modelPath, ShaderTyp
 
 std::vector<Transform> InstancedModel::loadInstancedTransforms() const
 {
-    std::vector<glm::vec3> positions{loadPositions()};
-
-    if (positions.empty())
-        return {{}};
-
-    std::vector<Transform> transforms{randomizeRotationScale(positions)};
-
-    return transforms;
+    return randomizeRotationScale(loadPositions());
 }
 
 std::vector<glm::vec3> InstancedModel::loadPositions() const
@@ -38,7 +31,7 @@ std::vector<glm::vec3> InstancedModel::loadPositions() const
 
     if (!positionsFile.is_open())
     {
-        std::cerr << "Unable to open " << positionsPath_ << std::endl;
+        std::cerr << "Unable to open " << positionsPath_ << "\n";
         return {};
     }
 
@@ -60,26 +53,26 @@ std::vector<glm::vec3> InstancedModel::loadPositions() const
     return instances;
 }
 
-std::vector<Transform> InstancedModel::randomizeRotationScale(std::vector<glm::vec3> &positions) const
+std::vector<Transform> InstancedModel::randomizeRotationScale(const std::vector<glm::vec3> &positions) const
 {
+    constexpr float maxRotation{360.0f};
+
     std::vector<Transform> transforms;
     transforms.reserve(positions.size() / 2);
 
     for (std::size_t i{0}; i < positions.size(); i += 2)
     {
-        // Rotate the model somewhere in the 360 degree range
-        float instanceRotation{random::floatMT(0.0f, 360.0f)};
-        float instanceScale{random::floatMT(minScale_, maxScale_)};
-
         Transform transform{positions[i]};
+        const glm::vec3 normal{positions[i + 1]};
 
+        const float instanceRotation{random::floatMT(0.0f, maxRotation)};
+        const float instanceScale{random::floatMT(minScale_, maxScale_)};
         transform.rotateAroundAxisLocal(instanceRotation, WorldVectors::worldUp);
         transform.setAbsoluteScale(instanceScale);
 
-        glm::vec3 normal{positions[i + 1]};
         glm::vec3 axis{glm::cross(WorldVectors::worldUp, normal)};
-        float surfaceAlignment{glm::clamp(glm::dot(normal, WorldVectors::worldUp), -1.0f, 1.0f)};
-        float angle{glm::degrees(glm::acos(surfaceAlignment))};
+        const float surfaceAlignment{glm::clamp(glm::dot(normal, WorldVectors::worldUp), -1.0f, 1.0f)};
+        const float angle{glm::degrees(glm::acos(surfaceAlignment))};
 
         if (glm::length(axis) > 0.0001f)
             transform.rotateAroundAxisWorld(angle, axis);

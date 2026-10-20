@@ -7,6 +7,9 @@
 #include "models/primitive.h"
 #include "renderer/shader/shader_base.h"
 
+/**
+ * @brief State caching for OpenGL to avoid redundant driver calls.
+ */
 class GLState
 {
   public:

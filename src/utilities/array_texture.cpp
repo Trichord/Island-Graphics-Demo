@@ -1,12 +1,12 @@
 #include "utilities/array_texture.h"
 
 #include <cstdint>
+#include <cstring>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <iostream>
 #include <optional>
 #include <stdexcept>
-#include <string.h>
 #include <utility>
 #include <vector>
 
@@ -19,8 +19,8 @@ namespace
 {
 void capacityError(int width, int height, GLenum format, std::size_t attempted, std::size_t max)
 {
-    std::cerr << "ERROR: ArrayTexture " << width << "x" << height << ", format " << format << " cannot allocate "
-              << attempted << ", max " << max << " layers" << std::endl;
+    std::cerr << "Error: ArrayTexture " << width << "x" << height << ", format " << format << " cannot allocate "
+              << attempted << ", max " << max << " layers\n";
     throw std::runtime_error("ArrayTexture over allocated");
 }
 } // namespace
@@ -106,7 +106,7 @@ void ArrayTexture::addCapacity(std::size_t capacity)
 {
     if (allocated_)
     {
-        std::cerr << "ERROR: ArrayTexture::addCapacity called after ArrayTexture::allocate()" << std::endl;
+        std::cerr << "Error: ArrayTexture::addCapacity called after ArrayTexture::allocate()\n";
         throw std::logic_error("ArrayTexture::addCapacity called after ArrayTexture::allocate()");
     }
 
@@ -125,7 +125,7 @@ void ArrayTexture::generateMipmaps()
 {
     if (!allocated_)
     {
-        std::cerr << "ERROR: ArrayTexture::generateMipmaps called before ArrayTexture::allocate" << std::endl;
+        std::cerr << "Error: ArrayTexture::generateMipmaps called before ArrayTexture::allocate\n";
         throw std::logic_error("ArrayTexture::generateMipmaps called before ArrayTexture::allocate");
     }
 
@@ -137,7 +137,7 @@ void ArrayTexture::allocate(bool cubemaps, bool textureRepeat, bool mipmaps, flo
 {
     if (allocated_)
     {
-        std::cerr << "ERROR: ArrayTexture::allocate() already called" << std::endl;
+        std::cerr << "Error: ArrayTexture::allocate() already called\n";
         throw std::logic_error("ArrayTexture::allocate() already called");
     }
 
@@ -189,7 +189,7 @@ std::size_t ArrayTexture::insert(RenderTarget &renderTarget)
 {
     if (!allocated_)
     {
-        std::cerr << "ERROR: ArrayTexture::insert called before ArrayTexture::allocate" << std::endl;
+        std::cerr << "Error: ArrayTexture::insert called before ArrayTexture::allocate\n";
         throw std::logic_error("ArrayTexture::insert called before ArrayTexture::allocate");
     }
 
@@ -200,13 +200,13 @@ std::size_t ArrayTexture::insert(RenderTarget &renderTarget)
 
     if (sourceWidth > width_ || sourceHeight > height_)
     {
-        std::cerr << "ERROR: Texture source " << sourceWidth << "x" << sourceHeight << " larger than ArrayTexture "
-                  << width_ << "x" << height_ << ", format " << internalFormat_ << std::endl;
+        std::cerr << "Error: Texture source " << sourceWidth << "x" << sourceHeight << " larger than ArrayTexture "
+                  << width_ << "x" << height_ << ", format " << internalFormat_ << "\n";
 
         throw std::runtime_error("Source texture too big for ArrayTexture");
     }
 
-    if (current_ > capacity_)
+    if (current_ >= capacity_)
         capacityError(width_, height_, internalFormat_, current_, maxArrayTextureLayers_);
 
     const GLenum target{static_cast<GLenum>(cubemaps_ ? GL_TEXTURE_CUBE_MAP_ARRAY : GL_TEXTURE_2D_ARRAY)};
@@ -222,19 +222,19 @@ std::size_t ArrayTexture::insert(const KTXTexture &texture)
 {
     if (!allocated_)
     {
-        std::cerr << "ERROR: ArrayTexture::insert called before ArrayTexture::allocate" << std::endl;
+        std::cerr << "Error: ArrayTexture::insert called before ArrayTexture::allocate\n";
         throw std::logic_error("ArrayTexture::insert called before ArrayTexture::allocate");
     }
 
     if (!id_)
     {
-        std::cerr << "ERROR: Uninitialized array texture " << width_ << "x" << height_ << ", format " << internalFormat_
-                  << std::endl;
+        std::cerr << "Error: Uninitialized array texture " << width_ << "x" << height_ << ", format " << internalFormat_
+                  << "\n";
 
         throw std::runtime_error("Uninitialized array texture");
     }
 
-    if (current_ > capacity_)
+    if (current_ >= capacity_)
         capacityError(width_, height_, internalFormat_, current_, maxArrayTextureLayers_);
 
     validate(texture);
@@ -263,8 +263,8 @@ void ArrayTexture::validate(const KTXTexture &texture)
 
     if (!texture)
     {
-        std::cerr << "ERROR: Empty texture for ArrayTexture " << width_ << "x" << height_ << ", format "
-                  << internalFormat_ << std::endl;
+        std::cerr << "Error: Empty texture for ArrayTexture " << width_ << "x" << height_ << ", format "
+                  << internalFormat_ << "\n";
         throw std::runtime_error("Texture validation error");
     }
 
@@ -273,19 +273,19 @@ void ArrayTexture::validate(const KTXTexture &texture)
 
     if (width != width_ || height != height_)
     {
-        std::cerr << "ERROR: Size mismatch: " << width << "x" << height;
+        std::cerr << "Error: Size mismatch: " << width << "x" << height;
         valid = false;
     }
 
     if (texture->isCubemap && !cubemaps_)
     {
-        std::cerr << "ERROR: cubemap " << width << "x" << height;
+        std::cerr << "Error: cubemap " << width << "x" << height;
         valid = false;
     }
 
     else if (!texture->isCubemap && cubemaps_)
     {
-        std::cerr << "ERROR: 2D Texture " << width << "x" << height << " passed to cubemap";
+        std::cerr << "Error: 2D Texture " << width << "x" << height << " passed to cubemap";
         valid = false;
     }
 
@@ -293,20 +293,20 @@ void ArrayTexture::validate(const KTXTexture &texture)
 
     if (format != internalFormat_)
     {
-        std::cerr << "ERROR: Format " << format << " mismatch";
+        std::cerr << "Error: Format " << format << " mismatch";
         valid = false;
     }
 
     if (static_cast<int>(texture.maxLevels()) != mipLevels_)
     {
-        std::cerr << "ERROR: Texture mip levels (" << texture.maxLevels() << ") incompatible with array mip levels ("
-                  << mipLevels_ << ")" << std::endl;
+        std::cerr << "Error: Texture mip levels (" << texture.maxLevels() << ") incompatible with array mip levels ("
+                  << mipLevels_ << ")\n";
         valid = false;
     }
 
     if (!valid)
     {
-        std::cerr << " ArrayTexture " << width_ << "x" << height_ << ", format " << internalFormat_ << std::endl;
+        std::cerr << " ArrayTexture " << width_ << "x" << height_ << ", format " << internalFormat_ << "\n";
         throw std::runtime_error("Texture validation error");
     }
 }
@@ -319,8 +319,8 @@ void ArrayTexture::createFallbackLayer()
         createRGRGTC2Fallback();
     else
     {
-        std::cerr << "ERROR: Cannot create fallback texture for ArrayTexture " << width_ << "x" << height_
-                  << ", format " << internalFormat_ << std::endl;
+        std::cerr << "Error: Cannot create fallback texture for ArrayTexture " << width_ << "x" << height_
+                  << ", format " << internalFormat_ << "\n";
         throw std::runtime_error("Invalid fallback texture format");
     }
 }

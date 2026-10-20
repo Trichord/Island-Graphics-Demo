@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <optional>
 #include <variant>
 #include <vector>
 
@@ -31,18 +32,20 @@ class Animator
     Animation *currentAnimation_{nullptr};
     Animation *nextAnimation_{nullptr};
 
+    // Scratch space for accumulating new animations. Avoids heap allocations every frame.
     std::vector<glm::vec3> localTranslations_;
     std::vector<glm::quat> localRotations_;
     std::vector<glm::vec3> localScales_;
 
+    // Scratch space for blending two animations.
     std::vector<glm::vec3> nextLocalTranslations_;
     std::vector<glm::quat> nextLocalRotations_;
     std::vector<glm::vec3> nextLocalScales_;
 
-    // Recalculate each frame from animation changes
+    // Recalculate each frame from animation changes.
     std::vector<glm::mat4> globalTransforms_;
 
-    // Pass to shaders
+    // Uploaded to GPU each frame.
     std::vector<glm::mat4> jointMatrices_;
 
     std::variant<glm::vec3, glm::quat> interpolateSampler(AnimationSampler &sampler, float time);

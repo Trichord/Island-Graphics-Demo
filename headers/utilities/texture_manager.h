@@ -2,9 +2,12 @@
 
 #include <fastgltf/types.hpp>
 #include <filesystem>
+#include <functional>
 #include <glad/glad.h>
 #include <span>
+#include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "application/graphics_settings.h"
@@ -16,10 +19,14 @@
 #include "utilities/ktx_texture.h"
 #include "utilities/thread_pool.h"
 
+/**
+ * @brief Owns array textures, tracks Handles and returns array indices / layers for that Handle's gLTF textures.
+ */
 class TextureManager
 {
   public:
-    TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings);
+    TextureManager(ThreadPool &threadPool, const GraphicsSettings &settings,
+                   const std::function<void(const std::string &)> &updateProgress);
 
     // Add a gLTF model
     void loadModelTextures(const Handle handle, const fastgltf::Asset &asset, const std::filesystem::path &parentPath);
@@ -61,6 +68,7 @@ class TextureManager
     std::unordered_map<Handle, MaterialRange> materialLookup_;
 
     // Cached filenames for sharing atlases. Paths are ignored - image filenames must be unique across the project
+    std::unordered_set<std::filesystem::path> seenPaths_;
     std::unordered_map<std::filesystem::path, SamplerArrayIndex> filepathCache_;
 
     // Textures to be uploaded
@@ -72,6 +80,9 @@ class TextureManager
     // Helpers for assigning to texture buckets
     ArrayReference findCubemapArray(int size, GLenum internalFormat);
     ArrayReference findArray(const loader::DeferredTexture &deferred, const KTXTexture &texture);
+
+    // Callback function for sending progress updates
+    std::function<void(const std::string &)> updateProgress_;
 
     void countTexture(const loader::DeferredTexture &deferred, const KTXTexture &texture);
     void insertTexture(const loader::DeferredTexture &deferred, const KTXTexture &texture);

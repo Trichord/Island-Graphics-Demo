@@ -2,7 +2,9 @@
 
 #include <array>
 #include <filesystem>
+#include <functional>
 #include <glm/glm.hpp>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -13,10 +15,14 @@
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
 
+/**
+ * @brief Concrete implementation of a Scene. An example of gameplay logic implemented through Scene's onUpdate method.
+ */
 class IslandScene : public Scene
 {
   public:
-    IslandScene(TextureManager &textureManager, const std::filesystem::path &jsonFile);
+    IslandScene(TextureManager &textureManager, const std::filesystem::path &jsonFile,
+                const std::function<void(const std::string &)> &updateProgress);
 
     void onUpdate(const PlayerState &player, float time, float deltaTime) override;
 

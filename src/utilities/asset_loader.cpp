@@ -66,7 +66,7 @@ AnimationPath fastgltfToAnimationPath(fastgltf::AnimationPath path)
     case fastgltf::AnimationPath::Translation:
         return AnimationPath::translation;
     default:
-        std::cerr << "ERROR: Unsupported gLTF animation path" << std::endl;
+        std::cerr << "Error: Unsupported gLTF animation path\n";
         throw std::runtime_error("Unsupported gLTF animation path");
     }
 }
@@ -80,8 +80,8 @@ AnimationInterpolation fastgltfToAnimationInterpolation(fastgltf::AnimationInter
     case fastgltf::AnimationInterpolation::Step:
         return AnimationInterpolation::step;
     default:
-        std::cerr << "ERROR: Unsupported gLTF animation interpolation: " << static_cast<std::uint8_t>(interpolation)
-                  << std::endl;
+        std::cerr << "Error: Unsupported gLTF animation interpolation: " << static_cast<std::uint8_t>(interpolation)
+                  << "\n";
         throw std::runtime_error("Unsupported gLTF interpolation");
     }
 }
@@ -201,7 +201,7 @@ fastgltf::Asset loader::loadAsset(const std::filesystem::path &path)
 
     if (data.error() != fastgltf::Error::None)
     {
-        std::cerr << "Error loading: " << path << std::endl << fastgltf::getErrorMessage(data.error()) << std::endl;
+        std::cerr << "Error loading: " << path << "\n" << fastgltf::getErrorMessage(data.error()) << "\n";
         throw std::runtime_error("Failed to load asset");
     }
 
@@ -211,8 +211,8 @@ fastgltf::Asset loader::loadAsset(const std::filesystem::path &path)
 
     if (assetResult.error() != fastgltf::Error::None)
     {
-        std::cerr << "Error parsing: " << path << std::endl
-                  << fastgltf::getErrorMessage(assetResult.error()) << std::endl;
+        std::cerr << "Error parsing: " << path << "\n"
+                  << fastgltf::getErrorMessage(assetResult.error()) << "\n";
         throw std::runtime_error("Failed to parse asset");
     }
 
@@ -409,7 +409,7 @@ std::vector<std::filesystem::path> loader::getURIs(const fastgltf::Asset &asset,
         }
         else
         {
-            std::cerr << "ERROR: Non-URI images not supported" << std::endl;
+            std::cerr << "Error: Non-URI images not supported\n";
             throw std::runtime_error("Unsupported GLTF image format");
         }
     }
@@ -473,7 +473,7 @@ std::vector<loader::DeferredTexture> loader::texturesFromAsset(const fastgltf::A
 
         if (descriptor.sampler.wrapS != descriptor.sampler.wrapT)
         {
-            std::cerr << "Sampler wrap mismatch";
+            std::cerr << "Sampler wrap mismatch\n";
             throw std::runtime_error("Texture property error");
         }
 
@@ -497,7 +497,7 @@ std::vector<loader::DeferredTexture> loader::texturesFromAsset(const fastgltf::A
             deferred.materialIndices.push_back(materialIndex);
 
             if (type != deferred.type)
-                std::cerr << "WARNING: gLTF file contains multiple PBR types pointing to the same image" << std::endl;
+                std::cerr << "WARNING: gLTF file contains multiple PBR types pointing to the same image\n";
         }
     };
 
@@ -536,7 +536,7 @@ std::optional<Skeleton> loader::loadSkeleton(const fastgltf::Asset &asset)
         return {};
 
     if (asset.skins.size() > 1)
-        std::cerr << "WARNING: Multiple skins not supported" << std::endl;
+        std::cerr << "WARNING: Multiple skins not supported\n";
 
     std::size_t numJoints{asset.skins.front().joints.size()};
 
@@ -579,7 +579,7 @@ std::vector<Animation> loader::loadAnimations(const fastgltf::Asset &asset)
 
             if (srcSampler.interpolation == fastgltf::AnimationInterpolation::CubicSpline)
             {
-                std::cerr << "ERROR: Cubic spline interpolation not supported" << std::endl;
+                std::cerr << "Error: Cubic spline interpolation not supported\n";
                 throw std::runtime_error("Unsupported animation interpolation");
             }
 
@@ -621,7 +621,7 @@ std::vector<Animation> loader::loadAnimations(const fastgltf::Asset &asset)
                 break;
 
             default:
-                std::cerr << "WARNING: Unsupported gltf animation path" << std::endl;
+                std::cerr << "WARNING: Unsupported gltf animation path\n";
             }
 
             AnimationChannel &dstChannel{animations[i].channels[j]};
@@ -630,7 +630,7 @@ std::vector<Animation> loader::loadAnimations(const fastgltf::Asset &asset)
 
             if (!srcChannel.nodeIndex)
             {
-                std::cerr << "ERROR: No node target for animation channel" << std::endl;
+                std::cerr << "Error: No node target for animation channel\n";
                 throw std::runtime_error("Empty animation channel target node");
             }
 
@@ -687,7 +687,7 @@ NodeGraph loader::loadNodeGraph(const fastgltf::Asset &asset)
             const auto &s = trs->scale;
             const glm::vec3 scale{s.x(), s.y(), s.z()};
             if (!uniformScale(scale))
-                std::cerr << "WARNING: Non uniform scale unsupported" << std::endl;
+                std::cerr << "WARNING: Non uniform scale unsupported\n";
 
             graph.restScales[i] = scale;
         }

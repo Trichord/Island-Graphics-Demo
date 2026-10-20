@@ -27,9 +27,27 @@ class SoundEffect
     void setDistanceFade(float factor);
     void setPosition(const glm::vec3 &position);
 
+    /**
+     * @brief Randomly generate and set pitch in the [low, high) range set at construction.
+     *
+     * @return The new pitch.
+     */
     float varyPitch();
+
+    /**
+     * @brief Randomly generate and set volume in the [low, high) range set at construction.
+     *
+     * @return The new volume.
+     */
     float varyVolume();
 
+    /**
+     * @brief Play the sound effect
+     *
+     * @param reset Force the sound effect to play from the beginning
+     * 
+     * @return MA_SUCCESS if the sound started or was already playing, otherwise the MiniAudio error code
+     */
     ma_result play(bool reset = false);
 
   private:

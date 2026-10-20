@@ -20,6 +20,18 @@ struct DrawElementsIndirectCommand
     unsigned int baseInstance;
 };
 
+// Read-only source struct for MultiDrawElements
+struct SourceDrawElementsIndirectCommand
+{
+    unsigned int count;
+    unsigned int instanceCount;
+    unsigned int firstIndex;
+    int baseVertex;
+    unsigned int baseInstance;
+    std::uint32_t drawBucket{0};
+    std::uint32_t drawCommandsBaseIndex{0};
+};
+
 static_assert(sizeof(DrawElementsIndirectCommand) == 20);
 static_assert(std::is_standard_layout_v<DrawElementsIndirectCommand>);
 
@@ -93,8 +105,6 @@ struct PrimitiveMetadata
 struct VisibilityBufferMap
 {
     std::uint32_t sharedBufferIndex{0};
-    std::uint32_t drawBucket{0};
-    std::uint32_t drawCommandsBaseIndex{0};
     std::uint32_t visibleInstancesBaseIndex{0};
 };
 

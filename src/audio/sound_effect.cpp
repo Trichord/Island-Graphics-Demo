@@ -19,11 +19,13 @@ SoundEffect::SoundEffect(AudioEngine &engine, const SoundEffectEntry &entry, con
 
     if (volumeLow_ > volumeHigh_ || pitchLow_ > pitchHigh_)
     {
-        std::cerr << "ERROR: min value greater than max value from Sound Effect: " << entry.soundPath << std::endl;
+        std::cerr << "Error: min value greater than max value from Sound Effect: " << entry.soundPath << "\n";
         throw std::runtime_error("Undefined sound effect range");
     }
 
     ma_uint32 flags{0};
+
+    // Avoids static cast for brace initialization
     if (entry.streaming)
         flags |= MA_SOUND_FLAG_STREAM;
     else
@@ -37,7 +39,7 @@ SoundEffect::SoundEffect(AudioEngine &engine, const SoundEffectEntry &entry, con
 
     if (result != MA_SUCCESS)
     {
-        std::cerr << "Failed to load sound from " << pathStr << ": " << ma_result_description(result) << std::endl;
+        std::cerr << "Failed to load sound from " << pathStr << ": " << ma_result_description(result) << "\n";
         throw std::runtime_error("Fatal sound loading error");
     }
 

@@ -20,7 +20,7 @@
 #include "renderer/shader/graphics_shader.h"
 #include "renderer/shader/shader_base.h"
 #include "renderer/textures.h"
-#include "scene/camera.h"
+#include "game/camera.h"
 #include "scene/directional_light.h"
 #include "scene/scene.h"
 #include "utilities/texture_manager.h"
@@ -29,9 +29,6 @@
 
 namespace
 {
-// Reduce the distance of the camera's far plane by 80% for shadow cascades.
-constexpr float farPlaneReduction{0.2f};
-
 // Hierarchical Z-Buffer Occlusion Culling
 constexpr Sampler hiZSampler{
     .magFilter = GL_NEAREST,
@@ -137,9 +134,6 @@ void Renderer::render(const Scene &scene, const Camera &camera, float time, floa
 
     updateParticles();
     updateSkinnedVertices();
-
-    // Must follow skinned. Any animated + exploding vertices will have a fresh write into the main VBO and can be used
-    // as a source vertex instead of the positions stored in the SSBO
     updateExplodingVertices();
 
     if (graphicsSettings_.shadowResolution && (framesRendered_ % 2u || directionChanged))
@@ -298,11 +292,12 @@ void Renderer::updateSceneTransforms(const Scene &scene)
 void Renderer::updateCascades(const Scene &scene, const Camera &camera)
 {
     // Move the far plane closer for tighter cascades
-    const glm::mat4 cameraVP{camera.getResizedViewProjectionMatrix(farPlaneReduction)};
-    float farPlane{camera.getFarPlane() * farPlaneReduction};
+    const float farPlane{camera.getFarPlane()};
+    const glm::mat4 cameraVP{camera.getResizedViewProjectionMatrix(geometryOnlyFarPlane_ / farPlane)};
 
     // Recalculate frustum splits and light VP matrices
-    cascadeShadow_.updateCascadeShadows(cameraVP, scene.getGlobalLight(), graphicsSettings_.shadowResolution, farPlane);
+    cascadeShadow_.updateCascadeShadows(cameraVP, scene.getGlobalLight(), graphicsSettings_.shadowResolution,
+                                        geometryOnlyFarPlane_);
     updateCascadeShadowUBO(cascadeShadow_.getCascades());
 }
 

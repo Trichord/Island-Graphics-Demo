@@ -119,7 +119,7 @@ JPH::ShapeSettings::ShapeResult buildCompoundHull(const std::vector<Primitive> &
         ShapeSettings::ShapeResult result{settings.Create()};
 
         if (result.HasError())
-            std::cerr << "Error building compound hull section: " << result.GetError() << std::endl;
+            std::cerr << "Error building compound hull section: " << result.GetError() << "\n";
         else
             hulls.emplace_back(result.Get());
     }
@@ -163,7 +163,7 @@ JPH::BodyCreationSettings createBodySettings(const JPH::Ref<JPH::Shape> &shape, 
     return settings;
 }
 
-void addBody(physics::StaticBodies &bodies, JPH::BodyInterface &interface, const JPH::BodyCreationSettings &settings,
+void addBody(physics::SceneBodies &bodies, JPH::BodyInterface &interface, const JPH::BodyCreationSettings &settings,
              bool dynamic)
 {
     JPH::BodyID id{
@@ -175,9 +175,9 @@ void addBody(physics::StaticBodies &bodies, JPH::BodyInterface &interface, const
 }
 } // namespace
 
-physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::BodyInterface &bodyInterface)
+physics::SceneBodies physics::buildCollisionGeometry(const Scene &scene, JPH::BodyInterface &bodyInterface)
 {
-    StaticBodies bodies;
+    SceneBodies bodies;
 
     for (const Scene::Entry &entry : scene.getAllSceneEntries())
     {
@@ -194,12 +194,18 @@ physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::B
                     if (collisionMesh.empty())
                         return;
 
-                    auto shape = JPH::MeshShapeSettings{collisionMesh}.Create().Get();
+                    JPH::ShapeSettings::ShapeResult result{JPH::MeshShapeSettings{collisionMesh}.Create()};
+
+                    if (result.HasError())
+                    {
+                        std::cerr << "Error creating collision mesh: " << result.GetError() << "\n";
+                        return;
+                    }
 
                     for (std::size_t i{0}; i < entry.worldTransforms.size(); ++i)
                     {
-                        const JPH::BodyCreationSettings bodySettings{
-                            createBodySettings(shape, entry.worldTransforms[i], mesh.material, entry.handle, i, false)};
+                        const JPH::BodyCreationSettings bodySettings{createBodySettings(
+                            result.Get(), entry.worldTransforms[i], mesh.material, entry.handle, i, false)};
                         addBody(bodies, bodyInterface, bodySettings, false);
                     }
                 },
@@ -222,7 +228,7 @@ physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::B
 
                     if (result.HasError())
                     {
-                        std::cerr << "Error creating convex hull: " << result.GetError() << std::endl;
+                        std::cerr << "Error creating convex hull: " << result.GetError() << "\n";
                         return;
                     }
 
@@ -239,6 +245,12 @@ physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::B
                     shapeSettings.mDensity = capsule.material.density;
 
                     JPH::ShapeSettings::ShapeResult result{shapeSettings.Create()};
+
+                    if (result.HasError())
+                    {
+                        std::cerr << "Error creating capsule: " << result.GetError() << "\n";
+                        return;
+                    }
 
                     // Add a model space transform before world space transform
                     auto offsetShape{new JPH::RotatedTranslatedShape(toJPHVec3(capsule.offset), JPH::Quat::sIdentity(),
@@ -257,6 +269,12 @@ physics::StaticBodies physics::buildCollisionGeometry(const Scene &scene, JPH::B
                     shapeSettings.mDensity = sphere.material.density;
 
                     JPH::ShapeSettings::ShapeResult result{shapeSettings.Create()};
+
+                    if (result.HasError())
+                    {
+                        std::cerr << "Error creating sphere: " << result.GetError() << "\n";
+                        return;
+                    }
 
                     // Model transform
                     auto offsetShape{new JPH::RotatedTranslatedShape(toJPHVec3(sphere.offset), JPH::Quat::sIdentity(),

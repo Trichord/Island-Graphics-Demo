@@ -1,10 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <nlohmann/json.hpp>
 
 namespace
 {
-constexpr int minRes{1};
+constexpr int minRes{8};
 constexpr int minMSAA{2};
 constexpr int minAniso{0};
 constexpr int minShadowRes{256};

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <filesystem>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <optional>
@@ -10,6 +12,7 @@
 #include "models/primitive.h"
 #include "physics/collision_shapes.h"
 #include "renderer/shader/graphics_shader.h"
+#include "utilities/json_parsing.h"
 #include "utilities/transform.h"
 #include "utilities/world_vectors.h"
 
@@ -90,17 +93,6 @@ struct SceneFile
     SceneCamera camera;
     std::vector<FileEntry> entries;
 };
-
-// Helpers for basic types
-inline glm::vec3 parseVec3(const nlohmann::json &j)
-{
-    return {j.at(0).get<float>(), j.at(1).get<float>(), j.at(2).get<float>()};
-}
-
-inline glm::vec4 parseVec4(const nlohmann::json &j)
-{
-    return {j.at(0).get<float>(), j.at(1).get<float>(), j.at(2).get<float>(), j.at(3).get<float>()};
-}
 
 inline void from_json(const nlohmann::json &j, Transform &t)
 {
@@ -273,7 +265,7 @@ inline FileEntry parseFileEntries(const nlohmann::json &j)
     if (type == "particles")
         return j.get<ParticlesEntry>();
 
-    std::cerr << "ERROR: could not load model type " << type << std::endl;
+    std::cerr << "Error: could not load model type " << type << "\n";
     throw nlohmann::json::type_error::create(302, "Unknown model type: " + type, &j);
 }
 

@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "application/graphics_settings.h"
+#include "game/camera.h"
 #include "renderer/buffers.h"
 #include "renderer/cascade_shadow.h"
 #include "renderer/gl_state.h"
@@ -17,7 +18,6 @@
 #include "renderer/renderer_types.h"
 #include "renderer/shader/compute_shader.h"
 #include "renderer/texture_view.h"
-#include "scene/camera.h"
 #include "scene/handle.h"
 #include "scene/scene.h"
 #include "utilities/scene_processor.h"
@@ -26,7 +26,7 @@
 class Renderer
 {
   public:
-    Renderer(TextureManager &textureManager, const GraphicsSettings &settings, int screenWidth, int screenHeight);
+    Renderer(TextureManager &textureManager, const GraphicsSettings &settings, int windowWidth, int windowHeight);
     Renderer(const Renderer &) = delete;
     Renderer &operator=(const Renderer &) = delete;
     Renderer(Renderer &&other) = delete;
@@ -69,6 +69,7 @@ class Renderer
 
     // Shadows
     CascadeShadow cascadeShadow_;
+    float geometryOnlyFarPlane_{0.0f};
 
     // Drawing
     std::vector<MultiDrawBucket> drawBuckets_;
@@ -83,17 +84,17 @@ class Renderer
     ComputeShader msaaDepthResolveShader_;
     ComputeShader explodingVertexShader_;
 
-    // Rendering shaders
-    std::array<GraphicsShader, static_cast<int>(RenderOrder::count)> graphicsShaders_;
-    GraphicsShader shadowShader_;
-    GraphicsShader shadowAlphaShader_;
-    GraphicsShader fboResolveShader_;
-
     std::uint32_t cullWorkGroupSize_{0};
     std::uint32_t compactionWorkGroupSize_{0};
     std::uint32_t particleWorkGroupSize_{0};
     std::uint32_t skinnedVertexGroupSize_{0};
     std::uint32_t explodingVertexGroupSize_{0};
+
+    // Rendering shaders
+    std::array<GraphicsShader, static_cast<std::uint8_t>(RenderOrder::count)> graphicsShaders_;
+    GraphicsShader shadowShader_;
+    GraphicsShader shadowAlphaShader_;
+    GraphicsShader fboResolveShader_;
 
     // SSBO sizes for rebinding buffer ranges.
     std::uint32_t drawCommandsSize_{0};

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <optional>
 #include <utility>
 #include <variant>
@@ -15,12 +16,10 @@
 
 namespace
 {
-
 glm::mat4 composeTRS(const glm::vec3 &t, const glm::quat &r, const glm::vec3 s)
 {
     return glm::translate(glm::mat4{1.0f}, t) * glm::mat4_cast(r) * glm::scale(glm::mat4{1.0f}, s);
 }
-
 } // namespace
 
 Animator::Animator(NodeGraph &&nodeGraph, std::size_t numJoints)
@@ -74,22 +73,22 @@ void Animator::sampleChannels(Animation &animation, std::vector<glm::vec3> &tran
     for (const AnimationChannel &channel : animation.channels)
     {
         AnimationSampler &sampler{animation.samplers[channel.samplerIndex]};
-        const std::variant<glm::vec3, glm::quat> TSorR{interpolateSampler(sampler, time)};
+        const std::variant<glm::vec3, glm::quat> trs{interpolateSampler(sampler, time)};
 
         switch (channel.path)
         {
             using enum AnimationPath;
 
         case translation:
-            translations[channel.targetNode] = std::get<glm::vec3>(TSorR);
+            translations[channel.targetNode] = std::get<glm::vec3>(trs);
             break;
 
         case rotation:
-            rotations[channel.targetNode] = std::get<glm::quat>(TSorR);
+            rotations[channel.targetNode] = std::get<glm::quat>(trs);
             break;
 
         case scale:
-            scales[channel.targetNode] = std::get<glm::vec3>(TSorR);
+            scales[channel.targetNode] = std::get<glm::vec3>(trs);
             break;
         }
     }
@@ -187,7 +186,7 @@ std::variant<glm::vec3, glm::quat> Animator::interpolateSampler(AnimationSampler
                 return std::variant<glm::vec3, glm::quat>{
                     glm::slerp(std::get<glm::quat>(v1), std::get<glm::quat>(v2), t)};
         }
-        // Step
+        // Interpolation type: Step
         else
         {
             if (auto tOrS1 = std::get_if<glm::vec3>(&v1))

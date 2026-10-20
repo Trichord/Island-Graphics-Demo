@@ -52,7 +52,7 @@ bool Seagull::canReturnHome() const
     const glm::vec3 home{homePos_ - transform_.getPosition()};
     const glm::vec3 &direction{transform_.getFront()};
 
-    // If the bird is orbiting and aligns within ~40 degrees of the home direction, its safe to break the circle. If the
+    // If the bird is orbiting and aligns within ~46 degrees of the home direction, its safe to break the circle. If the
     // player has chased it enough times to push it right above home, it will stay there to avoid a steep janky decent
     return glm::dot(glm::normalize(direction), glm::normalize(home)) > 0.698132f;
 }

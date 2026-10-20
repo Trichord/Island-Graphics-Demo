@@ -1,9 +1,9 @@
-cmake_minimum_required(VERSION 3.25)
-project(island_demo LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.26)
+project(island_demo VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/$<CONFIG>)
 
 # Dependencies
 
@@ -15,12 +15,14 @@ find_package(fastgltf CONFIG REQUIRED)
 find_package(Jolt CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h REQUIRED)
 
 # Source files
 
 set(HEADERS
     headers/application/application.h
     headers/application/gl_context.h
+    headers/application/gl_debug.h
     headers/application/glfw_callbacks.h
     headers/application/graphics_settings.h
     headers/application/input.h
@@ -29,6 +31,7 @@ set(HEADERS
     headers/audio/audio_file.h
     headers/audio/audio_player.h
     headers/audio/sound_effect.h
+    headers/game/camera.h
     headers/game/game.h
     headers/models/aabb.h
     headers/models/instanced_model.h
@@ -43,6 +46,7 @@ set(HEADERS
     headers/physics/character_capsule.h
     headers/physics/collision_shapes.h
     headers/physics/jolt_impl.h
+    headers/physics/moved.h
     headers/physics/physics_utilities.h
     headers/physics/physics_world.h
     headers/physics/player_state.h
@@ -57,7 +61,6 @@ set(HEADERS
     headers/renderer/shader/shader_base.h
     headers/renderer/textures.h
     headers/renderer/texture_view.h
-    headers/scene/camera.h
     headers/scene/directional_light.h
     headers/scene/entry_animation.h
     headers/scene/handle.h
@@ -69,6 +72,7 @@ set(HEADERS
     headers/utilities/asset_loader.h
     headers/utilities/buffer_builder.h
     headers/utilities/json_loader.h
+    headers/utilities/json_parsing.h
     headers/utilities/ktx_texture.h
     headers/utilities/overloaded.h
     headers/utilities/random.h
@@ -86,11 +90,11 @@ set(HEADERS
 set(SOURCES
     src/main.cpp
     src/application/application.cpp
-    src/application/glfw_callbacks.cpp
     src/application/settings_window.cpp
     src/audio/audio_player.cpp
     src/audio/miniaudio_impl.cpp
     src/audio/sound_effect.cpp
+    src/game/camera.cpp
     src/game/game.cpp
     src/models/aabb.cpp
     src/models/animator.cpp
@@ -111,7 +115,6 @@ set(SOURCES
     src/renderer/shader/compute_shader.cpp
     src/renderer/shader/graphics_shader.cpp
     src/renderer/shader/shader_base.cpp
-    src/scene/camera.cpp
     src/scene/entry_animation.cpp
     src/scene/directional_light.cpp
     src/scene/scene.cpp
@@ -137,6 +140,7 @@ add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/headers
+    ${MINIAUDIO_INCLUDE_DIR}
 )
 
 # Link libraries
@@ -158,23 +162,28 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 target_compile_options(${PROJECT_NAME} PRIVATE
     /permissive-
-    $<$<CONFIG:Release>:/GL /Ot /Gy /GR->
+    /GR-
+    /we4541
+    $<$<CONFIG:Release>:/GL>
 )
 target_link_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:Release>:/LTCG>
 )
+# Speed up MSBuild
+if(CMAKE_GENERATOR MATCHES "Visual Studio")
+    target_compile_options(${PROJECT_NAME} PRIVATE /MP)
+endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     NOMINMAX
 )
 
-# Use PWD for debug / release
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+# Mirror res/ and shaders/ next to the exe on every build (only changed files are copied)
+add_custom_target(copy_assets ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+            ${CMAKE_SOURCE_DIR}/res $<TARGET_FILE_DIR:${PROJECT_NAME}>/res
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+            ${CMAKE_SOURCE_DIR}/shaders $<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders
+    COMMENT "Syncing res/ and shaders/ to output directory"
 )
-
-# Install with full copy of resources
-
-install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION .)
-install(DIRECTORY res/ DESTINATION res)
-install(DIRECTORY shaders/ DESTINATION shaders)
+add_dependencies(${PROJECT_NAME} copy_assets)

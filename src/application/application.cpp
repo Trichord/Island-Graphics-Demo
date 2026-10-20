@@ -16,9 +16,26 @@
 #include "renderer/textures.h"
 #include "utilities/json_loader.h"
 
+#ifdef _DEBUG
+#include "application/gl_debug.h"
+#endif
+
+namespace
+{
+// Callback for GLFW
+void framebuffer_size_callback(GLFWwindow *window, int width, int height)
+{
+    Application *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
+    if (!app)
+        return;
+
+    app->setWindow(width, height);
+}
+} // namespace
+
 Application::~Application()
 {
-    // Cleanup Jolt Physics
     delete JPH::Factory::sInstance;
     JPH::Factory::sInstance = nullptr;
 
@@ -49,16 +66,28 @@ void Application::run()
     if (!createOpenGLViewport())
         return;
 
-#ifndef _DEBUG
     registerCallbacks();
-#endif
-
     registerJolt();
 
-    Game game{graphicsSettings, windowWidth_, windowHeight_};
+    // Game must have a valid OpenGL context with Jolt setup and ready to go. The callback passed to Game allows it to
+    // update the console with messages and keep the window from being flagged as unresponsive.
+    Game game{graphicsSettings, windowWidth_, windowHeight_, [this](const std::string &s) { updateProgress(s); }};
+
+    // Grab the latest mouse position just before the loop
+    glfwShowWindow(window_);
+    glfwFocusWindow(window_);
+    glfwPollEvents();
+    glfwGetCursorPos(window_, &mouseX_, &mouseY_);
 
     while (!glfwWindowShouldClose(window_))
     {
+        // Sleep if minimized
+        while (glfwGetWindowAttrib(window_, GLFW_ICONIFIED) && !glfwWindowShouldClose(window_))
+        {
+            glfwWaitEvents();
+            lastFrame_ = glfwGetTime();
+        }
+
         // Delta Time
         currentFrame_ = glfwGetTime();
         deltaTime_ = static_cast<float>(currentFrame_ - lastFrame_);
@@ -70,6 +99,7 @@ void Application::run()
 
         glfwPollEvents();
         processKeyboard(userInput_);
+        processMouse(userInput_);
 
         if (windowResized_)
         {
@@ -108,38 +138,26 @@ void Application::processKeyboard(UserInput &input)
     userInput_.sprintToggle = leftShiftToggle_;
 }
 
-void Application::mouse_callback(GLFWwindow *window, double xPos, double yPos)
+void Application::processMouse(UserInput &input)
 {
-    Application *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
+    double newX{0.0};
+    double newY{0.0};
+    glfwGetCursorPos(window_, &newX, &newY);
 
-    if (!app)
-        return;
+    input.mouseDeltaX = static_cast<float>((newX - mouseX_) * mouseSensitivity_);
 
-    if (app->firstMouse_)
-    {
-        app->lastMouseX_ = static_cast<float>(xPos);
-        app->lastMouseY_ = static_cast<float>(yPos);
-        app->firstMouse_ = false;
-    }
-
-    float xOffset{static_cast<float>(xPos - app->lastMouseX_)};
-    float yOffset{static_cast<float>(app->lastMouseY_ - yPos)};
-
-    app->userInput_.mouseDeltaX = xOffset * app->mouseSensitivity_;
-    app->userInput_.mouseDeltaY = yOffset * app->mouseSensitivity_;
-
-    app->lastMouseX_ = static_cast<float>(xPos);
-    app->lastMouseY_ = static_cast<float>(yPos);
+    // Negation to turn increasing mouse Y coords into negative pitch
+    input.mouseDeltaY = static_cast<float>(-(newY - mouseY_) * mouseSensitivity_);
+    mouseX_ = newX;
+    mouseY_ = newY;
 }
 
 void Application::registerCallbacks()
 {
+    glfwSetWindowUserPointer(window_, this);
     glfwSetFramebufferSizeCallback(window_, framebuffer_size_callback);
     glfwSetKeyCallback(window_, Application::keyCallback);
-    glfwSetCursorPosCallback(window_, Application::mouse_callback);
     glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetWindowIconifyCallback(window_, window_iconify_callback);
-    glfwSetWindowUserPointer(window_, this);
 }
 
 void Application::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -159,6 +177,8 @@ void Application::keyCallback(GLFWwindow *window, int key, int scancode, int act
 
 void Application::createWindow(const GraphicsSettings &graphicsSettings)
 {
+    // Set the callback before trying to init, to capture any error messages
+    glfwSetErrorCallback(glfw_error_callback);
     glfwInit();
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -167,6 +187,7 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
     glfwWindowHint(GLFW_STENCIL_BITS, 0);
     glfwWindowHint(GLFW_DEPTH_BITS, 0);
     glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
 #ifdef _DEBUG
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
@@ -175,9 +196,12 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
     if (graphicsSettings.fullscreen)
     {
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 
-        const GLFWvidmode *mode{glfwGetVideoMode(glfwGetPrimaryMonitor())};
-        window_ = glfwCreateWindow(mode->width, mode->height, "Island Graphics Demo", glfwGetPrimaryMonitor(), nullptr);
+        GLFWmonitor *monitor{glfwGetPrimaryMonitor()};
+        const GLFWvidmode *mode{glfwGetVideoMode(monitor)};
+
+        window_ = glfwCreateWindow(mode->width, mode->height, "Island Graphics Demo", nullptr, nullptr);
     }
     else
         window_ = glfwCreateWindow(graphicsSettings.renderWidth, graphicsSettings.renderHeight, "Island Graphics Demo",
@@ -185,8 +209,18 @@ void Application::createWindow(const GraphicsSettings &graphicsSettings)
 
     if (!window_)
     {
-        std::cout << "Failed to create GLFW window" << std::endl;
+        std::cout << "Failed to create GLFW window\n";
         glfwTerminate();
+    }
+
+    // Safe to set now the window pointer check has passed
+    if (graphicsSettings.fullscreen)
+    {
+        int monitorX{0};
+        int monitorY{0};
+        GLFWmonitor *monitor{glfwGetPrimaryMonitor()};
+        glfwGetMonitorPos(monitor, &monitorX, &monitorY);
+        glfwSetWindowPos(window_, monitorX, monitorY);
     }
 
     glfwMakeContextCurrent(window_);
@@ -205,7 +239,7 @@ bool Application::createOpenGLViewport()
 {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-        std::cout << "ERROR: Failed to initialize GLAD" << std::endl;
+        std::cout << "Error: Failed to initialize GLAD\n";
         glfwTerminate();
         return false;
     }
@@ -229,14 +263,15 @@ bool Application::createOpenGLViewport()
 #ifdef _DEBUG
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    glDebugMessageCallback(glDebugOutput, nullptr);
+    glDebugMessageCallback(printGLError, nullptr);
     glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, GL_FALSE);
 #endif
 
     // If MDI Count not supported
     if (!glMultiDrawElementsIndirectCount)
     {
-        std::cerr << "GPU does not support required OpenGL features: MultiDrawElementsIndirectCount" << std::endl;
+        std::cerr << "GPU does not support required OpenGL features: MultiDrawElementsIndirectCount\n";
         supported = false;
     }
 
@@ -254,36 +289,36 @@ bool Application::createOpenGLViewport()
 
     if (maxSSBOs < SSBOMinimum::combinedBlocks)
     {
-        std::cerr << "ERROR: GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS (" << maxSSBOs << ") does not meet required ("
-                  << SSBOMinimum::combinedBlocks << ")" << std::endl;
+        std::cerr << "Error: GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS (" << maxSSBOs << ") does not meet required ("
+                  << SSBOMinimum::combinedBlocks << ")\n";
         supported = false;
     }
 
     if (maxSSBObindings < SSBOMinimum::combinedBindings)
     {
-        std::cerr << "ERROR: GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS (" << maxSSBObindings << ") does not meet required ("
-                  << SSBOMinimum::combinedBindings << ")" << std::endl;
+        std::cerr << "Error: GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS (" << maxSSBObindings << ") does not meet required ("
+                  << SSBOMinimum::combinedBindings << ")\n";
         supported = false;
     }
 
     if (maxVertexSSBOs < SSBOMinimum::vertexBlocks)
     {
-        std::cerr << "ERROR: GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS (" << maxVertexSSBOs << ") does not meet required ("
-                  << SSBOMinimum::vertexBlocks << ")" << std::endl;
+        std::cerr << "Error: GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS (" << maxVertexSSBOs << ") does not meet required ("
+                  << SSBOMinimum::vertexBlocks << ")\n";
         supported = false;
     }
 
     if (maxFragmentSSBOs < SSBOMinimum::fragmentBlocks)
     {
-        std::cerr << "ERROR: GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS (" << maxFragmentSSBOs
-                  << ") does not meet required (" << SSBOMinimum::fragmentBlocks << ")" << std::endl;
+        std::cerr << "Error: GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS (" << maxFragmentSSBOs
+                  << ") does not meet required (" << SSBOMinimum::fragmentBlocks << ")\n";
         supported = false;
     }
 
     if (maxImageUnits < TextureUnit::max)
     {
-        std::cerr << "ERROR: GGL_MAX_TEXTURE_IMAGE_UNITS (" << maxImageUnits << ") does not meet required ("
-                  << TextureUnit::max << ")" << std::endl;
+        std::cerr << "Error: GL_MAX_TEXTURE_IMAGE_UNITS (" << maxImageUnits << ") does not meet required ("
+                  << TextureUnit::max << ")\n";
         supported = false;
     }
 
@@ -300,86 +335,8 @@ void Application::registerJolt()
     JPH::RegisterTypes();
 }
 
-#ifdef _DEBUG
-void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length,
-                            const char *message, const void *userParam)
+void Application::updateProgress(const std::string &message)
 {
-    // Low priority messages
-    if (id == 131169 || id == 131185 || id == 131218 || id == 131204)
-        return;
-
-    std::cout << "Debug message (" << id << "): " << message << std::endl;
-
-    switch (source)
-    {
-    case GL_DEBUG_SOURCE_API:
-        std::cout << "Source: API";
-        break;
-    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-        std::cout << "Source: Window System";
-        break;
-    case GL_DEBUG_SOURCE_SHADER_COMPILER:
-        std::cout << "Source: Shader Compiler";
-        break;
-    case GL_DEBUG_SOURCE_THIRD_PARTY:
-        std::cout << "Source: Third Party";
-        break;
-    case GL_DEBUG_SOURCE_APPLICATION:
-        std::cout << "Source: Application";
-        break;
-    case GL_DEBUG_SOURCE_OTHER:
-        std::cout << "Source: Other";
-        break;
-    }
-    std::cout << std::endl;
-
-    switch (type)
-    {
-    case GL_DEBUG_TYPE_ERROR:
-        std::cout << "Type: Error";
-        break;
-    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-        std::cout << "Type: Deprecated Behaviour";
-        break;
-    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-        std::cout << "Type: Undefined Behaviour";
-        break;
-    case GL_DEBUG_TYPE_PORTABILITY:
-        std::cout << "Type: Portability";
-        break;
-    case GL_DEBUG_TYPE_PERFORMANCE:
-        std::cout << "Type: Performance";
-        break;
-    case GL_DEBUG_TYPE_MARKER:
-        std::cout << "Type: Marker";
-        break;
-    case GL_DEBUG_TYPE_PUSH_GROUP:
-        std::cout << "Type: Push Group";
-        break;
-    case GL_DEBUG_TYPE_POP_GROUP:
-        std::cout << "Type: Pop Group";
-        break;
-    case GL_DEBUG_TYPE_OTHER:
-        std::cout << "Type: Other";
-        break;
-    }
-    std::cout << std::endl;
-
-    switch (severity)
-    {
-    case GL_DEBUG_SEVERITY_HIGH:
-        std::cout << "Severity: high";
-        break;
-    case GL_DEBUG_SEVERITY_MEDIUM:
-        std::cout << "Severity: medium";
-        break;
-    case GL_DEBUG_SEVERITY_LOW:
-        std::cout << "Severity: low";
-        break;
-    case GL_DEBUG_SEVERITY_NOTIFICATION:
-        std::cout << "Severity: notification";
-        break;
-    }
-    std::cout << std::endl << std::endl;
+    std::cout << message;
+    glfwPollEvents();
 }
-#endif

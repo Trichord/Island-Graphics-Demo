@@ -1,3 +1,11 @@
+// SPDX-License-Identifier: CC-BY-NC-4.0
+//
+// Derived from LearnOpenGL (https://learnopengl.com) by Joey de Vries.
+// Original code licensed under CC BY-NC 4.0: https://creativecommons.org/licenses/by-nc/4.0/
+// Modified by James Midtdal: Removed globals, added state tracking and convenience methods for cubemap generation.
+//
+// This file is not covered by the project's MIT License.
+
 #pragma once
 
 #include <glm/glm.hpp>

@@ -2,7 +2,11 @@
 
 #include <miniaudio.h>
 #include <stdexcept>
+#include <iostream>
 
+/**
+ * @brief Simple RAII wrapper around MiniAudio's audio engine.
+ */
 struct AudioEngine
 {
     ma_engine engine;
@@ -12,7 +16,10 @@ struct AudioEngine
         ma_result engineInit{ma_engine_init(nullptr, &engine)};
 
         if (engineInit != MA_SUCCESS)
-            throw std::runtime_error("Failed to initialize audio engine");
+        {
+            std::cerr << "Error: Failed to initialize audio engine\n";
+            throw std::runtime_error("ma_engine init failure");
+        }
     }
 
     ~AudioEngine()

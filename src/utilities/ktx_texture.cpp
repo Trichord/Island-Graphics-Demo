@@ -1,5 +1,3 @@
-#pragma once
-
 #include "utilities/ktx_texture.h"
 
 #include <algorithm>
@@ -30,7 +28,7 @@ KTXTexture::KTXTexture(const std::filesystem::path path) : path_{path}
     }
     else
     {
-        std::cerr << ktxErrorString(result) << std::endl;
+        std::cerr << ktxErrorString(result) << "\n";
         texture_ = nullptr;
     }
 }
@@ -90,7 +88,7 @@ KTXTexture::MipData KTXTexture::getMipData(const ktx_uint32_t level, const ktx_u
 
     if (error != KTX_SUCCESS)
     {
-        std::cerr << "Could not load mip data for " << path_ << std::endl;
+        std::cerr << "Could not load mip data for " << path_ << "\n";
         return {};
     }
 

@@ -1,4 +1,8 @@
-#include "scene/camera.h"
+// SPDX-License-Identifier: CC-BY-NC-4.0
+// Derived from LearnOpenGL by Joey de Vries (CC BY-NC 4.0). Modified by James Midtdal.
+// See THIRD_PARTY_NOTICES.md for details.
+
+#include "game/camera.h"
 
 #include <algorithm>
 #include <cmath>
@@ -12,10 +16,8 @@ constexpr float maxPitch{85.0f};
 constexpr float minPitch{-maxPitch};
 
 Camera::Camera(const Camera::Description &description, float aspectRatio)
-    : yaw_{description.yaw}, pitch_{description.pitch}, position_{description.position},
-      projectionMatrix_{glm::perspective(glm::radians(fov_), aspectRatio_, nearPlane_, farPlane_)},
-      fov_{description.fov}, nearPlane_{description.nearPlane}, farPlane_{description.farPlane},
-      aspectRatio_{aspectRatio}
+    : yaw_{description.yaw}, pitch_{description.pitch}, position_{description.position}, fov_{description.fov},
+      nearPlane_{description.nearPlane}, farPlane_{description.farPlane}, aspectRatio_{aspectRatio}
 {
 }
 
@@ -59,6 +61,9 @@ const glm::mat4 &Camera::getViewMatrix() const
 
 const glm::mat4 &Camera::getProjectionMatrix() const
 {
+    if (dirtyMatrices_)
+        updateMatrices();
+
     return projectionMatrix_;
 }
 
@@ -114,7 +119,8 @@ void Camera::setPosition(const glm::vec3 &position)
     dirtyMatrices_ = true;
 }
 
-// Maps world orientation to cubemap directions
+// Sets camera to all the world vectors, including ones unreachable through pitch assignments. Useful for cubemap face
+// generation.
 void Camera::setWorldOrientation(WorldOrientation orientation)
 {
     using enum WorldOrientation;

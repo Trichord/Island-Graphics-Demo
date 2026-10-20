@@ -9,7 +9,7 @@
 
 <br>Code samples licensed under
 <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a>
-<br><br> This project started as LearnOpenGL tutorials. Most recognizable are the camera, shader base class, and several shaders (PBR, shadow implementation). Treat anything resembling LearnOpenGL material as derived.
+<br><br> This project started as LearnOpenGL tutorials. The following implementations should be considered as derived from LearnOpenGL and retain the original license: camera.cpp/camera.h, shader_base.cpp/shader_base.h, pbr.vert/pbr.frag
 
 </details>
 
@@ -49,6 +49,7 @@ The file lib/etcdec.cxx is not open source. It is made available under the terms
 <details>
 <summary>Copyright © 2002-2006 Marcus Geelnard, Copyright © 2006-2019 Camilla Löwy</summary>
 
+zlib License<br>
 This software is provided 'as-is', without any express or implied warranty. In no event will the authors be held liable for any damages arising from the use of this software.
 
 Permission is granted to anyone to use this software for any purpose, including commercial applications, and to alter it and redistribute it freely, subject to the following restrictions:
@@ -201,6 +202,15 @@ MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
 
 <h2>Bevy Engine</h2>
 <details>
+<summary>Copyright © Bevy Contributors</summary>
+
+<a href="#mit-license">MIT License</a>
+</details>
+
+<h2>miniaudio</h2>
+<details>
+<summary>Copyright 2025 David Reid</summary>
+
 <a href="#mit-license">MIT License</a>
 </details>
 
