@@ -1,0 +1,28 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Build
+        run: |
+          $env:VCPKG_ROOT = $env:VCPKG_INSTALLATION_ROOT
+          cmake --workflow --preset vs-release
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          7z a IslandDemo-windows-x64.zip .\bin\Release\* LICENSE THIRD_PARTY_NOTICES.md
+          gh release create $env:GITHUB_REF_NAME IslandDemo-windows-x64.zip --generate-notes
